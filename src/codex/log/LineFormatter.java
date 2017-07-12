@@ -8,7 +8,6 @@ import java.util.Date;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 
-
 class LineFormatter extends Formatter {
     
     private final SimpleDateFormat format;
