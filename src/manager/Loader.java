@@ -1,8 +1,7 @@
 package manager;
 
 import codex.log.Logger;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.PatternLayout;
+import org.apache.log4j.Level;
 
 public class Loader {
 
@@ -12,18 +11,57 @@ public class Loader {
     public static void main(String[] args) {
         
         Logger logger = Logger.getLogger();
-        logger.addAppender(new ConsoleAppender(new PatternLayout("%d{ABSOLUTE} [%5p] %m%n"), "System.out"));
+        logger.setLevel(Level.ALL);
 
-        logger.debug("DEBUG");
-        logger.info("INFO");
-        logger.warn("WARN");
-        logger.error("ERROR");
-        logger.fatal("FATAL");
-       
-        logger.fatal("Error:", new Error("Exception"));
+        Thread t1 = new Thread(new Runnable() {
+            final Logger logger = Logger.getLogger();
+            
+            @Override
+            public void run() {
+                try {
+                    int i = 0;
+                    while (i < 10) {
+                        logger.warn("Thread ''{0}'' posted: {1}", new Object[] {Thread.currentThread().getName(), i});
+                        Thread.sleep(500);
+                        i++;
+                    }
+                } catch (InterruptedException e) {
+                    logger.warn("Error", e);
+                }
+            }
+        });
         
-        logger.info("Entity ID={0}, Title={1}", new Object[] {4, "Demo"});
+        Thread t2 = new Thread(new Runnable() {
+            final Logger logger = Logger.getLogger();
+
+            @Override
+            public void run() {
+                try {
+                    int i = 0;
+                    while (i < 20) {
+                        logger.debug("Thread ''{0}'' posted: {1}", new Object[] {Thread.currentThread().getName(), i});
+                        Thread.sleep(200);
+                        i++;
+                    }
+                } catch (InterruptedException e) {
+                    logger.warn("Error", e);
+                }
+            }
+        });
         
+        logger.error("Start threads");
+        t1.setDaemon(true);
+        t2.setDaemon(true);
+        t1.start();
+        t2.start();
+        
+        try {
+            t1.join();
+            t2.join();
+        } catch (InterruptedException e) {
+            logger.warn("Error", e);
+        }
+
     }
     
 }
