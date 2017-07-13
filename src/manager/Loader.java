@@ -2,8 +2,7 @@ package manager;
 
 import codex.log.Logger;
 import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.SimpleLayout;
-
+import org.apache.log4j.PatternLayout;
 
 public class Loader {
 
@@ -13,18 +12,17 @@ public class Loader {
     public static void main(String[] args) {
         
         Logger logger = Logger.getLogger();
-        logger.addAppender(new ConsoleAppender(new SimpleLayout(), "System.out"));
-        //logger.addAppender(new ConsoleAppender(new PatternLayout("%d{ABSOLUTE} [%5p] %m%n"), "System.out"));
+        logger.addAppender(new ConsoleAppender(new PatternLayout("%d{ABSOLUTE} [%5p] %m%n"), "System.out"));
 
         logger.debug("DEBUG");
-//        logger.info("INFO");
-//        logger.warn("WARN");
-//        logger.error("ERROR");
-//        logger.fatal("FATAL");
-//       
-//        logger.fatal("Error:", new Error("Exception"));
+        logger.info("INFO");
+        logger.warn("WARN");
+        logger.error("ERROR");
+        logger.fatal("FATAL");
+       
+        logger.fatal("Error:", new Error("Exception"));
         
-        //logger.info("Entity ID={0}, Title={1}", new Object[] {4, "Demo"});
+        logger.info("Entity ID={0}, Title={1}", new Object[] {4, "Demo"});
         
     }
     
