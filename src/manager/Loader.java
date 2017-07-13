@@ -1,8 +1,9 @@
 package manager;
 
 import codex.log.Logger;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Level;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.SimpleLayout;
+
 
 public class Loader {
 
@@ -12,10 +13,19 @@ public class Loader {
     public static void main(String[] args) {
         
         Logger logger = Logger.getLogger();
-        logger.addHandler(new ConsoleHandler());
-        logger.setLevel(Level.FINE);
-        logger.log(Level.FINE, "Test {0}", new Object[] {4});
-        logger.log(Level.SEVERE, new Error("Error"));
+        logger.addAppender(new ConsoleAppender(new SimpleLayout(), "System.out"));
+        //logger.addAppender(new ConsoleAppender(new PatternLayout("%d{ABSOLUTE} [%5p] %m%n"), "System.out"));
+
+        logger.debug("DEBUG");
+//        logger.info("INFO");
+//        logger.warn("WARN");
+//        logger.error("ERROR");
+//        logger.fatal("FATAL");
+//       
+//        logger.fatal("Error:", new Error("Exception"));
+        
+        //logger.info("Entity ID={0}, Title={1}", new Object[] {4, "Demo"});
+        
     }
     
 }
