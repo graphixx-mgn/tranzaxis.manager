@@ -1,56 +1,53 @@
 package codex.log;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
+import java.text.MessageFormat;
 
-public class Logger {
+public class Logger extends org.apache.log4j.Logger {
     
-    private static final Logger instance = new Logger();
+    private static final Logger logger = new Logger(Logger.getLogger(Logger.class));
     
+    final org.apache.log4j.Logger target;
+    
+    protected Logger(org.apache.log4j.Logger target) {
+        super("");
+        this.target = target;
+    }
+    
+//    private final org.apache.log4j.Logger target;
+//    
+//    private static final Logger instance = new Logger();
+//    
     public static Logger getLogger() {
-        return instance;
+        return logger;
     }
-    
-    private       Level         level = Level.ALL;
-    private final List<Handler> handlers = new LinkedList<>();
-    
-    private Logger() {};
-    
-    public final void setLevel(Level level) {
-        this.level = level;
-    }
-    
-    public final void log(Level level, String message) {
-        put(new LogRecord(level, message));
-    }
-    
-    public final void log(Level level, String message, Object[] params) {
-        LogRecord record = new LogRecord(level, message);
-        record.setParameters(params);
-        put(record);
-    }
-    
-    public final void log(Level level, Throwable exception) {
-        LogRecord record = new LogRecord(level, "");
-        record.setThrown(exception);
-        put(record);
-    }
-    
-    public void addHandler(Handler handler) {
-        handlers.add(handler);
-    } 
-    
-    private void put(LogRecord record) {
-        if (record.getLevel().intValue() >= level.intValue()) {
-            for (Handler handler : handlers) {
-                if (record.getLevel().intValue() >= handler.getLevel().intValue()) {
-                    handler.publish(record);
-                }
-            }
-        }
-    }
+//    
+//    private Logger() {
+//        super("");
+//        target = org.apache.log4j.Logger.getLogger(Logger.class);
+//    };
+//    
+//    public final void debug(String message, Object[] params) {
+//        target.debug(format(message, params));
+//    }
+//    
+//    public final void info(String message, Object[] params) {
+//        target.info(format(message, params));
+//    }
+//    
+//    public final void warn(String message, Object[] params) {
+//        target.warn(format(message, params));
+//    }
+//    
+//    public final void error(String message, Object[] params) {
+//        target.error(format(message, params));
+//    }
+//    
+//    public final void fatal(String message, Object[] params) {
+//        target.fatal(format(message, params));
+//    }
+//    
+//    private String format(String message, Object[] params) {
+//        return MessageFormat.format(message, params);
+//    }
     
 }
