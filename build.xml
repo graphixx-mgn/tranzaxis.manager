@@ -11,7 +11,7 @@
     <description>Builds, tests, and runs the project Codex.</description>
     <import file="nbproject/build-impl.xml"/>
     
-    <target name="package-for-store" depends="jar">
+    <target name="package-for-store" depends="jar, javadoc">
         <property name="store.jar.name" value="codex"/>
         <property name="store.dir" value="store"/>
         <property name="store.jar" value="${store.dir}/${store.jar.name}.jar"/>
@@ -30,6 +30,9 @@
             excludes="META-INF/*.SF, META-INF/*.DSA, META-INF/*.RSA"/>
         </zip>
         <delete file="${store.dir}/temp_final.jar"/>
+        
+        <echo message="Packaging JAVADOC"/>
+        <jar compress="${jar.compress}" basedir="${dist.javadoc.dir}" jarfile="${store.dir}/${store.jar.name}-javadoc.jar"/>
     </target>
     <!--
 
