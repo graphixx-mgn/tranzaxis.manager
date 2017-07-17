@@ -17,6 +17,11 @@ public class HTMLLayout extends org.apache.log4j.HTMLLayout {
         sessionId = UUID.randomUUID().toString();
     }
 
+    /**
+     * Transforms log data to output format (HTML).
+     * @param event Log record data
+     * @return String of HTML code
+     */
     @Override
     public String format(LoggingEvent event) {
         String level = event.getLevel().toString();
@@ -29,6 +34,13 @@ public class HTMLLayout extends org.apache.log4j.HTMLLayout {
                 .toString();
     }
     
+    /**
+     * Preprocess message up to conditions: Exceptional and large messages have
+     * additional block "details" which is hidden by default but can be shown by
+     * button "Show details".
+     * @param event Log record data
+     * @return String of HTML code
+     */
     private String prepareMessage(LoggingEvent event) {
         ThrowableInformation exceptionInfo = event.getThrowableInformation();
         if (exceptionInfo != null) {
@@ -57,6 +69,11 @@ public class HTMLLayout extends org.apache.log4j.HTMLLayout {
         }
     }
 
+    /**
+     * The method is being called while layout started. It creates new table as 
+     * a new session.
+     * @return String of HTML code
+     */
     @Override
     public String getHeader() {
         return new StringBuffer()
@@ -67,10 +84,15 @@ public class HTMLLayout extends org.apache.log4j.HTMLLayout {
                 .toString();
     }
     
-    private static String escape(String s) {
+    /**
+     * Escapes special symbols in order to write XML/HTML data to the log
+     * @param data Original log message
+     * @return Safe log message
+     */
+    private static String escape(String data) {
         final StringBuilder out = new StringBuilder();
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
+        for (int i = 0; i < data.length(); i++) {
+            char c = data.charAt(i);
             if (c > 127 || c == '"' || c == '<' || c == '>' || c == '&') {
                 out.append("&#");
                 out.append((int) c);

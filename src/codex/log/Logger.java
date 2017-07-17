@@ -16,7 +16,7 @@ public class Logger extends org.apache.log4j.Logger {
     
     /**
      * This method overrides {@link Logger#getInstance} by supplying its own factory type as a parameter.
-     * @param name
+     * @param name Name of logger
      * @return
      */
     public static Category getInstance(String name) {

@@ -14,23 +14,36 @@ public class HTMLFileAppender extends AppenderSkeleton {
     private String           fileName;
     private FileOutputStream fileStream;
     
+    /**
+     * Get file defined in the .properties file
+     * @return File path
+     */
     public String getFile() {
         return fileName;
     }
     
+    /**
+     * Set output file to write logs.
+     * @param file File path
+     * @throws IOException 
+     */
     public void setFile(String file) throws IOException {
         this.fileName = file;
-//        if (Files.exists(Paths.get(fileName))) {
-//            fileStream = new FileOutputStream(fileName, true);
-//        } else {
+        if (Files.exists(Paths.get(fileName))) {
+            fileStream = new FileOutputStream(fileName, true);
+        } else {
             Files.createDirectories(Paths.get(fileName).getParent());
             fileStream = new FileOutputStream(fileName, false);
             fileStream.write(prepareHtml().getBytes());
-//        }
+        }
         fileStream.write(getLayout().getHeader().getBytes());
         fileStream.flush();
     }
 
+    /**
+     * Method is being called while new log event exists.
+     * @param event Log record data
+     */
     @Override
     protected void append(LoggingEvent event) {
         try {
@@ -47,6 +60,11 @@ public class HTMLFileAppender extends AppenderSkeleton {
         return true;
     }
     
+    /**
+     * Prepares <html> part of file with all subparts 
+     * @return String of HTML code
+     * @throws IOException 
+     */
     private String prepareHtml() throws IOException {
         return new StringBuffer()
                 .append("<html>\n")
@@ -55,6 +73,11 @@ public class HTMLFileAppender extends AppenderSkeleton {
                 .toString();
     }
     
+    /**
+     * Prepares <head> part of file with all subparts such as CSS, JavaScript.
+     * @return String of HTML code
+     * @throws IOException 
+     */
     private String prepareHead() throws IOException {
         return new StringBuffer()
                 .append("\t<head>\n")
@@ -65,6 +88,12 @@ public class HTMLFileAppender extends AppenderSkeleton {
                 .toString();
     }
     
+    /**
+     * Prepares CSS injection from resource.
+     * @param resource Path to project resource
+     * @return String of HTML code
+     * @throws IOException 
+     */
     private String prepareCSS(String resource) throws IOException {
         final InputStream cssResource = this.getClass().getResourceAsStream(resource);
         return new StringBuffer()
@@ -76,6 +105,12 @@ public class HTMLFileAppender extends AppenderSkeleton {
                 .toString();
     }
     
+    /**
+     * Prepares JavaScript injection from resource.
+     * @param resource Path to project resource
+     * @return String of HTML code
+     * @throws IOException 
+     */
     private String prepareJavaScript(String resource) throws IOException {
         final InputStream jsResource = this.getClass().getResourceAsStream(resource);
         return new StringBuffer()
@@ -87,6 +122,10 @@ public class HTMLFileAppender extends AppenderSkeleton {
                 .toString();
     }
     
+    /**
+     * Prepares <body> part of file with all subparts 
+     * @return c
+     */
     private String prepareBody() {
         return new StringBuffer()
                 .append("\t<body bgcolor=\"#FFFFFF\" topmargin=\"6\" leftmargin=\"6\">\n")
@@ -94,6 +133,10 @@ public class HTMLFileAppender extends AppenderSkeleton {
                 .toString();
     }
     
+    /**
+     * Prepares element which contains controls.
+     * @return String of HTML code
+     */
     private String preparePanel() {
         return new StringBuilder()
                 .append("\t\t<div class=\"controls\">\n")
@@ -102,6 +145,10 @@ public class HTMLFileAppender extends AppenderSkeleton {
                 .toString();
     }
     
+    /**
+     * Prepares filter for log messages. Debug messages are disabled by default.
+     * @return String of HTML code
+     */
     private String prepareFilterBar() {
         return new StringBuffer()
                 .append("<div id=\"levels\" class=\"toolbar\">")
