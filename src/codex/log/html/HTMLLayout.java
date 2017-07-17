@@ -10,7 +10,7 @@ import org.apache.log4j.spi.ThrowableInformation;
 
 public class HTMLLayout extends org.apache.log4j.HTMLLayout {
     
-    private static final SimpleDateFormat format = new SimpleDateFormat("HH.mm.ss,SSS");
+    private static final SimpleDateFormat format = new SimpleDateFormat("HH:mm:ss,SSS");
     private final String sessionId;
     
     public HTMLLayout() {
