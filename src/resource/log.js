@@ -8,7 +8,7 @@ $(document).ready(function() {
             $(this).text("Show details");
         }
     });
-    $(".checkbox").click(function(){
+    $(".check").click(function(){
         if ($(this).hasClass('checked')) {
             $(this).removeClass('checked');
         } else {
@@ -20,7 +20,7 @@ $(document).ready(function() {
 });
 
 function applyFilters() {
-    $(".checkbox").each(function() {
+    $(".check").each(function() {
         var level = $(this).attr("data");
         if ($(this).hasClass('checked')) {
             $("tr."+level).show();
