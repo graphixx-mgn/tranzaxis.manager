@@ -29,13 +29,13 @@ public class HTMLFileAppender extends AppenderSkeleton {
      */
     public void setFile(String file) throws IOException {
         this.fileName = file;
-        if (Files.exists(Paths.get(fileName))) {
-            fileStream = new FileOutputStream(fileName, true);
-        } else {
+//        if (Files.exists(Paths.get(fileName))) {
+//            fileStream = new FileOutputStream(fileName, true);
+//        } else {
             Files.createDirectories(Paths.get(fileName).getParent());
             fileStream = new FileOutputStream(fileName, false);
             fileStream.write(prepareHtml().getBytes());
-        }
+//        }
         fileStream.write(getLayout().getHeader().getBytes());
         fileStream.flush();
     }
@@ -153,15 +153,11 @@ public class HTMLFileAppender extends AppenderSkeleton {
         return new StringBuffer()
                 .append("<div id=\"levels\" class=\"toolbar\">")
                 .append("<table><tr>")
-                .append("<td>Filters:<td/>")
-                .append("<td><input type=\"checkbox\" class=\"switch\" data=\"DEBUG\" onclick=\"applyFilters();\"></td>")
-                .append("<td><div class=\"icon DEBUG\"></div>Debug</td>")
-                .append("<td><input type=\"checkbox\" class=\"switch\" data=\"INFO\" onclick=\"applyFilters();\" checked=\"checked\"></td>")
-                .append("<td><div class=\"icon INFO\"></div>Info</td>")
-                .append("<td><input type=\"checkbox\" class=\"switch\" data=\"WARN\" onclick=\"applyFilters();\" checked=\"checked\"></td>")
-                .append("<td><div class=\"icon WARN\"></div>Warning</td>")
-                .append("<td><input type=\"checkbox\" class=\"switch\" data=\"ERROR\" onclick=\"applyFilters();\" checked=\"checked\"></td>")
-                .append("<td><div class=\"icon ERROR\"></div>Error</td>")
+                .append("<td><b>Filters:</b><td/>")
+                .append("<td><div class=\"icon checkbox DEBUG\" data=\"DEBUG\"></div>Debug</td>")
+                .append("<td><div class=\"icon checkbox checked INFO\" data=\"INFO\"></div>Info</td>")
+                .append("<td><div class=\"icon checkbox checked WARN\" data=\"WARN\"></div>Warning</td>")
+                .append("<td><div class=\"icon checkbox checked ERROR\" data=\"ERROR\"></div>Error</td>")
                 .append("</tr></table>")
                 .append("</div>")
                 .toString();

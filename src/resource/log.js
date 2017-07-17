@@ -8,26 +8,24 @@ $(document).ready(function() {
             $(this).text("Show details");
         }
     });
+    $(".checkbox").click(function(){
+        if ($(this).hasClass('checked')) {
+            $(this).removeClass('checked');
+        } else {
+            $(this).addClass('checked');
+        }
+        applyFilters();
+    });
     applyFilters();
 });
 
 function applyFilters() {
-    $(".switch").each(function() {
+    $(".checkbox").each(function() {
         var level = $(this).attr("data");
-        if ($(this).prop('checked')) {
+        if ($(this).hasClass('checked')) {
             $("tr."+level).show();
         } else {
             $("tr."+level).hide();
         }
     });
-}
-
-function searchRecords() {
-    var find = $("#finder").val();
-    console.log("Find: "+find);
-    $(".msg").each(function() {
-        if ($(this).text().indexOf(find) !== -1) {
-            console.log($(this).text());
-        }
-    })
 }
