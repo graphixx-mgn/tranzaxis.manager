@@ -37,9 +37,9 @@ public class Logger extends org.apache.log4j.Logger {
      *  logger.debug("Entity ID={0}, Title={1}", new Object[] {4, "Demo"});
      * </pre>
      * @param message Message template that contains numbered placeholders for parameters. 
-     * @param params Array of parameters to fill the template
+     * @param params Parameters to fill the template
      */
-    public final void debug(String message, Object[] params) {
+    public final void debug(String message, Object... params) {
         super.debug(format(message, params));
     }
     
@@ -49,9 +49,9 @@ public class Logger extends org.apache.log4j.Logger {
      *  logger.info("Entity ID={0}, Title={1}", new Object[] {4, "Demo"});
      * </pre>
      * @param message Message template that contains numbered placeholders for parameters
-     * @param params Array of parameters to fill the template
+     * @param params Parameters to fill the template
      */
-    public final void info(String message, Object[] params) {
+    public final void info(String message, Object... params) {
         super.info(format(message, params));
     }
     
@@ -61,9 +61,9 @@ public class Logger extends org.apache.log4j.Logger {
      *  logger.warn("Entity ID={0}, Title={1}", new Object[] {4, "Demo"});
      * </pre>
      * @param message Message template that contains numbered placeholders for parameters
-     * @param params Array of parameters to fill the template
+     * @param params Parameters to fill the template
      */
-    public final void warn(String message, Object[] params) {
+    public final void warn(String message, Object... params) {
         super.warn(format(message, params));
     }
     
@@ -73,9 +73,9 @@ public class Logger extends org.apache.log4j.Logger {
      *  logger.error("Entity ID={0}, Title={1}", new Object[] {4, "Demo"});
      * </pre>
      * @param message Message template that contains numbered placeholders for parameters
-     * @param params Array of parameters to fill the template
+     * @param params Parameters to fill the template
      */
-    public final void error(String message, Object[] params) {
+    public final void error(String message, Object... params) {
         super.error(format(message, params));
     }
     
@@ -85,9 +85,9 @@ public class Logger extends org.apache.log4j.Logger {
      *  logger.fatal("Entity ID={0}, Title={1}", new Object[] {4, "Demo"});
      * </pre>
      * @param message Message template that contains numbered placeholders for parameters
-     * @param params Array of parameters to fill the template
+     * @param params Parameters to fill the template
      */
-    public final void fatal(String message, Object[] params) {
+    public final void fatal(String message, Object... params) {
         super.fatal(format(message, params));
     }
     
