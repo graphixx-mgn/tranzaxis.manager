@@ -11,10 +11,10 @@ import org.apache.log4j.spi.ThrowableInformation;
 public class HTMLLayout extends org.apache.log4j.HTMLLayout {
     
     private static final SimpleDateFormat format = new SimpleDateFormat("HH:mm:ss,SSS");
-    private final String sessionId;
+    private final Long sessionTime;
     
     public HTMLLayout() {
-        sessionId = UUID.randomUUID().toString();
+        sessionTime = new Date().getTime();
     }
 
     /**
@@ -77,10 +77,10 @@ public class HTMLLayout extends org.apache.log4j.HTMLLayout {
     @Override
     public String getHeader() {
         return new StringBuffer()
-                .append("\t\t</table><hr size=\"1\" noshade sessionId=\"").append(sessionId).append("\">\n")
-                .append("\t\t<H4>Log session start time: ").append(new Date().toString()).append("</H4>\n")
-                .append("\t\t<table cellspacing=\"0\" cellpadding=\"4\" border=\"1\">\n")
-                .append("\t\t\t<tr><th width=\"1%\"></th><th width=\"1%\">Time</th><th width=\"100%\">Message</th></tr>\n")
+                .append("\t\t\t</table>\n\t\t</span>\n")
+                .append("\t\t<span class='session' timestamp='").append(sessionTime).append("'>\n")
+                .append("\t\t\t<table cellspacing='0' cellpadding='4' border='1' class='log'>\n")
+                .append("\t\t\t\t<tr><th width='1%'></th><th width='1%'>Time</th><th width='100%'>Message</th></tr>\n")
                 .toString();
     }
     

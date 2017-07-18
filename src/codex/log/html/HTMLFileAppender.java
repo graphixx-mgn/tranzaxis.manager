@@ -29,13 +29,13 @@ public class HTMLFileAppender extends AppenderSkeleton {
      */
     public void setFile(String file) throws IOException {
         this.fileName = file;
-//        if (Files.exists(Paths.get(fileName))) {
-//            fileStream = new FileOutputStream(fileName, true);
-//        } else {
+        if (Files.exists(Paths.get(fileName))) {
+            fileStream = new FileOutputStream(fileName, true);
+        } else {
             Files.createDirectories(Paths.get(fileName).getParent());
             fileStream = new FileOutputStream(fileName, false);
             fileStream.write(prepareHtml().getBytes());
-//        }
+        }
         fileStream.write(getLayout().getHeader().getBytes());
         fileStream.flush();
     }
@@ -80,11 +80,11 @@ public class HTMLFileAppender extends AppenderSkeleton {
      */
     private String prepareHead() throws IOException {
         return new StringBuffer()
-                .append("\t<head>\n")
+                .append("<head>\n")
                 .append(prepareCSS("/resource/log.css"))
                 .append(prepareJavaScript("/resource/jquery-3.2.1.min.js"))
                 .append(prepareJavaScript("/resource/log.js"))
-                .append("\t</head>\n")
+                .append("</head>\n")
                 .toString();
     }
     
@@ -97,11 +97,11 @@ public class HTMLFileAppender extends AppenderSkeleton {
     private String prepareCSS(String resource) throws IOException {
         final InputStream cssResource = this.getClass().getResourceAsStream(resource);
         return new StringBuffer()
-                .append("\t\t<style>\n")
-                .append("\t\t\t")
-                .append(new Scanner(cssResource, "UTF-8").useDelimiter("\\A").next().replaceAll("\n", "\n\t\t\t"))
+                .append("\t<style>\n")
+                .append("\t\t")
+                .append(new Scanner(cssResource, "UTF-8").useDelimiter("\\A").next().replaceAll("\n", "\n\t\t"))
                 .append("\n")
-                .append("\t\t</style>\n")
+                .append("\t</style>\n")
                 .toString();
     }
     
@@ -114,11 +114,11 @@ public class HTMLFileAppender extends AppenderSkeleton {
     private String prepareJavaScript(String resource) throws IOException {
         final InputStream jsResource = this.getClass().getResourceAsStream(resource);
         return new StringBuffer()
-                .append("\t\t<script type=\"text/javascript\">\n")
-                .append("\t\t\t")
-                .append(new Scanner(jsResource, "UTF-8").useDelimiter("\\A").next().replaceAll("\n", "\n\t\t\t"))
+                .append("\t<script type='text/javascript'>\n")
+                .append("\t\t")
+                .append(new Scanner(jsResource, "UTF-8").useDelimiter("\\A").next().replaceAll("\n", "\n\t\t"))
                 .append("\n")
-                .append("\t\t</script>\n")
+                .append("\t</script>\n")
                 .toString();
     }
     
@@ -128,8 +128,9 @@ public class HTMLFileAppender extends AppenderSkeleton {
      */
     private String prepareBody() {
         return new StringBuffer()
-                .append("\t<body bgcolor=\"#FFFFFF\" topmargin=\"6\" leftmargin=\"6\">\n")
+                .append("<body>\n")
                 .append(preparePanel())
+                .append(prepareContainer())
                 .toString();
     }
     
@@ -139,27 +140,40 @@ public class HTMLFileAppender extends AppenderSkeleton {
      */
     private String preparePanel() {
         return new StringBuilder()
-                .append("\t\t<div class=\"controls\">\n")
-                .append(prepareFilterBar())
+                .append("\t<div class='nav'>\n")
+                .append("\t\t<div class='controls'>\n")
+                .append("\t\t\t<div id='levels' class='toolbar'>\n")
+                .append("\t\t\t\t<p>Filters:</p>\n")
+                .append("\t\t\t\t<table>\n")
+                .append("\t\t\t\t\t<tr>\n")
+                .append("\t\t\t\t\t\t<td class='check' data='DEBUG'><div class='icon DEBUG'></div>Debug</td>\n")
+                .append("\t\t\t\t\t\t<td class='check checked' data='INFO'><div class='icon INFO'></div>Info</td>\n")
+                .append("\t\t\t\t\t\t<td class='check checked' data='WARN'><div class='icon WARN'></div>Warning</td>\n")
+                .append("\t\t\t\t\t\t<td class='check checked' data='ERROR'><div class='icon ERROR'></div>Error</td>\n")
+                .append("\t\t\t\t\t</tr>\n")
+                .append("\t\t\t\t</table>\n")
+                .append("\t\t\t</div>\n")
                 .append("\t\t</div>\n")
+                .append("\t\t<ol class='tree'>\n")
+                .append("\t\t\t<li><label for='today'>Today</label><input type='checkbox' checked disabled id='today'/><ol></ol></li>\n")
+                .append("\t\t\t<li><label for='week'>This week</label><input type='checkbox' id='week'/><ol></ol></li>\n")
+                .append("\t\t\t<li><label for='archive'>Archive</label><input type='checkbox' id='archive'/><ol></ol></li>\n")
+                .append("\t\t</ol>\n")
+                .append("\t</div>\n")
                 .toString();
     }
     
     /**
-     * Prepares filter for log messages. Debug messages are disabled by default.
+     * Prepares element which contains log sessions.
      * @return String of HTML code
      */
-    private String prepareFilterBar() {
-        return new StringBuffer()
-                .append("<div id=\"levels\" class=\"toolbar\">")
-                .append("<table><tr>")
-                .append("<td class=\"caption\">Filters:</td>")
-                .append("<td class=\"check\" data=\"DEBUG\"><div class=\"icon DEBUG\"></div>Debug</td>")
-                .append("<td class=\"check checked\" data=\"INFO\"><div class=\"icon INFO\"></div>Info</td>")
-                .append("<td class=\"check checked\" data=\"WARN\"><div class=\"icon WARN\"></div>Warning</td>")
-                .append("<td class=\"check checked\" data=\"ERROR\"><div class=\"icon ERROR\"></div>Error</td>")
-                .append("</tr></table>")
-                .append("</div>")
+    private String prepareContainer() {
+        return new StringBuilder()
+                .append("\t<div class='content'>\n")
+                .append("\t\t<div id='header'>\n")
+                .append("\t\t\t<h4></h4>\n")
+                .append("\t\t\t<p></p>\n")
+                .append("\t\t</div>\n")
                 .toString();
     }
 
