@@ -1,6 +1,6 @@
 package codex.log;
 
-public class LoggerFactory implements org.apache.log4j.spi.LoggerFactory {
+class LoggerFactory implements org.apache.log4j.spi.LoggerFactory {
 
     LoggerFactory() {}
 
