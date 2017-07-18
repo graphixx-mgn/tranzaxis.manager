@@ -10,7 +10,9 @@ import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.spi.LoggingEvent;
 
 /**
- * Uses to create HTML file container to store log events
+ * Uses to create HTML file container to store log events. Events have being formatted
+ * by {@link HTMLLayout#format}
+ * @see HTMLLayout
  * @author Gredyaev Ivan
  */
 public class HTMLFileAppender extends AppenderSkeleton {
