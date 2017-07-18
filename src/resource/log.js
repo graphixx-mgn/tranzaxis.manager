@@ -85,6 +85,12 @@ $(document).ready(function() {
                 }
             }
         });
+        if (weekDir.find("li").length === 0) {
+            weekDir.closest("li").hide();
+        }
+        if (archDir.find("li").length === 0) {
+            archDir.closest("li").hide();
+        }
         $(".nav ol.tree li.file").click(selectLog);
         $(".nav ol.tree li.file:first").click();
     }
