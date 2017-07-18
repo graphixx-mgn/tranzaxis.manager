@@ -4,10 +4,15 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.UUID;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.log4j.spi.ThrowableInformation;
 
+/**
+ * Uses as formatter to wrap log event information to HTML representation by
+ * {@link HTMLFileAppender}.
+ * @see HTMLFileAppender
+ * @author Gredyaev Ivan
+ */
 public class HTMLLayout extends org.apache.log4j.HTMLLayout {
     
     private static final SimpleDateFormat format = new SimpleDateFormat("HH:mm:ss,SSS");
@@ -18,7 +23,7 @@ public class HTMLLayout extends org.apache.log4j.HTMLLayout {
     }
 
     /**
-     * Transforms log data to output format (HTML).
+     * Transforms log data to HTML format.
      * @param event Log record data
      * @return String of HTML code
      */
