@@ -71,4 +71,13 @@ public class AbstractModel {
         }).collect(Collectors.toList());
     }
     
+    /**
+     * Get property value by its name (ID).
+     * @param name Short string ID of the property.
+     * @return Property value.
+     */
+    public Object getValue(String name) {
+        return getProperty(name).getValue();
+    }
+    
 }
