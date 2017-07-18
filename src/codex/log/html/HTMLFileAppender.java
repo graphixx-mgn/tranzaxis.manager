@@ -9,6 +9,10 @@ import java.util.Scanner;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.spi.LoggingEvent;
 
+/**
+ * Uses to create HTML file container to store log events
+ * @author Gredyaev Ivan
+ */
 public class HTMLFileAppender extends AppenderSkeleton {
     
     private String           fileName;
@@ -25,7 +29,7 @@ public class HTMLFileAppender extends AppenderSkeleton {
     /**
      * Set output file to write logs.
      * @param file File path
-     * @throws IOException 
+     * @throws IOException
      */
     public void setFile(String file) throws IOException {
         this.fileName = file;
