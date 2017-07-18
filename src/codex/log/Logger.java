@@ -5,12 +5,17 @@ package codex.log;
 import java.text.MessageFormat;
 import org.apache.log4j.Category;
 
+/**
+ * Extends {@link org.apache.log4j.Logger} in order to support formatted messages.
+ * @see Logger#debug
+ * @author Gredyaev Ivan
+ */
 public class Logger extends org.apache.log4j.Logger {
     
     private static final String        FQCN = Logger.class.getName();
     private static final LoggerFactory factory = new LoggerFactory();
 
-    public Logger(String name) {
+    Logger(String name) {
         super(name);
     }
     
