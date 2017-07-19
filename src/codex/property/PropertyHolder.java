@@ -33,11 +33,27 @@ public class PropertyHolder {
     }
     
     /**
+     * Returns type of property.
+     * @return Class of property value.
+     */
+    public final Class getType() {
+        return type;
+    }
+    
+    /**
      * Returns short string ID of the property.
      * @return Property ID.
      */
     public final String getName() {
         return name;
+    }
+    
+    /**
+     * Returns title of property.
+     * @return Title.
+     */
+    public final String getTitle() { 
+        return title; 
     }
     
     /**
