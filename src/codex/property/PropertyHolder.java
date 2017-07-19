@@ -1,6 +1,8 @@
 package codex.property;
 
+import codex.log.Logger;
 import codex.model.AbstractModel;
+import codex.type.AbstractType;
 import java.beans.PropertyChangeSupport;
 import java.text.MessageFormat;
 
@@ -70,15 +72,17 @@ public class PropertyHolder extends PropertyChangeSupport {
     }
     
     /**
-     * Sets property value with initial checks of given object.
+     * Sets property value with initial checks of given object. In case type is 
+     * instance of {@link AbstractType} it calls methods {@link AbstractType#setValue}
+     * and {@link AbstractType#getValue}, i.e. proxies values.
      * @param value New property value
      */
     public final void setValue(Object value) {
-        boolean hasChanged;
-        Object  prevValue = this.value;
-
+        boolean isAbstract = AbstractType.class.isAssignableFrom(type);
         if (value == null) {
-            if (type.isEnum()) {
+            // Enumeration type does not supported null value
+            // Abstract type does not supported null value except initial assignment
+            if (type.isEnum() || (isAbstract && this.value == null)) {
                 throw new IllegalStateException(
                         MessageFormat.format(
                                 "Invalid value: property type ''{1}'' does not support NULL value", 
@@ -87,7 +91,7 @@ public class PropertyHolder extends PropertyChangeSupport {
                 );
             }
         } else {
-            if (!type.isInstance(value)) {
+            if (!isAbstract && !type.isInstance(value)) {
                 throw new IllegalStateException(
                         MessageFormat.format(
                                 "Invalid value: given ''{0}'' while expecting ''{1}''", 
@@ -96,12 +100,28 @@ public class PropertyHolder extends PropertyChangeSupport {
                 );
             }
         }
-        hasChanged = 
-                (this.value == null ^ value == null) || 
-                (this.value != null && !this.value.equals(value));
-        this.value = value;
-        if (hasChanged) {
-            firePropertyChange(name, prevValue, value);
+        
+        Object prevValue, nextValue;
+        if (isAbstract && this.value != null) {
+            prevValue = ((AbstractType) this.value).getValue();
+        } else {
+            prevValue = this.value;
+        }
+        if (isAbstract && value != null && AbstractType.class.isInstance(value)) {
+            nextValue = ((AbstractType) value).getValue();
+        } else {
+            nextValue = value;
+        }
+
+        if (isAbstract && this.value != null) {
+            ((AbstractType) this.value).setValue(value);
+        } else {
+            this.value = value;
+        }
+        
+        if ((prevValue == null ^ nextValue == null) || 
+            (prevValue != null && !prevValue.equals(nextValue))) {
+            firePropertyChange(name, prevValue, nextValue);
         }
     }
     
