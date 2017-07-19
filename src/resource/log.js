@@ -88,6 +88,7 @@ $(document).ready(function() {
                 }
             }
         });
+        $(".nav ol.tree li.file").click(selectLog);
         
         if (todayDir.find("li").length > 0) {
             todayDir.closest("li").show();
@@ -99,7 +100,6 @@ $(document).ready(function() {
         if (archDir.find("li").length > 0) {
             archDir.closest("li").show();
         }
-        $(".nav ol.tree li.file").click(selectLog);
     }
 
     buildTree();
