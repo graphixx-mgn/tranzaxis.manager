@@ -108,7 +108,7 @@ public class AbstractModel implements PropertyChangeListener {
     @Override
     public void propertyChange(PropertyChangeEvent pce) {
         Logger.getLogger().debug(
-                "Property ''{0}'' changed: {1} -> {2}", 
+                "Property ''{0}'' has been changed: ''{1}'' -> ''{2}''", 
                 pce.getPropertyName(), pce.getOldValue(), pce.getNewValue()
         );
     }
