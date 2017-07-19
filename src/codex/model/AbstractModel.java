@@ -99,6 +99,12 @@ public class AbstractModel implements PropertyChangeListener {
         return getProperty(KEY).toString();
     }
 
+    /**
+     * Called by event PropertyChange of {@link PropertyHolder} in case its value
+     * has been changed. The listener is being assigning after initial assignment
+     * of property value in order to filter fake calls.
+     * @param pce Contains information about changed property (name, old value, new value).
+     */
     @Override
     public void propertyChange(PropertyChangeEvent pce) {
         Logger.getLogger().debug(
