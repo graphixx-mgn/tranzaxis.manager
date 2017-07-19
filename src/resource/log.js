@@ -65,6 +65,9 @@ $(document).ready(function() {
         $($(".session").get().reverse()).each(function() {
             var session = $(this);
             var logDate = new Date(session.attr("timestamp")-0);
+            if (session.find("tr").length === 1) {
+                return;
+            }
 
             var logLink = "<li class='file' timestamp='"+session.attr("timestamp")+"'><a href='#'\">Log session " + dateToString(logDate) + "</a></li>";
             if (today.toDateString() === logDate.toDateString()) {
@@ -92,7 +95,9 @@ $(document).ready(function() {
             archDir.closest("li").hide();
         }
         $(".nav ol.tree li.file").click(selectLog);
-        $(".nav ol.tree li.file:first").click();
+        if (todayDir.find("li").length > 0) {
+            $(".nav ol.tree li.file:first").click();
+        }
     }
 
     buildTree();
