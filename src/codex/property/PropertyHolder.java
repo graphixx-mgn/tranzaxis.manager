@@ -1,6 +1,7 @@
 package codex.property;
 
 import codex.model.AbstractModel;
+import java.text.MessageFormat;
 
 /** 
  * Class implements high-level term 'property' of an object. It contains minimal piece of
@@ -28,8 +29,9 @@ public class PropertyHolder {
         this.type      = type;
         this.name      = name;
         this.title     = title;
-        this.value     = value;
         this.mandatory = mandatory;
+        
+        setValue(value);
     }
     
     /**
@@ -62,6 +64,46 @@ public class PropertyHolder {
      */
     public final Object getValue() {
         return value;
+    }
+    
+    /**
+     * Sets property value with initial checks of given object.
+     * @param value New property value
+     */
+    public final void setValue(Object value) {
+        if (value == null) {
+            if (type.isEnum()) {
+                throw new IllegalStateException(
+                        MessageFormat.format(
+                                "Invalid value: property type ''{1}'' does not support NULL value", 
+                                name, type.getCanonicalName()
+                        )
+                );
+            }
+        } else {
+            if (!type.isInstance(value)) {
+                throw new IllegalStateException(
+                        MessageFormat.format(
+                                "Invalid value: given ''{0}'' while expecting ''{1}''", 
+                                value.getClass().getCanonicalName(), type.getCanonicalName()
+                        )
+                );
+            }
+        }
+        this.value = value;
+    }
+    
+    /**
+     * Returns value string representation.
+     * @return 
+     */
+    @Override
+    public final String toString() {
+        if (value == null) {
+            return null;
+        } else {
+            return value.toString();
+        }
     }
     
 }
