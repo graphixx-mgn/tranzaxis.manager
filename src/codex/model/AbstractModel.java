@@ -1,6 +1,9 @@
 package codex.model;
 
+import codex.log.Logger;
 import codex.property.PropertyHolder;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.text.MessageFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -13,7 +16,7 @@ import java.util.stream.Collectors;
  * @see PropertyHolder
  * @author Gredyaev Ivan
  */
-public class AbstractModel {
+public class AbstractModel implements PropertyChangeListener {
     
     private final String KEY = this.getClass().getCanonicalName()+"@Title";
     
@@ -45,6 +48,7 @@ public class AbstractModel {
         }
         propHolders.put(propName, propHolder);
         propRestrictions.put(propName, restriction);
+        propHolder.addPropertyChangeListener(this);
     }
     
     /**
@@ -53,6 +57,11 @@ public class AbstractModel {
      * @return Instance of {@link PropertyHolder}
      */
     public final PropertyHolder getProperty(String name) {
+        if (!propHolders.containsKey(name)) {
+            throw new NoSuchFieldError(
+                    MessageFormat.format("Model does not have property ''{0}''", name)
+            );
+        }
         return propHolders.get(name);
     }
     
@@ -88,6 +97,14 @@ public class AbstractModel {
     @Override
     public final String toString() {
         return getProperty(KEY).toString();
+    }
+
+    @Override
+    public void propertyChange(PropertyChangeEvent pce) {
+        Logger.getLogger().debug(
+                "Property ''{0}'' changed: {1} -> {2}", 
+                pce.getPropertyName(), pce.getOldValue(), pce.getNewValue()
+        );
     }
     
 }
