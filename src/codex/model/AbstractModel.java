@@ -35,12 +35,13 @@ public class AbstractModel {
      *  // Create 'hidden' property
      *  addProperty(new PropertyHolder(String.class, "svnUrl", "SVN url", "svn://demo.org/sources", true), Access.Any);
      * </pre>
-     * @see
      */
     public final void addProperty(PropertyHolder propHolder, Access restriction) {
         final String propName = propHolder.getName();
         if (propHolders.containsKey(propName)) {
-            throw new IllegalStateException(MessageFormat.format("Model already has property '{0}'", propName));
+            throw new IllegalStateException(
+                    MessageFormat.format("Model already has property ''{0}''", propName)
+            );
         }
         propHolders.put(propName, propHolder);
         propRestrictions.put(propName, restriction);
@@ -67,7 +68,7 @@ public class AbstractModel {
             public boolean test(PropertyHolder propHolder) {
                 Access propRestriction = propRestrictions.get(propHolder.getName());
                 return (propRestriction != grant && propRestriction != Access.Any)  || grant == Access.Any;
-            }        
+            }
         }).collect(Collectors.toList());
     }
     
@@ -78,6 +79,15 @@ public class AbstractModel {
      */
     public Object getValue(String name) {
         return getProperty(name).getValue();
+    }
+    
+    /**
+     * Returns model string representation.
+     * @return Title of model.
+     */
+    @Override
+    public final String toString() {
+        return getProperty(KEY).toString();
     }
     
 }
