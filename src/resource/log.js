@@ -88,16 +88,18 @@ $(document).ready(function() {
                 }
             }
         });
-        if (weekDir.find("li").length === 0) {
-            weekDir.closest("li").hide();
-        }
-        if (archDir.find("li").length === 0) {
-            archDir.closest("li").hide();
-        }
-        $(".nav ol.tree li.file").click(selectLog);
+        
         if (todayDir.find("li").length > 0) {
+            todayDir.closest("li").show();
             $(".nav ol.tree li.file:first").click();
         }
+        if (weekDir.find("li").length > 0) {
+            weekDir.closest("li").show();
+        }
+        if (archDir.find("li").length > 0) {
+            archDir.closest("li").show();
+        }
+        $(".nav ol.tree li.file").click(selectLog);
     }
 
     buildTree();
