@@ -1,6 +1,7 @@
 package codex.property;
 
 import codex.model.AbstractModel;
+import java.beans.PropertyChangeSupport;
 import java.text.MessageFormat;
 
 /** 
@@ -9,7 +10,7 @@ import java.text.MessageFormat;
  * @see AbstractModel
  * @author Gredyaev Ivan
  */
-public class PropertyHolder {
+public class PropertyHolder extends PropertyChangeSupport {
     
     private final Class   type;
     private final String  name;
@@ -26,6 +27,8 @@ public class PropertyHolder {
      * @param mandatory Property can not have empty value.
      */
     public PropertyHolder(Class type, String name, String title, Object value, boolean mandatory) {
+        super(name);
+        
         this.type      = type;
         this.name      = name;
         this.title     = title;
@@ -71,6 +74,9 @@ public class PropertyHolder {
      * @param value New property value
      */
     public final void setValue(Object value) {
+        boolean hasChanged;
+        Object  prevValue = this.value;
+
         if (value == null) {
             if (type.isEnum()) {
                 throw new IllegalStateException(
@@ -90,7 +96,13 @@ public class PropertyHolder {
                 );
             }
         }
+        hasChanged = 
+                (this.value == null ^ value == null) || 
+                (this.value != null && !this.value.equals(value));
         this.value = value;
+        if (hasChanged) {
+            firePropertyChange(name, prevValue, value);
+        }
     }
     
     /**
@@ -100,7 +112,7 @@ public class PropertyHolder {
     @Override
     public final String toString() {
         if (value == null) {
-            return null;
+            return "";
         } else {
             return value.toString();
         }
