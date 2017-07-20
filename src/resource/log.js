@@ -76,16 +76,16 @@ $(document).ready(function() {
                 var subDir = logDate.toLocaleDateString();
                 if (weekDir.find("li label:contains('"+subDir+"')").length === 0) {
                     weekDir.append("<li><label for='"+subDir+"'>"+subDir+"</label> <input type='checkbox' id='"+subDir+"' /><ol></ol></li>");
-                    subDir = weekDir.find("li label:contains('"+subDir+"')").parent().find('ol');
-                    subDir.append(logLink);
                 }
+                subDir = weekDir.find("li label:contains('"+subDir+"')").parent().find('ol');
+                subDir.append(logLink);
             } else {
                 var subDir = logDate.toLocaleDateString();
                 if (archDir.find("li label:contains('"+subDir+"')").length === 0) {
                     archDir.append("<li><label for='"+subDir+"'>"+subDir+"</label> <input type='checkbox' id='"+subDir+"' /><ol></ol></li>");
-                    subDir = archDir.find("li label:contains('"+subDir+"')").parent().find('ol');
-                    subDir.append(logLink);
                 }
+                subDir = archDir.find("li label:contains('"+subDir+"')").parent().find('ol');
+                subDir.append(logLink);
             }
         });
         $(".nav ol.tree li.file").click(selectLog);
