@@ -60,6 +60,11 @@ public class StringList implements AbstractType {
     
     @Override
     public String toString() {
-        return getValue();
+        String value = getValue();
+        if (value == null) {
+            return "";
+        } else {
+            return value;
+        }
     }
 }
