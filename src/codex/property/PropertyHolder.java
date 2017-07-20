@@ -1,8 +1,8 @@
 package codex.property;
 
-import codex.log.Logger;
 import codex.model.AbstractModel;
 import codex.type.AbstractType;
+import codex.type.TypeWrapper;
 import java.beans.PropertyChangeSupport;
 import java.text.MessageFormat;
 
@@ -30,7 +30,7 @@ public class PropertyHolder extends PropertyChangeSupport {
      */
     public PropertyHolder(Class type, String name, String title, Object value, boolean mandatory) {
         super(name);
-        
+                
         this.type      = type;
         this.name      = name;
         this.title     = title;
@@ -65,10 +65,15 @@ public class PropertyHolder extends PropertyChangeSupport {
     
     /**
      * Returns property value.
-     * @return Instance of class 'type'.
+     * @return Instance of class 'type' or NULL.
      */
     public final Object getValue() {
-        return value;
+        boolean isAbstract = AbstractType.class.isAssignableFrom(type);
+        if (isAbstract) {
+            return value;
+        } else {
+            return ((AbstractType) value).getValue();
+        }
     }
     
     /**
@@ -79,18 +84,15 @@ public class PropertyHolder extends PropertyChangeSupport {
      */
     public final void setValue(Object value) {
         boolean isAbstract = AbstractType.class.isAssignableFrom(type);
-        if (value == null) {
-            // Enumeration type does not supported null value
-            // Abstract type does not supported null value except initial assignment
-            if (type.isEnum() || (isAbstract && this.value == null)) {
-                throw new IllegalStateException(
-                        MessageFormat.format(
-                                "Invalid value: property type ''{1}'' does not support NULL value", 
-                                name, type.getCanonicalName()
-                        )
-                );
-            }
-        } else {
+        
+        if (value == null && (type.isEnum())) {
+            throw new IllegalStateException(
+                    MessageFormat.format(
+                            "Invalid value: property type ''{1}'' does not support NULL value", 
+                            name, type.getCanonicalName()
+                    )
+            );
+        } else if (value != null) {
             if (!isAbstract && !type.isInstance(value)) {
                 throw new IllegalStateException(
                         MessageFormat.format(
@@ -100,27 +102,32 @@ public class PropertyHolder extends PropertyChangeSupport {
                 );
             }
         }
+        // https://habrahabr.ru/post/246993/
+        boolean newLink  = this.value != value;
+        Object prevValue = this.value == null ? null : ((AbstractType) this.value).getValue();
+        Object nextValue = value == null ? null : (
+                AbstractType.class.isInstance(value) ? ((AbstractType) value).getValue() : value
+        );
         
-        Object prevValue, nextValue;
-        if (isAbstract && this.value != null) {
-            prevValue = ((AbstractType) this.value).getValue();
+        if (this.value == null) {
+            if (isAbstract) {
+                this.value = value;
+            } else {
+                this.value = new TypeWrapper(value);
+            }
         } else {
-            prevValue = this.value;
-        }
-        if (isAbstract && value != null && AbstractType.class.isInstance(value)) {
-            nextValue = ((AbstractType) value).getValue();
-        } else {
-            nextValue = value;
-        }
-
-        if (isAbstract && this.value != null) {
-            ((AbstractType) this.value).setValue(value);
-        } else {
-            this.value = value;
+            if (AbstractType.class.isInstance(value)) {
+                this.value = value;
+            } else {
+                ((AbstractType) this.value).setValue(value);
+            }
         }
         
-        if ((prevValue == null ^ nextValue == null) || 
-            (prevValue != null && !prevValue.equals(nextValue))) {
+        if (
+                (newLink) ||
+                (prevValue == null ^ nextValue == null) || 
+                (prevValue != null && !prevValue.equals(nextValue))
+        ) {
             firePropertyChange(name, prevValue, nextValue);
         }
     }
