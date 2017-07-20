@@ -4,6 +4,11 @@ import codex.model.AbstractModel;
 import codex.type.AbstractType;
 import codex.type.TypeWrapper;
 import java.beans.PropertyChangeSupport;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.text.MessageFormat;
 
 /** 
@@ -102,7 +107,16 @@ public class PropertyHolder extends PropertyChangeSupport {
                 );
             }
         }
-        // https://habrahabr.ru/post/246993/
+        
+        Object prevObject = null;
+        if (this.value != null) {
+            try {
+                prevObject = clone(this.value);
+            } catch (ClassNotFoundException | IOException e) {
+                throw new ClassCastException("Unable to create copy of value");
+            }
+        }
+        
         boolean newLink  = this.value != value;
         Object prevValue = this.value == null ? null : ((AbstractType) this.value).getValue();
         Object nextValue = value == null ? null : (
@@ -124,11 +138,11 @@ public class PropertyHolder extends PropertyChangeSupport {
         }
         
         if (
-                (newLink) ||
-                (prevValue == null ^ nextValue == null) || 
-                (prevValue != null && !prevValue.equals(nextValue))
+            (newLink) ||
+            (prevValue == null ^ nextValue == null) || 
+            (prevValue != null && !prevValue.equals(nextValue))
         ) {
-            firePropertyChange(name, prevValue, nextValue);
+            firePropertyChange(name, prevObject, this.value);
         }
     }
     
@@ -142,6 +156,26 @@ public class PropertyHolder extends PropertyChangeSupport {
             return "";
         } else {
             return value.toString();
+        }
+    }
+    
+    /**
+     * Make copy of value in order to call PropertyChange event.
+     * @param value Cloneable value.
+     * @return Clone of value.
+     * @throws IOException
+     * @throws ClassNotFoundException 
+     * @see https://habrahabr.ru/post/246993
+     */
+    private Object clone(Object value) throws IOException, ClassNotFoundException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ObjectOutputStream ous = new ObjectOutputStream(baos)) {
+            ous.writeObject(value);
+        }
+
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        try (ObjectInputStream ois = new ObjectInputStream(bais)) {
+            return ois.readObject();
         }
     }
     
