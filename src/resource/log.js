@@ -61,6 +61,7 @@ $(document).ready(function() {
         var todayDir = $(".nav ol.tree li > input#today").parent().find('ol');
         var weekDir  = $(".nav ol.tree li > input#week").parent().find('ol');
         var archDir  = $(".nav ol.tree li > input#archive").parent().find('ol');
+        var todayArc;
 
         $($(".session").get().reverse()).each(function() {
             var session = $(this);
@@ -71,7 +72,16 @@ $(document).ready(function() {
 
             var logLink = "<li class='file' timestamp='"+session.attr("timestamp")+"'><a href='#'\">Log session " + dateToString(logDate) + "</a></li>";
             if (today.toDateString() === logDate.toDateString()) {
-                todayDir.append(logLink);
+                if (todayDir.find("li.file").length === 10) {
+                    todayDir.append("<li><label for='todayArch'>Older</label><input type='checkbox' id='todayArch'/><ol></ol></li>");
+                    console.log(todayDir.find("li label[for='todayArch']").parent().find('ol').length);
+                    todayArc = todayDir.find("li label[for='todayArch']").parent().find('ol');
+                }
+                if (todayArc) {
+                    todayArc.append(logLink);
+                } else {
+                    todayDir.append(logLink);
+                }
             } else if (logDate.getTime() > week.getTime()) {
                 var subDir = logDate.toLocaleDateString();
                 if (weekDir.find("li label:contains('"+subDir+"')").length === 0) {
