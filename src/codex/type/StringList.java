@@ -22,7 +22,7 @@ public class StringList implements AbstractType {
         for (String rangeItem : range) {
             if (rangeItem == null) {
                 throw new IllegalStateException(
-                        "Range can not contain NULL value"
+                        "Range must not contain NULL value"
                 );
             }
             if (values.containsKey(rangeItem)) {
@@ -57,7 +57,7 @@ public class StringList implements AbstractType {
             }
         }
     }
-    
+
     @Override
     public String toString() {
         String value = getValue();
