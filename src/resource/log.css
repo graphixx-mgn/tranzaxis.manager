@@ -153,6 +153,7 @@ li input:checked + ol > li:last-child {
 /* Log header */
 #header h4 {
     margin-bottom: 5px;
+    padding-top: 5px;
 }
 #header p {
     margin: 5px 0;
