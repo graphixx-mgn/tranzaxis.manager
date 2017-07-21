@@ -2,14 +2,9 @@ package codex.property;
 
 import codex.model.AbstractModel;
 import codex.type.AbstractType;
-import codex.type.TypeWrapper;
-import java.beans.PropertyChangeSupport;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.text.MessageFormat;
+import java.util.LinkedList;
+import java.util.List;
 
 /** 
  * Class implements high-level term 'property' of an object. It contains minimal piece of
@@ -17,13 +12,15 @@ import java.text.MessageFormat;
  * @see AbstractModel
  * @author Gredyaev Ivan
  */
-public class PropertyHolder extends PropertyChangeSupport {
+public class PropertyHolder {
     
     private final Class   type;
     private final String  name;
     private final String  title;
-    private final boolean mandatory;
+    private final boolean require;
     private Object        value;
+    
+    private final List<PropertyChangeListener> listeners = new LinkedList<>();
     
     /**
      * Creates new instance
@@ -31,17 +28,17 @@ public class PropertyHolder extends PropertyChangeSupport {
      * @param name Short string ID of the property. Parent object can not have several properties with same ID.
      * @param title Title uses to present property.
      * @param value Instance of class 'type'. 
-     * @param mandatory Property can not have empty value.
+     * @param require Property can not have empty value.
      */
-    public PropertyHolder(Class type, String name, String title, Object value, boolean mandatory) {
-        super(name);
-                
-        this.type      = type;
-        this.name      = name;
-        this.title     = title;
-        this.mandatory = mandatory;
+    public PropertyHolder(Class type, String name, String title, Object value, boolean require) {
+        this.type    = type;
+        this.name    = name;
+        this.title   = title;
+        this.require = require;
         
-        setValue(value);
+        if (checkValue(value, AbstractType.class.isAssignableFrom(type))) {
+            this.value = value;
+        }
     }
     
     /**
@@ -73,12 +70,7 @@ public class PropertyHolder extends PropertyChangeSupport {
      * @return Instance of class 'type' or NULL.
      */
     public final Object getValue() {
-        boolean isAbstract = AbstractType.class.isAssignableFrom(type);
-        if (isAbstract) {
-            return value;
-        } else {
-            return ((AbstractType) value).getValue();
-        }
+        return value;
     }
     
     /**
@@ -88,61 +80,35 @@ public class PropertyHolder extends PropertyChangeSupport {
      * @param value New property value
      */
     public final void setValue(Object value) {
+        Object  prevValue;
+        Object  nextValue;
         boolean isAbstract = AbstractType.class.isAssignableFrom(type);
+        boolean isReplaced = this.value != value;
         
-        if (value == null && (type.isEnum())) {
-            throw new IllegalStateException(
-                    MessageFormat.format(
-                            "Invalid value: property type ''{1}'' does not support NULL value", 
-                            name, type.getCanonicalName()
-                    )
-            );
-        } else if (value != null) {
-            if (!isAbstract && !type.isInstance(value)) {
-                throw new IllegalStateException(
-                        MessageFormat.format(
-                                "Invalid value: given ''{0}'' while expecting ''{1}''", 
-                                value.getClass().getCanonicalName(), type.getCanonicalName()
-                        )
-                );
-            }
-        }
-        
-        Object prevObject = null;
-        if (this.value != null) {
-            try {
-                prevObject = clone(this.value);
-            } catch (ClassNotFoundException | IOException e) {
-                throw new ClassCastException("Unable to create copy of value");
-            }
-        }
-        
-        boolean newLink  = this.value != value;
-        Object prevValue = this.value == null ? null : ((AbstractType) this.value).getValue();
-        Object nextValue = value == null ? null : (
-                AbstractType.class.isInstance(value) ? ((AbstractType) value).getValue() : value
-        );
-        
-        if (this.value == null) {
+        if (checkValue(value, isAbstract)) {
             if (isAbstract) {
-                this.value = value;
+                prevValue = this.value == null ? null : ((AbstractType) this.value).getValue();
+                if (AbstractType.class.isInstance(value)) {
+                    nextValue  = value == null ? null : ((AbstractType) value).getValue();
+                    this.value = value;
+                } else {
+                    nextValue  = value;
+                    ((AbstractType) this.value).setValue(value);
+                }
             } else {
-                this.value = new TypeWrapper(value);
-            }
-        } else {
-            if (AbstractType.class.isInstance(value)) {
+                prevValue  = this.value;
+                nextValue  = value;
                 this.value = value;
-            } else {
-                ((AbstractType) this.value).setValue(value);
             }
-        }
-        
-        if (
-            (newLink) ||
-            (prevValue == null ^ nextValue == null) || 
-            (prevValue != null && !prevValue.equals(nextValue))
-        ) {
-            firePropertyChange(name, prevObject, this.value);
+            if (
+                (isReplaced) ||
+                (prevValue == null ^ nextValue == null) || 
+                (prevValue != null && !prevValue.equals(nextValue))
+            ) {
+                for (PropertyChangeListener listener : listeners) {
+                    listener.propertyChange(name, prevValue, nextValue);
+                }
+            }
         }
     }
     
@@ -160,23 +126,41 @@ public class PropertyHolder extends PropertyChangeSupport {
     }
     
     /**
-     * Make copy of value in order to call PropertyChange event.
-     * @param value Cloneable value.
-     * @return Clone of value.
-     * @throws IOException
-     * @throws ClassNotFoundException 
-     * @see https://habrahabr.ru/post/246993
+     * Checks provided value is acceptable.
+     * @param value New value
+     * @return True if value is correct. Otherwise {@link IllegalStateException} 
+     * will be thrown.
      */
-    private Object clone(Object value) throws IOException, ClassNotFoundException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (ObjectOutputStream ous = new ObjectOutputStream(baos)) {
-            ous.writeObject(value);
+    private boolean checkValue(Object value, boolean isAbstract) {
+        if (value == null) {
+            if (type.isEnum()) {
+                throw new IllegalStateException(
+                        MessageFormat.format(
+                                "Invalid value: property type ''{1}'' does not support NULL value", 
+                                name, type.getCanonicalName()
+                        )
+                );
+            }
+        } else {
+            if (!isAbstract && !type.isInstance(value)) {
+                throw new IllegalStateException(
+                        MessageFormat.format(
+                                "Invalid value: given ''{0}'' while expecting ''{1}''", 
+                                value.getClass().getCanonicalName(), type.getCanonicalName()
+                        )
+                );
+            }
         }
-
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        try (ObjectInputStream ois = new ObjectInputStream(bais)) {
-            return ois.readObject();
-        }
+        return true;
+    }
+    
+    /**
+     * Adds new listener for value changing events
+     * @param listener Instance of listener
+     * @see PropertyChangeListener
+     */
+    public final void addChangeListener(PropertyChangeListener listener) {
+        this.listeners.add(listener);
     }
     
 }
