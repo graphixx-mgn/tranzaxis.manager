@@ -39,7 +39,7 @@ body, html {
 }
 .check {
     color: gray;
-    padding: 5px 5px 5px 0;
+    padding: 5px 5px 2px 0;
     background-color: #EEE;
     border-bottom: 3px solid gray;
 }
