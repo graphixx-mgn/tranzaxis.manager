@@ -14,7 +14,7 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.MatteBorder;
 
-public class Window extends JFrame {
+public final class Window extends JFrame {
     
     public final JPanel upgradePanel = new JPanel();
     public final JPanel taskmgrPanel = new JPanel();
@@ -36,7 +36,7 @@ public class Window extends JFrame {
         }
         
         setPreferredSize(new Dimension(1100, 700));
-        setMinimumSize(new Dimension(500, 400));        
+        setMinimumSize(new Dimension(700, 500));
         
         upgradePanel.setBorder(new MatteBorder(0, 0, 0, 1, Color.GRAY));
         loggingPanel.setBorder(new MatteBorder(0, 1, 0, 0, Color.GRAY));
