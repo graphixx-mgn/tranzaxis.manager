@@ -1,4 +1,5 @@
 
+import codex.explorer.ExplorerUnit;
 import codex.log.LogUnit;
 import codex.log.Logger;
 import codex.utils.ImageUtils;
@@ -18,14 +19,9 @@ public class Manager {
         window = new Window("TranzAxis Manager", ImageUtils.getByPath("/images/project.png"));
         
         window.addUnit(new LogUnit(), window.loggingPanel);
-        //window.addUnit(new UpdateUnit(), window.upgradePanel);
+        window.addUnit(new ExplorerUnit(), window.explorePanel);
         
         window.setVisible(true);
-        logger.debug("TESD");
-        logger.info("TESD");
-        logger.warn("TESD");
-        logger.error("Some error", new Error("This is an exception"));
-        logger.info("TESD");
     }
     
 }
