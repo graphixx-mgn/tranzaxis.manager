@@ -107,7 +107,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
         layout.setVerticalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addComponent(toolBar, 30, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                .addComponent(toolBar, 40, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                 .addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 535, Short.MAX_VALUE))
         );
         
@@ -159,6 +159,9 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         } else {
             Logger.getLogger().log(Level.INFO, "Detected single screen configuration. Event Log opened at center of 1ST device");
+            //frame.setSize(new Dimension(300, 200));
+            frame.setSize(new Dimension(1000, 600));
+            frame.setMinimumSize(new Dimension(500, 400));  
             frame.setLocationRelativeTo(null);
         }
         SwingUtilities.getWindowAncestor(view).addWindowStateListener(this);
