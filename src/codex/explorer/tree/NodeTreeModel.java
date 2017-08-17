@@ -1,7 +1,9 @@
 package codex.explorer.tree;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreeNode;
@@ -48,7 +50,10 @@ public final class NodeTreeModel implements TreeModel {
 
     @Override
     public void valueForPathChanged(TreePath path, Object newValue) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        //((Node) path.getLastPathComponent()).
+        for (TreeModelListener listener : new ArrayList<>(listeners)) {
+            listener.treeNodesChanged(new TreeModelEvent(path.getLastPathComponent(), path));
+        }
     }
 
     @Override
