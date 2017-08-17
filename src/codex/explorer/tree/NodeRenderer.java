@@ -22,12 +22,11 @@ public class NodeRenderer extends DefaultTreeCellRenderer {
         setTextSelectionColor(Color.WHITE);
         setBackgroundSelectionColor(Color.decode("#3399FF"));
         setBorderSelectionColor(Color.GRAY);
+        setToolTipText(node.hint);
         
         setEnabled((node.mode & Node.MODE_ENABLED) == Node.MODE_ENABLED);
         return component;
         
     }
-    
-    
-    
+
 }
