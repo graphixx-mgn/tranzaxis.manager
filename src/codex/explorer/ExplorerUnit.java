@@ -10,13 +10,17 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTree;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
+import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
 public final class ExplorerUnit extends AbstractUnit {
@@ -52,8 +56,21 @@ public final class ExplorerUnit extends AbstractUnit {
         root.insert(new Node("Repositories", ImageUtils.getByPath("/images/debug.png")).setMode(Node.MODE_NONE));
         root.insert(bases);
         root.insert(new Node("Systems", ImageUtils.getByPath("/images/system.png")).setMode(Node.MODE_NONE));
-        
         NodeTreeModel treeModel = new NodeTreeModel(root);
+        
+        final AtomicInteger mode = new AtomicInteger(Node.MODE_NONE);
+        Timer timer = new Timer(1000, (ActionEvent event) -> {
+            mode.set(mode.get() == Node.MODE_NONE ? Node.MODE_ENABLED : Node.MODE_NONE);
+            bases.setMode(mode.get());
+            System.out.println(mode);
+            
+            TreePath path = new TreePath(new Object[] {root, bases});
+            treeModel.valueForPathChanged(path, null);
+        });
+        timer.setInitialDelay(1000);
+        timer.start();
+        
+        
         tree.setModel(treeModel);
         
         JScrollPane scroll = new JScrollPane(tree);
