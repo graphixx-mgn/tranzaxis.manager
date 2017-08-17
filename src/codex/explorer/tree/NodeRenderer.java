@@ -26,7 +26,6 @@ public class NodeRenderer extends DefaultTreeCellRenderer {
         
         setEnabled((node.mode & Node.MODE_ENABLED) == Node.MODE_ENABLED);
         return component;
-        
     }
-
+    
 }
