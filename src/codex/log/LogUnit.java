@@ -4,6 +4,7 @@ import codex.component.button.PushButton;
 import codex.component.button.ToggleButton;
 import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
+import codex.utils.Language;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -19,7 +20,9 @@ import java.awt.event.WindowStateListener;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.ResourceBundle;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.GroupLayout;
@@ -57,13 +60,13 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
     
     public LogUnit() {
         levelIcon.put(Level.ALL,   none);
-        levelIcon.put(Level.DEBUG, debug); levelDesc.put(Level.DEBUG, "Debug");
-        levelIcon.put(Level.INFO,  info);  levelDesc.put(Level.INFO,  "Event");
-        levelIcon.put(Level.WARN,  warn);  levelDesc.put(Level.WARN,  "Warning");
-        levelIcon.put(Level.ERROR, error); levelDesc.put(Level.ERROR, "Error");
+        levelIcon.put(Level.DEBUG, debug); levelDesc.put(Level.DEBUG, Language.get("level@debug.title"));
+        levelIcon.put(Level.INFO,  info);  levelDesc.put(Level.INFO,  Language.get("level@event.title"));
+        levelIcon.put(Level.WARN,  warn);  levelDesc.put(Level.WARN,  Language.get("level@warn.title"));
+        levelIcon.put(Level.ERROR, error); levelDesc.put(Level.ERROR, Language.get("level@error.title"));
         
         frame = new JFrame();
-        frame.setTitle("Event Log");
+        frame.setTitle(Language.get("title"));
         frame.setIconImage(ImageUtils.getByPath("/images/log.png").getImage());
         frame.pack();
         
@@ -132,7 +135,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
 
     @Override
     public JComponent createViewport() {
-        JButton button = new JButton("Event Log");
+        JButton button = new JButton(Language.get("title"));
         button.setIcon(ImageUtils.resize(none, 17, 17));
         button.setFocusPainted(false);
         button.setOpaque(false);
@@ -159,7 +162,6 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         } else {
             Logger.getLogger().log(Level.INFO, "Detected single screen configuration. Event Log opened at center of 1ST device");
-            //frame.setSize(new Dimension(300, 200));
             frame.setSize(new Dimension(1000, 600));
             frame.setMinimumSize(new Dimension(500, 400));  
             frame.setLocationRelativeTo(null);
