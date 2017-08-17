@@ -1,29 +1,30 @@
 package codex.explorer;
 
-import codex.explorer.tree.Node;
 import codex.explorer.tree.NodeRenderer;
 import codex.explorer.tree.NodeSelectionListener;
 import codex.explorer.tree.NodeTreeModel;
 import codex.unit.AbstractUnit;
-import codex.utils.ImageUtils;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.event.ActionEvent;
-import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTree;
-import javax.swing.Timer;
+import javax.swing.ToolTipManager;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
-import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
 public final class ExplorerUnit extends AbstractUnit {
+    
+    private final NodeTreeModel treeModel;
+    
+    public ExplorerUnit(NodeTreeModel treeModel) {
+        this.treeModel = treeModel;
+    }
     
     private JTree tree;
     
@@ -44,34 +45,10 @@ public final class ExplorerUnit extends AbstractUnit {
         tree.setFont(new Font("Tahoma", 0, 12));
         tree.setRowHeight(22);
         tree.setBorder(new EmptyBorder(5, 10, 5, 2));
-        tree.setCellRenderer(new NodeRenderer());
         tree.addTreeSelectionListener(new NodeSelectionListener());
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
-        
-        Node root = new Node("Settings", ImageUtils.getByPath("/images/settings.png"));
-        Node bases = new Node("Databases", ImageUtils.getByPath("/images/database.png")).setMode(Node.MODE_NONE);
-        bases.insert(new Node("Base 1", ImageUtils.getByPath("/images/database.png")).setMode(Node.MODE_NONE));
-        bases.insert(new Node("Base 2", ImageUtils.getByPath("/images/database.png")).setMode(Node.MODE_NONE));
-        bases.insert(new Node("Base 3", ImageUtils.getByPath("/images/database.png")).setMode(Node.MODE_NONE));
-        root.insert(new Node("Repositories", ImageUtils.getByPath("/images/debug.png")).setMode(Node.MODE_NONE));
-        root.insert(bases);
-        root.insert(new Node("Systems", ImageUtils.getByPath("/images/system.png")).setMode(Node.MODE_NONE));
-        NodeTreeModel treeModel = new NodeTreeModel(root);
-        
-        final AtomicInteger mode = new AtomicInteger(Node.MODE_NONE);
-        Timer timer = new Timer(1000, (ActionEvent event) -> {
-            mode.set(mode.get() == Node.MODE_NONE ? Node.MODE_ENABLED : Node.MODE_NONE);
-            bases.setMode(mode.get());
-            System.out.println(mode);
-            
-            TreePath path = new TreePath(new Object[] {root, bases});
-            treeModel.valueForPathChanged(path, null);
-        });
-        timer.setInitialDelay(1000);
-        timer.start();
-        
-        
-        tree.setModel(treeModel);
+        tree.setCellRenderer(new NodeRenderer());
+        ToolTipManager.sharedInstance().registerComponent(tree);
         
         JScrollPane scroll = new JScrollPane(tree);
         scroll.setBorder(null);
@@ -80,6 +57,11 @@ public final class ExplorerUnit extends AbstractUnit {
         splitPanel.setLeftComponent(leftPanel);
         splitPanel.setRightComponent(rightPanel);
         return splitPanel;
+    }
+
+    @Override
+    public void viewportBound() {
+        tree.setModel(treeModel);
     }
     
 }
