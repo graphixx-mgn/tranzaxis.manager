@@ -52,7 +52,7 @@ public final class Window extends JFrame {
                 .addGroup(layout.createSequentialGroup()
                     .addComponent(upgradePanel, 120, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                     .addComponent(taskmgrPanel)
-                    .addComponent(loggingPanel, 90, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                    .addComponent(loggingPanel, 100, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                 )
         );
         
