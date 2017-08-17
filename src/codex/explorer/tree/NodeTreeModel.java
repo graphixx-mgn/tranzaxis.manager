@@ -49,14 +49,6 @@ public final class NodeTreeModel implements TreeModel {
     }
 
     @Override
-    public void valueForPathChanged(TreePath path, Object newValue) {
-        //((Node) path.getLastPathComponent()).
-        for (TreeModelListener listener : new ArrayList<>(listeners)) {
-            listener.treeNodesChanged(new TreeModelEvent(path.getLastPathComponent(), path));
-        }
-    }
-
-    @Override
     public int getIndexOfChild(Object parent, Object child) {
         if (parent == null) {
             throw new IllegalArgumentException("Argument is null");
@@ -72,6 +64,18 @@ public final class NodeTreeModel implements TreeModel {
     @Override
     public void removeTreeModelListener(TreeModelListener listener) {
         listeners.remove(listener);
+    }
+
+    @Override
+    public void valueForPathChanged(TreePath tp, Object o) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+    
+    public void setMode(Node node, int mode) {
+        node.setMode(mode);
+        for (TreeModelListener listener : new ArrayList<>(listeners)) {
+            listener.treeNodesChanged(new TreeModelEvent(node, new Object[]{node}));
+        }
     }
     
 }
