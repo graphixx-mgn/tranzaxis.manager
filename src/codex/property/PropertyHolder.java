@@ -69,6 +69,14 @@ public class PropertyHolder {
     }
     
     /**
+     * Returns description of property.
+     * @return Description.
+     */
+    public final String getDescriprion() { 
+        return desc; 
+    }
+    
+    /**
      * Returns property value.
      * @return Instance of class 'type' or NULL.
      */
