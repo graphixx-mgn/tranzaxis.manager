@@ -2,6 +2,7 @@ package codex.update;
 
 import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
+import codex.utils.Language;
 import java.awt.Insets;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -13,7 +14,7 @@ public class UpdateUnit extends AbstractUnit {
 
     @Override
     public JComponent createViewport() {        
-        JButton button = new JButton("Check upgrade");
+        JButton button = new JButton(Language.get("title"));
         button.setIcon(icon);
         button.setFocusPainted(false);
         button.setOpaque(false);
