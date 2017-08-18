@@ -6,10 +6,10 @@ import codex.log.LogUnit;
 import codex.log.Logger;
 import codex.update.UpdateUnit;
 import codex.utils.ImageUtils;
-import node.CommonRoot;
-import node.DatabaseRoot;
-import node.RepositoryRoot;
-import node.SystemRoot;
+import nodes.CommonRoot;
+import nodes.DatabaseRoot;
+import nodes.RepositoryRoot;
+import nodes.SystemRoot;
 import org.apache.log4j.Level;
 import ui.Window;
 

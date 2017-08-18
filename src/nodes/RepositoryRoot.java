@@ -1,4 +1,4 @@
-package node;
+package nodes;
 
 import codex.explorer.tree.Node;
 import codex.utils.ImageUtils;
