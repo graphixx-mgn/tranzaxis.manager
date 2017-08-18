@@ -17,6 +17,7 @@ public class PropertyHolder {
     private final Class   type;
     private final String  name;
     private final String  title;
+    private final String  desc;
     private final boolean require;
     private Object        value;
     
@@ -27,13 +28,15 @@ public class PropertyHolder {
      * @param type Class reference which is being considered as type of the property.
      * @param name Short string ID of the property. Parent object can not have several properties with same ID.
      * @param title Title uses to present property.
+     * @param desc Description of the property
      * @param value Instance of class 'type'. 
      * @param require Property can not have empty value.
      */
-    public PropertyHolder(Class type, String name, String title, Object value, boolean require) {
+    public PropertyHolder(Class type, String name, String title, String desc, Object value, boolean require) {
         this.type    = type;
         this.name    = name;
         this.title   = title;
+        this.desc    = desc;
         this.require = require;
         
         if (checkValue(value, AbstractType.class.isAssignableFrom(type))) {
