@@ -1,5 +1,8 @@
 package codex.explorer.tree;
 
+import codex.model.EntityModel;
+import codex.presentation.EditorPresentation;
+import codex.presentation.SelectorPresentation;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -14,13 +17,19 @@ public abstract class AbstractNode implements Node {
     final String    hint;
     
     int mode = MODE_ENABLED + MODE_SELECTABLE;
-    private AbstractNode parent = null;
+    
+    private AbstractNode         parent = null; 
+    private EditorPresentation   editor;
+    private SelectorPresentation selector;
+    
+    public  final EntityModel        model;
     private final List<AbstractNode> children = new ArrayList<>();
     
     public AbstractNode(ImageIcon icon, String title, String hint) {
         this.title = title;
         this.icon  = icon;
         this.hint  = hint;
+        this.model = new EntityModel(title);
     }
 
     @Override
@@ -80,5 +89,27 @@ public abstract class AbstractNode implements Node {
     public String toString() {
         return title;
     }
+
+    @Override
+    public Class getChildClass() {
+        return null;
+    };
+
+    @Override
+    public SelectorPresentation getSelectorPresentation() {
+        if (getChildClass() == null) return null;
+        if (selector == null) {
+            selector = new SelectorPresentation();
+        }
+        return selector;
+    };
+
+    @Override
+    public EditorPresentation getEditorPresentation() {
+        if (editor == null) {
+            editor = new EditorPresentation();
+        }
+        return editor;
+    };
     
 }
