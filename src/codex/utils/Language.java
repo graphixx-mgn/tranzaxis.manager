@@ -11,6 +11,10 @@ public class Language {
     
     public static String get(String key) {
         String className = new Exception().getStackTrace()[1].getClassName().replaceAll(".*\\.(\\w+)", "$1");
+        return get(className, key);
+    }
+    
+    public static String get(String className, String key) {
         ResourceBundle bundle;
         if (bundles.containsKey(className)) {
             bundle = bundles.get(className);
