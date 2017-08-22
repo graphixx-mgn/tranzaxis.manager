@@ -1,6 +1,5 @@
 
 import codex.explorer.ExplorerUnit;
-import codex.explorer.tree.Node;
 import codex.explorer.tree.NodeTreeModel;
 import codex.log.LogUnit;
 import codex.log.Logger;
@@ -26,7 +25,7 @@ public class Manager {
         window = new Window("TranzAxis Manager", ImageUtils.getByPath("/images/project.png"));
         window.addUnit(new LogUnit(), window.loggingPanel);
         
-        CommonRoot root = new CommonRoot();
+        CommonRoot      root = new CommonRoot();
         RepositoryRoot repos = new RepositoryRoot();
         DatabaseRoot   bases = new DatabaseRoot();
         SystemRoot   systems = new SystemRoot();
@@ -34,9 +33,9 @@ public class Manager {
         root.insert(bases);
         root.insert(systems);
         NodeTreeModel treeModel = new NodeTreeModel(root);
-        treeModel.setMode(repos, Node.MODE_NONE);
-        treeModel.setMode(bases, Node.MODE_NONE);
-        treeModel.setMode(systems, Node.MODE_NONE);
+//        treeModel.setMode(repos,   Node.MODE_NONE);
+//        treeModel.setMode(bases,   Node.MODE_NONE);
+//        treeModel.setMode(systems, Node.MODE_NONE);
         window.addUnit(new ExplorerUnit(treeModel), window.explorePanel);
         
         window.addUnit(new UpdateUnit(), window.upgradePanel);
