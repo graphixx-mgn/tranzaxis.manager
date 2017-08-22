@@ -1,5 +1,7 @@
 package codex.explorer;
 
+import codex.explorer.browser.Browser;
+import codex.explorer.tree.AbstractNode;
 import codex.explorer.tree.Navigator;
 import codex.explorer.tree.NodeTreeModel;
 import codex.unit.AbstractUnit;
@@ -11,17 +13,24 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.border.MatteBorder;
+import javax.swing.tree.TreePath;
 
 public final class ExplorerUnit extends AbstractUnit {
     
     private final NodeTreeModel treeModel;
     private final Navigator     navigator;
+    private final Browser       browser;
     
     private JScrollPane navigatePanel;
     
     public ExplorerUnit(NodeTreeModel treeModel) {
         this.treeModel = treeModel;
         this.navigator = new Navigator();
+        this.browser   = new Browser();
+        
+        this.navigator.addNavigateListener((TreePath path) -> {
+            this.browser.browse((AbstractNode) path.getLastPathComponent());
+        });
     }
     
     @Override
