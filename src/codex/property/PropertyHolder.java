@@ -2,6 +2,7 @@ package codex.property;
 
 import codex.model.AbstractModel;
 import codex.type.AbstractType;
+import codex.utils.Language;
 import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
@@ -22,6 +23,27 @@ public class PropertyHolder {
     private Object        value;
     
     private final List<PropertyChangeListener> listeners = new LinkedList<>();
+    
+    /**
+     * Creates new instance. Title and description will be provided from localization bundle.
+     * @param type Class reference which is being considered as type of the property.
+     * @param name Short string ID of the property. Parent object can not have several properties with same ID.
+     * @param value Instance of class 'type'. 
+     * @param require Property can not have empty value.
+     */
+    public PropertyHolder(Class type, String name, Object value, boolean require) {
+        String caller = new Exception().getStackTrace()[1].getClassName().replaceAll(".*\\.(\\w+)", "$1");
+        
+        this.type    = type;
+        this.name    = name;
+        this.title   = Language.get(caller, name+".title");
+        this.desc    = Language.get(caller, name+".desc");
+        this.require = require;
+        
+        if (checkValue(value, AbstractType.class.isAssignableFrom(type))) {
+            this.value = value;
+        }
+    }
     
     /**
      * Creates new instance
