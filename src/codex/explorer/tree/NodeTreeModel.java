@@ -12,6 +12,10 @@ import javax.swing.tree.TreePath;
 
 public final class NodeTreeModel implements TreeModel {
     
+    public static final int MODE_NONE       = 0;
+    public static final int MODE_ENABLED    = 1;
+    public static final int MODE_SELECTABLE = 2;
+    
     private final TreeNode root;
     private final List<TreeModelListener> listeners = new LinkedList<>();
 
