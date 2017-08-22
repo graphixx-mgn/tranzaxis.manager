@@ -1,32 +1,28 @@
 package codex.explorer;
 
-import codex.explorer.tree.NodeRenderer;
-import codex.explorer.tree.NodeSelectionListener;
+import codex.explorer.tree.Navigator;
 import codex.explorer.tree.NodeTreeModel;
 import codex.unit.AbstractUnit;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Font;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTree;
-import javax.swing.ToolTipManager;
-import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
-import javax.swing.tree.TreeSelectionModel;
 
 public final class ExplorerUnit extends AbstractUnit {
     
     private final NodeTreeModel treeModel;
+    private final Navigator     navigator;
+    
+    private JScrollPane navigatePanel;
     
     public ExplorerUnit(NodeTreeModel treeModel) {
         this.treeModel = treeModel;
+        this.navigator = new Navigator();
     }
-    
-    private JTree tree;
     
     @Override
     public JComponent createViewport() {
@@ -40,19 +36,10 @@ public final class ExplorerUnit extends AbstractUnit {
         JPanel rightPanel = new JPanel();
         leftPanel.setMinimumSize(new Dimension(250, 0));
         rightPanel.setMinimumSize(new Dimension(500, 0));
-
-        tree = new JTree();
-        tree.setFont(new Font("Tahoma", 0, 12));
-        tree.setRowHeight(22);
-        tree.setBorder(new EmptyBorder(5, 10, 5, 2));
-        tree.addTreeSelectionListener(new NodeSelectionListener());
-        tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
-        tree.setCellRenderer(new NodeRenderer());
-        ToolTipManager.sharedInstance().registerComponent(tree);
         
-        JScrollPane scroll = new JScrollPane(tree);
-        scroll.setBorder(null);
-        leftPanel.add(scroll, BorderLayout.CENTER);
+        navigatePanel = new JScrollPane();
+        navigatePanel.setBorder(null);
+        leftPanel.add(navigatePanel, BorderLayout.CENTER);
 
         splitPanel.setLeftComponent(leftPanel);
         splitPanel.setRightComponent(rightPanel);
@@ -61,7 +48,8 @@ public final class ExplorerUnit extends AbstractUnit {
 
     @Override
     public void viewportBound() {
-        tree.setModel(treeModel);
+        navigator.setModel(treeModel);
+        navigatePanel.setViewportView(navigator);
     }
     
 }
