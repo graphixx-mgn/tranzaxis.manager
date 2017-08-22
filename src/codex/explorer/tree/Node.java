@@ -7,17 +7,14 @@ import java.util.List;
 import javax.swing.ImageIcon;
 import javax.swing.tree.TreeNode;
 
-public class Node implements TreeNode {
+class Node implements TreeNode {
     
-    public static final int MODE_NONE       = 0;
-    public static final int MODE_ENABLED    = 1;
-    public static final int MODE_SELECTABLE = 2;
+    int mode = NodeTreeModel.MODE_ENABLED + NodeTreeModel.MODE_SELECTABLE;
     
     final ImageIcon icon;
     final String    title;
     final String    hint;
     
-    int mode = MODE_ENABLED + MODE_SELECTABLE;
     private Node parent = null;
     private final List<Node> children = new ArrayList<>();
     
@@ -71,11 +68,11 @@ public class Node implements TreeNode {
         return Collections.enumeration(new ArrayList<>(children));
     }
     
-    void setParent(Node parent) {
+    final void setParent(Node parent) {
         this.parent = parent;
     }
     
-    void setMode(int mode) {
+    final void setMode(int mode) {
         this.mode = mode;
     }
     
