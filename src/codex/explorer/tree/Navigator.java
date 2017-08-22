@@ -25,10 +25,10 @@ public class Navigator extends JTree {
         setBorder(new EmptyBorder(5, 10, 5, 2));
         addTreeSelectionListener((TreeSelectionEvent event) -> {
             final JTree tree = (JTree) event.getSource();
-            final Node  node = (Node) tree.getLastSelectedPathComponent();
+            final AbstractNode  node = (AbstractNode) tree.getLastSelectedPathComponent();
             if (node == null) return;
             
-            if ((node.mode & NodeTreeModel.MODE_SELECTABLE) != NodeTreeModel.MODE_SELECTABLE) {
+            if ((node.mode & Node.MODE_SELECTABLE) != Node.MODE_SELECTABLE) {
                 tree.clearSelection();
                 tree.getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
                 return;

@@ -11,7 +11,7 @@ public class NodeRenderer extends DefaultTreeCellRenderer {
 
     @Override
     public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) {
-        Node node = (Node) value;
+        AbstractNode node = (AbstractNode) value;
         Component component = super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
         
         int iconSize = tree.getRowHeight()-2;
@@ -24,7 +24,7 @@ public class NodeRenderer extends DefaultTreeCellRenderer {
         setBorderSelectionColor(Color.GRAY);
         setToolTipText(node.hint);
         
-        setEnabled((node.mode & NodeTreeModel.MODE_ENABLED) == NodeTreeModel.MODE_ENABLED);
+        setEnabled((node.mode & Node.MODE_ENABLED) == Node.MODE_ENABLED);
         return component;
     }
     
