@@ -24,7 +24,7 @@ public class NodeRenderer extends DefaultTreeCellRenderer {
         setBorderSelectionColor(Color.GRAY);
         setToolTipText(node.hint);
         
-        setEnabled((node.mode & Node.MODE_ENABLED) == Node.MODE_ENABLED);
+        setEnabled((node.mode & NodeTreeModel.MODE_ENABLED) == NodeTreeModel.MODE_ENABLED);
         return component;
     }
     
