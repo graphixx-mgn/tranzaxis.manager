@@ -22,6 +22,7 @@ public final class ExplorerUnit extends AbstractUnit {
     private final Browser       browser;
     
     private JScrollPane navigatePanel;
+    private JScrollPane browsePanel;
     
     public ExplorerUnit(NodeTreeModel treeModel) {
         this.treeModel = treeModel;
@@ -42,13 +43,17 @@ public final class ExplorerUnit extends AbstractUnit {
         splitPanel.setBorder(new MatteBorder(1, 0, 0, 0, Color.GRAY));
 
         JPanel leftPanel  = new JPanel(new BorderLayout());
-        JPanel rightPanel = new JPanel();
+        JPanel rightPanel = new JPanel(new BorderLayout());
         leftPanel.setMinimumSize(new Dimension(250, 0));
         rightPanel.setMinimumSize(new Dimension(500, 0));
         
         navigatePanel = new JScrollPane();
         navigatePanel.setBorder(null);
         leftPanel.add(navigatePanel, BorderLayout.CENTER);
+        
+        browsePanel = new JScrollPane();
+        browsePanel.setBorder(null);
+        rightPanel.add(browsePanel, BorderLayout.CENTER);
 
         splitPanel.setLeftComponent(leftPanel);
         splitPanel.setRightComponent(rightPanel);
@@ -59,6 +64,7 @@ public final class ExplorerUnit extends AbstractUnit {
     public void viewportBound() {
         navigator.setModel(treeModel);
         navigatePanel.setViewportView(navigator);
+        browsePanel.setViewportView(browser);
     }
     
 }
