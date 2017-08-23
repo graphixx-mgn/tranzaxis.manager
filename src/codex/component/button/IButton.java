@@ -5,7 +5,7 @@ import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
-public interface Button {
+public interface IButton {
     
     public final static Border EMPTY_BORDER = new EmptyBorder(1, 1, 1, 1);
     public final static Border HOVER_BORDER = new LineBorder(Color.decode("#C0DCF3"), 1);

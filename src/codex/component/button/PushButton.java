@@ -10,14 +10,14 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-public class PushButton extends JPanel implements Button, ChangeListener {
+public class PushButton extends JPanel implements IButton, ChangeListener {
     
     protected final JButton button;
     
     public PushButton(ImageIcon icon, String title) {
         super();
         setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
-        setBorder(Button.EMPTY_BORDER);
+        setBorder(IButton.EMPTY_BORDER);
         
         button = new JButton(title, icon != null ? ImageUtils.resize(icon, 26, 26) : null);
         button.setDisabledIcon(icon != null ? ImageUtils.grayscale(ImageUtils.resize(icon, 26, 26)) : null);
