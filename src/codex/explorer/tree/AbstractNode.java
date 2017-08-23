@@ -10,7 +10,7 @@ import java.util.List;
 import javax.swing.ImageIcon;
 import javax.swing.tree.TreeNode;
 
-public abstract class AbstractNode implements Node {
+public abstract class AbstractNode implements INode {
     
     final ImageIcon icon;
     final String    title;
@@ -107,7 +107,7 @@ public abstract class AbstractNode implements Node {
     @Override
     public EditorPresentation getEditorPresentation() {
         if (editor == null) {
-            editor = new EditorPresentation();
+            editor = new EditorPresentation(this);
         }
         return editor;
     };

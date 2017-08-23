@@ -4,7 +4,7 @@ import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import javax.swing.tree.TreeNode;
 
-public interface Node extends TreeNode {
+public interface INode extends TreeNode {
     
     public static final int MODE_NONE       = 0;
     public static final int MODE_ENABLED    = 1;

@@ -28,7 +28,7 @@ public final class Navigator extends JTree {
             final AbstractNode  node = (AbstractNode) tree.getLastSelectedPathComponent();
             if (node == null) return;
             
-            if ((node.mode & Node.MODE_SELECTABLE) != Node.MODE_SELECTABLE) {
+            if ((node.mode & INode.MODE_SELECTABLE) != INode.MODE_SELECTABLE) {
                 tree.clearSelection();
                 tree.getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
                 return;
