@@ -25,7 +25,7 @@ public class Language {
             );
             bundles.put(className, bundle);
         }
-        return bundle.getString(key);
+        return bundle.containsKey(key) ? bundle.getString(key) : "<not defined>";
     }
     
 }
