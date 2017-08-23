@@ -6,7 +6,7 @@ import java.io.Serializable;
  * Interface of custom complex type.
  * @author Gredyaev Ivan
  */
-public interface AbstractType extends Serializable {
+public interface IComplexType extends Serializable {
     
     /**
      * Get actual value of the abstract type up to specific implementation.

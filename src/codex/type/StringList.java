@@ -6,10 +6,10 @@ import java.util.List;
 
 /**
  * Implements new property type: string value from list of possible values.
- * @see AbstractType
+ * @see IComplexType
  * @author Gredyaev Ivan
  */
-public class StringList implements AbstractType {
+public class StringList implements IComplexType {
     
     private final LinkedHashMap<String, Boolean> values = new LinkedHashMap<>();
     

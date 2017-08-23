@@ -1,11 +1,11 @@
 package codex.property;
 
 import codex.model.AbstractModel;
-import codex.type.AbstractType;
 import codex.utils.Language;
 import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
+import codex.type.IComplexType;
 
 /** 
  * Class implements high-level term 'property' of an object. It contains minimal piece of
@@ -40,7 +40,7 @@ public class PropertyHolder {
         this.desc    = Language.get(caller, name+".desc");
         this.require = require;
         
-        if (checkValue(value, AbstractType.class.isAssignableFrom(type))) {
+        if (checkValue(value, IComplexType.class.isAssignableFrom(type))) {
             this.value = value;
         }
     }
@@ -61,7 +61,7 @@ public class PropertyHolder {
         this.desc    = desc;
         this.require = require;
         
-        if (checkValue(value, AbstractType.class.isAssignableFrom(type))) {
+        if (checkValue(value, IComplexType.class.isAssignableFrom(type))) {
             this.value = value;
         }
     }
@@ -108,25 +108,25 @@ public class PropertyHolder {
     
     /**
      * Sets property value with initial checks of given object. In case type is 
-     * instance of {@link AbstractType} it calls methods {@link AbstractType#setValue}
-     * and {@link AbstractType#getValue}, i.e. proxies values.
+     * instance of {@link IComplexType} it calls methods {@link IComplexType#setValue}
+     * and {@link IComplexType#getValue}, i.e. proxies values.
      * @param value New property value
      */
     public final void setValue(Object value) {
         Object  prevValue;
         Object  nextValue;
-        boolean isAbstract = AbstractType.class.isAssignableFrom(type);
+        boolean isAbstract = IComplexType.class.isAssignableFrom(type);
         boolean isReplaced = this.value != value;
         
         if (checkValue(value, isAbstract)) {
             if (isAbstract) {
-                prevValue = this.value == null ? null : ((AbstractType) this.value).getValue();
-                if (AbstractType.class.isInstance(value)) {
-                    nextValue  = value == null ? null : ((AbstractType) value).getValue();
+                prevValue = this.value == null ? null : ((IComplexType) this.value).getValue();
+                if (IComplexType.class.isInstance(value)) {
+                    nextValue  = value == null ? null : ((IComplexType) value).getValue();
                     this.value = value;
                 } else {
                     nextValue  = value;
-                    ((AbstractType) this.value).setValue(value);
+                    ((IComplexType) this.value).setValue(value);
                 }
             } else {
                 prevValue  = this.value;
