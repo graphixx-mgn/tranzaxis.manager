@@ -12,7 +12,7 @@ import javax.swing.event.TreeSelectionEvent;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
-public class Navigator extends JTree {
+public final class Navigator extends JTree {
     
     private TreePath path;
     private final List<NavigateListener> listeners = new LinkedList<>();
