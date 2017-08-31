@@ -24,7 +24,7 @@ public class AbstractModel implements PropertyChangeListener {
     
     public AbstractModel(String title) {
         addProperty(
-                new PropertyHolder(String.class, KEY, "Title", title, null, true), 
+                new PropertyHolder(String.class, KEY, "Title", null, title, true), 
                 Access.Any
         );
     }
