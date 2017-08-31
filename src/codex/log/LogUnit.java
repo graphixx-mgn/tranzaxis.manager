@@ -43,25 +43,24 @@ import org.apache.log4j.spi.LoggingEvent;
 
 public class LogUnit extends AbstractUnit implements WindowStateListener {
     
-    private final static ImageIcon NONE  = ImageUtils.grayscale(ImageUtils.getByPath("/images/log.png"));
-    private final static ImageIcon DEBUG = ImageUtils.getByPath("/images/debug.png");
-    private final static ImageIcon INFO  = ImageUtils.getByPath("/images/event.png");
-    private final static ImageIcon WARN  = ImageUtils.getByPath("/images/warn.png");
-    private final static ImageIcon ERROR = ImageUtils.getByPath("/images/stop.png");
+    final static ImageIcon NONE  = ImageUtils.grayscale(ImageUtils.getByPath("/images/log.png"));
+    final static ImageIcon DEBUG = ImageUtils.getByPath("/images/debug.png");
+    final static ImageIcon INFO  = ImageUtils.getByPath("/images/event.png");
+    final static ImageIcon WARN  = ImageUtils.getByPath("/images/warn.png");
+    final static ImageIcon ERROR = ImageUtils.getByPath("/images/stop.png");
     
     private final JFrame frame;
     private boolean frameState;
     private TextPaneAppender paneAppender;
     private int maxLevel = Level.ALL_INT;
     private Map<Level, ImageIcon> levelIcon = new HashMap<>();
-    private Map<Level, String>    levelDesc = new HashMap<>();
     
     public LogUnit() {
         levelIcon.put(Level.ALL,   NONE);
-        levelIcon.put(Level.DEBUG, DEBUG); levelDesc.put(Level.DEBUG, Language.get("level@debug.title"));
-        levelIcon.put(Level.INFO,  INFO);  levelDesc.put(Level.INFO,  Language.get("level@event.title"));
-        levelIcon.put(Level.WARN,  WARN);  levelDesc.put(Level.WARN,  Language.get("level@warn.title"));
-        levelIcon.put(Level.ERROR, ERROR); levelDesc.put(Level.ERROR, Language.get("level@error.title"));
+        levelIcon.put(Level.DEBUG, DEBUG);
+        levelIcon.put(Level.INFO,  INFO);
+        levelIcon.put(Level.WARN,  WARN);
+        levelIcon.put(Level.ERROR, ERROR);;
         
         frame = new JFrame();
         frame.setTitle(Language.get("title"));
@@ -181,7 +180,11 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
     private List<ToggleButton> createFilter(Level... levels) {
         List<ToggleButton> toggles = new LinkedList<>();
         for (final Level level : levels) {
-            final ToggleButton toggle = new ToggleButton(ImageUtils.resize(levelIcon.get(level), 22, 22), levelDesc.get(level), true);
+            final ToggleButton toggle = new ToggleButton(
+                    ImageUtils.resize(levelIcon.get(level), 22, 22), 
+                    Language.get("level@"+level.toString().toLowerCase()+".title"), 
+                    true
+            );
             toggle.addActionListener((ActionEvent event) -> {
                 paneAppender.toggleLevel(level, toggle.isChecked());
             });
