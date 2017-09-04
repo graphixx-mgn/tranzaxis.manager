@@ -1,5 +1,6 @@
 package codex.property;
 
+import codex.command.ICommand;
 import codex.model.AbstractModel;
 import codex.utils.Language;
 import java.text.MessageFormat;
@@ -23,6 +24,7 @@ public class PropertyHolder {
     private Object        value;
     
     private final List<PropertyChangeListener> listeners = new LinkedList<>();
+    private final List<ICommand>               commands  = new LinkedList<>();
     
     /**
      * Creates new instance. Title and description will be provided from localization bundle.
@@ -194,6 +196,15 @@ public class PropertyHolder {
      */
     public final void addChangeListener(PropertyChangeListener listener) {
         this.listeners.add(listener);
+    }
+    
+    public PropertyHolder addCommand(ICommand command) {
+        commands.add(command);
+        return this;
+    }
+    
+    public List<ICommand> getCommands() {
+        return new LinkedList<>(commands);
     }
     
 }
