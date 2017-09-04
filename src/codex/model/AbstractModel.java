@@ -51,6 +51,15 @@ public class AbstractModel implements PropertyChangeListener {
     }
     
     /**
+     * Checks model contains specific property
+     * @param name Property Name
+     * @return True if property exists.
+     */
+    public final boolean hasProperty(String name) {
+        return properties.containsKey(name);
+    }
+    
+    /**
      * Get reference to property by its name (ID).
      * @param name Short string ID of the property.
      * @return Instance of {@link PropertyHolder}
