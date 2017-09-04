@@ -14,7 +14,7 @@ public class ToggleButton extends PushButton {
     public ToggleButton(ImageIcon icon, String title, boolean checked) {
         super(icon, title);
         this.checked = checked;
-        this.icon    = icon != null ? ImageUtils.resize(icon, 26, 26): null;
+        this.icon    = icon;
         redraw();
     }
     

@@ -1,6 +1,5 @@
 package codex.component.button;
 
-import codex.utils.ImageUtils;
 import java.awt.event.ActionListener;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -19,8 +18,7 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
         setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
         setBorder(IButton.EMPTY_BORDER);
         
-        button = new JButton(title, icon != null ? ImageUtils.resize(icon, 26, 26) : null);
-        button.setDisabledIcon(icon != null ? ImageUtils.grayscale(ImageUtils.resize(icon, 26, 26)) : null);
+        button = new JButton(title, icon);
         button.setFocusPainted(false);
         button.setOpaque(false);
         button.setContentAreaFilled(false);
@@ -31,6 +29,7 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
         add(button);
     }
     
+    @Override
     public void addActionListener(ActionListener listener) {
         button.addActionListener(listener);
     }
