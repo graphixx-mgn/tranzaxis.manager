@@ -1,6 +1,7 @@
 package codex.editor;
 
-import codex.command.AbstractCommand;
+import codex.command.ICommand;
+import codex.command.PropertyCommand;
 import codex.property.PropertyHolder;
 import codex.utils.ImageUtils;
 import java.io.File;
@@ -13,7 +14,8 @@ import javax.swing.border.EmptyBorder;
 
 public class PathEditor extends AbstractEditor {
     
-    protected JTextField textField;
+    protected JTextField   textField;
+    private final ICommand pathSelector = new PathSelector();
 
     public PathEditor(PropertyHolder propHolder) {
         super(propHolder);
@@ -23,15 +25,18 @@ public class PathEditor extends AbstractEditor {
     public Box createEditor() {
         textField = new JTextField();
         textField.setBorder(new EmptyBorder(0, 5, 0, 5));
-        textField.setEnabled(false);
-        
-        propHolder.addCommand(new PathChooser());
+        textField.setEditable(false);
+        propHolder.addCommand(pathSelector);
 
         Box container = new Box(BoxLayout.X_AXIS);
         container.setBackground(textField.getBackground());
         container.add(textField);
-        
         return container;
+    }
+    
+    @Override
+    public void setEditable(boolean editable) {
+//        pathSelector.getButton().setEnabled();
     }
 
     @Override
@@ -39,15 +44,15 @@ public class PathEditor extends AbstractEditor {
         textField.setText((String) value);
     }
     
-    private class PathChooser extends AbstractCommand {
+    private class PathSelector extends PropertyCommand {
 
-        public PathChooser() {
+        public PathSelector() {
             super(ImageUtils.getByPath("/images/folder.png"));
         }
 
         @Override
-        public void execute() {
-            JFileChooser fileChooser = new JFileChooser(propHolder.getValue() == null ? "" : propHolder.getValue().toString());
+        public void execute(PropertyHolder contex) {
+            JFileChooser fileChooser = new JFileChooser(contex.getValue() == null ? "" : contex.getValue().toString());
 //            if (propHolder.getMask() != null && propHolder.getMask() instanceof FileMask) {
 //                FileNameExtensionFilter filter = ((FileMask) propHolder.getMask()).getFilter();
 //                fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -67,7 +72,7 @@ public class PathEditor extends AbstractEditor {
             if (returnVal == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
                 setValue(file.getPath());
-                propHolder.setValue(file.toPath());
+                contex.setValue(file.toPath());
             }
         }
     
