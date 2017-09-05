@@ -14,19 +14,18 @@ import javax.swing.border.EmptyBorder;
 
 public class PathEditor extends AbstractEditor {
     
-    protected JTextField   textField;
-    private final ICommand pathSelector = new PathSelector();
+    protected JTextField textField;
 
     public PathEditor(PropertyHolder propHolder) {
         super(propHolder);
     }
 
     @Override
-    public Box createEditor() {
+    public Box createEditor() {        
         textField = new JTextField();
         textField.setBorder(new EmptyBorder(0, 5, 0, 5));
         textField.setEditable(false);
-        propHolder.addCommand(pathSelector);
+        propHolder.addCommand(new PathSelector());
 
         Box container = new Box(BoxLayout.X_AXIS);
         container.setBackground(textField.getBackground());
@@ -35,9 +34,7 @@ public class PathEditor extends AbstractEditor {
     }
     
     @Override
-    public void setEditable(boolean editable) {
-//        pathSelector.getButton().setEnabled();
-    }
+    public void setEditable(boolean editable) {}
 
     @Override
     public void setValue(Object value) {
