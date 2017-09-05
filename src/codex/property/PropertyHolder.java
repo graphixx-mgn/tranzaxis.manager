@@ -148,16 +148,43 @@ public class PropertyHolder {
         }
     }
     
-    /**
-     * Returns value string representation.
-     * @return 
-     */
-    @Override
-    public final String toString() {
-        if (getValue() == null) {
-            return "";
+    public void setOverride(PropertyHolder propHolder) {
+        Object prevValue = getValue();
+        override = propHolder;
+        fireChangeEvent(name+"@override", null, null);
+        fireChangeEvent(name, prevValue, getValue());
+    }
+    
+    public boolean isOverridden() {
+        return override != null;
+    }
+    
+    public PropertyHolder addCommand(ICommand<PropertyHolder> command) {
+        commands.add(command);
+        command.setContext(this);
+        return this;
+    }
+    
+    public List<ICommand> getCommands() {
+        return new LinkedList<>(commands);
+    }
+    
+    public boolean isValid() {
+        return !(isRequired() && isEmpty());
+    }
+    
+    public final boolean isRequired() {
+        return require;
+    }
+    
+    public final boolean isEmpty() {
+        if (IComplexType.class.isAssignableFrom(type)) {
+            //return ((IComplexType) value).isEmpty();
+            throw new UnsupportedOperationException("Not supported yet");
+        } else if (type.isEnum()) {
+            return false;
         } else {
-            return getValue().toString();
+            return getValue() == null || getValue().toString().isEmpty();
         }
     }
     
@@ -190,25 +217,6 @@ public class PropertyHolder {
         return true;
     }
     
-    public boolean isValid() {
-        return !(isRequired() && isEmpty());
-    }
-    
-    public final boolean isRequired() {
-        return require;
-    }
-    
-    public final boolean isEmpty() {
-        if (IComplexType.class.isAssignableFrom(type)) {
-            //return ((IComplexType) value).isEmpty();
-            throw new UnsupportedOperationException("Not supported yet");
-        } else if (type.isEnum()) {
-            return false;
-        } else {
-            return getValue() == null || getValue().toString().isEmpty();
-        }
-    }
-    
     /**
      * Adds new listener for value changing events
      * @param listener Instance of listener
@@ -238,24 +246,17 @@ public class PropertyHolder {
         }
     }
     
-    public PropertyHolder addCommand(ICommand<PropertyHolder> command) {
-        commands.add(command);
-        command.setContext(this);
-        return this;
+    /**
+     * Returns value string representation.
+     * @return 
+     */
+    @Override
+    public final String toString() {
+        if (getValue() == null) {
+            return "";
+        } else {
+            return getValue().toString();
+        }
     }
     
-    public List<ICommand> getCommands() {
-        return new LinkedList<>(commands);
-    }
-    
-    public void setOverride(PropertyHolder propHolder) {
-        Object prevValue = getValue();
-        override = propHolder;
-        fireChangeEvent(name+"@override", null, null);
-        fireChangeEvent(name, prevValue, getValue());
-    }
-    
-    public boolean isOverridden() {
-        return override != null;
-    }
 }
