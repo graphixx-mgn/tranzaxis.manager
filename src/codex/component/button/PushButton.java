@@ -58,5 +58,10 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
         button.setIcon(icon);
         button.setDisabledIcon(ImageUtils.grayscale(icon));
     }
+
+    @Override
+    public void setHint(String text) {
+        button.setToolTipText(text);
+    }
     
 }

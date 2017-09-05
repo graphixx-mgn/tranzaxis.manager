@@ -3,6 +3,7 @@ package codex.presentation;
 import codex.command.PropertyCommand;
 import codex.property.PropertyHolder;
 import codex.utils.ImageUtils;
+import codex.utils.Language;
 import javax.swing.ImageIcon;
 
 public class OverrideValue extends PropertyCommand {
@@ -13,7 +14,7 @@ public class OverrideValue extends PropertyCommand {
     private final PropertyHolder parentHolder;
 
     public OverrideValue(PropertyHolder parentHolder) {
-        super(OVERRIDE);
+        super(OVERRIDE, Language.get("override"));
         this.parentHolder = parentHolder;
     }
 
@@ -21,6 +22,7 @@ public class OverrideValue extends PropertyCommand {
     public void execute(PropertyHolder context) {
         context.setOverride(context.isOverridden() ? null : parentHolder);
         button.setIcon(context.isOverridden() ? OVERRIDE : INHERIT);
+        button.setHint(Language.get(context.isOverridden() ? "override" : "inherit"));
     }
 
 }

@@ -3,6 +3,7 @@ package codex.editor;
 import codex.command.PropertyCommand;
 import codex.property.PropertyHolder;
 import codex.utils.ImageUtils;
+import codex.utils.Language;
 import java.io.File;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -43,7 +44,7 @@ public class PathEditor extends AbstractEditor {
     private class PathSelector extends PropertyCommand {
 
         public PathSelector() {
-            super(ImageUtils.getByPath("/images/folder.png"));
+            super(ImageUtils.getByPath("/images/folder.png"), Language.get("title"));
         }
 
         @Override

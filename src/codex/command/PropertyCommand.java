@@ -13,9 +13,10 @@ public abstract class PropertyCommand implements ICommand<PropertyHolder>, Actio
     protected PropertyHolder  context;
     protected IButton         button;
     
-    public PropertyCommand(ImageIcon icon) {
+    public PropertyCommand(ImageIcon icon, String title) {
         this.button = new CommandButton(ImageUtils.resize(icon, 20, 20));
         this.button.addActionListener(this);
+        this.button.setHint(title);
     }
     
     @Override

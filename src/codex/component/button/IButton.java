@@ -18,5 +18,6 @@ public interface IButton {
     
     public void addActionListener(ActionListener listener);
     public void setIcon(ImageIcon icon);
+    public void setHint(String text);
     
 }
