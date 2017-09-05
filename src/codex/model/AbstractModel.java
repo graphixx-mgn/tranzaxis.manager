@@ -89,8 +89,12 @@ public class AbstractModel implements PropertyChangeListener {
      */
     public final List<PropertyHolder> getProperties(Access grant) {
         return properties.values().stream().filter(new Predicate<PropertyHolder>() {
+            
             @Override
             public boolean test(PropertyHolder propHolder) {
+                if (propHolder.getName().equals(KEY)) {
+                    return false;
+                }
                 Access propRestriction = restrictions.get(propHolder.getName());
                 return (propRestriction != grant && propRestriction != Access.Any)  || grant == Access.Any;
             }
