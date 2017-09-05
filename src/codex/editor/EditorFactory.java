@@ -13,6 +13,8 @@ public final class EditorFactory {
         Class type = propHolder.getType();
         if (type.equals(String.class)) {
             return new StringEditor(propHolder);
+        } else if (type.equals(Integer.class)) {
+            return new IntegerEditor(propHolder);
         } else if (type.isEnum()) {
             return new EnumEditor(propHolder);
         } else if (type.equals(Path.class)) {
