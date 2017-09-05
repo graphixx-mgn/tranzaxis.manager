@@ -6,6 +6,7 @@ import codex.log.Logger;
 import codex.update.UpdateUnit;
 import codex.utils.ImageUtils;
 import nodes.CommonRoot;
+import nodes.System;
 import nodes.DatabaseRoot;
 import nodes.RepositoryRoot;
 import nodes.SystemRoot;
@@ -29,13 +30,16 @@ public class Manager {
         RepositoryRoot repos = new RepositoryRoot();
         DatabaseRoot   bases = new DatabaseRoot();
         SystemRoot   systems = new SystemRoot();
+        System        system = new System();
+        systems.insert(system);
         root.insert(repos);
         root.insert(bases);
         root.insert(systems);
         NodeTreeModel treeModel = new NodeTreeModel(root);
-//        treeModel.setMode(repos,   Node.MODE_NONE);
-//        treeModel.setMode(bases,   Node.MODE_NONE);
-//        treeModel.setMode(systems, Node.MODE_NONE);
+        
+//        treeModel.setMode(repos,   root.model.isValid() ? INode.MODE_ENABLED : INode.MODE_NONE);
+//        treeModel.setMode(bases,   root.model.isValid() ? INode.MODE_ENABLED : INode.MODE_NONE);
+//        treeModel.setMode(systems, root.model.isValid() ? INode.MODE_ENABLED : INode.MODE_NONE);
         window.addUnit(new ExplorerUnit(treeModel), window.explorePanel);
         
         window.addUnit(new UpdateUnit(), window.upgradePanel);
