@@ -152,7 +152,11 @@ public class PropertyHolder {
         Object prevValue = getValue();
         override = propHolder;
         fireChangeEvent(name+"@override", null, null);
-        fireChangeEvent(name, prevValue, getValue());
+        if (getValue() == null) {
+            setValue(prevValue);
+        } else {
+            fireChangeEvent(name, prevValue, getValue());
+        }
     }
     
     public boolean isOverridden() {
