@@ -7,6 +7,8 @@ import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
 import codex.type.IComplexType;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /** 
  * Class implements high-level term 'property' of an object. It contains minimal piece of
@@ -16,15 +18,16 @@ import codex.type.IComplexType;
  */
 public class PropertyHolder {
     
-    private final Class   type;
-    private final String  name;
-    private final String  title;
-    private final String  desc;
-    private final boolean require;
-    private Object        value;
+    private final Class    type;
+    private final String   name;
+    private final String   title;
+    private final String   desc;
+    private final boolean  require;
+    private Object         value;
+    private PropertyHolder override;
     
-    private final List<PropertyChangeListener> listeners = new LinkedList<>();
-    private final List<ICommand>               commands  = new LinkedList<>();
+    private final Map<String, List<PropertyChangeListener>> listeners = new LinkedHashMap<>();
+    private final List<ICommand> commands  = new LinkedList<>();
     
     /**
      * Creates new instance. Title and description will be provided from localization bundle.
@@ -105,7 +108,7 @@ public class PropertyHolder {
      * @return Instance of class 'type' or NULL.
      */
     public final Object getValue() {
-        return value;
+        return override == null ? value : override.getValue();
     }
     
     /**
@@ -140,9 +143,7 @@ public class PropertyHolder {
                 (prevValue == null ^ nextValue == null) || 
                 (prevValue != null && !prevValue.equals(nextValue))
             ) {
-                for (PropertyChangeListener listener : listeners) {
-                    listener.propertyChange(name, prevValue, nextValue);
-                }
+                fireChangeEvent(name, prevValue, nextValue);
             }
         }
     }
@@ -153,10 +154,10 @@ public class PropertyHolder {
      */
     @Override
     public final String toString() {
-        if (value == null) {
+        if (getValue() == null) {
             return "";
         } else {
-            return value.toString();
+            return getValue().toString();
         }
     }
     
@@ -189,17 +190,57 @@ public class PropertyHolder {
         return true;
     }
     
+    public boolean isValid() {
+        return !(isRequired() && isEmpty());
+    }
+    
+    public final boolean isRequired() {
+        return require;
+    }
+    
+    public final boolean isEmpty() {
+        if (IComplexType.class.isAssignableFrom(type)) {
+            //return ((IComplexType) value).isEmpty();
+            throw new UnsupportedOperationException("Not supported yet");
+        } else if (type.isEnum()) {
+            return false;
+        } else {
+            return getValue() == null || getValue().toString().isEmpty();
+        }
+    }
+    
     /**
      * Adds new listener for value changing events
      * @param listener Instance of listener
      * @see PropertyChangeListener
      */
     public final void addChangeListener(PropertyChangeListener listener) {
-        this.listeners.add(listener);
+        String target = name;
+        if (!listeners.containsKey(target)) {
+            listeners.put(target, new LinkedList<>());
+        }
+        listeners.get(target).add(listener);
     }
     
-    public PropertyHolder addCommand(ICommand command) {
+    public final void addChangeListener(String option, PropertyChangeListener listener) {
+        String target = name+"@"+option;
+        if (!listeners.containsKey(target)) {
+            listeners.put(target, new LinkedList<>());
+        }
+        listeners.get(target).add(listener);
+    }
+    
+    private void fireChangeEvent(String target, Object prevValue, Object nextValue) {
+        if (listeners.containsKey(target)) {
+            for (PropertyChangeListener listener : listeners.get(target)) {
+                listener.propertyChange(target, prevValue, nextValue);
+            }
+        }
+    }
+    
+    public PropertyHolder addCommand(ICommand<PropertyHolder> command) {
         commands.add(command);
+        command.setContext(this);
         return this;
     }
     
@@ -207,4 +248,14 @@ public class PropertyHolder {
         return new LinkedList<>(commands);
     }
     
+    public void setOverride(PropertyHolder propHolder) {
+        Object prevValue = getValue();
+        override = propHolder;
+        fireChangeEvent(name+"@override", null, null);
+        fireChangeEvent(name, prevValue, getValue());
+    }
+    
+    public boolean isOverridden() {
+        return override != null;
+    }
 }
