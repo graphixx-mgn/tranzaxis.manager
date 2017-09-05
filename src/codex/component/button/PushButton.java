@@ -1,5 +1,6 @@
 package codex.component.button;
 
+import codex.utils.ImageUtils;
 import java.awt.event.ActionListener;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -50,6 +51,12 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
             setBorder(EMPTY_BORDER);
             setBackground(null);
         }
+    }
+
+    @Override
+    public void setIcon(ImageIcon icon) {
+        button.setIcon(icon);
+        button.setDisabledIcon(ImageUtils.grayscale(icon));
     }
     
 }

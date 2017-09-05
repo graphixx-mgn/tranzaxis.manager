@@ -2,6 +2,7 @@ package codex.component.button;
 
 import java.awt.Color;
 import java.awt.event.ActionListener;
+import javax.swing.ImageIcon;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -16,5 +17,6 @@ public interface IButton {
     public final static Color  PRESS_COLOR  = Color.decode("#C0DCF3");
     
     public void addActionListener(ActionListener listener);
+    public void setIcon(ImageIcon icon);
     
 }
