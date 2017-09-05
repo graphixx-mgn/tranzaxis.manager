@@ -1,6 +1,5 @@
 package codex.editor;
 
-import codex.command.ICommand;
 import codex.command.PropertyCommand;
 import codex.property.PropertyHolder;
 import codex.utils.ImageUtils;
@@ -38,7 +37,7 @@ public class PathEditor extends AbstractEditor {
 
     @Override
     public void setValue(Object value) {
-        textField.setText((String) value);
+        textField.setText(value == null ? "" : value.toString());
     }
     
     private class PathSelector extends PropertyCommand {
