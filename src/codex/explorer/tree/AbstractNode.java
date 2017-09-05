@@ -1,8 +1,11 @@
 package codex.explorer.tree;
 
+import codex.model.Access;
 import codex.model.EntityModel;
 import codex.presentation.EditorPresentation;
+import codex.presentation.OverrideValue;
 import codex.presentation.SelectorPresentation;
+import codex.property.PropertyHolder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -82,6 +85,14 @@ public abstract class AbstractNode implements INode {
     
     public void insert(AbstractNode child) {
         child.setParent(this);
+        for (PropertyHolder propHolder : child.model.getProperties(Access.Any)) {
+            if (this.model.hasProperty(propHolder.getName())) {
+                PropertyHolder parentHolder = this.model.getProperty(propHolder.getName());
+                propHolder.setOverride(parentHolder);
+                propHolder.addCommand(new OverrideValue(parentHolder));
+            }
+        }
+        
         children.add(child);
     }
     

@@ -32,6 +32,7 @@ public abstract class AbstractEditor implements IEditor, FocusListener {
         refresh();
         
         propHolder.addChangeListener((String name, Object oldValue, Object newValue) -> {
+            setValue(propHolder.getValue());
             refresh();
         });
         propHolder.addChangeListener("override", (String name, Object oldValue, Object newValue) -> {
