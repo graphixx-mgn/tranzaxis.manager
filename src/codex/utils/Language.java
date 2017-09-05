@@ -10,7 +10,7 @@ public class Language {
     private static final Map<String, ResourceBundle> bundles = new HashMap<>();
     
     public static String get(String key) {
-        String className = new Exception().getStackTrace()[1].getClassName().replaceAll(".*\\.(\\w+)", "$1");
+        String className = new Exception().getStackTrace()[1].getClassName().replaceAll(".*[\\.\\$](\\w+)", "$1");
         return get(className, key);
     }
     
