@@ -15,7 +15,15 @@ public class NodeRenderer extends DefaultTreeCellRenderer {
         Component component = super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
         
         int iconSize = tree.getRowHeight()-2;
-        ImageIcon icon = ImageUtils.resize(node.icon, iconSize, iconSize);
+        ImageIcon icon;
+        if (!node.model.isValid()) {
+            icon = ImageUtils.resize(ImageUtils.combine(
+                node.icon,
+                ImageUtils.getByPath("/images/warn.png")    
+            ), iconSize, iconSize);
+        } else {
+            icon = ImageUtils.resize(node.icon, iconSize, iconSize);
+        }
         setDisabledIcon(ImageUtils.grayscale(icon));
         setIcon(icon);
         
