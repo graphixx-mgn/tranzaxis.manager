@@ -32,7 +32,7 @@ public class StringEditor extends AbstractEditor implements DocumentListener {
     
     @Override
     public void setEditable(boolean editable) {
-        textField.setEditable(editable && !propHolder.isOverridden());
+        textField.setEditable(editable);
     }
 
     @Override
