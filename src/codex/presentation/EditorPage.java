@@ -26,13 +26,7 @@ public final class EditorPage extends JPanel {
         gbc.gridwidth = 1;
         
         int lineIdx = 1, maxSize = 0;
-        for (PropertyHolder propHolder : node.model.getProperties(Access.Edit)) {
-            
-            if (node.getParent() != null && ((AbstractNode) node.getParent()).model.hasProperty(propHolder.getName())) {
-                PropertyHolder parentHolder = ((AbstractNode) node.getParent()).model.getProperty(propHolder.getName());
-                propHolder.setOverride(parentHolder);
-                propHolder.addCommand(new OverrideValue(parentHolder));
-            }
+        for (PropertyHolder propHolder : node.model.getProperties(Access.Edit)) {        
             
             gbc.gridx = 0; 
             gbc.gridy = lineIdx;
