@@ -1,19 +1,18 @@
 package codex.presentation;
 
-import codex.component.button.CommandButton;
 import codex.editor.EditorFactory;
 import codex.editor.IEditor;
 import codex.explorer.tree.AbstractNode;
 import codex.model.Access;
 import codex.command.ICommand;
 import codex.property.PropertyHolder;
-import codex.utils.ImageUtils;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.JComponent;
 import javax.swing.JPanel;
 
 public final class EditorPage extends JPanel {
@@ -28,6 +27,13 @@ public final class EditorPage extends JPanel {
         
         int lineIdx = 1, maxSize = 0;
         for (PropertyHolder propHolder : node.model.getProperties(Access.Edit)) {
+            
+            if (node.getParent() != null && ((AbstractNode) node.getParent()).model.hasProperty(propHolder.getName())) {
+                PropertyHolder parentHolder = ((AbstractNode) node.getParent()).model.getProperty(propHolder.getName());
+                propHolder.setOverride(parentHolder);
+                propHolder.addCommand(new OverrideValue(parentHolder));
+            }
+            
             gbc.gridx = 0; 
             gbc.gridy = lineIdx;
             gbc.weightx = 0;
@@ -42,13 +48,9 @@ public final class EditorPage extends JPanel {
             container.add(propEditor.getEditor());
             container.add(Box.createRigidArea(new Dimension(1, 28)));
             
-            CommandButton button;
             for (ICommand command : propHolder.getCommands()) {
-                button = new CommandButton(ImageUtils.resize(command.getIcon(), 20, 20));
-                
-                container.add(button);
+                container.add((JComponent) command.getButton());
                 container.add(Box.createHorizontalStrut(2));
-                command.bindButton(button);
             }
             add(container, gbc);
             
@@ -56,6 +58,6 @@ public final class EditorPage extends JPanel {
             lineIdx++;
         }
         add(Box.createHorizontalStrut(Math.max(280, maxSize+30)));
-    }
+    }    
     
 }
