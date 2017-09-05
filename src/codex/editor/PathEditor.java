@@ -1,5 +1,6 @@
 package codex.editor;
 
+import codex.command.ICommand;
 import codex.command.PropertyCommand;
 import codex.property.PropertyHolder;
 import codex.utils.ImageUtils;
@@ -14,18 +15,21 @@ import javax.swing.border.EmptyBorder;
 
 public class PathEditor extends AbstractEditor {
     
-    protected JTextField textField;
+    protected JTextField    textField;
+    private PropertyCommand pathSelector;
 
     public PathEditor(PropertyHolder propHolder) {
         super(propHolder);
     }
 
     @Override
-    public Box createEditor() {        
+    public Box createEditor() {
         textField = new JTextField();
         textField.setBorder(new EmptyBorder(0, 5, 0, 5));
         textField.setEditable(false);
-        propHolder.addCommand(new PathSelector());
+        
+        pathSelector = new PathSelector();
+        propHolder.addCommand(pathSelector);
 
         Box container = new Box(BoxLayout.X_AXIS);
         container.setBackground(textField.getBackground());
@@ -34,7 +38,9 @@ public class PathEditor extends AbstractEditor {
     }
     
     @Override
-    public void setEditable(boolean editable) {}
+    public void setEditable(boolean editable) {
+        pathSelector.getButton().setEnabled(editable);
+    }
 
     @Override
     public void setValue(Object value) {

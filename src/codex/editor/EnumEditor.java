@@ -54,6 +54,11 @@ public class EnumEditor extends AbstractEditor implements ActionListener {
             comboBox.setSelectedItem(value);
         }
     }
+    
+    @Override
+    public void setEditable(boolean editable) {
+        comboBox.setEnabled(editable);
+    }
 
     @Override
     public void actionPerformed(ActionEvent event) {

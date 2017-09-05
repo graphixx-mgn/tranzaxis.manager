@@ -82,10 +82,12 @@ public abstract class AbstractEditor implements IEditor, FocusListener {
     }
     
     @Override
-    public void setEditable(boolean editable) {}
+    public void setEditable(boolean editable) {
+        // Do nothing
+    }
     
     private void refresh() {
-        setEditable(true);
+        setEditable(!propHolder.isInherited());
         label.setFont((propHolder.isValid() ? DEFAULT : BOLD));
     }
     

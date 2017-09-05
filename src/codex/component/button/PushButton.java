@@ -26,7 +26,7 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
         button.setRolloverEnabled(true);
         button.setBorder(new EmptyBorder(2, 5, 2, 5));
         button.getModel().addChangeListener(this);
-        
+        setIcon(icon);
         add(button);
     }
     
@@ -54,14 +54,19 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     }
 
     @Override
-    public void setIcon(ImageIcon icon) {
+    public final void setIcon(ImageIcon icon) {
         button.setIcon(icon);
         button.setDisabledIcon(ImageUtils.grayscale(icon));
     }
 
     @Override
-    public void setHint(String text) {
+    public final void setHint(String text) {
         button.setToolTipText(text);
+    }
+    
+    @Override
+    public final void setEnabled(boolean enabled) {
+        button.setEnabled(enabled);
     }
     
 }
