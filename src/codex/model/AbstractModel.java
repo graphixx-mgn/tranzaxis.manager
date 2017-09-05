@@ -29,6 +29,14 @@ public class AbstractModel implements PropertyChangeListener {
         );
     }
     
+    public final boolean isValid() {
+        boolean isValid = true;
+        for (PropertyHolder propHolder : getProperties(Access.Any)) {
+            isValid = isValid & propHolder.isValid();
+        }
+        return isValid;
+    };
+    
     /**
      * Add new property to the object. 
      * @param propHolder Reference to property.
