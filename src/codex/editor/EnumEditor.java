@@ -60,7 +60,7 @@ public class EnumEditor extends AbstractEditor implements ActionListener {
         propHolder.setValue(comboBox.getSelectedItem());
     }
     
-    private class ComboBoxRenderer extends JLabel implements ListCellRenderer {
+    private final class ComboBoxRenderer extends JLabel implements ListCellRenderer {
         
         public ComboBoxRenderer() {
             setOpaque(true);
