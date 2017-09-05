@@ -26,5 +26,7 @@ public interface IEditor {
     public Box createEditor();
     public void setBorder(Border border);
     public void setValue(Object value);
+    public void setEnabled(boolean enabled);
+    public void setEditable(boolean editable);
     
 }
