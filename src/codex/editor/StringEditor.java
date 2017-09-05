@@ -4,6 +4,7 @@ import codex.property.PropertyHolder;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -36,9 +37,14 @@ public class StringEditor extends AbstractEditor implements DocumentListener {
 
     @Override
     public void setValue(Object value) {
-        textField.getDocument().removeDocumentListener(this);
-        textField.setText(value == null ? "" : value.toString());
-        textField.getDocument().addDocumentListener(this);
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                textField.getDocument().removeDocumentListener(StringEditor.this);
+                textField.setText(value == null ? "" : value.toString());
+                textField.getDocument().addDocumentListener(StringEditor.this);
+            }
+        });
     }
 
     @Override
