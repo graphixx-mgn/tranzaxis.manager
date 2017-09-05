@@ -24,7 +24,7 @@ public class PropertyHolder {
     private final String   desc;
     private final boolean  require;
     private Object         value;
-    private PropertyHolder override;
+    private PropertyHolder inherit;
     
     private final Map<String, List<PropertyChangeListener>> listeners = new LinkedHashMap<>();
     private final List<ICommand> commands  = new LinkedList<>();
@@ -108,7 +108,7 @@ public class PropertyHolder {
      * @return Instance of class 'type' or NULL.
      */
     public final Object getValue() {
-        return override == null ? value : override.getValue();
+        return inherit == null ? value : inherit.getValue();
     }
     
     /**
@@ -148,9 +148,9 @@ public class PropertyHolder {
         }
     }
     
-    public void setOverride(PropertyHolder propHolder) {
+    public void inherit(PropertyHolder propHolder) {
         Object prevValue = getValue();
-        override = propHolder;
+        inherit = propHolder;
         fireChangeEvent(name+"@override", null, null);
         if (getValue() == null) {
             setValue(prevValue);
@@ -159,8 +159,8 @@ public class PropertyHolder {
         }
     }
     
-    public boolean isOverridden() {
-        return override != null;
+    public boolean isInherited() {
+        return inherit != null;
     }
     
     public PropertyHolder addCommand(ICommand<PropertyHolder> command) {
