@@ -1,4 +1,4 @@
-package nodes;
+package manager.nodes;
 
 
 import codex.explorer.tree.AbstractNode;
@@ -8,7 +8,7 @@ import codex.property.PropertyHolder;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.nio.file.Path;
-import type.Locale;
+import manager.type.Locale;
 
 public class CommonRoot extends AbstractNode {
 

@@ -1,4 +1,4 @@
-package nodes;
+package manager.nodes;
 
 import codex.explorer.tree.AbstractNode;
 import codex.model.Access;

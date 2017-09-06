@@ -1,4 +1,7 @@
 
+import manager.Manager;
+
+
 public class Loader {
     /**
      * @param args the command line arguments

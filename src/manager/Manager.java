@@ -1,3 +1,5 @@
+package manager;
+
 
 import codex.explorer.ExplorerUnit;
 import codex.explorer.tree.NodeTreeModel;
@@ -9,13 +11,13 @@ import codex.utils.ImageUtils;
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
-import nodes.CommonRoot;
-import nodes.System;
-import nodes.DatabaseRoot;
-import nodes.RepositoryRoot;
-import nodes.SystemRoot;
+import manager.nodes.CommonRoot;
+import manager.nodes.System;
+import manager.nodes.DatabaseRoot;
+import manager.nodes.RepositoryRoot;
+import manager.nodes.SystemRoot;
 import org.apache.log4j.Level;
-import ui.Window;
+import manager.ui.Window;
 
 public class Manager {
     

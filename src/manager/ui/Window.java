@@ -1,4 +1,4 @@
-package ui;
+package manager.ui;
 
 import codex.unit.AbstractUnit;
 import java.awt.BorderLayout;
