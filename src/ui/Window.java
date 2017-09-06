@@ -1,7 +1,6 @@
 package ui;
 
 import codex.unit.AbstractUnit;
-import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -9,9 +8,6 @@ import javax.swing.GroupLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.MatteBorder;
 
 public final class Window extends JFrame {
@@ -24,12 +20,6 @@ public final class Window extends JFrame {
     public Window(String title, ImageIcon icon) {
         super(title);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        
-        try {
-            UIManager.setLookAndFeel(new WindowsLookAndFeel());
-            UIManager.put("Tree.drawDashedFocusIndicator", false);
-            SwingUtilities.updateComponentTreeUI(this);
-        } catch (UnsupportedLookAndFeelException e) {} 
         
         if (icon != null) {
             setIconImage(icon.getImage());
