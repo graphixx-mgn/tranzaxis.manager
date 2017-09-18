@@ -5,6 +5,10 @@ import codex.explorer.ExplorerUnit;
 import codex.explorer.tree.NodeTreeModel;
 import codex.log.LogUnit;
 import codex.log.Logger;
+import codex.service.DemoService;
+import codex.service.DummyService;
+import codex.service.ServiceRegistry;
+import codex.task.TaskManager;
 import codex.unit.AbstractUnit;
 import codex.update.UpdateUnit;
 import codex.utils.ImageUtils;
@@ -24,16 +28,23 @@ public class Manager {
     private final static Logger logger = Logger.getLogger();
     static {
         logger.setLevel(Level.ALL);
-    }
-    
-    private final Window window;
-    private final AbstractUnit log, update, explorer;
-    
-    public Manager() {
         try {
             UIManager.setLookAndFeel(new WindowsLookAndFeel());
             UIManager.put("Tree.drawDashedFocusIndicator", false);
         } catch (UnsupportedLookAndFeelException e) {}
+    }
+    
+    private final Window window;
+    private final AbstractUnit logUnit, updateUnit, explorerUnit;
+    
+    public Manager() {
+        logUnit = new LogUnit();
+        
+        TaskManager manager = new TaskManager();
+        manager.test();
+        
+//        ServiceRegistry.getInstance().registerService(new DemoService());
+//        ServiceRegistry.getInstance().processRequest(DummyService.class);
         
 //        JDialog p = new JDialog();
 //        double version = Double.parseDouble(java.lang.System.getProperty("java.specification.version"));
@@ -54,14 +65,13 @@ public class Manager {
         root.insert(systems);
         NodeTreeModel treeModel = new NodeTreeModel(root);
         
-        log      = new LogUnit();
-        update   = new UpdateUnit();
-        explorer = new ExplorerUnit(treeModel);
+        updateUnit   = new UpdateUnit();
+        explorerUnit = new ExplorerUnit(treeModel);
 
         window = new Window("TranzAxis Manager", ImageUtils.getByPath("/images/project.png"));
-        window.addUnit(log, window.loggingPanel);
-        window.addUnit(update, window.upgradePanel);
-        window.addUnit(explorer, window.explorePanel);
+        window.addUnit(logUnit, window.loggingPanel);
+        window.addUnit(updateUnit, window.upgradePanel);
+        window.addUnit(explorerUnit, window.explorePanel);
         window.setVisible(true);
     }
     
