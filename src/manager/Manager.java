@@ -5,9 +5,8 @@ import codex.explorer.ExplorerUnit;
 import codex.explorer.tree.NodeTreeModel;
 import codex.log.LogUnit;
 import codex.log.Logger;
-import codex.service.DemoService;
-import codex.service.DummyService;
-import codex.service.ServiceRegistry;
+import codex.task.AbstractTask;
+import codex.task.ITask;
 import codex.task.TaskManager;
 import codex.unit.AbstractUnit;
 import codex.update.UpdateUnit;
@@ -40,8 +39,34 @@ public class Manager {
     public Manager() {
         logUnit = new LogUnit();
         
-        TaskManager manager = new TaskManager();
-        manager.test();
+        for (int cnt = 0; cnt < 10; cnt++) {
+        
+            ITask<Integer> task = new AbstractTask<Integer>("Task #"+cnt) {
+
+                @Override
+                public Integer execute() {
+                    try {
+                        for (int i = 1; i <= 10; i++) {
+                            Thread.sleep(200);
+                            //setProgress(i*10, "");
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    return 1000;
+                }
+
+                @Override
+                public void finished(Integer result) {
+                    Logger.getLogger().info("Task {0} result: {1}", getTitle(), result);
+                    //JOptionPane.showMessageDialog(null, "Task result: "+result);
+                }
+
+            };
+
+            TaskManager.getInstance().execute(task);
+        }
+
         
 //        ServiceRegistry.getInstance().registerService(new DemoService());
 //        ServiceRegistry.getInstance().processRequest(DummyService.class);
