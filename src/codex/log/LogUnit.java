@@ -139,7 +139,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
         button.setOpaque(false);
         button.setContentAreaFilled(false);
         button.setRolloverEnabled(true);
-        button.setMargin(new Insets(0, 0, 0, 0));
+        button.setMargin(new Insets(0, 5, 0, 5));
         button.addActionListener((ActionEvent event) -> {
             frame.setVisible(!frame.isVisible());
         });

@@ -20,7 +20,7 @@ public class UpdateUnit extends AbstractUnit {
         button.setOpaque(false);
         button.setContentAreaFilled(false);
         button.setRolloverEnabled(true);
-        button.setMargin(new Insets(0, 0, 0, 0));
+        button.setMargin(new Insets(0, 5, 0, 5));
         return button;
     }
     
