@@ -6,12 +6,14 @@ import codex.explorer.tree.NodeTreeModel;
 import codex.log.LogUnit;
 import codex.log.Logger;
 import codex.task.AbstractTask;
-import codex.task.ITask;
 import codex.task.TaskManager;
 import codex.unit.AbstractUnit;
 import codex.update.UpdateUnit;
 import codex.utils.ImageUtils;
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.JButton;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import manager.nodes.CommonRoot;
@@ -34,39 +36,43 @@ public class Manager {
     }
     
     private final Window window;
+    private final TaskManager  taskManager;
     private final AbstractUnit logUnit, updateUnit, explorerUnit;
+    
+    private class TaskImpl extends AbstractTask<Integer> {
+
+        private Integer val; 
+        
+        public TaskImpl(Integer initVal) {
+            super("Value incrementator starts from "+initVal);
+            val = initVal;
+        }
+
+        @Override
+        public Integer execute() throws Exception {
+            if (val == 0) {
+                throw new Error("Unable to increment ZERO");
+            }
+            for (int i = 0; i < 10; i++) {
+                Thread.sleep(700);
+                val = val + 1;
+                setProgress((i+1)*10, "Changed value to "+val);
+            }
+            return val;
+        }
+        
+        @Override
+        public void finished(Integer result) {
+            Logger.getLogger().info("Result: {0}", result);
+        }
+    
+    }
+    
     
     public Manager() {
         logUnit = new LogUnit();
+        taskManager = new TaskManager();
         
-        for (int cnt = 0; cnt < 10; cnt++) {
-        
-            ITask<Integer> task = new AbstractTask<Integer>("Task #"+cnt) {
-
-                @Override
-                public Integer execute() {
-                    try {
-                        for (int i = 1; i <= 10; i++) {
-                            Thread.sleep(200);
-                            //setProgress(i*10, "");
-                        }
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    return 1000;
-                }
-
-                @Override
-                public void finished(Integer result) {
-                    Logger.getLogger().info("Task {0} result: {1}", getTitle(), result);
-                    //JOptionPane.showMessageDialog(null, "Task result: "+result);
-                }
-
-            };
-
-            TaskManager.getInstance().execute(task);
-        }
-
         
 //        ServiceRegistry.getInstance().registerService(new DemoService());
 //        ServiceRegistry.getInstance().processRequest(DummyService.class);
@@ -78,6 +84,7 @@ public class Manager {
 //        p.pack();
 //        p.setLocationRelativeTo(null);
 //        p.setVisible(true);
+
 
         CommonRoot      root = new CommonRoot();
         RepositoryRoot repos = new RepositoryRoot();
@@ -92,11 +99,32 @@ public class Manager {
         
         updateUnit   = new UpdateUnit();
         explorerUnit = new ExplorerUnit(treeModel);
+        
+        
+        ((JButton) updateUnit.getViewport()).addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                
+                taskManager.execute(new TaskImpl(100));
+                
+//                ITask task = null;
+//                for (int cnt = 0; cnt < 4; cnt++) {
+//                    task = new TaskImpl(cnt);
+//                    taskManager.execute(task);
+//                }
 
+//                taskManager.executeSequentially(new TaskImpl(0), new TaskImpl(5), new TaskImpl(10));
+//                taskManager.executeSequentially(new TaskImpl(0), new TaskImpl(5), new TaskImpl(10));
+//                taskManager.executeSequentially(new TaskImpl(0), new TaskImpl(5), new TaskImpl(10));
+            }
+        });
+
+        
         window = new Window("TranzAxis Manager", ImageUtils.getByPath("/images/project.png"));
         window.addUnit(logUnit, window.loggingPanel);
         window.addUnit(updateUnit, window.upgradePanel);
         window.addUnit(explorerUnit, window.explorePanel);
+        window.addUnit(taskManager, window.taskmgrPanel);
         window.setVisible(true);
     }
     
