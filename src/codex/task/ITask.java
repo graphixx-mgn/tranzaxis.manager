@@ -1,17 +1,15 @@
 package codex.task;
 
-import java.util.concurrent.Callable;
+import java.util.concurrent.RunnableFuture;
 
-public interface ITask<T> extends Callable<T> {
+public interface ITask<T> extends RunnableFuture<T> {
+
+    String getTitle();
+    Status getStatus();
     
-    public enum State {
-        PENDING,
-        STARTED,
-        FINISHED
-    }
-    
-    T execute();
-    void cancel();
+    T execute() throws Exception;
     void finished(T result);
+    
+    void addListener(ITaskListener listener);
     
 }
