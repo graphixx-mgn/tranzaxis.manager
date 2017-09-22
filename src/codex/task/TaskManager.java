@@ -1,23 +1,30 @@
 package codex.task;
 
+import codex.unit.AbstractUnit;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import javax.swing.JComponent;
 
-public final class TaskManager {
+public final class TaskManager extends AbstractUnit {
     
-    private static final TaskManager INSTANCE = new TaskManager();
-    
-//    private final ExecutorService executor = Executors.newCachedThreadPool();
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    
-    private TaskManager() {}
-    
-    public static TaskManager getInstance() {
-        return INSTANCE;
+    private final ExecutorService threadPool = Executors.newFixedThreadPool(3);
+    private       TaskView        viewPort;
+
+    @Override
+    public JComponent createViewport() {
+        viewPort = new TaskView();
+        return viewPort;
     }
     
     public void execute(ITask task) {
-        executor.submit(task);
+        viewPort.addTask(task);
+        threadPool.submit(task);
     }
     
+    public void executeSequentially(ITask... tasks) {
+        for (ITask task : tasks) {
+            viewPort.addTask(task);
+        }
+        threadPool.submit(new TaskSequence("Test group task", tasks));
+    }
 }
