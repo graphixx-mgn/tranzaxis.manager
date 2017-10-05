@@ -10,16 +10,26 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+/**
+ * Простая реализация-декоратор кнопки. Используется для упраления в диалоговых окнах.
+ */
 public class PushButton extends JPanel implements IButton, ChangeListener {
     
     protected final JButton button;
     
+    /**
+     * Конструктор экземпляра кнопки.
+     * @param icon Иконка устанавливаемая на кнопку, может быть NULL, если требуется 
+     * создать кнопку только с текстом.
+     * @param title Поддпись кнопки, может быть NULL, если требуется создать кнопку 
+     * только с иконкой.
+     */
     public PushButton(ImageIcon icon, String title) {
         super();
         setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
         setBorder(IButton.EMPTY_BORDER);
         
-        button = new JButton(title, icon);
+        button = new JButton(title);
         button.setFocusPainted(false);
         button.setOpaque(false);
         button.setContentAreaFilled(false);
@@ -40,6 +50,10 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
         redraw();
     }
     
+    /**
+     * Медод перерисовки кнопки при воздействии внешних событий, таких как наведение
+     * и нажатие мыши.
+     */
     protected void redraw() {
         if (button.getModel().isPressed()) {
             setBorder(PRESS_BORDER);
