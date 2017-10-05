@@ -24,7 +24,7 @@ public final class DefaultRenderer extends JLabel implements ListCellRenderer, T
     
     public DefaultRenderer() {
         setOpaque(true);
-        setIconTextGap(10);
+        setIconTextGap(6);
         setVerticalAlignment(CENTER);
     }
 
@@ -44,6 +44,7 @@ public final class DefaultRenderer extends JLabel implements ListCellRenderer, T
         setText(value.toString());
         setBackground(isSelected ? IButton.PRESS_COLOR : list.getBackground());
         if (Iconified.class.isAssignableFrom(value.getClass())) {
+            setBorder(new EmptyBorder(1, 4, 1, 2));
             setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 15, 15));
         }
         return this;
