@@ -45,6 +45,10 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
         button.addActionListener(listener);
     }
 
+    /**
+     * Слушатель внешних событий для измения внешнего вида кнопки.
+     * @param event Экземляр внешнего события.
+     */
     @Override
     public void stateChanged(ChangeEvent event) {
         redraw();
