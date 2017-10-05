@@ -26,6 +26,11 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
      */
     public PushButton(ImageIcon icon, String title) {
         super();
+        
+        if (icon == null && title == null) {
+            throw new IllegalStateException("It is not possible don't specify 'icon' nor 'title'");
+        }
+        
         setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
         setBorder(IButton.EMPTY_BORDER);
         
