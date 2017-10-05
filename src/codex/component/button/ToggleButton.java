@@ -6,11 +6,22 @@ import javax.swing.ImageIcon;
 import javax.swing.border.MatteBorder;
 import javax.swing.event.ChangeEvent;
 
+/**
+ * Кнопка-переключель, котрая имеет два стабильных состояния: включена или выключена.
+ */
 public class ToggleButton extends PushButton {
     
     private boolean checked = false;
     private final ImageIcon icon;
 
+    /**
+     * Конструктор экземпляра кнопки.
+     * @param icon Иконка устанавливаемая на кнопку, может быть NULL, если требуется 
+     * создать кнопку только с текстом.
+     * @param title Поддпись кнопки, может быть NULL, если требуется создать кнопку 
+     * только с иконкой.
+     * @param checked Начальное состояние, TRUE - если включена, инае - выключена.
+     */
     public ToggleButton(ImageIcon icon, String title, boolean checked) {
         super(icon, title);
         this.checked = checked;
@@ -18,6 +29,10 @@ public class ToggleButton extends PushButton {
         redraw();
     }
     
+    /**
+     * Проверка текущего состояния кнопки.
+     * @return TRUE - если включена, инае - выключена.
+     */
     public boolean isChecked() {
         return checked;
     }
