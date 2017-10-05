@@ -1,5 +1,6 @@
 package codex.component.button;
 
+import codex.editor.StringListEditor;
 import java.awt.Color;
 import java.awt.event.ActionListener;
 import javax.swing.ImageIcon;
@@ -7,18 +8,63 @@ import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
+/**
+ * Общий интерфейс объектов: кнопок и меню для единообразных операций.
+ */
 public interface IButton {
     
+    /**
+     * Рамка по-умолчанию неактивной кнопки.
+     */
     public final static Border EMPTY_BORDER = new EmptyBorder(1, 1, 1, 1);
+    
+    /**
+     * Рамка по-умолчанию кнопки для подсветки в момент наведения мыши.
+     */
     public final static Border HOVER_BORDER = new LineBorder(Color.decode("#C0DCF3"), 1);
+    
+    /**
+     * Рамка по-умолчанию кнопки для подсветки в момент нажатия мыши.
+     */
     public final static Border PRESS_BORDER = new LineBorder(Color.decode("#90C8F6"), 1);
     
+    /**
+     * Цвет фона по-умолчанию для подсветки кнопки в момент наведения мыши.
+     */
     public final static Color  HOVER_COLOR  = Color.decode("#D8E6F2");
+    
+    /**
+     * Цвет фона по-умолчанию для подсветки кнопки в момент нажатия мыши.
+     */
     public final static Color  PRESS_COLOR  = Color.decode("#C0DCF3");
     
+    /**
+     * Установка внешнего слушателя события нажатия кнопки.
+     * @param listener Реализация функционального интерфейса слушателя.
+     */
     public void addActionListener(ActionListener listener);
+    
+    /**
+     * Динамическая смена иконки кнопки. Следует использовать в случае когда в
+     * зависимости от каких-либо условий изображение должно изменяться и необходимо
+     * визуально сообщить пользователю о возможном смене поведения кнопки.
+     * @see StringListEditor
+     * @param icon Новая иконка кнопки.
+     */
     public void setIcon(ImageIcon icon);
+    
+    /**
+     * Динамическая смена текста подсказки для кнопки. Следует использовать в случае 
+     * когда в зависимости от каких-либо условий текст следует изменить.
+     * @see StringListEditor
+     * @param text Новый текст подсказки.
+     */
     public void setHint(String text);
+    
+    /**
+     * Переключения состояния интерактивности кнопки.
+     * @param enabled TRUE - кнопка доступна для взаимодействия, иначе - нет.
+     */
     public void setEnabled(boolean enabled);
     
 }
