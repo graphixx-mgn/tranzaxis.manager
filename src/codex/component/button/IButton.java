@@ -67,4 +67,9 @@ public interface IButton {
      */
     public void setEnabled(boolean enabled);
     
+    /**
+     * Возвращает состояние интерактивности кнопки.
+     * @return TRUE - кнопка доступна для взаимодействия, иначе - нет.
+     */
+    public boolean isEnabled();
 }
