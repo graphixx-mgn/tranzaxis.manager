@@ -32,8 +32,8 @@ public interface IEditor<T> {
     public Box createEditor();
     public void setBorder(Border border);
     public void setValue(T value);
-    public void setEnabled(boolean enabled);
     public void setEditable(boolean editable);
+    public boolean isEditable();
     public void addCommand(ICommand<PropertyHolder> command);
     public List<ICommand<PropertyHolder>> getCommands();
     

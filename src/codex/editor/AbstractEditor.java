@@ -81,14 +81,19 @@ public abstract class AbstractEditor<T> implements IEditor, FocusListener {
         setBorder(BORDER_NORMAL);
     }
 
-    @Override
-    public void setEnabled(boolean enabled) {
-        setEnabled(editor, enabled);
-    }
+//    @Override
+//    public void setEnabled(boolean enabled) {
+//        setEnabled(editor, enabled);
+//    }
     
     @Override
     public void setEditable(boolean editable) {
         // Do nothing
+    }
+    
+    @Override
+    public boolean isEditable() {
+        return true;
     }
     
 //    private void refresh() {
