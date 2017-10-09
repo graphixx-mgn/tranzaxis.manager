@@ -11,12 +11,12 @@ import java.awt.event.ActionListener;
 import javax.swing.ImageIcon;
 
 /**
- * Абстрактная реализация команд над свойствами {@link PropertyHolder}.
+ * Абстрактная реализация команд редактора свойств {@link PropertyHolder}.
  * Используется для возможности производить различные действия над свойством.
  * В частности, таким образом реализуется запуск редакторов таких типов как
  * {@link FilePath} и {@link StringList}.
  */
-public abstract class PropertyCommand implements ICommand<PropertyHolder>, ActionListener {
+public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionListener {
     
     protected PropertyHolder[] context;
     protected IButton          button;
@@ -26,7 +26,7 @@ public abstract class PropertyCommand implements ICommand<PropertyHolder>, Actio
      * @param icon Иконка устанавливаемая на кнопку запуска команды, не может быть NULL.
      * @param title Описание команды, отображается при наведении мыши на кнопку.
      */
-    public PropertyCommand(ImageIcon icon, String title) {
+    public EditorCommand(ImageIcon icon, String title) {
         if (icon == null) {
             throw new IllegalStateException("Parameter 'icon' can not be NULL");
         }
