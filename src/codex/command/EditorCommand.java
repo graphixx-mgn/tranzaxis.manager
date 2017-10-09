@@ -30,7 +30,7 @@ public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionL
         if (icon == null) {
             throw new IllegalStateException("Parameter 'icon' can not be NULL");
         }
-        this.button = new CommandButton(ImageUtils.resize(icon, 20, 20));
+        this.button = new CommandButton(icon);
         this.button.addActionListener(this);
         this.button.setHint(title);
     }
