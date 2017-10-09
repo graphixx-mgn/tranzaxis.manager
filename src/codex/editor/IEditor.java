@@ -34,7 +34,7 @@ public interface IEditor<T> {
     public void setValue(T value);
     public void setEnabled(boolean enabled);
     public void setEditable(boolean editable);
-    public void addCommand(ICommand command);
-    public List<ICommand> getCommands();
+    public void addCommand(ICommand<PropertyHolder> command);
+    public List<ICommand<PropertyHolder>> getCommands();
     
 }

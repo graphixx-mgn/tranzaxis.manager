@@ -24,7 +24,7 @@ public abstract class AbstractEditor<T> implements IEditor, FocusListener {
     protected Box editor;
     
     final PropertyHolder propHolder;
-    private final List<ICommand> commands = new LinkedList<>();
+    private final List<ICommand<PropertyHolder>> commands = new LinkedList<>();
 
     public AbstractEditor(PropertyHolder propHolder) {
         this.propHolder = propHolder;
@@ -108,11 +108,11 @@ public abstract class AbstractEditor<T> implements IEditor, FocusListener {
     @Override
     public void addCommand(ICommand command) {
         commands.add(command);
-        command.setContext(propHolder);
-    };
+        ((ICommand<PropertyHolder>)command).setContext(propHolder);
+    }
     
     @Override
-    public List<ICommand> getCommands() {
+    public List<ICommand<PropertyHolder>> getCommands() {
         return new LinkedList<>(commands);
     }
 
