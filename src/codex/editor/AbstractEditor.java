@@ -1,18 +1,21 @@
 package codex.editor;
 
+import codex.command.ICommand;
 import codex.property.PropertyHolder;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Font;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.util.LinkedList;
+import java.util.List;
 import javax.swing.Box;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
 
-public abstract class AbstractEditor implements IEditor, FocusListener {
+public abstract class AbstractEditor<T> implements IEditor, FocusListener {
     
     private final static Font DEFAULT = UIManager.getDefaults().getFont("Label.font");
     private final static Font BOLD    = DEFAULT.deriveFont(Font.BOLD);
@@ -21,6 +24,7 @@ public abstract class AbstractEditor implements IEditor, FocusListener {
     protected Box editor;
     
     final PropertyHolder propHolder;
+    private final List<ICommand> commands = new LinkedList<>();
 
     public AbstractEditor(PropertyHolder propHolder) {
         this.propHolder = propHolder;
@@ -28,17 +32,18 @@ public abstract class AbstractEditor implements IEditor, FocusListener {
         this.editor = createEditor();
         
         setToolTipRecursively(editor, propHolder.getDescriprion());
-        setValue(propHolder.getValue());
-        refresh();
+//        setValue(((IComplexType<T>) propHolder.getPropValue()).getValue());
         
-        propHolder.addChangeListener((String name, Object oldValue, Object newValue) -> {
-            setValue(propHolder.getValue());
-            refresh();
-        });
-        propHolder.addChangeListener("override", (String name, Object oldValue, Object newValue) -> {
-            setValue(propHolder.getValue());
-            refresh();
-        });
+//        refresh();
+        
+//        propHolder.addChangeListener((String name, Object oldValue, Object newValue) -> {
+//            setValue(propHolder.getPropValue()); 
+//            refresh();
+//        });
+//        propHolder.addChangeListener("override", (String name, Object oldValue, Object newValue) -> {
+            //setValue(propHolder.getPropValue());
+//            refresh();
+//        });
     }
 
     @Override
@@ -86,10 +91,10 @@ public abstract class AbstractEditor implements IEditor, FocusListener {
         // Do nothing
     }
     
-    private void refresh() {
-        setEditable(!propHolder.isInherited());
-        label.setFont((propHolder.isValid() ? DEFAULT : BOLD));
-    }
+//    private void refresh() {
+//        setEditable(!propHolder.isInherited());
+//        label.setFont((propHolder.isValid() ? DEFAULT : BOLD));
+//    }
     
     void setEnabled(Component component, boolean enabled) {
         component.setEnabled(enabled);
@@ -98,6 +103,17 @@ public abstract class AbstractEditor implements IEditor, FocusListener {
                 setEnabled(child, enabled);
             }
         }
+    }
+
+    @Override
+    public void addCommand(ICommand command) {
+        commands.add(command);
+        command.setContext(propHolder);
+    };
+    
+    @Override
+    public List<ICommand> getCommands() {
+        return new LinkedList<>(commands);
     }
 
 }

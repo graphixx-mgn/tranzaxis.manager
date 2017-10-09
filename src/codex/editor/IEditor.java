@@ -1,7 +1,11 @@
 package codex.editor;
 
+import codex.command.ICommand;
+import codex.property.PropertyHolder;
+import codex.utils.Language;
 import java.awt.Color;
 import java.awt.Font;
+import java.util.List;
 import javax.swing.Box;
 import javax.swing.JLabel;
 import javax.swing.border.Border;
@@ -9,7 +13,7 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
-public interface IEditor {
+public interface IEditor<T> {
     
     public static final Font FONT_NORMAL = new Font("Tahoma", 0, 12);
     public static final Font FONT_BOLD   = FONT_NORMAL.deriveFont(Font.BOLD);
@@ -21,12 +25,16 @@ public interface IEditor {
             new LineBorder(Color.LIGHT_GRAY, 1)
     );
     
+    public static final String NOT_DEFINED = Language.get("error@novalue");
+    
     public JLabel getLabel();
     public Box getEditor();
     public Box createEditor();
     public void setBorder(Border border);
-    public void setValue(Object value);
+    public void setValue(T value);
     public void setEnabled(boolean enabled);
     public void setEditable(boolean editable);
+    public void addCommand(ICommand command);
+    public List<ICommand> getCommands();
     
 }
