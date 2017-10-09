@@ -67,7 +67,7 @@ public final class DefaultRenderer extends JLabel implements ListCellRenderer, T
         setBackground(isSelected ? IButton.PRESS_COLOR : table.getBackground());
         setBorder(new CompoundBorder(
                 new MatteBorder(0, column == 0 ? 0 : 1, 1, 0, Color.LIGHT_GRAY), 
-                new EmptyBorder(0, 5, 0, 0)
+                new EmptyBorder(1, 6, 0, 0)
         ));
         return this;
     }
