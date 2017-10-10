@@ -1,6 +1,7 @@
 package codex.component.button;
 
 import codex.utils.ImageUtils;
+import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -47,7 +48,9 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     
     @Override
     public void addActionListener(ActionListener listener) {
-        button.addActionListener(listener);
+        button.addActionListener((event) -> {
+            listener.actionPerformed(new ActionEvent(PushButton.this, event.getID(), event.getActionCommand()));
+        });
     }
 
     /**
