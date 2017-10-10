@@ -42,18 +42,19 @@ public final class PlaceHolder extends JLabel implements FocusListener, Document
         setShow( show );
         document = component.getDocument();
         
-        Insets bounds = component.getInsets();
-
         setText( text );
         setFont( component.getFont() );
         setForeground( component.getForeground() );
+        Insets bounds = component.getInsets();
         setBorder( new EmptyBorder(bounds.top, 0, bounds.bottom, bounds.right));
         setHorizontalAlignment(JLabel.LEADING);
         addMouseListener(new MouseAdapter() {
             
             @Override
             public void mouseClicked(MouseEvent e) {
-                component.requestFocusInWindow();
+                if (component.isEditable()) {
+                    component.requestFocusInWindow();
+                }
             }
         });
 
