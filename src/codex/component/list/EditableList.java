@@ -7,16 +7,19 @@ import codex.type.IComplexType;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.event.KeyEvent;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 import java.util.function.Consumer;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultCellEditor;
+import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -102,6 +105,9 @@ public final class EditableList extends JPanel {
         table.setDefaultEditor(String.class, new DefaultCellEditor(cellEditor));
         table.putClientProperty("terminateEditOnFocusLost", true);
         
+        table.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "Enter");
+        table.getActionMap().put("Enter", null);
+        
         JScrollPane scrollPanel = new JScrollPane(table);
         scrollPanel.getViewport().setBackground(Color.WHITE);
         scrollPanel.setBorder(new LineBorder(Color.LIGHT_GRAY, 1));
@@ -110,7 +116,6 @@ public final class EditableList extends JPanel {
         
         insert = (value) -> {
             model.addRow(new String[]{IComplexType.coalesce(value, "")}); 
-            System.err.println(values);
         };
         delete = (index) -> {
             if (index == TableModelEvent.HEADER_ROW) return;
