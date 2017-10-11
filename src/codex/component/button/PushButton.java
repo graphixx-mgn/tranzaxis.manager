@@ -91,6 +91,11 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     }
     
     @Override
+    public final void setText(String text) {
+        button.setText(text);
+    }
+    
+    @Override
     public final void setEnabled(boolean enabled) {
         button.setEnabled(enabled);
     }

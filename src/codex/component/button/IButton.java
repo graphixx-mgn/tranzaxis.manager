@@ -62,6 +62,12 @@ public interface IButton {
     public void setHint(String text);
     
     /**
+     * Динамическая смена надписи у кнопки.
+     * @param text Текст новой надписи.
+     */
+    public void setText(String text);
+    
+    /**
      * Переключения состояния интерактивности кнопки.
      * @param enabled TRUE - кнопка доступна для взаимодействия, иначе - нет.
      */
