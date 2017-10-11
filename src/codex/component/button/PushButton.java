@@ -4,6 +4,7 @@ import codex.utils.ImageUtils;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.BoxLayout;
+import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
@@ -80,9 +81,9 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     }
 
     @Override
-    public final void setIcon(ImageIcon icon) {
+    public final void setIcon(Icon icon) {
         button.setIcon(icon);
-        button.setDisabledIcon(ImageUtils.grayscale(icon));
+        button.setDisabledIcon(ImageUtils.grayscale((ImageIcon) icon));
     }
 
     @Override
