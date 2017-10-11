@@ -8,33 +8,82 @@ import java.awt.Font;
 import java.util.List;
 import javax.swing.Box;
 import javax.swing.JLabel;
+import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
+/**
+ * Интерфейс GUI редакторов свойств {@link PropertyHolder}
+ * @param <T> Тип внутреннего значения своиства.
+ */
 public interface IEditor<T> {
     
-    public static final Font FONT_NORMAL = new Font("Tahoma", 0, 12);
+    /**
+     * Стандартный шрифт наименований свойств.
+     */
+    public static final Font FONT_NORMAL = UIManager.getDefaults().getFont("Label.font");
+    /**
+     * Шрифт наименования обязательного свойства с пустым значением.
+     * @see PropertyHolder#isValid()
+     */
     public static final Font FONT_BOLD   = FONT_NORMAL.deriveFont(Font.BOLD);
-    
-    public static final Border BORDER_ERROR  = new LineBorder(Color.decode("#DE5347"), 2);
-    public static final Border BORDER_ACTIVE = new LineBorder(Color.decode("#3399FF"), 2);
+    /**
+     * Стандартный бордюр редактора.
+     */
     public static final Border BORDER_NORMAL = new CompoundBorder(
             new EmptyBorder(1, 1, 1, 1),
             new LineBorder(Color.LIGHT_GRAY, 1)
     );
-    
+    /**
+     * Бордюр редактора, имеющего в данный момент фокус ввода.
+     */
+    public static final Border BORDER_ACTIVE = new LineBorder(Color.decode("#3399FF"), 2);
+    /**
+     * Бордюр редактора, содержащего ошибочное значение.
+     */
+    public static final Border BORDER_ERROR  = new LineBorder(Color.decode("#DE5347"), 2);
+    /**
+     * Текст заглушки, отображающегося если свойство не имеет значения.
+     */
     public static final String NOT_DEFINED = Language.get("error@novalue");
     
+    /**
+     * Получить метку, содержащую текст наименования свойства.
+     */
     public JLabel getLabel();
+    /**
+     * Получить виджет редактора.
+     */
     public Box getEditor();
+    /**
+     * Реализует конструирование виджета редактора.
+     */
     public Box createEditor();
+    /**
+     * Установка бордюра редактора.
+     */
     public void setBorder(Border border);
+    /** 
+     * Установка значения редактора, отображаемое в GUI.
+     */
     public void setValue(T value);
+    /**
+     * Переключение доступности редактирования значения пользователем.
+     */
     public void setEditable(boolean editable);
+    /**
+     * Позволяет определить, возможно ли редактирование.
+     */
     public boolean isEditable();
+    /**
+     * Добавить команду изменения свойства.
+     */
     public void addCommand(ICommand<PropertyHolder> command);
+    /**
+     * Получить текущий список назначенных редактору команд.
+     */
     public List<ICommand<PropertyHolder>> getCommands();
     
 }
