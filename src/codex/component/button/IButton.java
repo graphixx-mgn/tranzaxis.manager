@@ -3,7 +3,7 @@ package codex.component.button;
 import codex.editor.StringListEditor;
 import java.awt.Color;
 import java.awt.event.ActionListener;
-import javax.swing.ImageIcon;
+import javax.swing.Icon;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -51,7 +51,7 @@ public interface IButton {
      * @see StringListEditor
      * @param icon Новая иконка кнопки.
      */
-    public void setIcon(ImageIcon icon);
+    public void setIcon(Icon icon);
     
     /**
      * Динамическая смена текста подсказки для кнопки. Следует использовать в случае 
