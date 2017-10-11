@@ -59,7 +59,7 @@ public final class DefaultRenderer extends JLabel implements ListCellRenderer, T
      * @param hasFocus Признак того что ячейка имеет фокус.
      * @param row Индекс строки ячейки в таблице.
      * @param column Индекс колонки ячейки в таблице.
-     * @return 
+     * @return SWING виджет, являющийся визуальным представлением ячейки.
      */
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
