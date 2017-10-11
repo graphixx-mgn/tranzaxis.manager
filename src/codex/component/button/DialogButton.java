@@ -2,6 +2,7 @@ package codex.component.button;
 
 import codex.component.dialog.Dialog;
 import java.awt.GridLayout;
+import java.awt.event.KeyEvent;
 import javax.swing.ImageIcon;
 import javax.swing.KeyStroke;
 

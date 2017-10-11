@@ -9,8 +9,6 @@ import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -125,7 +123,7 @@ public final class Dialog extends JDialog {
      * @param title Название окна диалога.
      * @param content Панель с контентом.
      * @param close Слушатель события закрытия окна.
-     * @param buttonTemplates Список кнопок произвольной длины.
+     * @param buttons Список кнопок произвольной длины.
      */
     public Dialog(Window parent, ImageIcon icon, String title, JPanel content, Action close, DialogButton... buttons) {
         super(parent, title, ModalityType.APPLICATION_MODAL);

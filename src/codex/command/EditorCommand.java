@@ -5,7 +5,6 @@ import codex.component.button.IButton;
 import codex.property.PropertyHolder;
 import codex.type.FilePath;
 import codex.type.StringList;
-import codex.utils.ImageUtils;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.ImageIcon;
