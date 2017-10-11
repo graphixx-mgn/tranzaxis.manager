@@ -6,6 +6,7 @@ import codex.explorer.tree.NodeTreeModel;
 import codex.log.LogUnit;
 import codex.log.Logger;
 import codex.task.AbstractTask;
+import codex.task.ITask;
 import codex.task.TaskManager;
 import codex.unit.AbstractUnit;
 import codex.update.UpdateUnit;
@@ -44,17 +45,16 @@ public class Manager {
         private Integer val; 
         
         public TaskImpl(Integer initVal) {
-            super("Value incrementator starts from "+initVal);
-            val = initVal;
+            super("Task #"+(initVal+1)+": Value incrementator starts from "+(initVal*5));
+            val = initVal*5;
         }
 
         @Override
         public Integer execute() throws Exception {
-            if (val == 0) {
-                throw new Error("Unable to increment ZERO");
-            }
+            if (val == 0) throw new Error("Unable to increment ZERO");
+            Thread.sleep(val*100);
             for (int i = 0; i < 10; i++) {
-                Thread.sleep(700);
+                Thread.sleep(500);
                 val = val + 1;
                 setProgress((i+1)*10, "Changed value to "+val);
             }
@@ -72,7 +72,6 @@ public class Manager {
     public Manager() {
         logUnit = new LogUnit();
         taskManager = new TaskManager();
-        
         
 //        ServiceRegistry.getInstance().registerService(new DemoService());
 //        ServiceRegistry.getInstance().processRequest(DummyService.class);
@@ -100,18 +99,17 @@ public class Manager {
         updateUnit   = new UpdateUnit();
         explorerUnit = new ExplorerUnit(treeModel);
         
-        
         ((JButton) updateUnit.getViewport()).addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 
-                taskManager.execute(new TaskImpl(100));
+                //taskManager.execute(new TaskImpl(100));
                 
-//                ITask task = null;
-//                for (int cnt = 0; cnt < 4; cnt++) {
-//                    task = new TaskImpl(cnt);
-//                    taskManager.execute(task);
-//                }
+                ITask task = null;
+                for (int cnt = 0; cnt < 5; cnt++) {
+                    task = new TaskImpl(cnt);
+                    taskManager.execute(task);
+                }
 
 //                taskManager.executeSequentially(new TaskImpl(0), new TaskImpl(5), new TaskImpl(10));
 //                taskManager.executeSequentially(new TaskImpl(0), new TaskImpl(5), new TaskImpl(10));
