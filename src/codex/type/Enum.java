@@ -6,7 +6,6 @@ import codex.property.PropertyHolder;
 
 /**
  * Тип-обертка {@link IComplexType} для перечислений Enum.
- * @param <Integer> Базовый Java класс: Enum.
  */
 public class Enum implements IComplexType<java.lang.Enum> {
     

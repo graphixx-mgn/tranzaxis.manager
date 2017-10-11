@@ -6,7 +6,7 @@ import codex.property.PropertyHolder;
 
 /**
  * Тип-обертка {@link IComplexType} для интерфейса Path.
- * @param <Integer> Базовый Java класс: Path.
+ * @param <Path> Базовый Java класс: Path.
  */
 public class FilePath<Path> extends Str<Path>  {
     

@@ -32,8 +32,8 @@ public interface IComplexType<T> extends Serializable {
     public void setValue(T value);
     
     /**
-     * Фабричный метод по-умолчанию генерации фабрики редакторов свойств данного 
-     * типа (конечной реализации).
+     * Фабричный метод возвращает фабрику редакторов свойств данного типа 
+     * (конечной реализации).
      * @return Реализация интерфейса фабрики {@link IEditorFactory}
      */
     default public IEditorFactory editorFactory() {
