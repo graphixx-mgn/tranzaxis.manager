@@ -68,7 +68,7 @@ public final class Dialog extends JDialog {
          * @param iconPath Путь к иконке кнопки среди ресурсов.
          * @param titleLocaleKey Ключ для получения локализованной подписи кнопки.
          * @param keyCode Код клавиши клавиатуры (см. константы VK_*** в {@link KeyEvent}).
-         * @param id Код возврата кнопки, который можно ьудет анализировать после 
+         * @param id Код возврата кнопки, который можно будет анализировать после 
          * закрытия диалога.
          */
         Default (String iconPath, String titleLocaleKey, int keyCode, int id) {

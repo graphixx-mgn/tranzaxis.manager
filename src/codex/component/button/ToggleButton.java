@@ -31,7 +31,7 @@ public class ToggleButton extends PushButton {
     
     /**
      * Проверка текущего состояния кнопки.
-     * @return TRUE - если включена, инае - выключена.
+     * @return TRUE - если включена, иначе - выключена.
      */
     public boolean isChecked() {
         return checked;
