@@ -1,6 +1,7 @@
 package codex.task;
 
 import codex.log.Logger;
+import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -14,13 +15,9 @@ public abstract class AbstractTask<T> implements ITask<T> {
     private final String title;
     private Status  status;
     private Integer percent = 0;
+    private String  description;
     private final FutureTask<T> future;
     private List<ITaskListener> listeners = new LinkedList<>();
-    
-//05:55:57,648 [DEBUG] Task 'Value incrementator starts from 10' state changed: Pending -> Started
-//05:56:00,900 [DEBUG] Task 'Value incrementator starts from 10' state changed: Started -> Cancelled
-//05:56:00,900 [DEBUG] Task 'Value incrementator starts from 10' state changed: Started -> Failed
-
 
     public AbstractTask(final String title) {
         future = new FutureTask<T>((Callable<T>) () -> {
@@ -28,10 +25,10 @@ public abstract class AbstractTask<T> implements ITask<T> {
             try {
                 finished(execute());
             } catch (InterruptedException e) {
-                setStatus(Status.FAILED);
+                setStatus(Status.CANCELLED);
             } catch (Throwable e) {
+                setProgress(percent, MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
                 setStatus(Status.FAILED);
-                setProgress(percent, Status.FAILED.getDescription()+e.getLocalizedMessage());
                 Logger.getLogger().error("Error on task execution", e);
             }
             return null;
@@ -82,22 +79,37 @@ public abstract class AbstractTask<T> implements ITask<T> {
     public final String getTitle() {
         return title;
     }
+    
+    @Override
+    public String getDescription() {
+        if ((getStatus() == Status.STARTED && description != null) || getStatus() == Status.FAILED) {
+            return description;
+        } else {
+            return getStatus().getDescription();
+        }
+    }
 
     public final void setProgress(int percent, String description) {
         if (percent < 0 || percent > 100) {
             throw new IllegalArgumentException("Progress value should be from 0 to 100");
         }
         this.percent = percent;
+        this.description = description;
         new LinkedList<>(listeners).forEach((listener) -> {
-            listener.progressChanged(percent, description);
+            listener.progressChanged(this, percent, description);
         });
+    }
+    
+    @Override
+    public Integer getProgress() {
+        return percent;
     }
 
     private void setStatus(Status state) {
         Logger.getLogger().debug("Task ''{0}'' state changed: {1} -> {2}", getTitle(), this.status, state);
         this.status = state;
         new LinkedList<>(listeners).forEach((listener) -> {
-            listener.statusChanged(status);
+            listener.statusChanged(this, status);
         });
     }
     
