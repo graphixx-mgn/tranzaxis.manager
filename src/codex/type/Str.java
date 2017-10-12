@@ -6,15 +6,14 @@ import codex.property.PropertyHolder;
 
 /**
  * Тип-обертка {@link IComplexType} для класса String.
- * @param <String> Базовый Java класс: String.
  */
-public class Str<String> implements IComplexType<String> {
+public class Str implements IComplexType<String> {
     
     private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
         return new StrEditor(propHolder);
     };
     
-    private String value = null;
+    private String value;
     
     /**
      * Конструктор типа.
@@ -32,6 +31,11 @@ public class Str<String> implements IComplexType<String> {
     @Override
     public void setValue(String value) {
         this.value = value;
+    }
+    
+    @Override
+    public boolean isEmpty() {
+        return IComplexType.coalesce(getValue(), "").isEmpty();
     }
 
     @Override

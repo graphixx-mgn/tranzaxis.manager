@@ -3,23 +3,35 @@ package codex.type;
 import codex.editor.IEditorFactory;
 import codex.editor.FilePathEditor;
 import codex.property.PropertyHolder;
+import java.nio.file.Path;
 
 /**
  * Тип-обертка {@link IComplexType} для интерфейса Path.
- * @param <Path> Базовый Java класс: Path.
  */
-public class FilePath<Path> extends Str<Path>  {
+public class FilePath implements IComplexType<Path>  {
     
     private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
         return new FilePathEditor(propHolder);
     };
+    
+    private Path value;
     
     /**
      * Конструктор типа.
      * @param value Внутреннее хранимое значение.
      */
     public FilePath(Path value) {
-        super(value);
+        this.value = value;
+    }
+    
+    @Override
+    public Path getValue() {
+        return value;
+    }
+
+    @Override
+    public void setValue(Path value) {
+        this.value = value;
     }
 
     @Override
