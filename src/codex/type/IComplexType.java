@@ -32,6 +32,14 @@ public interface IComplexType<T> extends Serializable {
     public void setValue(T value);
     
     /**
+     * Проверить установлено ли значение свойства. Понятие "пустое значение" при 
+     * этом определяется в каждой реализации по-своему.
+     */
+    default boolean isEmpty() {
+        return getValue() == null;
+    };
+    
+    /**
      * Фабричный метод возвращает фабрику редакторов свойств данного типа 
      * (конечной реализации).
      * @return Реализация интерфейса фабрики {@link IEditorFactory}
@@ -66,10 +74,13 @@ public interface IComplexType<T> extends Serializable {
      * @param values Набор однотипных аргументов произвольной длины.
      * @return Первый не NULL или NULL если такого не нашлось.
      */
-    public static <T> T coalesce(T... values) {
-        for (T value : values) 
-            if (value != null)
-                return value;
+    static public <T> T coalesce(final T... values) {
+        if (values != null) {
+            for (T value : values) 
+                if (value != null)
+                    return value;
+        }
         return null;
     }
+    
 }
