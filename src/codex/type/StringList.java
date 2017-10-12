@@ -46,6 +46,11 @@ public class StringList implements IComplexType<List<String>> {
     }
     
     @Override
+    public boolean isEmpty() {
+        return getValue().isEmpty();
+    }
+    
+    @Override
     public IEditorFactory editorFactory() {
         return EDITOR_FACTORY;
     }
