@@ -32,7 +32,7 @@ public class StringList implements IComplexType<List<String>> {
      */
     public StringList(List<String> value) {
         // Может быть передан immutable List (Arrays.asList(...)) 
-        this.value = new ArrayList<>(value);
+        this.value = new ArrayList<>(IComplexType.coalesce(value, new ArrayList<String>()));
     }
 
     @Override
@@ -42,7 +42,7 @@ public class StringList implements IComplexType<List<String>> {
 
     @Override
     public void setValue(List<String> value) {
-        this.value = value;
+        this.value = new ArrayList<>(IComplexType.coalesce(value, new ArrayList<String>()));
     }
     
     @Override
