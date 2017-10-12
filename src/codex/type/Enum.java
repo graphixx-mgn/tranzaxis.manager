@@ -3,6 +3,7 @@ package codex.type;
 import codex.editor.EnumEditor;
 import codex.editor.IEditorFactory;
 import codex.property.PropertyHolder;
+import java.text.MessageFormat;
 
 /**
  * Тип-обертка {@link IComplexType} для перечислений Enum.
@@ -30,6 +31,9 @@ public class Enum implements IComplexType<java.lang.Enum> {
 
     @Override
     public void setValue(java.lang.Enum value) {
+        if (value == null) {
+            throw new IllegalStateException(MessageFormat.format("Type ''{0}'' does not support NULL value", this.getClass().getName()));
+        }
         this.value = value;
     }
 
