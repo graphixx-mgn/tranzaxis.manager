@@ -3,8 +3,6 @@ package codex.editor;
 import codex.command.ICommand;
 import codex.property.PropertyHolder;
 import java.awt.Component;
-import java.awt.Container;
-import java.awt.Font;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.util.LinkedList;
@@ -12,38 +10,34 @@ import java.util.List;
 import javax.swing.Box;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
-import javax.swing.UIManager;
 import javax.swing.border.Border;
 
-public abstract class AbstractEditor<T> implements IEditor, FocusListener {
-    
-    private final static Font DEFAULT = UIManager.getDefaults().getFont("Label.font");
-    private final static Font BOLD    = DEFAULT.deriveFont(Font.BOLD);
+/**
+ * Абстрактный редактор свойств {@link PropertyHolder}. Содержит основные функции
+ * управления состоянием виджета и свойства, реализуя роль Controller (MVC).
+ */
+public abstract class AbstractEditor extends JComponent implements IEditor, FocusListener {
     
     private final JLabel label;
-    protected Box editor;
+    protected Box        editor;
+    private boolean      editable = true;
     
     final PropertyHolder propHolder;
     private final List<ICommand<PropertyHolder>> commands = new LinkedList<>();
 
+    /**
+     * Конструктор редактора.
+     * @param propHolder Редактируемое свойство.
+     */
     public AbstractEditor(PropertyHolder propHolder) {
         this.propHolder = propHolder;
         this.label  = new JLabel(propHolder.getTitle());
         this.editor = createEditor();
         
         setToolTipRecursively(editor, propHolder.getDescriprion());
-//        setValue(((IComplexType<T>) propHolder.getPropValue()).getValue());
-        
-//        refresh();
-        
-//        propHolder.addChangeListener((String name, Object oldValue, Object newValue) -> {
-//            setValue(propHolder.getPropValue()); 
-//            refresh();
-//        });
-//        propHolder.addChangeListener("override", (String name, Object oldValue, Object newValue) -> {
-            //setValue(propHolder.getPropValue());
-//            refresh();
-//        });
+        propHolder.addChangeListener((String name, Object oldValue, Object newValue) -> {
+            updateUI();
+        });
     }
 
     @Override
@@ -54,6 +48,7 @@ public abstract class AbstractEditor<T> implements IEditor, FocusListener {
     @Override
     public final Box getEditor() {
         setBorder(IEditor.BORDER_NORMAL);
+        updateUI();
         return editor;
     }
 
@@ -71,43 +66,32 @@ public abstract class AbstractEditor<T> implements IEditor, FocusListener {
         }
     }
 
+    /**
+     * Установка бордюра в момент получения фокуса ввода.
+     * @see IEditor#BORDER_ACTIVE
+     */
     @Override
     public void focusGained(FocusEvent event) {
         setBorder(BORDER_ACTIVE);
     }
 
+    /**
+     * Возврат обычного бордюра в момент потери фокуса ввода.
+     * @see IEditor#BORDER_ACTIVE
+     */
     @Override
     public void focusLost(FocusEvent event) {
         setBorder(BORDER_NORMAL);
     }
-
-//    @Override
-//    public void setEnabled(boolean enabled) {
-//        setEnabled(editor, enabled);
-//    }
     
     @Override
     public void setEditable(boolean editable) {
-        // Do nothing
+        this.editable = editable;
     }
     
     @Override
-    public boolean isEditable() {
-        return true;
-    }
-    
-//    private void refresh() {
-//        setEditable(!propHolder.isInherited());
-//        label.setFont((propHolder.isValid() ? DEFAULT : BOLD));
-//    }
-    
-    void setEnabled(Component component, boolean enabled) {
-        component.setEnabled(enabled);
-        if (component instanceof Container) {
-            for (Component child : ((Container) component).getComponents()) {
-                setEnabled(child, enabled);
-            }
-        }
+    public final boolean isEditable() {
+        return editable;
     }
 
     @Override
@@ -119,6 +103,17 @@ public abstract class AbstractEditor<T> implements IEditor, FocusListener {
     @Override
     public List<ICommand<PropertyHolder>> getCommands() {
         return new LinkedList<>(commands);
+    }
+
+    /**
+     * Перерисовка виджета и изменение свойств составных GUI элементов.
+     */
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        setValue(propHolder.getPropValue().getValue());
+        setEditable(isEditable());
+        label.setFont((propHolder.isValid() ? IEditor.FONT_NORMAL : IEditor.FONT_BOLD));
     }
 
 }
