@@ -1,265 +1,194 @@
 package codex.property;
 
-import codex.command.ICommand;
 import codex.model.AbstractModel;
 import codex.utils.Language;
+import codex.type.IComplexType;
 import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
-import codex.type.IComplexType;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /** 
- * Class implements high-level term 'property' of an object. It contains minimal piece of
- * information of the property such as type, value, name etc.
- * @see AbstractModel
- * @author Gredyaev Ivan
+ * Класс реализует модель свойства сущности {@link AbstractModel}.
+ * Хранит объект, реализующий интерфейс {@link IComplexType}.
  */
-public class PropertyHolder {
+public class PropertyHolder<T extends IComplexType<V>, V> {
     
-    private final Class    type;
-    private final String   name;
-    private final String   title;
-    private final String   desc;
-    private final boolean  require;
-    private Object         value;
-    private PropertyHolder inherit;
-    
-    private final Map<String, List<PropertyChangeListener>> listeners = new LinkedHashMap<>();
-    private final List<ICommand> commands  = new LinkedList<>();
+    private final String      name;
+    private final String      title;
+    private final String      desc;
+    private final boolean     require;
+    private IComplexType<V>   value;
+    private PropertyHolder<T, V> inherit;
+    private final List<PropertyChangeListener> listeners = new LinkedList<>();
     
     /**
-     * Creates new instance. Title and description will be provided from localization bundle.
-     * @param type Class reference which is being considered as type of the property.
-     * @param name Short string ID of the property. Parent object can not have several properties with same ID.
-     * @param value Instance of class 'type'. 
-     * @param require Property can not have empty value.
+     * Конструктор свойства. Наименование и описание достаются их ресурса локализаии
+     * вызывающего класса.
+     * @param name Идентификатор свойства, являющийся уникальным ключем в списке 
+     * свойств сущности {@link AbstractModel}.
+     * @param value Экземпляр {@link IComplexType}. NULL-значение не допустимо.
+     * @param require Свойство обязательно должно иметь значение.
      */
-    public PropertyHolder(Class type, String name, Object value, boolean require) {
-        String caller = new Exception().getStackTrace()[1].getClassName().replaceAll(".*\\.(\\w+)", "$1");
-        
-        this.type    = type;
-        this.name    = name;
-        this.title   = Language.get(caller, name+".title");
-        this.desc    = Language.get(caller, name+".desc");
-        this.require = require;
-        
-        if (checkValue(value, IComplexType.class.isAssignableFrom(type))) {
-            this.value = value;
-        }
+    public PropertyHolder(String name, IComplexType<V> value, boolean require) {
+        this(new Exception().getStackTrace()[1].getClassName().replaceAll(".*\\.(\\w+)", "$1"),name, value, require);
+    }
+    
+    private PropertyHolder(String caller, String name, IComplexType<V> value, boolean require) {
+        this(name, Language.get(caller, name+".title"), Language.get(caller, name+".desc"), value, require);
     }
     
     /**
-     * Creates new instance
-     * @param type Class reference which is being considered as type of the property.
-     * @param name Short string ID of the property. Parent object can not have several properties with same ID.
-     * @param title Title uses to present property.
-     * @param desc Description of the property
-     * @param value Instance of class 'type'. 
-     * @param require Property can not have empty value.
+     * Конструктор свойства.
+     * @param name Идентификатор свойства, являющийся уникальным ключем в списке 
+     * @param title Наименование свойства.
+     * @param desc Детальное описание свойства, отображается при наведении мыши на
+     * редактор свойства.
+     * свойств сущности {@link AbstractModel}.
+     * @param value Экземпляр {@link IComplexType}. NULL-значение не допустимо.
+     * @param require Свойство обязательно должно иметь значение.
      */
-    public PropertyHolder(Class type, String name, String title, String desc, Object value, boolean require) {
-        this.type    = type;
+    public PropertyHolder(String name, String title, String desc, IComplexType<V> value, boolean require) {
+        if (value == null) {
+            throw new IllegalStateException("Invalid value: NULL value is not supported");
+        }
         this.name    = name;
         this.title   = title;
         this.desc    = desc;
         this.require = require;
-        
-        if (checkValue(value, IComplexType.class.isAssignableFrom(type))) {
-            this.value = value;
-        }
+        this.value   = value;
     }
     
     /**
-     * Returns type of property.
-     * @return Class of property value.
-     */
-    public final Class getType() {
-        return type;
-    }
-    
-    /**
-     * Returns short string ID of the property.
-     * @return Property ID.
+     * Получить идентификатор свойства.
      */
     public final String getName() {
         return name;
     }
     
     /**
-     * Returns title of property.
-     * @return Title.
+     * Получить наименование свойства.
      */
     public final String getTitle() { 
         return title; 
     }
     
     /**
-     * Returns description of property.
-     * @return Description.
+     * Получить описание свойства.
      */
     public final String getDescriprion() { 
         return desc; 
     }
     
     /**
-     * Returns property value.
-     * @return Instance of class 'type' or NULL.
+     * Получить экземпляр хранимого объекта {@link IComplexType}
      */
-    public final Object getValue() {
-        return inherit == null ? value : inherit.getValue();
+    public final IComplexType<? extends V> getPropValue() {
+        return inherit == null ? value : inherit.getPropValue();
     }
     
     /**
-     * Sets property value with initial checks of given object. In case type is 
-     * instance of {@link IComplexType} it calls methods {@link IComplexType#setValue}
-     * and {@link IComplexType#getValue}, i.e. proxies values.
-     * @param value New property value
+     * Установка нового значения свойства. При этом допустимо передать как новый 
+     * экземпляр {@link IComplexType} так и его внутреннее значения.
      */
-    public final void setValue(Object value) {
-        Object  prevValue;
-        Object  nextValue;
-        boolean isAbstract = IComplexType.class.isAssignableFrom(type);
-        boolean isReplaced = this.value != value;
-        
-        if (checkValue(value, isAbstract)) {
-            if (isAbstract) {
-                prevValue = this.value == null ? null : ((IComplexType) this.value).getValue();
-                if (IComplexType.class.isInstance(value)) {
-                    nextValue  = value == null ? null : ((IComplexType) value).getValue();
-                    this.value = value;
-                } else {
-                    nextValue  = value;
-                    ((IComplexType) this.value).setValue(value);
-                }
-            } else {
-                prevValue  = this.value;
-                nextValue  = value;
-                this.value = value;
-            }
-            if (
-                (isReplaced) ||
-                (prevValue == null ^ nextValue == null) || 
-                (prevValue != null && !prevValue.equals(nextValue))
-            ) {
-                fireChangeEvent(name, prevValue, nextValue);
-            }
-        }
-    }
-    
-    public void inherit(PropertyHolder propHolder) {
-        Object prevValue = getValue();
-        inherit = propHolder;
-        fireChangeEvent(name+"@override", null, null);
+    public final void setValue(V value) {
+        V prevValue = getPropValue().getValue();
         if (value == null) {
-            setValue(prevValue);
+            this.value.setValue(value);
         } else {
-            fireChangeEvent(name, prevValue, getValue());
+            if (IComplexType.class.isAssignableFrom(value.getClass())) {
+                if (value.getClass().equals(this.value.getClass())) {
+                    this.value = (IComplexType<V>) value;
+                } else {
+                    throw new IllegalStateException(
+                            MessageFormat.format(
+                                    "Invalid value: given ''{0}'' while expecting ''{1}''", 
+                                    value.getClass().getCanonicalName(),
+                                    this.value.getClass().getCanonicalName()
+                            )
+                    );
+                }
+            } else if (Enum.class.isAssignableFrom(value.getClass())) {
+                if (!this.value.getValue().getClass().equals(value.getClass())) {
+                    throw new IllegalStateException(
+                            MessageFormat.format(
+                                    "Invalid value: given ''{0}'' while expecting ''{1}''", 
+                                    value.getClass().getCanonicalName(),
+                                    this.value.getValue().getClass().getCanonicalName()
+                            )
+                    );
+                }
+                this.value.setValue(value);
+            } else {
+                this.value.setValue(value);
+            }
         }
+        fireChangeEvent(prevValue, getPropValue().getValue());
+    }
+
+    /**
+     * Установить свойство для наследования значения.
+     */
+    public void setInherited(PropertyHolder propHolder) {
+        V prevValue = getPropValue().getValue();
+        inherit = propHolder;
+        fireChangeEvent(prevValue, getPropValue().getValue());
     }
     
+    /**
+     * Возвращает флаг унаследованного значения свойства.
+     */
     public boolean isInherited() {
         return inherit != null;
     }
     
-    public PropertyHolder addCommand(ICommand<PropertyHolder> command) {
-        commands.add(command);
-        command.setContext(this);
-        return this;
-    }
-    
-    public List<ICommand> getCommands() {
-        return new LinkedList<>(commands);
-    }
-    
+    /**
+     * Возвращает флаг корректности значения свойства.
+     */
     public boolean isValid() {
         return !(isRequired() && isEmpty());
     }
     
+    /**
+     * Возвращает флаг обязательности значения свойства.
+     */
     public final boolean isRequired() {
         return require;
     }
     
-    public final boolean isEmpty() {
-        if (IComplexType.class.isAssignableFrom(type)) {
-            //return ((IComplexType) value).isEmpty();
-            throw new UnsupportedOperationException("Not supported yet");
-        } else if (type.isEnum()) {
-            return false;
-        } else {
-            return getValue() == null || getValue().toString().isEmpty();
-        }
-    }
-    
     /**
-     * Checks provided value is acceptable.
-     * @param value New value
-     * @return True if value is correct. Otherwise {@link IllegalStateException} 
-     * will be thrown.
+     * Возвращает флаг пустого значения свойства.
      */
-    private boolean checkValue(Object value, boolean isAbstract) {
-        if (value == null) {
-            if (type.isEnum()) {
-                throw new IllegalStateException(
-                        MessageFormat.format(
-                                "Invalid value: property type ''{1}'' does not support NULL value", 
-                                name, type.getCanonicalName()
-                        )
-                );
-            }
-        } else {
-            if (!isAbstract && !type.isInstance(value)) {
-                throw new IllegalStateException(
-                        MessageFormat.format(
-                                "Invalid value: given ''{0}'' while expecting ''{1}''", 
-                                value.getClass().getCanonicalName(), type.getCanonicalName()
-                        )
-                );
-            }
-        }
-        return true;
+    public final boolean isEmpty() {
+        return getPropValue().isEmpty();
     }
     
     /**
-     * Adds new listener for value changing events
-     * @param listener Instance of listener
-     * @see PropertyChangeListener
+     * Добавление слушателя события изменения значения свойства.
      */
     public final void addChangeListener(PropertyChangeListener listener) {
-        String target = name;
-        if (!listeners.containsKey(target)) {
-            listeners.put(target, new LinkedList<>());
-        }
-        listeners.get(target).add(listener);
-    }
-    
-    public final void addChangeListener(String option, PropertyChangeListener listener) {
-        String target = name+"@"+option;
-        if (!listeners.containsKey(target)) {
-            listeners.put(target, new LinkedList<>());
-        }
-        listeners.get(target).add(listener);
-    }
-    
-    private void fireChangeEvent(String target, Object prevValue, Object nextValue) {
-        if (listeners.containsKey(target)) {
-            for (PropertyChangeListener listener : listeners.get(target)) {
-                listener.propertyChange(target, prevValue, nextValue);
-            }
-        }
+        listeners.add(listener);
     }
     
     /**
-     * Returns value string representation.
-     * @return 
+     * Оповещение слушателей об изменении значения свойства.
+     * @param prevValue Предыдущее значение свойства.
+     * @param nextValue Новое значение.
+     */
+    private void fireChangeEvent(Object prevValue, Object nextValue) {
+        listeners.forEach((listener) -> {
+            listener.propertyChange(name, prevValue, nextValue);
+        });
+    }
+    
+    /**
+     * Возвращает строковое представление свойства.
      */
     @Override
     public final String toString() {
-        if (getValue() == null) {
+        if (getPropValue().getValue() == null) {
             return "";
         } else {
-            return getValue().toString();
+            return getPropValue().getValue().toString();
         }
     }
     
