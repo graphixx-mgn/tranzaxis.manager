@@ -5,26 +5,27 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.swing.JComponent;
 
+/**
+ * Модуль-исполнитель задач {@link ITask}.
+ */
 public final class TaskManager extends AbstractUnit {
     
-    private final ExecutorService threadPool = Executors.newFixedThreadPool(3);
-    private       TaskView        viewPort;
+    private final ExecutorService threadPool = Executors.newFixedThreadPool(5);
+    private       TaskStatusBar   viewPort;
 
     @Override
     public JComponent createViewport() {
-        viewPort = new TaskView();
+        viewPort = new TaskStatusBar();
         return viewPort;
     }
     
+    /**
+     * Добавление задачи в очередь на исполнение и регистрация в окне просмотра
+     * задач.
+     */
     public void execute(ITask task) {
         viewPort.addTask(task);
         threadPool.submit(task);
     }
     
-    public void executeSequentially(ITask... tasks) {
-        for (ITask task : tasks) {
-            viewPort.addTask(task);
-        }
-        threadPool.submit(new TaskSequence("Test group task", tasks));
-    }
 }
