@@ -1,126 +1,51 @@
 package codex.explorer.tree;
 
-import codex.model.Access;
-import codex.model.EntityModel;
-import codex.presentation.EditorPresentation;
-import codex.presentation.SwitchInheritance;
-import codex.presentation.SelectorPresentation;
-import codex.property.PropertyHolder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.LinkedList;
 import java.util.List;
-import javax.swing.ImageIcon;
-import javax.swing.tree.TreeNode;
 
+/**
+ * Абстрактный узел дерева проводника.
+ */
 public abstract class AbstractNode implements INode {
     
-    final ImageIcon icon;
-    final String    title;
-    final String    hint;
+    private INode parent = null; 
+    private final List<INode> children = new ArrayList<>();
     
-    int mode = MODE_ENABLED + MODE_SELECTABLE;
-    
-    private AbstractNode         parent = null; 
-    private EditorPresentation   editor;
-    private SelectorPresentation selector;
-    
-    public  final EntityModel        model;
-    private final List<AbstractNode> children = new ArrayList<>();
-    
-    public AbstractNode(ImageIcon icon, String title, String hint) {
-        this.title = title;
-        this.icon  = icon;
-        this.hint  = hint;
-        this.model = new EntityModel(title);
-    }
-
+    /**
+     * Возвращает перечисление потомков узла.
+     */
     @Override
-    public TreeNode getChildAt(int childIndex) {
-        if (children.isEmpty()) {
-            throw new ArrayIndexOutOfBoundsException("Node has no children");
-        }
-        return children.get(childIndex);
-    }
-
-    @Override
-    public int getChildCount() {
-        return children.size();
+    public final Enumeration children() {
+        return Collections.enumeration(new ArrayList<>(children));
     }
     
+    /**
+     * Возвращает родительский узел.
+     */
     @Override
-    public TreeNode getParent() {
+    public final INode getParent() {
         return parent;
     }
 
     @Override
-    public int getIndex(TreeNode child) {
-        if (child == null) {
-            throw new IllegalArgumentException("Argument is null");
-        }
-        if (child == this) {
-            return -1;
-        }
-        return children.indexOf(child);
-    }
-
-    @Override
-    public boolean getAllowsChildren() {
-        return true;
-    }
-
-    @Override
-    public boolean isLeaf() {
-        return getChildCount() == 0;
-    }
-
-    @Override
-    public Enumeration children() {
-        return Collections.enumeration(new ArrayList<>(children));
+    public final List<String> getPath() {
+        List<String> path = getParent() != null ? getParent().getPath() : new LinkedList<>();
+        path.add(toString());
+        return path;
     }
     
-    final void setParent(AbstractNode parent) {
+    @Override
+    public final void setParent(INode parent) {
         this.parent = parent;
     }
     
-    public void insert(AbstractNode child) {
+    @Override
+    public void insert(INode child) {
         child.setParent(this);
-        for (PropertyHolder propHolder : child.model.getProperties(Access.Any)) {
-            if (this.model.hasProperty(propHolder.getName())) {
-                PropertyHolder parentHolder = this.model.getProperty(propHolder.getName());
-                propHolder.inherit(parentHolder);
-                propHolder.addCommand(new SwitchInheritance(parentHolder));
-            }
-        }
-        
         children.add(child);
     }
-    
-    @Override
-    public String toString() {
-        return title;
-    }
-
-    @Override
-    public Class getChildClass() {
-        return null;
-    };
-
-    @Override
-    public SelectorPresentation getSelectorPresentation() {
-        if (getChildClass() == null) return null;
-        if (selector == null) {
-            selector = new SelectorPresentation();
-        }
-        return selector;
-    };
-
-    @Override
-    public EditorPresentation getEditorPresentation() {
-        if (editor == null) {
-            editor = new EditorPresentation(this);
-        }
-        return editor;
-    };
     
 }
