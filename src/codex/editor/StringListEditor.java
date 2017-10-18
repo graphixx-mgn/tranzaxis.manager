@@ -66,6 +66,7 @@ public class StringListEditor extends AbstractEditor {
     @Override
     public void setEditable(boolean editable) {
         super.setEditable(editable);
+        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
         listEditor.getButton().setIcon(editable && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON);
     }
 
