@@ -72,7 +72,9 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
      */
     @Override
     public void focusGained(FocusEvent event) {
-        setBorder(BORDER_ACTIVE);
+        if (isEditable()) {
+            setBorder(BORDER_ACTIVE);
+        }
     }
 
     /**
