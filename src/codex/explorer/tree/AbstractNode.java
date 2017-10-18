@@ -12,6 +12,7 @@ import java.util.List;
 public abstract class AbstractNode implements INode {
     
     private INode parent = null; 
+    private int   mode   = MODE_ENABLED + MODE_SELECTABLE;
     private final List<INode> children = new ArrayList<>();
     
     /**
@@ -30,6 +31,16 @@ public abstract class AbstractNode implements INode {
         return parent;
     }
 
+    @Override
+    public final int getMode() {
+        return mode;
+    };
+    
+    @Override
+    public final void setMode(int mode) {
+        this.mode = mode;
+    };
+    
     @Override
     public final List<String> getPath() {
         List<String> path = getParent() != null ? getParent().getPath() : new LinkedList<>();

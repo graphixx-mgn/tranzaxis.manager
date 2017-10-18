@@ -16,6 +16,14 @@ public interface INode extends TreeNode {
     public static final int MODE_SELECTABLE = 2;
     
     /**
+     * Возвращает режим отображения узла. 
+     */
+    int getMode();
+    /**
+     * Устанавливает режим отображения узла. 
+     */
+    void setMode(int mode);
+    /**
      * Возвращает презентацию редактора узла. 
      */
     EditorPresentation getEditorPresentation();
