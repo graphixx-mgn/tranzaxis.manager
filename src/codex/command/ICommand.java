@@ -32,6 +32,9 @@ public interface ICommand<T> {
      */
     public void execute(T context);
     
+    /**
+     * Возвращает признак разрешена ли блокировка команды при блокировке редактора.
+     */
     default boolean getAllowsDisable () {
         return true;
     }
