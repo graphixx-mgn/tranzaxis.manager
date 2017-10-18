@@ -47,7 +47,6 @@ public class StripedProgressBarUI extends BasicProgressBarUI {
      */
     @Override 
     public void paintIndeterminate(Graphics graphics, JComponent component) {
-        System.err.println(component.getClass().getCanonicalName());
         Insets b = progressBar.getInsets();
         int barRectWidth  = progressBar.getWidth() - b.right - b.left;
         int barRectHeight = progressBar.getHeight() - b.top - b.bottom;
