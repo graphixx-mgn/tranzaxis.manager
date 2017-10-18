@@ -3,6 +3,7 @@ package codex.task;
 import codex.component.button.IButton;
 import codex.component.ui.StripedProgressBarUI;
 import static codex.task.AbstractTaskView.PROGRESS_FINISHED;
+import codex.utils.Language;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.GridLayout;
@@ -72,7 +73,7 @@ final class GroupTaskView extends AbstractTaskView {
         controls.add((JButton) cancel, BorderLayout.EAST);
         
         JPanel subTasks = new JPanel(new GridLayout(0, 1));
-        subTasks.setBorder(new TitledBorder("Children tasks"));
+        subTasks.setBorder(new TitledBorder(Language.get("border@title")));
         subTasks.setBackground(Color.WHITE);
         
         for (ITask subTask : new LinkedList<>(children)) {
