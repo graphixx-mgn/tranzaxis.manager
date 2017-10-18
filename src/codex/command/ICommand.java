@@ -32,4 +32,7 @@ public interface ICommand<T> {
      */
     public void execute(T context);
     
+    default boolean getAllowsDisable () {
+        return true;
+    }
 }
