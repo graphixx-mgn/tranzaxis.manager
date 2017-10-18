@@ -1,7 +1,10 @@
 package codex.task;
 
+import codex.component.ui.StripedProgressBarUI;
 import codex.utils.Language;
+import java.awt.AWTEvent;
 import java.awt.BorderLayout;
+import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.MessageFormat;
@@ -26,6 +29,7 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
     
     private final JLabel       status;
     private final JProgressBar progress;
+    private final ClearButton  clear;
     private final List<ITask>  queue = new LinkedList<>();
     private final TaskMonitor  monitor = new TaskMonitor(this, (task) -> {
         queue.remove(task);
@@ -42,14 +46,34 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
         status = new JLabel();
         status.setHorizontalAlignment(SwingConstants.RIGHT);
         status.setBorder(new EmptyBorder(0, 0, 0, 10));
-
+        
         progress = new JProgressBar();
         progress.setMaximum(100);
         progress.setVisible(false);
         progress.setStringPainted(true);
+        progress.setUI(new StripedProgressBarUI(true));
+        progress.setBorder(new EmptyBorder(0, 0, 0, 0));
+        
+        clear = new ClearButton();
+        clear.setVisible(false);
+        // Глобальный перехватчик событий
+        // Иначе при первом клике закрывается монитор
+        Toolkit.getDefaultToolkit().addAWTEventListener((AWTEvent event) -> {
+            MouseEvent mouseEvent = (MouseEvent) event;
+            if (event.getSource() == clear && mouseEvent.getID() == MouseEvent.MOUSE_CLICKED && clear.isEnabled()) {
+                monitor.clearRegistry();
+                queue.clear();
+                statusChanged(null, null);
+            }
+        }, AWTEvent.MOUSE_EVENT_MASK);
+        
+        JPanel controls = new JPanel(new BorderLayout());
+        controls.setOpaque(false);
+        controls.add(progress, BorderLayout.CENTER);
+        controls.add(clear, BorderLayout.EAST);
         
         add(status, BorderLayout.CENTER);
-        add(progress, BorderLayout.EAST);
+        add(controls, BorderLayout.EAST);
 
         addMouseListener(new MouseAdapter() {
             @Override
@@ -77,6 +101,8 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
         
         status.setVisible(!ready);
         progress.setVisible(!ready);
+        clear.setVisible(!ready);
+        clear.setEnabled(running == 0);
         
         if (ready) {
             progress.setValue(0);
@@ -88,7 +114,9 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
         
         long finished = queue.stream().filter(queued -> queued.getStatus() == Status.FINISHED).count();
         status.setText(MessageFormat.format(failed > 0 ? PATTERN_ERRORS : PATTERN_NORMAL, running, finished, failed));
-        progressChanged(task, task.getProgress(), task.getDescription());
+        if (task != null) {
+            progressChanged(task, task.getProgress(), task.getDescription());
+        }
     }
 
     @Override
