@@ -76,7 +76,7 @@ public class StringListEditor extends AbstractEditor {
     }
     
     private class ListEditor extends EditorCommand {
-        
+
         public ListEditor() {
             super(EDIT_ICON, Language.get("title"));
         }
@@ -151,6 +151,11 @@ public class StringListEditor extends AbstractEditor {
             dialog.setMinimumSize(SIZE);
             dialog.setPreferredSize(SIZE);
             dialog.setVisible(true);
+        }
+        
+        @Override
+        public boolean getAllowsDisable() {
+            return false;
         }
     
     }
