@@ -21,6 +21,15 @@ import javax.swing.border.LineBorder;
 public interface IEditor<T> {
     
     /**
+     * Стандартный цвет шрифта для отрисовки значения свойств.
+     */
+    public static final Color COLOR_NORMAL = UIManager.getDefaults().getColor("Label.foreground");
+    /**
+     * Цвет шрифта для отрисовки значения заблокированных свойств.
+     */
+    public static final Color COLOR_DISABLED = Color.GRAY;
+    
+    /**
      * Стандартный шрифт наименований свойств.
      */
     public static final Font FONT_NORMAL = UIManager.getDefaults().getFont("Label.font");
