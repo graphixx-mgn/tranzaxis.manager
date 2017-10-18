@@ -1,15 +1,22 @@
 package codex.explorer.browser;
 
-import codex.explorer.tree.AbstractNode;
+import codex.explorer.tree.INode;
 import java.awt.BorderLayout;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
+/**
+ * Панель просмотра проводника. Отображает презентации редактора и селектора
+ * активного узла дерева.
+ */
 public final class Browser extends JPanel {
     
     private final JPanel editorPanel;
     private final JPanel selectorPanel;
     
+    /**
+     * Конструктор панели.
+     */
     public Browser() {
         super(new BorderLayout());
         setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -21,7 +28,10 @@ public final class Browser extends JPanel {
         add(selectorPanel, BorderLayout.CENTER);
     }
     
-    public void browse(AbstractNode node) {
+    /**
+     * Загружает указанный узел в панель просмотра.
+     */
+    public void browse(INode node) {
         editorPanel.removeAll();
         editorPanel.revalidate();
         editorPanel.repaint();
