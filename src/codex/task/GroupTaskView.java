@@ -79,10 +79,6 @@ final class GroupTaskView extends AbstractTaskView {
         for (ITask subTask : new LinkedList<>(children)) {
             JPanel childPanel = new JPanel(new BorderLayout());
             childPanel.setBackground(Color.WHITE);
-            childPanel.setBorder(new CompoundBorder(
-                new EmptyBorder(new Insets(5, 5, 5, 5)),
-                new MatteBorder(0, 0, 1, 0, Color.decode("#EEEEEE"))
-            ));
             
             JLabel childTitle = new JLabel(subTask.getTitle(), null, SwingConstants.LEFT);
             titles.put(subTask, childTitle);
@@ -114,6 +110,7 @@ final class GroupTaskView extends AbstractTaskView {
             
             @Override
             public void statusChanged(ITask task, Status status) {
+                mainTitle.setIcon(mainTask.getStatus().getIcon());
                 mainProgress.setForeground(
                     task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
                         task.getStatus() == Status.FAILED ? PROGRESS_ABORTED :
@@ -121,17 +118,23 @@ final class GroupTaskView extends AbstractTaskView {
                                 PROGRESS_NORMAL
                 );
             }
-
-            @Override
-            public void progressChanged(ITask task, int percent, String description) {
-                
-            }
         });
     }
 
     @Override
     public void statusChanged(ITask task, Status status) {
-        titles.get(task).setIcon(task.getStatus().getIcon());
+        ((JPanel) titles.get(task).getParent()).setBorder(new CompoundBorder(
+                new EmptyBorder(new Insets(2, 5, 0, 0)), 
+                new CompoundBorder(
+                    new MatteBorder(0, 3, 0, 0, 
+                            (task.getStatus() == Status.FAILED || task.getStatus() == Status.CANCELLED) ? PROGRESS_ABORTED :
+                                task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
+                                    task.getStatus() == Status.STARTED ? PROGRESS_INFINITE : 
+                                    Color.GRAY
+                    ),
+                    new EmptyBorder(new Insets(0, 5, 0, 5))
+                )
+        ));
         statuses.get(task).setText(task.getDescription());
         statuses.get(task).setForeground(
                 task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
