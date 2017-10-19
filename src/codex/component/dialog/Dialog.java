@@ -151,7 +151,7 @@ public final class Dialog extends JDialog {
                     if (close != null) {
                         final ActionEvent event = new ActionEvent(
                                 keyEvent, 
-                                button == null ? EXIT : button.getID(),
+                                button == null || !button.isEnabled() ? EXIT : button.getID(),
                                 null
                         );
                         close.actionPerformed(event);
