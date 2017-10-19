@@ -33,23 +33,23 @@ public final class GroupTask<T> extends AbstractTask<T> {
                 task.cancel(true);
             } else {
                 AbstractTask current = (AbstractTask) task;
-                current.setStatus(Status.STARTED);
                 try {
+                    setStatus(current, Status.STARTED);
                     current.finished(current.execute());
                     current.setStatus(Status.FINISHED);
                 } catch (InterruptedException e) {
-                    current.setStatus(Status.CANCELLED);
+                    setStatus(current, Status.CANCELLED);
                     aborted = true;
                 } catch (Throwable e) {
                     current.setProgress(task.getProgress(), MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
-                    current.setStatus(Status.FAILED);
+                    setStatus(current, Status.FAILED);
                     Logger.getLogger().error("Error on task execution", e);
                     aborted = true;
                 }
             }
         }
-        if (aborted) {
-            this.setStatus(Status.FAILED);
+        if (!aborted) {
+            setStatus(Status.FINISHED);
         }
         return null;
     }
@@ -60,6 +60,14 @@ public final class GroupTask<T> extends AbstractTask<T> {
     @Override
     public AbstractTaskView createView(Consumer<ITask> cancelAction) {
         return new GroupTaskView(getTitle(), this, sequence, cancelAction);
+    }
+    
+    /**
+     * Одновренное выставление статуса головной и дочерней задаче.
+     */
+    void setStatus(AbstractTask child, Status status) {
+        setStatus(status);
+        child.setStatus(status);
     }
     
 }
