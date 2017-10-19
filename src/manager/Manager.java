@@ -6,6 +6,7 @@ import codex.explorer.tree.NodeTreeModel;
 import codex.log.LogUnit;
 import codex.log.Logger;
 import codex.task.AbstractTask;
+import codex.task.GroupTask;
 import codex.task.ITask;
 import codex.task.TaskManager;
 import codex.unit.AbstractUnit;
@@ -45,16 +46,16 @@ public class Manager {
         private Integer val; 
         
         public TaskImpl(Integer initVal) {
-            super("Task #"+(initVal+1)+": Value incrementator starts from "+(initVal*5));
+            super("Value incrementator starts from "+(initVal*5));
             val = initVal*5;
         }
 
         @Override
         public Integer execute() throws Exception {
-            if (val == 0) throw new Error("Unable to increment ZERO");
-            Thread.sleep(val*100);
+            if (val == 0) throw new Error("Some execution exception (for test)");
+            Thread.sleep(300);
             for (int i = 0; i < 10; i++) {
-                Thread.sleep(500);
+                Thread.sleep(200);
                 val = val + 1;
                 setProgress((i+1)*10, "Changed value to "+val);
             }
@@ -90,10 +91,10 @@ public class Manager {
         DatabaseRoot   bases = new DatabaseRoot();
         SystemRoot   systems = new SystemRoot();
         System        system = new System();
-        systems.insert(system);
         root.insert(repos);
         root.insert(bases);
         root.insert(systems);
+        systems.insert(system);
         NodeTreeModel treeModel = new NodeTreeModel(root);
         
         updateUnit   = new UpdateUnit();
@@ -102,18 +103,12 @@ public class Manager {
         ((JButton) updateUnit.getViewport()).addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                
-                //taskManager.execute(new TaskImpl(100));
-                
                 ITask task = null;
-                for (int cnt = 0; cnt < 5; cnt++) {
+                for (int cnt = 0; cnt < 2; cnt++) {
                     task = new TaskImpl(cnt);
                     taskManager.execute(task);
                 }
-
-//                taskManager.executeSequentially(new TaskImpl(0), new TaskImpl(5), new TaskImpl(10));
-//                taskManager.executeSequentially(new TaskImpl(0), new TaskImpl(5), new TaskImpl(10));
-//                taskManager.executeSequentially(new TaskImpl(0), new TaskImpl(5), new TaskImpl(10));
+                taskManager.execute(new GroupTask("Some compound task", new TaskImpl(10), new TaskImpl(10), new TaskImpl(10)));
             }
         });
 
