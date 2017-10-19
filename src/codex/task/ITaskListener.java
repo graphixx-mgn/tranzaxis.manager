@@ -11,7 +11,9 @@ public interface ITaskListener {
      * @param task Ссылка на задачу.
      * @param status Новый статус.
      */
-    public void statusChanged(ITask task, Status status);
+    default public void statusChanged(ITask task, Status status) {
+        // Do nothing
+    };
     /**
      * Вызывается при изменении прогресса исполнения.
      * @param task Ссылка на задачу.
@@ -19,6 +21,8 @@ public interface ITaskListener {
      * @param description Описание текущего состояния, может меняться при росте 
      * прогресса.
      */
-    public void progressChanged(ITask task,  int percent, String description);
+    default public void progressChanged(ITask task,  int percent, String description) {
+        // Do nothing
+    };
     
 }
