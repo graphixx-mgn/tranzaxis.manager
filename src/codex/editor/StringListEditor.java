@@ -129,7 +129,7 @@ public class StringListEditor extends AbstractEditor {
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             confirmBtn.setEnabled(isEditable() && !propHolder.isInherited());
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
-            
+
             Dialog dialog = new Dialog(
                     SwingUtilities.getWindowAncestor(editor), 
                     StringListEditor.this.isEditable() && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON, 
@@ -140,6 +140,7 @@ public class StringListEditor extends AbstractEditor {
                         @Override
                         public void actionPerformed(ActionEvent event) {
                             if (event.getID() == Dialog.OK) {
+                                list.stopEditing();
                                 propHolder.setValue(new StringList(values));
                             }
                         }
