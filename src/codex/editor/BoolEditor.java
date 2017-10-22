@@ -3,6 +3,8 @@ package codex.editor;
 import codex.property.PropertyHolder;
 import codex.utils.ImageUtils;
 import java.awt.Color;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
@@ -12,7 +14,7 @@ import javax.swing.event.ChangeEvent;
 /**
  * Редактор свойств типа {@link Bool}, представляет собой флажек.
  */
-public class BoolEditor extends AbstractEditor {
+public class BoolEditor extends AbstractEditor implements ItemListener {
     
     private JCheckBox checkBox;
 
@@ -33,20 +35,19 @@ public class BoolEditor extends AbstractEditor {
         checkBox.setOpaque(true);
         checkBox.setBackground(Color.WHITE);
         checkBox.setBorder(new EmptyBorder(0, 0, 0, 0));
-        
-        Box container = new Box(BoxLayout.X_AXIS);
-        container.add(checkBox);
-        
         checkBox.addChangeListener((ChangeEvent e) -> {
             setBorder(checkBox.getModel().isRollover() ? BORDER_ACTIVE : BORDER_NORMAL);
         });
+        checkBox.addItemListener(this);
         
+        Box container = new Box(BoxLayout.X_AXIS);
+        container.add(checkBox);
         return container;
     }
 
     @Override
     public void setValue(Object value) {
-        checkBox.setSelected(value != null || ((Boolean) value));
+        checkBox.setSelected(value != null && ((Boolean) value));
     }
     
     @Override
@@ -54,6 +55,11 @@ public class BoolEditor extends AbstractEditor {
         super.setEditable(editable);
         checkBox.setEnabled(editable);
         checkBox.setOpaque(editable);
+    }
+
+    @Override
+    public void itemStateChanged(ItemEvent e) {
+        propHolder.setValue(e.getStateChange() == ItemEvent.SELECTED);
     }
     
 }
