@@ -99,6 +99,7 @@ public class Dialog extends JDialog {
     private final Consumer<Dialog> relocate;
     private final InputMap         inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
     private final ActionMap        actionMap = rootPane.getActionMap();
+    private boolean                preventDefault = false;
     
     /**
      * Конструктор диалога с указанием шаблонов кнопок.
@@ -149,6 +150,7 @@ public class Dialog extends JDialog {
             return new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent keyEvent) {
+                    preventDefault = true;
                     dispose();
                     if (close != null) {
                         final ActionEvent event = new ActionEvent(
@@ -187,9 +189,10 @@ public class Dialog extends JDialog {
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
-                if (close != null) {
+                if (close != null && !preventDefault) {
                     close.actionPerformed(new ActionEvent(this, EXIT, null));
                 }
+                preventDefault = false;
             }
         });
         pack();
