@@ -21,6 +21,7 @@ final class CancelButton extends JButton implements IButton {
         this.activeIcon  = ImageUtils.getByPath("/images/endtask.png");
         this.passiveIcon = ImageUtils.grayscale(this.activeIcon);
         setIcon(passiveIcon);
+        setFocusable(false);
         setFocusPainted(false);
         setOpaque(true);
         setContentAreaFilled(false);
