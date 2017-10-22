@@ -24,9 +24,14 @@ public final class TaskManager extends AbstractUnit {
                 
                 @Override
                 public void actionPerformed(ActionEvent event) {
-                    if (event.getID() == Dialog.EXIT || event.getID() == Dialog.CANCEL) {
+                    if (event.getID() == Dialog.EXIT || event.getID() == TaskDialog.ENQUEUE) {
                         taskDialog.taskRegistry.keySet().stream().forEach((task) -> {
                             taskPanel.addTask(task);
+                        });
+                        taskDialog.clear();
+                    } else if (event.getID() == TaskDialog.ABORT) {
+                        taskDialog.taskRegistry.keySet().stream().forEach((task) -> {
+                            task.cancel(true);
                         });
                         taskDialog.clear();
                     }
