@@ -24,7 +24,7 @@ public final class Navigator extends JTree {
      */
     public Navigator() {
         super();
-        setRowHeight(22);
+        setRowHeight((int) (getRowHeight()*1.5));
         setBorder(new EmptyBorder(5, 10, 5, 2));
         addTreeSelectionListener((TreeSelectionEvent event) -> {
             final JTree tree = (JTree) event.getSource();
