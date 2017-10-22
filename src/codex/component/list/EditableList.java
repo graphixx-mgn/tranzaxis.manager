@@ -7,12 +7,15 @@ import codex.type.IComplexType;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.KeyEvent;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 import java.util.function.Consumer;
 import javax.swing.BorderFactory;
+import javax.swing.CellEditor;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -186,4 +189,26 @@ public final class EditableList extends JPanel {
         this.editable = editable;
     }
     
+    /**
+     * Возвращает признак того что список в данный момент редактируется.
+     */
+    public boolean isEditing() {
+        return table.isEditing();
+    }
+    
+    /**
+     * Прерывание редактирования списка.
+     */
+    public void stopEditing() {
+        if (table.isEditing()) {
+            CellEditor editor = table.getCellEditor();
+            if (editor != null) {
+                if (editor.getCellEditorValue() != null) {
+                    editor.stopCellEditing();
+                } else {
+                    editor.cancelCellEditing();
+                }
+            }
+        }
+    } 
 }
