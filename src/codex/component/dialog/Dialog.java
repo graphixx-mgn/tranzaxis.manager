@@ -8,6 +8,8 @@ import java.awt.Dimension;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -180,6 +182,16 @@ public class Dialog extends JDialog {
             inputMap.put(stroke, stroke);
             actionMap.put(stroke, handler.apply(null));
         }
+        
+        // Установка обработчика закрытия окна
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                if (close != null) {
+                    close.actionPerformed(new ActionEvent(this, EXIT, null));
+                }
+            }
+        });
         pack();
     }
     
@@ -192,6 +204,11 @@ public class Dialog extends JDialog {
         pack();
         relocate.accept(this);
         super.setVisible(visible);
+    }
+    
+    public final void setContent(JPanel content) {
+        contentPanel.removeAll();
+        contentPanel.add(content);
     }
 
 }
