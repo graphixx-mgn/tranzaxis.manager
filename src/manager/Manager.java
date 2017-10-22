@@ -55,7 +55,7 @@ public class Manager {
             if (val == 0) throw new Error("Some execution exception (for test)");
             Thread.sleep(300);
             for (int i = 0; i < 10; i++) {
-                Thread.sleep(200);
+                Thread.sleep(1000);
                 val = val + 1;
                 setProgress((i+1)*10, "Changed value to "+val);
             }
@@ -73,18 +73,6 @@ public class Manager {
     public Manager() {
         logUnit = new LogUnit();
         taskManager = new TaskManager();
-        
-//        ServiceRegistry.getInstance().registerService(new DemoService());
-//        ServiceRegistry.getInstance().processRequest(DummyService.class);
-        
-//        JDialog p = new JDialog();
-//        double version = Double.parseDouble(java.lang.System.getProperty("java.specification.version"));
-//        p.add(new JLabel("Version: "+version, ImageUtils.getByPath("/images/project.png"), SwingConstants.LEFT));
-//        p.setModal(true);
-//        p.pack();
-//        p.setLocationRelativeTo(null);
-//        p.setVisible(true);
-
 
         CommonRoot      root = new CommonRoot();
         RepositoryRoot repos = new RepositoryRoot();
@@ -104,11 +92,11 @@ public class Manager {
             @Override
             public void actionPerformed(ActionEvent e) {
                 ITask task = null;
-                for (int cnt = 0; cnt < 2; cnt++) {
+                for (int cnt = 1; cnt < 4; cnt++) {
                     task = new TaskImpl(cnt);
                     taskManager.execute(task);
                 }
-                taskManager.execute(new GroupTask("Some compound task", new TaskImpl(10), new TaskImpl(10), new TaskImpl(10)));
+                taskManager.enqueue(new GroupTask("Some compound task", new TaskImpl(10), new TaskImpl(10), new TaskImpl(10)));
             }
         });
 
