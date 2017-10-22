@@ -26,7 +26,7 @@ import javax.swing.WindowConstants;
 /**
  * Диалоговое окно для отображения и/или запроса информации.
  */
-public final class Dialog extends JDialog {
+public class Dialog extends JDialog {
     /**
      * Код выхода при закрытии окна
      */
