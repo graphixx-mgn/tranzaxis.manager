@@ -5,6 +5,7 @@ import codex.explorer.tree.Entity;
 import codex.log.Level;
 import codex.model.Access;
 import codex.property.PropertyHolder;
+import codex.type.Bool;
 import codex.type.Enum;
 import codex.type.FilePath;
 import codex.utils.ImageUtils;
@@ -18,6 +19,7 @@ public class CommonRoot extends Entity {
         model.addPersistProperty(new PropertyHolder("workDir",  new FilePath(null), true), Access.Select);
         model.addPersistProperty(new PropertyHolder("logLevel", new Enum(Level.Debug), false), Access.Select);
         model.addPersistProperty(new PropertyHolder("guiLang",  new Enum(Locale.Russian), false), Access.Select);
+        model.addPersistProperty(new PropertyHolder("useTray",  new Bool(Boolean.FALSE), false), Access.Select);
     }
     
 }
