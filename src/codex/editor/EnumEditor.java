@@ -74,7 +74,9 @@ public class EnumEditor extends AbstractEditor implements ActionListener {
      */
     @Override
     public void actionPerformed(ActionEvent event) {
-        propHolder.setValue(comboBox.getSelectedItem());
+        if (!comboBox.getSelectedItem().equals(propHolder.getPropValue().getValue())) {
+            propHolder.setValue(comboBox.getSelectedItem());
+        }
     }
     
 }
