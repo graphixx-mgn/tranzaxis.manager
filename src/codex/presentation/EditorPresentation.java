@@ -1,6 +1,6 @@
 package codex.presentation;
 
-import codex.explorer.tree.Entity;
+import codex.model.Entity;
 import java.awt.BorderLayout;
 import javax.swing.JPanel;
 

@@ -1,5 +1,6 @@
 package codex.explorer.tree;
 
+import codex.model.Entity;
 import codex.utils.ImageUtils;
 import java.awt.Color;
 import java.awt.Component;
@@ -33,11 +34,11 @@ public class NodeRenderer extends DefaultTreeCellRenderer {
         ImageIcon icon;
         if (!entity.model.isValid()) {
             icon = ImageUtils.resize(ImageUtils.combine(
-                entity.icon,
+                entity.getIcon(),
                 ImageUtils.getByPath("/images/warn.png")    
             ), iconSize, iconSize);
         } else {
-            icon = ImageUtils.resize(entity.icon, iconSize, iconSize);
+            icon = ImageUtils.resize(entity.getIcon(), iconSize, iconSize);
         }
         setDisabledIcon(ImageUtils.grayscale(icon));
         setIcon(icon);
@@ -46,7 +47,7 @@ public class NodeRenderer extends DefaultTreeCellRenderer {
         setBackgroundSelectionColor(Color.decode("#3399FF"));
         setBorderSelectionColor(Color.GRAY);
         setBorder(new EmptyBorder(15, 0, 15, 0));
-        setToolTipText(entity.hint);
+        setToolTipText(entity.getHint());
         
         setEnabled((entity.getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED);
         return component;

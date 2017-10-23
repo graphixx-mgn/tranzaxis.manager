@@ -1,14 +1,16 @@
-package codex.explorer.tree;
+package codex.model;
 
+import codex.editor.IEditor;
+import codex.explorer.tree.AbstractNode;
+import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.model.Access;
 import codex.model.EntityModel;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
+import codex.presentation.SwitchInheritance;
 import codex.property.PropertyChangeListener;
-import codex.property.PropertyHolder;
 import codex.type.Str;
-import codex.utils.Language;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
@@ -18,12 +20,10 @@ import javax.swing.ImageIcon;
  * Также является узлом дерева проводника, реализуя интерфейс {@link INode}.
  */
 public abstract class Entity extends AbstractNode implements PropertyChangeListener {
-    
-    private final String KEY = this.getClass().getCanonicalName()+"@Title";
-    
-    final ImageIcon icon;
-    final String    title;
-    final String    hint;
+   
+    private final ImageIcon icon;
+    private final String    title;
+    private final String    hint;
     
     private EditorPresentation   editor;
     private SelectorPresentation selector;
@@ -31,7 +31,7 @@ public abstract class Entity extends AbstractNode implements PropertyChangeListe
     /**
      * Модель сущности, контейнер всех её свойств.
      */
-    public  final EntityModel model;
+    public final EntityModel model;
     
     /**
      * Конструктор сущности.
@@ -46,19 +46,26 @@ public abstract class Entity extends AbstractNode implements PropertyChangeListe
         this.model = new EntityModel() {
             
             @Override
-            public void addProperty(PropertyHolder propHolder, Access restriction) {
-                super.addProperty(propHolder, restriction);
-                propHolder.addChangeListener(Entity.this);
+            public IEditor getEditor(String name) {
+                IEditor propEditor = super.getEditor(name);
+                if (Entity.this.getParent() != null && ((Entity) Entity.this.getParent()).model.hasProperty(name)) {
+                    EntityModel parent = ((Entity) Entity.this.getParent()).model;
+                    propEditor.addCommand(new SwitchInheritance(
+                            getProperty(name), parent.getProperty(name)
+                    ));
+                    parent.getProperty(name).addChangeListener((n, oldValue, newValue) -> {
+                        if (getProperty(name).isInherited()) {
+                            propEditor.getEditor().updateUI();
+                        }
+                    });
+                }
+                return propEditor;
             }
+            
         };
-        this.model.addProperty(
-                new PropertyHolder(
-                        KEY, 
-                        Language.get(Entity.class.getSimpleName(), "KEY.title"), 
-                        Language.get(Entity.class.getSimpleName(), "KEY.desc"), 
-                        new Str(title), true
-                ), Access.Edit, true
-        );
+        
+        this.model.addProperty("KEY", new Str(title), true, Access.Edit, true);
+        this.model.addChangeListener(this);
     }
     
     @Override
@@ -66,14 +73,12 @@ public abstract class Entity extends AbstractNode implements PropertyChangeListe
         super.insert(child);
         if (child instanceof Entity) {
             Entity entity = (Entity) child;
-            
+
             List<String> inheritance = entity.model.getProperties(Access.Edit)
                 .stream()
-                .filter(prop -> this.model.hasProperty(prop.getName()))
-                .map((prop) -> {
-                    return prop.getName();
-                })
+                .filter(propName -> this.model.hasProperty(propName))
                 .collect(Collectors.toList());
+            
             if (!inheritance.isEmpty()) {
                 Logger.getLogger().debug(
                         "Properties ''{0}/@{1}'' has possibility of inheritance", 
@@ -89,6 +94,20 @@ public abstract class Entity extends AbstractNode implements PropertyChangeListe
                 });
             }
         }
+    }
+    
+    /**
+     * Возвращает иконку сущности.
+     */
+    public final ImageIcon getIcon() {
+        return icon;
+    }
+    
+    /**
+     * Возвращает описание сущности.
+     */
+    public final String getHint() {
+        return hint;
     }
     
     @Override
@@ -112,13 +131,13 @@ public abstract class Entity extends AbstractNode implements PropertyChangeListe
         }
         return editor;
     };
-    
+
     @Override
-    public void propertyChange(String name, Object oldValue, Object newValue) {
+    public final void propertyChange(String name, Object oldValue, Object newValue) {
         Logger.getLogger().debug(
                 "Property ''{0}@{1}'' has been changed: ''{2}'' -> ''{3}''", 
                 this, name, oldValue, newValue
         );
-    };
+    }
     
 }

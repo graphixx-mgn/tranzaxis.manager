@@ -2,7 +2,7 @@ package codex.presentation;
 
 import codex.command.ICommand;
 import codex.editor.IEditor;
-import codex.explorer.tree.Entity;
+import codex.model.Entity;
 import codex.model.AbstractModel;
 import codex.model.Access;
 import codex.property.PropertyHolder;
@@ -40,12 +40,12 @@ public final class EditorPage extends JPanel {
         if (entity.getParent() != null) {
             parentModel = ((Entity) entity.getParent()).model;
         }
-        for (PropertyHolder propHolder : entity.model.getProperties(Access.Edit)) {        
+        for (String propName : entity.model.getProperties(Access.Edit)) {        
             gbc.gridx = 0; 
             gbc.gridy = lineIdx;
             gbc.weightx = 0;
             
-            IEditor propEditor = propHolder.getPropValue().editorFactory().newInstance(propHolder);
+            IEditor propEditor = entity.model.getEditor(propName);
             add(propEditor.getLabel(), gbc);
             
             gbc.gridx = 1;
@@ -54,22 +54,16 @@ public final class EditorPage extends JPanel {
             
             container.add(propEditor.getEditor());
             container.add(Box.createRigidArea(new Dimension(1, 28)));
-            
-            if (parentModel != null && parentModel.hasProperty(propHolder.getName())) {
-                propEditor.addCommand(new SwitchInheritance(propHolder, parentModel.getProperty(propHolder.getName())));
-                parentModel.getProperty(propHolder.getName()).addChangeListener((name, oldValue, newValue) -> {
-                    if (propHolder.isInherited()) {
-                        propEditor.getEditor().updateUI();
-                    }
-                });
-            }
+
             ((List<ICommand<PropertyHolder>>) propEditor.getCommands()).stream().forEach((command) -> {
                 container.add((JComponent) command.getButton());
                 container.add(Box.createHorizontalStrut(2));
             });
             add(container, gbc);
             
-            maxSize = Math.max(maxSize, propEditor.getLabel().getFontMetrics(IEditor.FONT_BOLD).stringWidth(propHolder.getTitle()));            
+            maxSize = Math.max(maxSize, propEditor.getLabel()
+                    .getFontMetrics(IEditor.FONT_BOLD)
+                    .stringWidth(propEditor.getLabel().getText()));
             lineIdx++;
         }
         add(Box.createHorizontalStrut(Math.max(280, maxSize+30)));
