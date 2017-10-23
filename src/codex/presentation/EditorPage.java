@@ -1,23 +1,33 @@
 package codex.presentation;
 
-import codex.editor.EditorFactory;
-import codex.editor.IEditor;
-import codex.explorer.tree.AbstractNode;
-import codex.model.Access;
 import codex.command.ICommand;
+import codex.editor.IEditor;
+import codex.explorer.tree.Entity;
+import codex.model.AbstractModel;
+import codex.model.Access;
 import codex.property.PropertyHolder;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.List;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
+/**
+ * Страница редактирования сущности, используется в составе презентации редактора
+ * сущности {@link EditorPresentation}. Формирует панель с редакторами свойств 
+ * модели сущности.
+ */
 public final class EditorPage extends JPanel {
     
-    public EditorPage(AbstractNode node) {
+    /**
+     * Конструктор страницы. 
+     * @param entity Редактируемая сущность.
+     */
+    public EditorPage(Entity entity) {
         super(new GridBagLayout());
         
         GridBagConstraints gbc = new GridBagConstraints();
@@ -26,13 +36,16 @@ public final class EditorPage extends JPanel {
         gbc.gridwidth = 1;
         
         int lineIdx = 1, maxSize = 0;
-        for (PropertyHolder propHolder : node.model.getProperties(Access.Edit)) {        
-            
+        AbstractModel parentModel = null;
+        if (entity.getParent() != null) {
+            parentModel = ((Entity) entity.getParent()).model;
+        }
+        for (PropertyHolder propHolder : entity.model.getProperties(Access.Edit)) {        
             gbc.gridx = 0; 
             gbc.gridy = lineIdx;
             gbc.weightx = 0;
             
-            IEditor propEditor = EditorFactory.createEditor(propHolder);
+            IEditor propEditor = propHolder.getPropValue().editorFactory().newInstance(propHolder);
             add(propEditor.getLabel(), gbc);
             
             gbc.gridx = 1;
@@ -42,10 +55,18 @@ public final class EditorPage extends JPanel {
             container.add(propEditor.getEditor());
             container.add(Box.createRigidArea(new Dimension(1, 28)));
             
-            for (ICommand command : propHolder.getCommands()) {
+            if (parentModel != null && parentModel.hasProperty(propHolder.getName())) {
+                propEditor.addCommand(new SwitchInheritance(propHolder, parentModel.getProperty(propHolder.getName())));
+                parentModel.getProperty(propHolder.getName()).addChangeListener((name, oldValue, newValue) -> {
+                    if (propHolder.isInherited()) {
+                        propEditor.getEditor().updateUI();
+                    }
+                });
+            }
+            ((List<ICommand<PropertyHolder>>) propEditor.getCommands()).stream().forEach((command) -> {
                 container.add((JComponent) command.getButton());
                 container.add(Box.createHorizontalStrut(2));
-            }
+            });
             add(container, gbc);
             
             maxSize = Math.max(maxSize, propEditor.getLabel().getFontMetrics(IEditor.FONT_BOLD).stringWidth(propHolder.getTitle()));            
