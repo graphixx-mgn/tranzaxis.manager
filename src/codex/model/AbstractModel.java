@@ -1,12 +1,12 @@
 package codex.model;
 
+import codex.editor.IEditor;
 import codex.property.PropertyHolder;
 import codex.type.IComplexType;
 import java.text.MessageFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -23,8 +23,8 @@ public class AbstractModel {
      */
     public final boolean isValid() {
         boolean isValid = true;
-        for (PropertyHolder propHolder : getProperties(Access.Any)) {
-            isValid = isValid & propHolder.isValid();
+        for (String propName : getProperties(Access.Any)) {
+            isValid = isValid & getProperty(propName).isValid();
         }
         return isValid;
     };
@@ -36,18 +36,17 @@ public class AbstractModel {
      * селекторе.
      * <pre>
      *  // Create 'hidden' property
-     *  addProperty(new PropertyHolder(String.class, "svnUrl", "SVN url", "svn://demo.org/sources", true), Access.Any);
+     *  addProperty("svnUrl", new Str("svn://demo.org/sources"), true, Access.Any);
      * </pre>
      */
-    public void addProperty(PropertyHolder propHolder, Access restriction) {
-        final String propName = propHolder.getName();
-        if (properties.containsKey(propName)) {
+    public void addProperty(String name, IComplexType value, boolean require, Access restriction) {
+        if (properties.containsKey(name)) {
             throw new IllegalStateException(
-                    MessageFormat.format("Model already has property ''{0}''", propName)
+                    MessageFormat.format("Model already has property ''{0}''", name)
             );
         }
-        properties.put(propName, propHolder);
-        restrictions.put(propName, restriction);
+        properties.put(name, new PropertyHolder(name, value, require));
+        restrictions.put(name, restriction);
     }
     
     /**
@@ -60,7 +59,7 @@ public class AbstractModel {
     /**
      * Получить свойство по его имени.
      */
-    public final PropertyHolder getProperty(String name) {
+    final PropertyHolder getProperty(String name) {
         if (!properties.containsKey(name)) {
             throw new NoSuchFieldError(
                     MessageFormat.format("Model does not have property ''{0}''", name)
@@ -74,22 +73,28 @@ public class AbstractModel {
      * @param grant Указатель на уровень доступности. Чтобы выбрать все свойства
      * следует указать {@link Access#Any}.
      */
-    public final List<PropertyHolder> getProperties(Access grant) {
-        return properties.values().stream().filter(new Predicate<PropertyHolder>() {
-            
-            @Override
-            public boolean test(PropertyHolder propHolder) {
-                Access propRestriction = restrictions.get(propHolder.getName());
-                return (propRestriction != grant && propRestriction != Access.Any)  || grant == Access.Any;
-            }
-        }).collect(Collectors.toList());
+    public final List<String> getProperties(Access grant) {
+        return properties.values()
+                .stream()
+                .filter((PropertyHolder propHolder) -> {
+                    Access propRestriction = restrictions.get(propHolder.getName());
+                    return (propRestriction != grant && propRestriction != Access.Any)  || grant == Access.Any;
+                })
+                .map((propHolder) -> {
+                    return propHolder.getName();
+                })
+                .collect(Collectors.toList());
     }
     
     /**
-     * Получить значение свойства (объект {@link IComplexType}) по его имени.
+     * Получить значение свойства по его имени.
      */
     public Object getValue(String name) {
-        return getProperty(name).getPropValue();
+        return getProperty(name).getPropValue().getValue();
+    }
+    
+    public IEditor getEditor(String name) {
+        return properties.get(name).getPropValue().editorFactory().newInstance(properties.get(name));
     }
     
 }
