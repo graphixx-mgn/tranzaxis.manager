@@ -10,6 +10,7 @@ import java.util.List;
 import javax.swing.Box;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
 
 /**
@@ -104,6 +105,11 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     @Override
     public void addCommand(ICommand command) {
         commands.add(command);
+        command.getButton().addActionListener((e) -> {
+            SwingUtilities.invokeLater(() -> {
+                updateUI();
+            });
+        });
         ((ICommand<PropertyHolder>)command).setContext(propHolder);
     }
     
