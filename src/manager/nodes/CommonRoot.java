@@ -27,10 +27,10 @@ public class CommonRoot extends Entity {
 
     public CommonRoot() {
         super(ImageUtils.getByPath("/images/settings.png"), Language.get("title"), Language.get("desc"));
-        model.addPersistProperty(new PropertyHolder("workDir",  workDir.setMask(new DirMask()), true), Access.Select);
-        model.addPersistProperty(new PropertyHolder("logLevel", logLevel, false), Access.Select);
-        model.addPersistProperty(new PropertyHolder("guiLang",  guiLang, false), Access.Select);
-        model.addPersistProperty(new PropertyHolder("useTray",  useTray, false), Access.Select);
+        model.addProperty(new PropertyHolder("workDir",  workDir.setMask(new DirMask()), true), Access.Select, true);
+        model.addProperty(new PropertyHolder("logLevel", logLevel, false), Access.Select, true);
+        model.addProperty(new PropertyHolder("guiLang",  guiLang, false), Access.Select, true);
+        model.addProperty(new PropertyHolder("useTray",  useTray, false), Access.Select, true);
     }
 
     @Override
