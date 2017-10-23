@@ -1,8 +1,7 @@
 package codex.model;
 
-import codex.log.Logger;
-import codex.property.PropertyChangeListener;
 import codex.property.PropertyHolder;
+import codex.type.IComplexType;
 import java.text.MessageFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -11,24 +10,17 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * Class implements high-level term 'object' as a container of properties.
+ * Абстрактная модель объекта. Хранит список его свойств.
  * @see PropertyHolder
- * @author Gredyaev Ivan
  */
-public class AbstractModel implements PropertyChangeListener {
-    
-    private final String KEY = this.getClass().getCanonicalName()+"@Title";
+public class AbstractModel {
    
     final Map<String, PropertyHolder> properties = new LinkedHashMap<>();
     final Map<String, Access> restrictions = new LinkedHashMap<>();
     
-    public AbstractModel(String title) {
-        addProperty(
-                new PropertyHolder(String.class, KEY, "Title", null, title, true), 
-                Access.Any
-        );
-    }
-    
+    /**
+     * Возвращает признак что модель корректна.
+     */
     public final boolean isValid() {
         boolean isValid = true;
         for (PropertyHolder propHolder : getProperties(Access.Any)) {
@@ -38,15 +30,16 @@ public class AbstractModel implements PropertyChangeListener {
     };
     
     /**
-     * Add new property to the object. 
-     * @param propHolder Reference to property.
-     * @param restriction Set restriction to show property value in selector and/or editor.
+     * Добавление нового свойства в модель.
+     * @param propHolder Ссылка на свойство.
+     * @param restriction Ограничение видимости свойства в редакторе и/или 
+     * селекторе.
      * <pre>
      *  // Create 'hidden' property
      *  addProperty(new PropertyHolder(String.class, "svnUrl", "SVN url", "svn://demo.org/sources", true), Access.Any);
      * </pre>
      */
-    public final void addProperty(PropertyHolder propHolder, Access restriction) {
+    public void addProperty(PropertyHolder propHolder, Access restriction) {
         final String propName = propHolder.getName();
         if (properties.containsKey(propName)) {
             throw new IllegalStateException(
@@ -55,22 +48,17 @@ public class AbstractModel implements PropertyChangeListener {
         }
         properties.put(propName, propHolder);
         restrictions.put(propName, restriction);
-        propHolder.addChangeListener(this);
     }
     
     /**
-     * Checks model contains specific property
-     * @param name Property Name
-     * @return True if property exists.
+     * Проверка существования свойства у модели по имени.
      */
     public final boolean hasProperty(String name) {
         return properties.containsKey(name);
     }
     
     /**
-     * Get reference to property by its name (ID).
-     * @param name Short string ID of the property.
-     * @return Instance of {@link PropertyHolder}
+     * Получить свойство по его имени.
      */
     public final PropertyHolder getProperty(String name) {
         if (!properties.containsKey(name)) {
@@ -82,19 +70,15 @@ public class AbstractModel implements PropertyChangeListener {
     }
     
     /**
-     * Get list of object's properties filtered by access rights.
-     * @param grant Access level to find properties. In order to select
-     * all properties use {@link Access#Any}.
-     * @return List of properties available for the level.
+     * Получить список свойств модели.
+     * @param grant Указатель на уровень доступности. Чтобы выбрать все свойства
+     * следует указать {@link Access#Any}.
      */
     public final List<PropertyHolder> getProperties(Access grant) {
         return properties.values().stream().filter(new Predicate<PropertyHolder>() {
             
             @Override
             public boolean test(PropertyHolder propHolder) {
-                if (propHolder.getName().equals(KEY)) {
-                    return false;
-                }
                 Access propRestriction = restrictions.get(propHolder.getName());
                 return (propRestriction != grant && propRestriction != Access.Any)  || grant == Access.Any;
             }
@@ -102,37 +86,10 @@ public class AbstractModel implements PropertyChangeListener {
     }
     
     /**
-     * Get property value by its name (ID).
-     * @param name Short string ID of the property.
-     * @return Property value.
+     * Получить значение свойства (объект {@link IComplexType}) по его имени.
      */
     public Object getValue(String name) {
-        return getProperty(name).getValue();
-    }
-    
-    /**
-     * Returns model string representation.
-     * @return Title of model.
-     */
-    @Override
-    public final String toString() {
-        return getProperty(KEY).toString();
-    }
-
-    /**
-     * Called by event PropertyChange of {@link PropertyHolder} in case its value
-     * has been changed. The listener is being assigning after initial assignment
-     * of property value in order to filter fake calls.
-     * @param name Name of property has been changed.
-     * @param oldValue Value before modification.
-     * @param newValue Value after modification.
-     */
-    @Override
-    public void propertyChange(String name, Object oldValue, Object newValue) {
-        Logger.getLogger().debug(
-                "Property ''{0}@{1}'' has been changed: ''{2}'' -> ''{3}''", 
-                this, name, oldValue, newValue
-        );
+        return getProperty(name).getPropValue();
     }
     
 }
