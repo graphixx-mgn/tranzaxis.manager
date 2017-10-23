@@ -37,6 +37,7 @@ public class BoolEditor extends AbstractEditor implements ItemListener {
         checkBox.setBorder(new EmptyBorder(0, 0, 0, 0));
         checkBox.addChangeListener((ChangeEvent e) -> {
             setBorder(checkBox.getModel().isRollover() ? BORDER_ACTIVE : BORDER_NORMAL);
+            checkBox.requestFocus();
         });
         checkBox.addItemListener(this);
         
