@@ -4,8 +4,10 @@ import codex.model.AbstractModel;
 import codex.utils.Language;
 import codex.type.IComplexType;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /** 
  * Класс реализует модель свойства сущности {@link AbstractModel}.
@@ -30,11 +32,11 @@ public class PropertyHolder<T extends IComplexType<V>, V> {
      * @param require Свойство обязательно должно иметь значение.
      */
     public PropertyHolder(String name, IComplexType<V> value, boolean require) {
-        this(new Exception().getStackTrace()[1].getClassName().replaceAll(".*\\.(\\w+)", "$1"),name, value, require);
+        this(getOwners(), name, value, require);
     }
     
-    private PropertyHolder(String caller, String name, IComplexType<V> value, boolean require) {
-        this(name, Language.get(caller, name+".title"), Language.get(caller, name+".desc"), value, require);
+    private PropertyHolder(List<String> callers, String name, IComplexType<V> value, boolean require) {
+        this(name, Language.lookup(callers, name+".title"), Language.lookup(callers, name+".desc"), value, require);
     }
     
     /**
@@ -190,6 +192,22 @@ public class PropertyHolder<T extends IComplexType<V>, V> {
         } else {
             return getPropValue().getValue().toString();
         }
+    }
+    
+    /**
+     * Формирует восходящий список классов по стеку вызовов.
+     * Используется для поиска локализованных строк методом {@link Language#lookup}.
+     */
+    private static List<String> getOwners() {
+        return Arrays.asList(new Exception().getStackTrace())
+                .stream()
+                .map((stackItem) -> {
+                    return stackItem.getClassName().replaceAll(".*\\.(\\w+)", "$1");
+                })
+                .filter((className) -> {
+                    return !className.equals(PropertyHolder.class.getSimpleName());
+                })
+                .collect(Collectors.toList());
     }
     
 }
