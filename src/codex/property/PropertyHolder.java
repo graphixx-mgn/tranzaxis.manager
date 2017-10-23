@@ -133,7 +133,6 @@ public class PropertyHolder<T extends IComplexType<V>, V> {
     public void setInherited(PropertyHolder propHolder) {
         V prevValue = getPropValue().getValue();
         inherit = propHolder;
-        fireChangeEvent(prevValue, getPropValue().getValue());
     }
     
     /**
