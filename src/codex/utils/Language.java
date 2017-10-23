@@ -1,5 +1,6 @@
 package codex.utils;
 
+import codex.property.PropertyHolder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -37,14 +38,19 @@ public class Language {
     }
     
     /**
-     * Поиск строки в списке классов.
+     * Поиск строки в списке классов. Используется для загрузки названий и описаний
+     * свойств {@link PropertyHolder}.
      */
     public static String lookup(List<String> classNames, String key) {
         for (String className : classNames) {
-            if (bundles.containsKey(className)) {
-                return get(className, key);
+            if (bundles.containsKey(className) && bundles.get(className).containsKey(key)) {
+                return bundles.get(className).getString(key);
             } else if (LOADER.getResource("resource/locale/"+className+"_"+getLocale().toString()+".properties") != null) {
-                return get(className, key);
+                ResourceBundle bundle = ResourceBundle.getBundle("resource/locale/"+className, getLocale());
+                if (bundle.containsKey(key)) {
+                    bundles.put(className, bundle);
+                    return bundles.get(className).getString(key);
+                }
             }
         }
         return "<not defined>";
