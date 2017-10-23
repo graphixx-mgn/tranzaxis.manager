@@ -51,13 +51,13 @@ public abstract class Entity extends AbstractNode implements PropertyChangeListe
                 propHolder.addChangeListener(Entity.this);
             }
         };
-        this.model.addPersistProperty(
+        this.model.addProperty(
                 new PropertyHolder(
                         KEY, 
                         Language.get(Entity.class.getSimpleName(), "KEY.title"), 
                         Language.get(Entity.class.getSimpleName(), "KEY.desc"), 
                         new Str(title), true
-                ), Access.Edit
+                ), Access.Edit, true
         );
     }
     
