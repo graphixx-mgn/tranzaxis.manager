@@ -59,7 +59,9 @@ public class BoolEditor extends AbstractEditor implements ItemListener {
 
     @Override
     public void itemStateChanged(ItemEvent e) {
-        propHolder.setValue(e.getStateChange() == ItemEvent.SELECTED);
+        if (!propHolder.getPropValue().getValue().equals(e.getStateChange() == ItemEvent.SELECTED)) {
+            propHolder.setValue(e.getStateChange() == ItemEvent.SELECTED);
+        }
     }
     
 }
