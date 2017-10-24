@@ -12,6 +12,7 @@ import java.util.ResourceBundle;
  */
 public class Language {
     
+    private static final String NOT_FOUND = "<not defined>";
     private static final Map<String, ResourceBundle> bundles = new HashMap<>();
     private static final ClassLoader LOADER = ClassLoader.getSystemClassLoader();
     
@@ -31,10 +32,14 @@ public class Language {
         if (bundles.containsKey(className)) {
             bundle = bundles.get(className);
         } else {
-            bundle = ResourceBundle.getBundle("resource/locale/"+className, getLocale());
-            bundles.put(className, bundle);
+            if (LOADER.getResource("resource/locale/"+className+"_"+getLocale().toString()+".properties") != null) {
+                bundle = ResourceBundle.getBundle("resource/locale/"+className, getLocale());
+                bundles.put(className, bundle);
+            } else {
+                return NOT_FOUND;
+            }
         }
-        return bundle.containsKey(key) ? bundle.getString(key) : "<not defined>";
+        return bundle.containsKey(key) ? bundle.getString(key) : NOT_FOUND;
     }
     
     /**
