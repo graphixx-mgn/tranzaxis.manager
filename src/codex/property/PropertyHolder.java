@@ -124,7 +124,13 @@ public class PropertyHolder<T extends IComplexType<V>, V> {
                 this.value.setValue(value);
             }
         }
-        fireChangeEvent(prevValue, getPropValue().getValue());
+        if (
+                (prevValue == null && getPropValue().getValue() != null) || 
+                (prevValue != null && getPropValue().getValue() == null) ||
+                (prevValue != null && getPropValue().getValue() != null && !prevValue.equals(getPropValue().getValue()))
+        ) {
+            fireChangeEvent(prevValue, getPropValue().getValue());
+        }
     }
 
     /**
