@@ -25,6 +25,10 @@ public interface IEditor<T> {
      */
     public static final Color COLOR_NORMAL = UIManager.getDefaults().getColor("Label.foreground");
     /**
+     * Стандартный цвет шрифта для отрисовки не редактиремых свойств.
+     */
+    public static final Color COLOR_INACTIVE = Color.DARK_GRAY;
+    /**
      * Цвет шрифта для отрисовки значения заблокированных свойств.
      */
     public static final Color COLOR_DISABLED = Color.GRAY;
@@ -38,6 +42,11 @@ public interface IEditor<T> {
      * @see PropertyHolder#isValid()
      */
     public static final Font FONT_BOLD   = FONT_NORMAL.deriveFont(Font.BOLD);
+    /**
+     * Стандартный шрифт отображения значений свойств.
+     */
+    public static final Font FONT_VALUE = new Font("SansSerif", Font.PLAIN, (int) (UIManager.getDefaults().getFont("Label.font").getSize() * 1.2));
+    
     /**
      * Стандартный бордюр редактора.
      */

@@ -1,6 +1,7 @@
 package codex.component.render;
 
 import codex.component.button.IButton;
+import codex.editor.IEditor;
 import codex.type.Iconified;
 import codex.type.StringList;
 import codex.type.Enum;
@@ -64,6 +65,7 @@ public final class DefaultRenderer extends JLabel implements ListCellRenderer, T
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
         setText(value.toString());
+        setFont(IEditor.FONT_VALUE);
         setBackground(isSelected ? IButton.PRESS_COLOR : table.getBackground());
         setBorder(new CompoundBorder(
                 new MatteBorder(0, column == 0 ? 0 : 1, 1, 0, Color.LIGHT_GRAY), 

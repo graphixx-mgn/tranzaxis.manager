@@ -21,7 +21,7 @@ import javax.swing.border.EmptyBorder;
  */
 public class FilePathEditor extends AbstractEditor {
     
-    protected JTextField    textField;
+    protected JTextField  textField;
     private EditorCommand pathSelector;
 
     /**
@@ -35,8 +35,13 @@ public class FilePathEditor extends AbstractEditor {
     @Override
     public Box createEditor() {
         textField = new JTextField();
-        textField.setBorder(new EmptyBorder(0, 5, 0, 5));
+        textField.setFont(FONT_VALUE);
+        textField.setBorder(new EmptyBorder(0, 3, 0, 3));
         textField.setEditable(false);
+        
+        PlaceHolder placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.ALWAYS);
+        placeHolder.setBorder(textField.getBorder());
+        placeHolder.changeAlpha(100);
         
         pathSelector = new PathSelector();
         addCommand(pathSelector);
@@ -50,7 +55,7 @@ public class FilePathEditor extends AbstractEditor {
     @Override
     public void setEditable(boolean editable) {
         super.setEditable(editable);
-        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
+        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_INACTIVE : COLOR_DISABLED);
     }
 
     @Override

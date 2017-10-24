@@ -67,11 +67,13 @@ public class StrEditor extends AbstractEditor  implements DocumentListener {
 
     @Override
     public Box createEditor() {
-        textField = new JTextField();
-        textField.setBorder(new EmptyBorder(0, 5, 0, 5));
+        textField = new JTextField();        
+        textField.setFont(FONT_VALUE);
+        textField.setBorder(new EmptyBorder(0, 3, 0, 3));
         textField.addFocusListener(this);
         
         PlaceHolder placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.FOCUS_LOST);
+        placeHolder.setBorder(textField.getBorder());
         placeHolder.changeAlpha(100);
 
         Box container = new Box(BoxLayout.X_AXIS);

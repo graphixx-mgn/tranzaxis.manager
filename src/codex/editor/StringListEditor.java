@@ -35,7 +35,7 @@ public class StringListEditor extends AbstractEditor {
     
     private static final ImageIcon EDIT_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 20, 20);
     private static final ImageIcon VIEW_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/view.png"), 20, 20);
-    private static final Dimension SIZE = new Dimension(300, 350);
+    private static final Dimension SIZE = new Dimension(350, 400);
     
     protected JTextField textField;
     private ListEditor   listEditor;    
@@ -51,7 +51,8 @@ public class StringListEditor extends AbstractEditor {
     @Override
     public Box createEditor() {
         textField = new JTextField();
-        textField.setBorder(new EmptyBorder(0, 5, 0, 5));
+        textField.setFont(FONT_VALUE);
+        textField.setBorder(new EmptyBorder(0, 3, 0, 3));
         textField.setEditable(false);
         
         listEditor = new StringListEditor.ListEditor();
@@ -66,7 +67,7 @@ public class StringListEditor extends AbstractEditor {
     @Override
     public void setEditable(boolean editable) {
         super.setEditable(editable);
-        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
+        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_INACTIVE : COLOR_DISABLED);
         listEditor.getButton().setIcon(editable && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON);
     }
 

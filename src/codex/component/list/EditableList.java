@@ -93,6 +93,7 @@ public final class EditableList extends JPanel {
         });
         
         cellEditor = new JTextField();
+        cellEditor.setFont(IEditor.FONT_VALUE);
         cellEditor.setBorder(new CompoundBorder(
                 IEditor.BORDER_ACTIVE, 
                 new EmptyBorder(4, 4, 4, 4)

@@ -42,6 +42,7 @@ public class EnumEditor extends AbstractEditor implements ActionListener {
         );
         SwingUtilities.updateComponentTreeUI(comboBox);
         
+        comboBox.setFont(FONT_VALUE);
         comboBox.setRenderer(new DefaultRenderer());
         comboBox.addFocusListener(this);
         comboBox.addActionListener(this);
