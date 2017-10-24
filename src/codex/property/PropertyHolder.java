@@ -21,7 +21,7 @@ public class PropertyHolder<T extends IComplexType<V>, V> {
     private final boolean     require;
     private IComplexType<V>   value;
     private PropertyHolder<T, V> inherit;
-    private final List<PropertyChangeListener> listeners = new LinkedList<>();
+    private final List<IPropertyChangeListener> listeners = new LinkedList<>();
     
     /**
      * Конструктор свойства. Наименование и описание достаются их ресурса локализаии
@@ -166,7 +166,7 @@ public class PropertyHolder<T extends IComplexType<V>, V> {
     /**
      * Добавление слушателя события изменения значения свойства.
      */
-    public final void addChangeListener(PropertyChangeListener listener) {
+    public final void addChangeListener(IPropertyChangeListener listener) {
         listeners.add(listener);
     }
     

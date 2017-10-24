@@ -7,17 +7,17 @@ import codex.log.Logger;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.presentation.SwitchInheritance;
-import codex.property.PropertyChangeListener;
 import codex.type.Str;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
+import codex.property.IPropertyChangeListener;
 
 /**
  * Абстракная сущность, базовый родитель прикладных сущностей приложения.
  * Также является узлом дерева проводника, реализуя интерфейс {@link INode}.
  */
-public abstract class Entity extends AbstractNode implements PropertyChangeListener {
+public abstract class Entity extends AbstractNode implements IPropertyChangeListener {
    
     private final ImageIcon icon;
     private final String    title;
