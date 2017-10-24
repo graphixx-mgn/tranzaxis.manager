@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Абстрактный узел дерева проводника.
@@ -46,6 +47,16 @@ public abstract class AbstractNode implements INode {
         List<String> path = getParent() != null ? getParent().getPath() : new LinkedList<>();
         path.add(toString());
         return path;
+    }
+    
+    @Override
+    public final String getPathString() {
+        return "/" + String.join("/", this
+                .getPath()
+                .stream()
+                .skip(1)
+                .collect(Collectors.toList())
+        );
     }
     
     @Override

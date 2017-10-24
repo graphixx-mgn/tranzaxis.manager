@@ -45,6 +45,11 @@ public interface INode extends TreeNode {
     List<String> getPath();
     
     /**
+     * Возвращает путь до текущего узла.
+     */
+    String getPathString();
+    
+    /**
      * Возвращает признак что узел не имеет потомков.
      */
     @Override
