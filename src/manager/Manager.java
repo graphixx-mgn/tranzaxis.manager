@@ -14,11 +14,11 @@ import codex.update.UpdateUnit;
 import codex.utils.ImageUtils;
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import javax.swing.JButton;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import manager.nodes.CommonRoot;
+import manager.nodes.Database;
 import manager.nodes.System;
 import manager.nodes.DatabaseRoot;
 import manager.nodes.RepositoryRoot;
@@ -79,25 +79,27 @@ public class Manager {
         DatabaseRoot   bases = new DatabaseRoot();
         SystemRoot   systems = new SystemRoot();
         System        system = new System();
+        Database        base = new Database();
+        
         root.insert(repos);
         root.insert(bases);
         root.insert(systems);
+        
+        bases.insert(base);
         systems.insert(system);
+        
         NodeTreeModel treeModel = new NodeTreeModel(root);
         
         updateUnit   = new UpdateUnit();
         explorerUnit = new ExplorerUnit(treeModel);
         
-        ((JButton) updateUnit.getViewport()).addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                ITask task = null;
-                for (int cnt = 1; cnt < 4; cnt++) {
-                    task = new TaskImpl(cnt);
-                    taskManager.execute(task);
-                }
-                taskManager.enqueue(new GroupTask("Some compound task", new TaskImpl(10), new TaskImpl(10), new TaskImpl(10)));
+        ((JButton) updateUnit.getViewport()).addActionListener((ActionEvent e) -> {
+            ITask task;
+            for (int cnt = 1; cnt < 4; cnt++) {
+                task = new TaskImpl(cnt);
+                taskManager.execute(task);
             }
+            taskManager.enqueue(new GroupTask("Some compound task", new TaskImpl(10), new TaskImpl(10), new TaskImpl(10)));
         });
 
         
