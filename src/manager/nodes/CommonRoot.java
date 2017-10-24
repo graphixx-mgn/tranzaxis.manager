@@ -1,11 +1,10 @@
 package manager.nodes;
 
 
-import codex.explorer.tree.Entity;
+import codex.model.Entity;
 import codex.log.Level;
 import codex.mask.DirMask;
 import codex.model.Access;
-import codex.property.PropertyHolder;
 import codex.type.Bool;
 import codex.type.Enum;
 import codex.type.FilePath;
@@ -22,26 +21,28 @@ public class CommonRoot extends Entity {
     
     private final FilePath workDir  = new FilePath("".equals(prefs.get("workDir", "")) ? null : Paths.get(prefs.get("workDir", "")));
     private final Bool     useTray  = new Bool(prefs.getBoolean("useTray", false));
-    private final Enum     logLevel = new Enum(Level.valueOf(prefs.get("logLevel", Level.Debug.name())));
+    private final Enum     logLevel = new Enum(Level.valueOf(prefs.get("logLevel", Level.Info.name())));
     private final Enum     guiLang  = new Enum(Locale.valueOf(prefs.get("guiLang", Locale.English.name())));
 
     public CommonRoot() {
         super(ImageUtils.getByPath("/images/settings.png"), Language.get("title"), Language.get("desc"));
-        model.addProperty(new PropertyHolder("workDir",  workDir.setMask(new DirMask()), true), Access.Select, true);
-        model.addProperty(new PropertyHolder("logLevel", logLevel, false), Access.Select, true);
-        model.addProperty(new PropertyHolder("guiLang",  guiLang, false), Access.Select, true);
-        model.addProperty(new PropertyHolder("useTray",  useTray, false), Access.Select, true);
+        model.addProperty("workDir",  workDir.setMask(new DirMask()), true, Access.Select, true);
+        model.addProperty("logLevel", logLevel, false, Access.Select, true);
+        model.addProperty("guiLang",  guiLang, false, Access.Select, true);
+        model.addProperty("useTray",  useTray, false, Access.Select, true);
     }
 
-    @Override
-    public void propertyChange(String name, Object oldValue, Object newValue) {
-        super.propertyChange(name, oldValue, newValue);
-        
-        if (java.lang.Enum.class.isAssignableFrom(newValue.getClass())) {
-            prefs.put(name, ((java.lang.Enum) newValue).name());
-        } else {
-            prefs.put(name, newValue.toString());
-        }
-    }
+//    @Override
+//    public void propertyChange(String name, Object oldValue, Object newValue) {
+//        java.lang.System.out.println("RID: "+name);
+//        java.lang.System.out.println("VAL: "+model.getValue(name));
+//        super.propertyChange(name, oldValue, newValue);
+//        
+//        if (java.lang.Enum.class.isAssignableFrom(newValue.getClass())) {
+//            prefs.put(name, ((java.lang.Enum) newValue).name());
+//        } else {
+//            prefs.put(name, newValue.toString());
+//        }
+//    }
     
 }

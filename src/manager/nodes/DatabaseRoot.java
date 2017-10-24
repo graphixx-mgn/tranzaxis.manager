@@ -1,6 +1,6 @@
 package manager.nodes;
 
-import codex.explorer.tree.Entity;
+import codex.model.Entity;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 
