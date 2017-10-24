@@ -4,14 +4,13 @@ import codex.model.Access;
 import codex.model.Entity;
 import codex.type.Str;
 import codex.utils.ImageUtils;
-import codex.utils.Language;
 
 public class Database extends Entity {
     
     public Database() {
-        super(ImageUtils.getByPath("/images/database.png"), Language.get("title"), Language.get("desc"));
+        super(ImageUtils.getByPath("/images/database.png"), "WIRECARD_DEV_TRUNK", null);
         
-        model.addProperty("dbUri", new Str(null), true, Access.Select, true);
+        model.addProperty("dbUrl", new Str(null), true, Access.Select, true);
         model.addProperty("dbSchema", new Str(null), true, null, true);
         model.addProperty("dbPass", new Str(null), true, Access.Select, true);
         model.addProperty("instanceId", new Str(null), true, Access.Select, true);
