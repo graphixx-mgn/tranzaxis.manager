@@ -13,6 +13,8 @@ import codex.type.StringList;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.AbstractAction;
@@ -54,9 +56,19 @@ public class StringListEditor extends AbstractEditor {
         textField.setFont(FONT_VALUE);
         textField.setBorder(new EmptyBorder(0, 3, 0, 3));
         textField.setEditable(false);
+        textField.setHighlighter(null);
         
         listEditor = new StringListEditor.ListEditor();
         addCommand(listEditor);
+        
+        textField.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                if (event.getClickCount() == 2) {
+                    listEditor.execute(propHolder);
+                }
+            }
+        });
 
         Box container = new Box(BoxLayout.X_AXIS);
         container.setBackground(textField.getBackground());
