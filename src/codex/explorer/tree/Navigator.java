@@ -16,7 +16,7 @@ import javax.swing.tree.TreeSelectionModel;
 public final class Navigator extends JTree {
     
     private TreePath path;
-    private final List<NavigateListener> listeners = new LinkedList<>();
+    private final List<INavigateListener> listeners = new LinkedList<>();
 
     /**
      * Конструктор дерева.
@@ -51,7 +51,7 @@ public final class Navigator extends JTree {
     /**
      * Добавление слушателя события смены активного узла дерева.
      */
-    public void addNavigateListener(NavigateListener listener) {
+    public void addNavigateListener(INavigateListener listener) {
         listeners.add(listener);
     }
     
