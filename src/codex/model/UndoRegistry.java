@@ -92,6 +92,13 @@ final class UndoRegistry {
         Logger.getLogger().debug("Property ''{0}'' dropped from undo registry", key);
     }
     
+    /**
+     * Очистка реестра.
+     */
+    public void clear() {
+        registry.clear();
+    }
+    
     private class RegistryItem {
         
         Object previousValue;
