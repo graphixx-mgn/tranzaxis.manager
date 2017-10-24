@@ -23,15 +23,15 @@ public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionL
     /**
      * Конструктор экземпляра команды.
      * @param icon Иконка устанавливаемая на кнопку запуска команды, не может быть NULL.
-     * @param title Описание команды, отображается при наведении мыши на кнопку.
+     * @param hint Описание команды, отображается при наведении мыши на кнопку.
      */
-    public EditorCommand(ImageIcon icon, String title) {
+    public EditorCommand(ImageIcon icon, String hint) {
         if (icon == null) {
             throw new IllegalStateException("Parameter 'icon' can not be NULL");
         }
         this.button = new CommandButton(icon);
         this.button.addActionListener(this);
-        this.button.setHint(title);
+        this.button.setHint(hint);
     }
     
     
