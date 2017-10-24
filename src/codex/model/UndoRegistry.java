@@ -9,7 +9,7 @@ import java.util.Map;
  * Реестр изменений свойст модели сущности. Используется для возможности отката
  * внесенных изменений.
  */
-class UndoRegistry {
+final class UndoRegistry {
     
     private final Map<String, RegistryItem> registry = new HashMap<>();
     
@@ -22,7 +22,7 @@ class UndoRegistry {
      * @param previousValue Предыдущее значение.
      * @param currentValue Текущуу значение.
      */
-    public void put(String key, Object previousValue, Object currentValue) {
+    public final void put(String key, Object previousValue, Object currentValue) {
         if (exists(key)) {
             if (previous(key).equals(currentValue)) {
                 delete(key);
@@ -37,22 +37,29 @@ class UndoRegistry {
     /**
      * Возвращает начальное значение свойства.
      */
-    public Object previous(String key) {
+    public final Object previous(String key) {
         return registry.get(key).previousValue;
     }
     
     /**
      * Возвращает текущее значение свойства.
      */
-    public Object current(String key) {
+    public final Object current(String key) {
         return registry.get(key).currentValue;
     }
     
     /**
      * Возвращает флаг наличия записи в реестре.
      */
-    public boolean exists(String key) {
+    public final boolean exists(String key) {
         return registry.containsKey(key);
+    }
+    
+    /**
+     * Возвращает флаг что реестр пуст.
+     */
+    public final boolean isEmpty() {
+        return registry.keySet().isEmpty();
     }
     
     /**
