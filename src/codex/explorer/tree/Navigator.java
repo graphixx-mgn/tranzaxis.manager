@@ -3,7 +3,6 @@ package codex.explorer.tree;
 import codex.log.Logger;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 import javax.swing.JTree;
 import javax.swing.ToolTipManager;
 import javax.swing.border.EmptyBorder;
@@ -38,15 +37,7 @@ public final class Navigator extends JTree {
             }
             if (path != tree.getSelectionModel().getSelectionPath()) {
                 path = tree.getSelectionModel().getSelectionPath();
-                Logger.getLogger().debug(
-                        "Selected path: {0}",
-                        "/" + String.join("/", node
-                                .getPath()
-                                .stream()
-                                .skip(1)
-                                .collect(Collectors.toList())
-                        )
-                );
+                Logger.getLogger().debug("Selected path: {0}", node.getPathString());
                 new LinkedList<>(listeners).stream().forEach((listener) -> {
                     listener.nodeChanged(path);
                 });

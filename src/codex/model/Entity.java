@@ -4,8 +4,6 @@ import codex.editor.IEditor;
 import codex.explorer.tree.AbstractNode;
 import codex.explorer.tree.INode;
 import codex.log.Logger;
-import codex.model.Access;
-import codex.model.EntityModel;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.presentation.SwitchInheritance;
@@ -82,12 +80,7 @@ public abstract class Entity extends AbstractNode implements PropertyChangeListe
             if (!inheritance.isEmpty()) {
                 Logger.getLogger().debug(
                         "Properties ''{0}/@{1}'' has possibility of inheritance", 
-                        "/" + String.join("/", child
-                                .getPath()
-                                .stream()
-                                .skip(1)
-                                .collect(Collectors.toList())
-                        ), inheritance
+                        child, inheritance
                 );
                 inheritance.forEach((propName) -> {
                     entity.model.getProperty(propName).setInherited(this.model.getProperty(propName));
