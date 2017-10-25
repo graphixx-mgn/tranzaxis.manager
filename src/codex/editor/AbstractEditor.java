@@ -2,6 +2,7 @@ package codex.editor;
 
 import codex.command.ICommand;
 import codex.property.PropertyHolder;
+import codex.type.IComplexType;
 import java.awt.Component;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
@@ -39,6 +40,9 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         propHolder.addChangeListener((String name, Object oldValue, Object newValue) -> {
             updateUI();
         });
+        
+        setBorder(IEditor.BORDER_NORMAL);
+        updateUI();
     }
 
     @Override
@@ -48,13 +52,11 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
 
     @Override
     public final Box getEditor() {
-        setBorder(IEditor.BORDER_NORMAL);
-        updateUI();
         return editor;
     }
 
     @Override
-    public void setBorder(Border border) {
+    public final void setBorder(Border border) {
         editor.setBorder(border);
     };
     
@@ -122,7 +124,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
      * Перерисовка виджета и изменение свойств составных GUI элементов.
      */
     @Override
-    public void updateUI() {
+    public final void updateUI() {
         super.updateUI();
         setValue(propHolder.getPropValue().getValue());
         setEditable(isEditable());
