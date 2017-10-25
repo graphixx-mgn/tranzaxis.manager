@@ -9,6 +9,7 @@ import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -51,7 +52,6 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     @Override
     public void addActionListener(ActionListener listener) {
         button.addActionListener((event) -> {
-            KeyboardFocusManager.getCurrentKeyboardFocusManager().clearGlobalFocusOwner();
             listener.actionPerformed(new ActionEvent(PushButton.this, event.getID(), event.getActionCommand()));
         });
     }
