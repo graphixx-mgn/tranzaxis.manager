@@ -10,6 +10,7 @@ import java.awt.event.MouseEvent;
 import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
@@ -31,17 +32,19 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
     private final JProgressBar progress;
     private final ClearButton  clear;
     private final List<ITask>  queue = new LinkedList<>();
-    private final TaskMonitor  monitor = new TaskMonitor(this, (task) -> {
-        queue.remove(task);
-        statusChanged(task, task.getStatus());
-    });
+    private final TaskMonitor  monitor;
     
     /**
      * Конструктор виджета.
      */
-    TaskStatusBar() {
+    TaskStatusBar(List<ExecutorService> threadPool) {
         super(new BorderLayout());
         setBorder(new EmptyBorder(2, 2, 2, 2));
+        
+        monitor = new TaskMonitor(this, threadPool, (task) -> {
+            queue.remove(task);
+            statusChanged(task, task.getStatus());
+        });
         
         status = new JLabel();
         status.setHorizontalAlignment(SwingConstants.RIGHT);
@@ -106,7 +109,6 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
         
         if (ready) {
             progress.setValue(0);
-            monitor.setVisible(false);
             monitor.clearRegistry();
             queue.clear();
             return;
