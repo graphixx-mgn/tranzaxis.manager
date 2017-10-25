@@ -1,5 +1,6 @@
 package codex.task;
 
+import codex.utils.Language;
 import java.text.MessageFormat;
 import java.util.concurrent.ThreadFactory;
 
@@ -9,7 +10,8 @@ import java.util.concurrent.ThreadFactory;
  */
 class NamingThreadFactory implements ThreadFactory {
     
-    private static final String NAME_FORMAT = "{0}.{1}Thread #{2}: <idle>";
+    public  static final String IDLE = Language.get(TaskMonitor.class.getSimpleName(), "idle");
+    private static final String NAME_FORMAT = "{0}.{1}Thread #{2}: {3}";
             
     private final ThreadPoolKind threadKind;
     private Integer threadCount = 0;
@@ -32,8 +34,7 @@ class NamingThreadFactory implements ThreadFactory {
                 MessageFormat.format(
                         NAME_FORMAT, 
                         TaskManager.class.getSimpleName(),
-                        threadKind,
-                        threadCount
+                        threadKind, threadCount, IDLE
                 )
         );
         thread.setPriority(threadKind == ThreadPoolKind.Demand ? Thread.MAX_PRIORITY : Thread.NORM_PRIORITY);
