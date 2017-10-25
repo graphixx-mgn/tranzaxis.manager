@@ -150,6 +150,12 @@ public abstract class AbstractTask<T> implements ITask<T> {
     public final Status getStatus() {
         return status;
     }
+    
+    public final void fireStatusChange() {
+        new LinkedList<>(listeners).forEach((listener) -> {
+            listener.statusChanged(this, status);
+        });
+    }
 
     /**
      * Запустить исполнение задачи. Вызывается сервисом исполнения задач в {@link TaskManager}.
