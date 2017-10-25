@@ -3,9 +3,9 @@ package codex.task;
 import codex.component.dialog.Dialog;
 import codex.unit.AbstractUnit;
 import java.awt.event.ActionEvent;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import javax.swing.AbstractAction;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
@@ -48,7 +48,7 @@ public final class TaskManager extends AbstractUnit {
 
     @Override
     public JComponent createViewport() {
-        taskPanel = new TaskStatusBar();
+        taskPanel = new TaskStatusBar(Arrays.asList(queuedThreadPool, demandThreadPool));
         return taskPanel;
     }
     
@@ -61,11 +61,12 @@ public final class TaskManager extends AbstractUnit {
         queuedThreadPool.submit(() -> {
             final Thread thread = Thread.currentThread();
             final String name   = thread.getName();
-            thread.setName(name.replace("<idle>", "Task '"+task.getTitle()+"'"));
+            thread.setName(name.replace(NamingThreadFactory.IDLE, "Task '"+task.getTitle()+"'"));
             try {
                 task.run();
             } finally {
                 thread.setName(name);
+                ((AbstractTask) task).fireStatusChange();
             }
         });
     }
@@ -76,14 +77,15 @@ public final class TaskManager extends AbstractUnit {
      */
     public void execute(ITask task) {
         taskDialog.addTask(task);
-        Future f = demandThreadPool.submit(() -> {
+        demandThreadPool.submit(() -> {
             final Thread thread = Thread.currentThread();
             final String name   = thread.getName();
-            thread.setName(name.replace("<idle>", "Task '"+task.getTitle()+"'"));
+            thread.setName(name.replace(NamingThreadFactory.IDLE, "Task '"+task.getTitle()+"'"));
             try {
                 task.run();
             } finally {
                 thread.setName(name);
+                ((AbstractTask) task).fireStatusChange();
             }
         });
         SwingUtilities.invokeLater(() -> {
