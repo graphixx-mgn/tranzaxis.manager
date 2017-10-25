@@ -7,7 +7,7 @@ import javax.swing.JComponent;
  */
 public abstract class AbstractUnit {
     
-    protected final JComponent view = createViewport();
+    protected JComponent view;
     
     /**
      * Создает виджет модуля для размещение в окне приложения.
@@ -22,6 +22,9 @@ public abstract class AbstractUnit {
      * Возвращает виджет модуля.
      */
     public final JComponent getViewport() {
+        if (view == null) {
+            view = createViewport();
+        }
         return view;
     };
     

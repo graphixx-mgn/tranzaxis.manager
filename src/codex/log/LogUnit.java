@@ -117,7 +117,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
             @Override
             public int decide(LoggingEvent event) {
                 if (event.getLevel().toInt() > maxLevel) {
-                    ((JButton) view).setIcon(ImageUtils.resize(levelIcon.get(event.getLevel()), 17, 17));
+                    ((JButton) getViewport()).setIcon(ImageUtils.resize(levelIcon.get(event.getLevel()), 17, 17));
                     maxLevel = event.getLevel().toInt();
                 }
                 return Filter.ACCEPT;
