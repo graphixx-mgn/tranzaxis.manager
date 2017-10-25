@@ -55,7 +55,7 @@ public class Manager {
             if (val == 0) throw new Error("Some execution exception (for test)");
             Thread.sleep(300);
             for (int i = 0; i < 10; i++) {
-                Thread.sleep(1000);
+                Thread.sleep(500);
                 val = val + 1;
                 setProgress((i+1)*10, "Changed value to "+val);
             }
@@ -99,7 +99,7 @@ public class Manager {
                 task = new TaskImpl(cnt);
                 taskManager.execute(task);
             }
-            taskManager.enqueue(new GroupTask("Some compound task", new TaskImpl(10), new TaskImpl(10), new TaskImpl(10)));
+            taskManager.enqueue(new GroupTask("Some compound task", new TaskImpl(150), new TaskImpl(200), new TaskImpl(100)));
         });
 
         
