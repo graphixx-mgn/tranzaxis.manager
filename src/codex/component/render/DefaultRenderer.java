@@ -43,6 +43,7 @@ public final class DefaultRenderer extends JLabel implements ListCellRenderer, T
     @Override
     public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean hasFocus) {
         setText(value.toString());
+        setFont(IEditor.FONT_VALUE);
         setBackground(isSelected ? IButton.PRESS_COLOR : list.getBackground());
         if (Iconified.class.isAssignableFrom(value.getClass())) {
             setBorder(new EmptyBorder(1, 4, 1, 2));
