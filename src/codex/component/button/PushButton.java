@@ -1,6 +1,7 @@
 package codex.component.button;
 
 import codex.utils.ImageUtils;
+import java.awt.KeyboardFocusManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.BoxLayout;
@@ -32,11 +33,11 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
         if (icon == null && title == null) {
             throw new IllegalStateException("It is not possible don't specify 'icon' nor 'title'");
         }
-        
         setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
         setBorder(IButton.EMPTY_BORDER);
         
         button = new JButton(title);
+        button.setFocusable(false);
         button.setFocusPainted(false);
         button.setOpaque(false);
         button.setContentAreaFilled(false);
@@ -50,6 +51,7 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     @Override
     public void addActionListener(ActionListener listener) {
         button.addActionListener((event) -> {
+            KeyboardFocusManager.getCurrentKeyboardFocusManager().clearGlobalFocusOwner();
             listener.actionPerformed(new ActionEvent(PushButton.this, event.getID(), event.getActionCommand()));
         });
     }
