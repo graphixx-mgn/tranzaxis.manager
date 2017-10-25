@@ -2,7 +2,10 @@ package codex.editor;
 
 import codex.property.PropertyHolder;
 import codex.type.Str;
+import java.awt.KeyboardFocusManager;
 import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -17,7 +20,7 @@ import javax.swing.event.DocumentListener;
 /**
  * Редактор свойств типа {@link Str}, представляет собой поле ввода.
  */
-public class StrEditor extends AbstractEditor  implements DocumentListener {
+public class StrEditor extends AbstractEditor implements DocumentListener {
     
     protected JTextField textField;
     protected String     initialValue;
@@ -46,9 +49,13 @@ public class StrEditor extends AbstractEditor  implements DocumentListener {
      * @param propHolder Редактируемое свойство.
      */
     public StrEditor(PropertyHolder propHolder) {
-        this(propHolder, (text) -> {
-            return true;
-        }, String::valueOf);
+        this(
+                propHolder,
+                (text) -> {
+                    return true;
+                }, 
+                String::valueOf
+        );
     }
     
     /**
@@ -63,6 +70,15 @@ public class StrEditor extends AbstractEditor  implements DocumentListener {
         this.checker     = checker;
         this.transformer = transformer;
         textField.getDocument().addDocumentListener(this);
+        textField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent event) {
+                if (event.getKeyChar() == KeyEvent.VK_ENTER) {
+                    KeyboardFocusManager.getCurrentKeyboardFocusManager().clearGlobalFocusOwner();
+                    commit.accept(textField.getText());
+                }
+            }
+        });
     }
 
     @Override
