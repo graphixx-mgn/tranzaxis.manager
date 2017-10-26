@@ -7,7 +7,7 @@ import codex.utils.Language;
 public class RepositoryRoot extends Entity {
 
     public RepositoryRoot() {
-        super(ImageUtils.getByPath("/images/repo.png"), Language.get("title"), Language.get("desc"));
+        super(ImageUtils.getByPath("/images/repositories.png"), Language.get("title"), null);
     }
     
 }
