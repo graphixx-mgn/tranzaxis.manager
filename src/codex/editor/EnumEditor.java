@@ -5,6 +5,7 @@ import codex.component.render.DefaultRenderer;
 import codex.property.PropertyHolder;
 import codex.type.Enum;
 import codex.type.Iconified;
+import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.EnumSet;
@@ -79,5 +80,9 @@ public class EnumEditor extends AbstractEditor implements ActionListener {
             propHolder.setValue(comboBox.getSelectedItem());
         }
     }
-    
+
+    @Override
+    public Component getFocusTarget() {
+        return comboBox;
+    }
 }

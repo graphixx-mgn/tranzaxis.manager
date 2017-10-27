@@ -3,13 +3,13 @@ package codex.editor;
 import codex.property.PropertyHolder;
 import codex.utils.ImageUtils;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.ChangeEvent;
 
 /**
  * Редактор свойств типа {@link Bool}, представляет собой флажек.
@@ -35,10 +35,7 @@ public class BoolEditor extends AbstractEditor implements ItemListener {
         checkBox.setOpaque(true);
         checkBox.setBackground(Color.WHITE);
         checkBox.setBorder(new EmptyBorder(0, 0, 0, 0));
-        checkBox.addChangeListener((ChangeEvent e) -> {
-            setBorder(checkBox.getModel().isRollover() ? BORDER_ACTIVE : BORDER_NORMAL);
-            checkBox.requestFocus();
-        });
+        checkBox.addFocusListener(this);
         checkBox.addItemListener(this);
         
         Box container = new Box(BoxLayout.X_AXIS);
@@ -65,4 +62,8 @@ public class BoolEditor extends AbstractEditor implements ItemListener {
         }
     }
     
+    @Override
+    public Component getFocusTarget() {
+        return checkBox;
+    }
 }
