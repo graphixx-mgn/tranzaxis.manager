@@ -2,9 +2,9 @@ package codex.component.messagebox;
 
 import codex.component.dialog.Dialog;
 import java.awt.BorderLayout;
-import java.awt.Window;
 import javax.swing.Action;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
@@ -22,15 +22,14 @@ public final class MessageBox extends Dialog {
      * @param text Текст сообщения, поддерживающий перенос строк.
      * @param close Слушатель события закрытия окна.
      */
-    public MessageBox(Window parent, MessageType type, String title, String text, Action close) {
+    public MessageBox(MessageType type, String title, String text, Action close) {
         super(
-                parent, 
+                JOptionPane.getRootFrame(), 
                 type.getIcon(), 
-                title, 
+                title != null ? title : type.toString(), 
                 new MessagePanel(type, text), 
                 close, 
                 buttonSet(type)
-                        
         );
         setResizable(false);
     }
@@ -40,7 +39,7 @@ public final class MessageBox extends Dialog {
             case INFORMATION:
                 return new Dialog.Default[]{Dialog.Default.BTN_OK};
             case CONFIRMATION:
-                return new Dialog.Default[]{Dialog.Default.BTN_OK, Dialog.Default.BTN_CLOSE};
+                return new Dialog.Default[]{Dialog.Default.BTN_OK, Dialog.Default.BTN_CANCEL};
             default:
                 return new Dialog.Default[]{Dialog.Default.BTN_CLOSE};
         }
@@ -50,10 +49,10 @@ public final class MessageBox extends Dialog {
     
         public MessagePanel(MessageType type, String text) {
             setLayout(new BorderLayout(0, 10));
-            setBorder(new EmptyBorder(20, 30, 20, 30));
+            setBorder(new EmptyBorder(20, 20, 20, 20));
 
             final JLabel iconLabel = new JLabel(type.getIcon());
-            iconLabel.setBorder(new EmptyBorder(0, 0, 0, 30));
+            iconLabel.setBorder(new EmptyBorder(0, 0, 0, 20));
             add(iconLabel, BorderLayout.WEST);
             
             final JLabel messageLabel = new JLabel("<html>"+text.replaceAll("\n", "<br>")+"</html>");
