@@ -33,6 +33,10 @@ public interface IEditor<T> {
      * Цвет шрифта для отрисовки значения заблокированных свойств.
      */
     public static final Color COLOR_DISABLED = Color.GRAY;
+    /**
+     * Цвет шрифта для отрисовки значения свойств с ошибочным значением.
+     */
+    public static final Color COLOR_INVALID = Color.RED;
     
     /**
      * Стандартный шрифт наименований свойств.
