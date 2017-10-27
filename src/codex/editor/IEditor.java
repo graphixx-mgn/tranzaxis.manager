@@ -4,6 +4,7 @@ import codex.command.ICommand;
 import codex.property.PropertyHolder;
 import codex.utils.Language;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Font;
 import java.util.List;
 import javax.swing.Box;
@@ -103,5 +104,12 @@ public interface IEditor<T> {
      * Получить текущий список назначенных редактору команд.
      */
     public List<ICommand<PropertyHolder>> getCommands();
+    
+    /**
+     * Возвращает компонент редактора, который может получить фокус ввода.
+     */
+    default public Component getFocusTarget() {
+        return null;
+    }
     
 }
