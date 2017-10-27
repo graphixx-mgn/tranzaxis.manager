@@ -43,6 +43,11 @@ public class Dialog extends JDialog {
      * ей клавише клавиатуры ESC.
      */
     public static final int CANCEL = 2;
+    /**
+     * Код выхода при нажатии стандартной кнопки {@link Default#BTN_CLOSE} или назначенной 
+     * ей клавише клавиатуры ESC.
+     */
+    public static final int CLOSE  = 3;
     
     /**
      * Набор шаблонов для упрощенного создания кнопок диалога, т.к. использование
@@ -56,7 +61,11 @@ public class Dialog extends JDialog {
         /**
          * Шаблон стандартной кнопки отмены, также вызывается по клавише ESC.
          */
-        BTN_CANCEL("/images/cancel.png", "cancel@title", KeyEvent.VK_ESCAPE, CANCEL);
+        BTN_CANCEL("/images/cancel.png", "cancel@title", KeyEvent.VK_ESCAPE, CANCEL),
+        /**
+         * Шаблон стандартной кнопки закрытия, также вызывается по клавише ESC.
+         */
+        BTN_CLOSE("/images/close.png", "close@title", KeyEvent.VK_ESCAPE, CLOSE);
 
         final int       ID;
         final ImageIcon icon;
