@@ -11,6 +11,7 @@ import codex.task.ITask;
 import codex.task.TaskManager;
 import codex.unit.AbstractUnit;
 import codex.update.UpdateUnit;
+import codex.utils.Formatter;
 import codex.utils.ImageUtils;
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import java.awt.event.ActionEvent;
@@ -21,6 +22,9 @@ import manager.nodes.CommonRoot;
 import manager.nodes.Database;
 import manager.nodes.System;
 import manager.nodes.DatabaseRoot;
+import manager.nodes.Development;
+import manager.nodes.ReleaseList;
+import manager.nodes.Repository;
 import manager.nodes.RepositoryRoot;
 import manager.nodes.SystemRoot;
 import org.apache.log4j.Level;
@@ -78,15 +82,24 @@ public class Manager {
         RepositoryRoot repos = new RepositoryRoot();
         DatabaseRoot   bases = new DatabaseRoot();
         SystemRoot   systems = new SystemRoot();
-        System        system = new System();
-        Database        base = new Database();
+        
+        Repository      repo = new Repository("TWRBS");
+        Database        base = new Database("Virtual");
+        System        system = new System("Virtual");
+        
+        Development      dev = new Development();
+        ReleaseList releases = new ReleaseList();
         
         root.insert(repos);
         root.insert(bases);
         root.insert(systems);
         
+        repos.insert(repo);
         bases.insert(base);
         systems.insert(system);
+        
+        repo.insert(dev);
+        repo.insert(releases);
         
         NodeTreeModel treeModel = new NodeTreeModel(root);
         
@@ -108,6 +121,19 @@ public class Manager {
         window.addUnit(updateUnit, window.upgradePanel);
         window.addUnit(explorerUnit, window.explorePanel);
         window.addUnit(taskManager, window.taskmgrPanel);
+        
+        Runtime runtime = Runtime.getRuntime();
+        StringBuilder sb = new StringBuilder();
+        long maxMemory = runtime.maxMemory();
+        long allocatedMemory = runtime.totalMemory();
+        long freeMemory = runtime.freeMemory();
+        
+        sb.append("free memory: ").append(Formatter.formatSize(freeMemory / 1024)).append("\n");
+        sb.append("allocated memory: ").append(Formatter.formatSize(allocatedMemory / 1024)).append("\n");
+        sb.append("max memory: ").append(Formatter.formatSize(maxMemory / 1024)).append("\n");
+        sb.append("total free memory: ").append(Formatter.formatSize((freeMemory + (maxMemory - allocatedMemory)) / 1024)).append("\n");
+        java.lang.System.err.println(sb);
+        
         window.setVisible(true);
     }
     
