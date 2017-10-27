@@ -6,11 +6,13 @@ import codex.model.Entity;
 import codex.model.AbstractModel;
 import codex.model.Access;
 import codex.property.PropertyHolder;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.List;
+import java.util.Vector;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
@@ -40,12 +42,17 @@ public final class EditorPage extends JPanel {
         if (entity.getParent() != null) {
             parentModel = ((Entity) entity.getParent()).model;
         }
+        
+        final Vector<Component> focusOrder = new Vector<>();
         for (String propName : entity.model.getProperties(Access.Edit)) {        
             gbc.gridx = 0; 
             gbc.gridy = lineIdx;
             gbc.weightx = 0;
             
             IEditor propEditor = entity.model.getEditor(propName);
+            if (propEditor.getFocusTarget() != null) {
+                focusOrder.add(propEditor.getFocusTarget());
+            }
             add(propEditor.getLabel(), gbc);
             
             gbc.gridx = 1;
@@ -67,6 +74,11 @@ public final class EditorPage extends JPanel {
             lineIdx++;
         }
         add(Box.createHorizontalStrut(Math.max(280, maxSize+30)));
-    }    
+        if (focusOrder.size() > 0) {
+            setFocusCycleRoot(true);
+            setFocusTraversalPolicyProvider(true);
+            setFocusTraversalPolicy(new FocusPolicy(focusOrder));
+        }
+    }
     
 }
