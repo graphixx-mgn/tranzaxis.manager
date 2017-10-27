@@ -27,18 +27,18 @@ class TaskDialog extends Dialog implements ITaskListener {
     /**
      * Код выхода при нажатии кнопки перемещения задач в очередь.
      */
-    public static final int           ENQUEUE = 100;
+    public static final int           ENQUEUE    = 100;
     /**
      * Код выхода при нажатии кнопки отмены всех задач.
      */
-    public static final int           ABORT   = 1;
-    
+    public static  final int          CANCEL     = 1;
     private static final int          DLG_WIDTH  = 550;
+    
     private static final DialogButton BTN_QUEUE  = new DialogButton(
             ImageUtils.resize(ImageUtils.getByPath("/images/enqueue.png"), 22, 22), Language.get("enqueue@title"), -1, ENQUEUE
     );
     private static final DialogButton BTN_CANCEL = new DialogButton(
-            ImageUtils.resize(ImageUtils.getByPath("/images/cancel.png"), 22, 22), Language.get("cancel@title"), -1, ABORT
+            ImageUtils.resize(ImageUtils.getByPath("/images/cancel.png"), 22, 22), Language.get("cancel@title"), -1, CANCEL
     );
     
     private final JPanel viewPort;
@@ -114,9 +114,15 @@ class TaskDialog extends Dialog implements ITaskListener {
 
     @Override
     public void statusChanged(ITask task, Status status) {
-        long running  = taskRegistry.keySet().stream().filter(queued -> queued.getStatus() == Status.PENDING   || queued.getStatus() == Status.STARTED).count();
-        long failed   = taskRegistry.keySet().stream().filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED).count();
+        long running  = taskRegistry.keySet().stream()
+                .filter(queued -> queued.getStatus() == Status.PENDING   || queued.getStatus() == Status.STARTED)
+                .count();
+        long failed   = taskRegistry.keySet().stream()
+                .filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED)
+                .count();
         boolean ready = running + failed == 0;
+        
+        BTN_QUEUE.setEnabled(running != 0);
         
         if (ready) {
             clear();

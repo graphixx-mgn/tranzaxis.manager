@@ -31,17 +31,19 @@ public final class TaskManager extends AbstractUnit {
                 
                 @Override
                 public void actionPerformed(ActionEvent event) {
-                    if (event.getID() == Dialog.EXIT || event.getID() == TaskDialog.ENQUEUE) {
-                        taskDialog.taskRegistry.keySet().stream().forEach((task) -> {
-                            taskPanel.addTask(task);
-                        });
-                        taskDialog.clear();
-                    } else if (event.getID() == TaskDialog.ABORT) {
+                    long running = taskDialog.taskRegistry.keySet().stream()
+                                    .filter(queued -> queued.getStatus() == Status.PENDING   || queued.getStatus() == Status.STARTED)
+                                    .count();
+                    if (event.getID() == TaskDialog.CANCEL || running == 0) {
                         taskDialog.taskRegistry.keySet().stream().forEach((task) -> {
                             task.cancel(true);
                         });
-                        taskDialog.clear();
+                    } else if (event.getID() == TaskDialog.ENQUEUE || running != 0) {
+                        taskDialog.taskRegistry.keySet().stream().forEach((task) -> {
+                            taskPanel.addTask(task);
+                        });
                     }
+                    taskDialog.clear();
                 }
             }
     );
