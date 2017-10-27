@@ -1,11 +1,9 @@
 package codex.task;
 
-import codex.component.dialog.Dialog;
 import codex.unit.AbstractUnit;
 import java.awt.event.ActionEvent;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import javax.swing.AbstractAction;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
@@ -15,14 +13,8 @@ import javax.swing.SwingUtilities;
  */
 public final class TaskManager extends AbstractUnit {
     
-    private final static int QUEUE_SIZE = 5;
-    
-    private final ExecutorService queuedThreadPool = Executors.newFixedThreadPool(
-            QUEUE_SIZE, new NamingThreadFactory(ThreadPoolKind.Queued)
-    );
-    private final ExecutorService demandThreadPool = Executors.newCachedThreadPool(
-            new NamingThreadFactory(ThreadPoolKind.Demand)
-    );
+    private final ExecutorService queuedThreadPool = new TaskExecutor(ThreadPoolKind.Queued);
+    private final ExecutorService demandThreadPool = new TaskExecutor(ThreadPoolKind.Demand);
     
     private TaskStatusBar    taskPanel;
     private final TaskDialog taskDialog = new TaskDialog(
