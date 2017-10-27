@@ -1,6 +1,7 @@
 package codex.explorer.tree;
 
 import codex.log.Logger;
+import codex.model.Entity;
 import java.util.LinkedList;
 import java.util.List;
 import javax.swing.JTree;
@@ -34,6 +35,13 @@ public final class Navigator extends JTree {
                 tree.clearSelection();
                 tree.getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
                 return;
+            }
+            if (event.getOldLeadSelectionPath() != null) {
+                if (!((Entity) event.getOldLeadSelectionPath().getLastPathComponent()).model.close()) {
+                    tree.clearSelection();
+                    tree.getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
+                    return;
+                }
             }
             if (path != tree.getSelectionModel().getSelectionPath()) {
                 path = tree.getSelectionModel().getSelectionPath();
