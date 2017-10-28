@@ -2,6 +2,7 @@ package codex.type;
 
 import codex.editor.IEditorFactory;
 import codex.editor.StrEditor;
+import codex.mask.IMask;
 import codex.property.PropertyHolder;
 
 /**
@@ -14,6 +15,7 @@ public class Str implements IComplexType<String> {
     };
     
     private String value;
+    private IMask<String> mask;
     
     /**
      * Конструктор типа.
@@ -41,6 +43,21 @@ public class Str implements IComplexType<String> {
     @Override
     public IEditorFactory editorFactory() {
         return EDITOR_FACTORY;
+    }
+    
+    /**
+     * Установить маску значения.
+     */
+    public IComplexType setMask(IMask<String> mask) {
+        this.mask = mask;
+        return this;
+    }
+    
+    /**
+     * Возвращает маску значения.
+     */
+    public IMask<String> getMask() {
+        return mask;
     }
     
 }
