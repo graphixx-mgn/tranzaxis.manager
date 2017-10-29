@@ -1,21 +1,34 @@
 package codex.editor;
 
+import static codex.editor.IEditor.BORDER_ERROR;
+import static codex.editor.IEditor.BORDER_NORMAL;
+import codex.mask.IMask;
 import codex.property.PropertyHolder;
 import codex.type.Str;
-import java.awt.KeyboardFocusManager;
+import codex.utils.ImageUtils;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.JLabel;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import net.java.balloontip.BalloonTip;
+import net.java.balloontip.styles.EdgedBalloonStyle;
+import net.java.balloontip.utils.TimingUtils;
 
 /**
  * Редактор свойств типа {@link Str}, представляет собой поле ввода.
@@ -27,23 +40,13 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     protected String     previousValue;
     
     protected Predicate<String>        checker;
+    protected final Consumer<String>   update;
+    protected final Consumer<String>   commit;
     protected Function<String, Object> transformer;
-    protected final Consumer<String>   commit = (text) -> {
-        if (!text.equals(initialValue)) {
-            propHolder.setValue(
-                    previousValue == null || previousValue.isEmpty() ? null : transformer.apply(previousValue)
-            );
-        }
-    };
     
-    protected final Consumer<String>   update = (text) -> {
-        if (checker.test(text)) {
-            previousValue = text;
-        } else {
-            setValue(previousValue);
-        }
-    };
-
+    protected final JLabel  signInvalid;
+    protected IMask<String> mask = ((Str) propHolder.getPropValue()).getMask();
+    
     /**
      * Конструктор редактора.
      * @param propHolder Редактируемое свойство.
@@ -69,28 +72,61 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         super(propHolder);
         this.checker     = checker;
         this.transformer = transformer;
+        
+        signInvalid = new JLabel(ImageUtils.resize(
+                ImageUtils.getByPath("/images/warn.png"), 
+                textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
+        ));        
+        signInvalid.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                TimingUtils.showTimedBalloon(getErrorTip(), 4000);
+            }
+        });
+        
+        this.update = (text) -> {
+            setBorder(BORDER_ACTIVE);
+            signInvalid.setVisible(false);
+            textField.setForeground(COLOR_NORMAL);
+            if (checker.test(text)) {
+                previousValue = text;
+            } else {
+                setValue(previousValue);
+            }
+        };
+        this.commit = (text) -> {
+            if (!text.equals(initialValue)) {
+                propHolder.setValue(
+                        previousValue == null || previousValue.isEmpty() ? null : transformer.apply(previousValue)
+                );
+                initialValue = previousValue;
+            }
+        };
+        
         textField.getDocument().addDocumentListener(this);
         textField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyTyped(KeyEvent event) {
-                if (event.getKeyChar() == KeyEvent.VK_ENTER) {
-                    KeyboardFocusManager.getCurrentKeyboardFocusManager().clearGlobalFocusOwner();
-                    commit.accept(textField.getText());
+                if (event.getKeyChar() == KeyEvent.VK_ENTER || event.getKeyChar() == KeyEvent.VK_TAB) {
+                    stopEditing();
                 }
             }
         });
-    }
-
-    @Override
-    public Box createEditor() {
-        textField = new JTextField();        
-        textField.setFont(FONT_VALUE);
-        textField.setBorder(new EmptyBorder(0, 3, 0, 3));
-        textField.addFocusListener(this);
         
         PlaceHolder placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.FOCUS_LOST);
         placeHolder.setBorder(textField.getBorder());
         placeHolder.changeAlpha(100);
+        
+        signInvalid.setVisible(false);
+        textField.add(signInvalid, BorderLayout.EAST);
+    }
+
+    @Override
+    public Box createEditor() {
+        textField = new JTextField();
+        textField.setFont(FONT_VALUE);
+        textField.setBorder(new EmptyBorder(0, 3, 0, 3));
+        textField.addFocusListener(this);
 
         Box container = new Box(BoxLayout.X_AXIS);
         container.setBackground(textField.getBackground());
@@ -107,23 +143,51 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
 
     @Override
     public void setValue(Object value) {
+        initialValue = value == null ? "" : value.toString();
         SwingUtilities.invokeLater(() -> {
             textField.getDocument().removeDocumentListener(this);
-            textField.setText(value == null ? "" : value.toString());
+            textField.setText(initialValue);
             textField.getDocument().addDocumentListener(this);
         });
     }
+    
+    @Override
+    public boolean stopEditing() {
+        commit.accept(textField.getText());
+        return verify();
+    }
+    
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        verify();
+    }
+
+    private boolean verify() {
+        String value = ((Str) propHolder.getPropValue()).getValue();
+        boolean inputOk = value == null || value.isEmpty() || mask.verify(value);
+        setBorder(!inputOk ? BORDER_ERROR : textField.isFocusOwner() ? BORDER_ACTIVE : BORDER_NORMAL);
+        textField.setForeground(inputOk ? COLOR_NORMAL : COLOR_INVALID);
+        if (signInvalid != null) {
+            signInvalid.setVisible(!inputOk);
+            TimingUtils.showTimedBalloon(getErrorTip(), 4000);
+        }
+        return inputOk;
+    }
+    
+    
 
     @Override
     public void focusGained(FocusEvent event) {
         super.focusGained(event);
         initialValue = textField.getText();
+        verify();
     }
     
     @Override
     public void focusLost(FocusEvent event) {
         super.focusLost(event);
-        commit.accept(textField.getText());
+        stopEditing();
     }
 
     /**
@@ -151,6 +215,24 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     @Override
     public void changedUpdate(DocumentEvent event) {
         update.accept(textField.getText());
+    }
+
+    @Override
+    public Component getFocusTarget() {
+        return textField;
+    }
+    
+    private BalloonTip getErrorTip() {
+        return new BalloonTip(
+                signInvalid, new JLabel("Error", ImageUtils.resize(
+                    ImageUtils.getByPath("/images/warn.png"), 
+                    textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
+                ), SwingConstants.LEADING), 
+                new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
+                BalloonTip.Orientation.RIGHT_ABOVE, 
+                BalloonTip.AttachLocation.NORTH,
+                7, 7, false
+        );
     }
 
 }
