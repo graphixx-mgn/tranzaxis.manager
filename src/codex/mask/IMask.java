@@ -14,4 +14,11 @@ public interface IMask<T> {
      */
     boolean verify(T value);
     
+    /**
+     * Возвращает описание ошибки для отображения в GUI.
+     */
+    default String getErrorHint() {
+        return null;
+    };
+    
 }
