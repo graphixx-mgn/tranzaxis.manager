@@ -15,7 +15,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
 import codex.property.IPropertyChangeListener;
+import codex.utils.Language;
 import java.awt.event.ActionEvent;
+import java.text.MessageFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.swing.AbstractAction;
@@ -165,8 +167,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         if (!invalidProps.isEmpty()) {
             // Имеются ошибки в значениях
             MessageBox msgBox = new MessageBox(
-                    MessageType.WARNING, null, 
-                    "[<b>Invalid property value:</b>]\n"+String.join("\n", invalidProps),
+                    MessageType.WARNING, null,
+                    MessageFormat.format(Language.get("hasInvalidProp"), String.join("\n", invalidProps)),
                     new AbstractAction() {
                         @Override
                         public void actionPerformed(ActionEvent event) {
@@ -188,7 +190,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     public final boolean close() {
         if (validate() && model.hasChanges()) {
             // Предлагаем сохранить
-            MessageBox msgBox = new MessageBox(MessageType.CONFIRMATION, null, "[There are unsaved changes. Would you like to save them?]", new AbstractAction() {
+            MessageBox msgBox = new MessageBox(MessageType.CONFIRMATION, null, Language.get("hasUnsavedProp"), new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     if (e.getID() == Dialog.OK) {
