@@ -26,6 +26,7 @@ public class RollbackEntity extends EntityCommand {
 
     @Override
     public void execute(Entity context) {
+        context.stopEditing();
         context.model.rollback();
     }
     
