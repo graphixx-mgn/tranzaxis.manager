@@ -26,7 +26,14 @@ public class CommitEntity extends EntityCommand {
 
     @Override
     public void execute(Entity context) {
-        context.model.commit();
+        if (context.validate()) {
+            context.model.commit();
+        }
+    }
+    
+    @Override
+    public void modelSaved() {
+        activator.accept(getContext());
     }
 
     @Override
