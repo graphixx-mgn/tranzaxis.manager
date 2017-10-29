@@ -76,13 +76,15 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         signInvalid = new JLabel(ImageUtils.resize(
                 ImageUtils.getByPath("/images/warn.png"), 
                 textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
-        ));        
-        signInvalid.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                TimingUtils.showTimedBalloon(getErrorTip(), 4000);
-            }
-        });
+        ));
+        if (mask.getErrorHint() != null) {
+            signInvalid.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    TimingUtils.showTimedBalloon(getErrorTip(), 4000);
+                }
+            });
+        }
         
         this.update = (text) -> {
             setBorder(BORDER_ACTIVE);
@@ -170,12 +172,12 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         textField.setForeground(inputOk ? COLOR_NORMAL : COLOR_INVALID);
         if (signInvalid != null) {
             signInvalid.setVisible(!inputOk);
-            TimingUtils.showTimedBalloon(getErrorTip(), 4000);
+            if (mask.getErrorHint() != null) {
+                TimingUtils.showTimedBalloon(getErrorTip(), 4000);
+            }
         }
         return inputOk;
     }
-    
-    
 
     @Override
     public void focusGained(FocusEvent event) {
@@ -224,7 +226,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     
     private BalloonTip getErrorTip() {
         return new BalloonTip(
-                signInvalid, new JLabel("Error", ImageUtils.resize(
+                signInvalid, new JLabel(mask.getErrorHint(), ImageUtils.resize(
                     ImageUtils.getByPath("/images/warn.png"), 
                     textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
                 ), SwingConstants.LEADING), 
