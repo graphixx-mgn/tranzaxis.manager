@@ -3,6 +3,7 @@ package codex.component.messagebox;
 import codex.component.dialog.Dialog;
 import java.awt.BorderLayout;
 import javax.swing.Action;
+import javax.swing.FocusManager;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -24,13 +25,14 @@ public final class MessageBox extends Dialog {
      */
     public MessageBox(MessageType type, String title, String text, Action close) {
         super(
-                JOptionPane.getRootFrame(), 
+                FocusManager.getCurrentManager().getActiveWindow(),
                 type.getIcon(), 
                 title != null ? title : type.toString(), 
                 new MessagePanel(type, text), 
                 close, 
                 buttonSet(type)
         );
+        //setLocationRelativeTo(JOptionPane.getRootFrame());
         setResizable(false);
     }
     
