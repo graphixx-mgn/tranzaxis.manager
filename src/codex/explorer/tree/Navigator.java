@@ -45,7 +45,7 @@ public final class Navigator extends JTree {
                 return;
             }
             if (event.getOldLeadSelectionPath() != null) {
-                if (!((Entity) event.getOldLeadSelectionPath().getLastPathComponent()).model.close()) {
+                if (!((Entity) event.getOldLeadSelectionPath().getLastPathComponent()).close()) {
                     tree.clearSelection();
                     tree.getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
                     return;
