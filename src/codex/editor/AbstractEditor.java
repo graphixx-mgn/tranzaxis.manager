@@ -2,7 +2,8 @@ package codex.editor;
 
 import codex.command.ICommand;
 import codex.property.PropertyHolder;
-import codex.type.IComplexType;
+import codex.utils.ImageUtils;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
@@ -11,8 +12,12 @@ import java.util.List;
 import javax.swing.Box;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
+import net.java.balloontip.BalloonTip;
+import net.java.balloontip.styles.EdgedBalloonStyle;
+import net.java.balloontip.utils.ToolTipUtils;
 
 /**
  * Абстрактный редактор свойств {@link PropertyHolder}. Содержит основные функции
@@ -64,7 +69,16 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         component.setToolTipText(text);
         for (Component child : component.getComponents()) {
             if (child instanceof JComponent) {
-                setToolTipRecursively((JComponent) child, text);
+                BalloonTip tooltipBalloon = new BalloonTip(
+                        (JComponent) child, 
+                        new JLabel(text, ImageUtils.resize(
+                            ImageUtils.getByPath("/images/event.png"), 
+                            16, 16
+                        ), SwingConstants.LEADING), 
+                        new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
+                        false
+                );
+                ToolTipUtils.balloonToToolTip(tooltipBalloon, 1500, 3000);
             }
         }
     }
