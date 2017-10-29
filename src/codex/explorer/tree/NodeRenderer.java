@@ -47,8 +47,6 @@ public class NodeRenderer extends DefaultTreeCellRenderer {
         setBackgroundSelectionColor(Color.decode("#3399FF"));
         setBorderSelectionColor(Color.GRAY);
         setBorder(new EmptyBorder(15, 0, 15, 0));
-        setToolTipText(entity.getHint());
-        
         setEnabled((entity.getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED);
         return component;
     }
