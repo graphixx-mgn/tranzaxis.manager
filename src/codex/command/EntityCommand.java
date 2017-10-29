@@ -14,7 +14,6 @@ import javax.swing.ImageIcon;
 import codex.model.IModelListener;
 import codex.presentation.CommitEntity;
 import codex.presentation.RollbackEntity;
-import java.awt.KeyboardFocusManager;
 import javax.swing.SwingUtilities;
 
 /**
@@ -83,7 +82,6 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     
     @Override
     public void actionPerformed(ActionEvent event) {
-        KeyboardFocusManager.getCurrentKeyboardFocusManager().clearGlobalFocusOwner();
         SwingUtilities.invokeLater(() -> {
             for (Entity entity : context) {
                 Logger.getLogger().debug("Perform command [{0}]. Context: {1}", new Object[]{name, entity});
