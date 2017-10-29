@@ -23,6 +23,7 @@ public class Str implements IComplexType<String> {
      */
     public Str(String value) {
         this.value = value;
+        this.mask  = (String text) -> true;
     }
 
     @Override
