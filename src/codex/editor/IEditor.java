@@ -116,4 +116,11 @@ public interface IEditor<T> {
         return null;
     }
     
+    /**
+     * Прекращает редактирование свойства и возвращает флаг корректности значения.
+     */
+    default public boolean stopEditing() {
+        return true;
+    }
+    
 }
