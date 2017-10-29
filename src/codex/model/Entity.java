@@ -1,5 +1,8 @@
 package codex.model;
 
+import codex.component.dialog.Dialog;
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
 import codex.editor.IEditor;
 import codex.explorer.tree.AbstractNode;
 import codex.explorer.tree.INode;
@@ -12,6 +15,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
 import codex.property.IPropertyChangeListener;
+import java.awt.event.ActionEvent;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import javax.swing.AbstractAction;
 
 /**
  * Абстракная сущность, базовый родитель прикладных сущностей приложения.
@@ -23,9 +30,10 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     private final String    title;
     private final String    hint;
     
-    private EditorPresentation   editor;
-    private SelectorPresentation selector;
-    
+    private EditorPresentation   editorPresentation;
+    private SelectorPresentation selectorPresentation;
+    private final Map<String, IEditor> editors = new LinkedHashMap<>();
+     
     /**
      * Модель сущности, контейнер всех её свойств.
      */
@@ -57,6 +65,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                         }
                     });
                 }
+                editors.put(name, propEditor);
                 return propEditor;
             }
             
@@ -111,19 +120,29 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     @Override
     public final SelectorPresentation getSelectorPresentation() {
         if (getChildClass() == null) return null;
-        if (selector == null) {
-            selector = new SelectorPresentation();
+        if (selectorPresentation == null) {
+            selectorPresentation = new SelectorPresentation();
         }
-        return selector;
+        return selectorPresentation;
     };
 
     @Override
     public final EditorPresentation getEditorPresentation() {
-        if (editor == null) {
-            editor = new EditorPresentation(this);
+        if (editorPresentation == null) {
+            editorPresentation = new EditorPresentation(this);
         }
-        return editor;
+        return editorPresentation;
     };
+    
+    public final List<String> getInvalidProperties() {
+        stopEditing();
+        return editors.entrySet().stream()
+                .filter((entry) -> {
+                    return !entry.getValue().stopEditing();
+                }).map((entry) -> {
+                    return entry.getKey();
+                }).collect(Collectors.toList());
+    }
 
     @Override
     public final void propertyChange(String name, Object oldValue, Object newValue) {
@@ -131,6 +150,61 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 "Property ''{0}@{1}'' has been changed: ''{2}'' -> ''{3}''", 
                 this, name, oldValue, newValue
         );
+    }
+    
+    /**
+     * Проверка свойств на корректность значений.
+     * При наличии некорректного свойсва вызывается диалог ошибки.
+     */
+    public final boolean validate() {
+        List<String> invalidProps = getInvalidProperties().stream()
+            .map((propName) -> {
+                return model.getProperty(propName).getTitle();
+            })
+            .collect(Collectors.toList());
+        if (!invalidProps.isEmpty()) {
+            // Имеются ошибки в значениях
+            MessageBox msgBox = new MessageBox(
+                    MessageType.WARNING, null, 
+                    "[<b>Invalid property value:</b>]\n"+String.join("\n", invalidProps),
+                    new AbstractAction() {
+                        @Override
+                        public void actionPerformed(ActionEvent event) {
+                            editors.get(getInvalidProperties().get(0)).getFocusTarget().requestFocus();
+                        }
+                    }
+            );
+            msgBox.setVisible(true);
+            return false;
+        } else {
+            return true;
+        }
+    }
+    
+     /**
+     * Проверка допустимости закрытия модели при переходе на другую сущность в
+     * дереве проводника.
+     */
+    public final boolean close() {
+        if (validate() && model.hasChanges()) {
+            // Предлагаем сохранить
+            MessageBox msgBox = new MessageBox(MessageType.CONFIRMATION, null, "[There are unsaved changes. Would you like to save them?]", new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (e.getID() == Dialog.OK) {
+                        model.commit();
+                    }
+                }
+            });
+            msgBox.setVisible(true);
+        }
+        return !model.hasChanges();
+    };
+    
+    public final void stopEditing() {
+        editors.values().stream().forEach((editor) -> {
+            editor.stopEditing();
+        });
     }
     
 }
