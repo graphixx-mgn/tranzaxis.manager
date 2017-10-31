@@ -9,6 +9,7 @@ import codex.utils.ImageUtils;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.KeyboardFocusManager;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -109,8 +110,12 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         textField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyTyped(KeyEvent event) {
-                if (event.getKeyChar() == KeyEvent.VK_ENTER || event.getKeyChar() == KeyEvent.VK_TAB) {
+                if (event.getKeyChar() == KeyEvent.VK_TAB) {
                     stopEditing();
+                }
+                if (event.getKeyChar() == KeyEvent.VK_ENTER) {
+                    stopEditing();
+                    KeyboardFocusManager.getCurrentKeyboardFocusManager().clearGlobalFocusOwner();
                 }
             }
         });
