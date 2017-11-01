@@ -66,7 +66,7 @@ public class FilePathEditor extends AbstractEditor {
     private class PathSelector extends EditorCommand {
 
         public PathSelector() {
-            super(ImageUtils.resize(ImageUtils.getByPath("/images/folder.png"), 20, 20), Language.get("title"));
+            super(ImageUtils.resize(ImageUtils.getByPath("/images/folder.png"), 18, 18), Language.get("title"));
         }
 
         @Override

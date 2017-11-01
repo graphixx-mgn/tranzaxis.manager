@@ -35,8 +35,8 @@ import javax.swing.border.EmptyBorder;
  */
 public class StringListEditor extends AbstractEditor {
     
-    private static final ImageIcon EDIT_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 20, 20);
-    private static final ImageIcon VIEW_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/view.png"), 20, 20);
+    private static final ImageIcon EDIT_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 18, 18);
+    private static final ImageIcon VIEW_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/view.png"), 18, 18);
     private static final Dimension SIZE = new Dimension(350, 400);
     
     protected JTextField textField;

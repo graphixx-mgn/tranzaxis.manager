@@ -13,8 +13,8 @@ import javax.swing.ImageIcon;
  */
 public class SwitchInheritance extends EditorCommand {
     
-    public static final ImageIcon OVERRIDE = ImageUtils.resize(ImageUtils.getByPath("/images/override.png"), 20, 20);
-    public static final ImageIcon INHERIT  = ImageUtils.resize(ImageUtils.getByPath("/images/inherit.png"), 20, 20);
+    public static final ImageIcon OVERRIDE = ImageUtils.resize(ImageUtils.getByPath("/images/override.png"), 18, 18);
+    public static final ImageIcon INHERIT  = ImageUtils.resize(ImageUtils.getByPath("/images/inherit.png"), 18, 18);
     
     private final PropertyHolder           parentHolder;
     private final Consumer<PropertyHolder> switcher;
