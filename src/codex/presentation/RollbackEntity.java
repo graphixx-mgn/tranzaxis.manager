@@ -6,6 +6,7 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.util.List;
 import javax.swing.KeyStroke;
 
 /**
@@ -35,7 +36,7 @@ public class RollbackEntity extends EntityCommand {
     }
     
     @Override
-    public void modelSaved() {
+    public void modelSaved(List<String> changes) {
         activator.accept(getContext());
     }
 

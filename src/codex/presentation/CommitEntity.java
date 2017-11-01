@@ -6,6 +6,7 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.util.List;
 import javax.swing.KeyStroke;
 
 /**
@@ -36,12 +37,12 @@ public class CommitEntity extends EntityCommand {
     }
     
     @Override
-    public void modelSaved() {
+    public void modelSaved(List<String> changes) {
         activator.accept(getContext());
     }
 
     @Override
-    public void modelRestored() {
+    public void modelRestored(List<String> changes) {
         activator.accept(getContext());
     }
     
