@@ -16,11 +16,11 @@ public interface IModelListener {
     /**
      * Вызывается при сохранении изменений модели.
      */
-    default void modelSaved() {};
+    default void modelSaved(List<String> changes) {};
     
     /**
      * Вызывается при откате изменений модели.
      */
-    default void modelRestored() {};
+    default void modelRestored(List<String> changes) {};
     
 }
