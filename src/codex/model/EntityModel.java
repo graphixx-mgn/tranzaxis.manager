@@ -1,5 +1,6 @@
 package codex.model;
 
+import codex.editor.IEditor;
 import codex.type.IComplexType;
 import java.util.LinkedList;
 import java.util.List;
@@ -122,5 +123,12 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             listener.modelRestored();
         });
     }
-    
+
+    @Override
+    public IEditor getEditor(String name) {
+        IEditor editor = super.getEditor(name);
+        editor.setEditable(persistent.contains(name));
+        return editor;
+    }
+
 }
