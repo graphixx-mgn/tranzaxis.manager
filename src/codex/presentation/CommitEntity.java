@@ -4,6 +4,9 @@ import codex.command.EntityCommand;
 import codex.model.Entity;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import javax.swing.KeyStroke;
 
 /**
  * Команда сохранения изменений сущности.
@@ -20,7 +23,8 @@ public class CommitEntity extends EntityCommand {
                 Language.get(EditorPresentation.class.getSimpleName(), "command@commit"),
                 (entity) -> {
                     return entity.model.hasChanges();
-                }
+                },
+                KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_MASK)
         );
     }
 
