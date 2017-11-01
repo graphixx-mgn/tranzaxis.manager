@@ -73,7 +73,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             
         };
         
-        this.model.addProperty("KEY", new Str(title), true, Access.Edit, true);
+        this.model.addUserProp("KEY", new Str(title), true, Access.Edit);
         this.model.addChangeListener(this);
     }
     
