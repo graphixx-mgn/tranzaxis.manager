@@ -146,6 +146,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         super.setEditable(editable);
         textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
         textField.setEditable(editable && !propHolder.isInherited());
+        textField.setFocusable(editable);
     }
 
     @Override
