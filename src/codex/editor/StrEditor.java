@@ -150,9 +150,9 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
 
     @Override
     public void setValue(Object value) {
-        initialValue = value == null ? "" : value.toString();
         SwingUtilities.invokeLater(() -> {
             textField.getDocument().removeDocumentListener(this);
+            initialValue = value == null ? "" : value.toString();
             textField.setText(initialValue);
             textField.getDocument().addDocumentListener(this);
         });
