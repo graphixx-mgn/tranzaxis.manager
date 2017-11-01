@@ -5,8 +5,9 @@ import static codex.component.button.IButton.PRESS_COLOR;
 import java.awt.Color;
 import javax.swing.ImageIcon;
 import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
+import javax.swing.border.MatteBorder;
 
 /**
  * Кнопка вызова исполнения команд {@link ICommand} над объектами.
@@ -16,7 +17,10 @@ public class CommandButton extends PushButton implements IButton {
     /**
      * Рамка по-умолчанию неактивной кнопки.
      */
-    private static final Border NORMAL_BORDER = new LineBorder(Color.LIGHT_GRAY, 1);
+    private static final Border NORMAL_BORDER = new CompoundBorder(
+            new MatteBorder(0, 1, 0, 0, Color.LIGHT_GRAY),
+            new EmptyBorder(1, 0, 1, 1)
+    );
     
     /**
      * Конструктор экземпляра кнопки.
