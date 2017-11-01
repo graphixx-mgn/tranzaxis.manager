@@ -63,8 +63,7 @@ public final class EditorPage extends JPanel {
             container.add(Box.createRigidArea(new Dimension(1, 28)));
 
             ((List<ICommand<PropertyHolder>>) propEditor.getCommands()).stream().forEach((command) -> {
-                container.add((JComponent) command.getButton());
-                container.add(Box.createHorizontalStrut(2));
+                propEditor.getEditor().add((JComponent) command.getButton());
             });
             add(container, gbc);
             
