@@ -59,13 +59,17 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         activator.accept(getContext());
     }
     
+    public final String getName() {
+        return name;
+    }
+    
     @Override
-    public IButton getButton() {
+    public final IButton getButton() {
         return button;
     }
 
     @Override
-    public void setContext(Entity... context) {
+    public final void setContext(Entity... context) {
         if (this.context != null) {
             Arrays.asList(this.context).forEach((entity) -> {
                 entity.model.removeModelListener(this);
