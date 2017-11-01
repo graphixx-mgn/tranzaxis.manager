@@ -39,7 +39,7 @@ public class AbstractModel {
      *  addProperty("svnUrl", new Str("svn://demo.org/sources"), true, Access.Any);
      * </pre>
      */
-    public void addProperty(String name, IComplexType value, boolean require, Access restriction) {
+    void addProperty(String name, IComplexType value, boolean require, Access restriction) {
         if (properties.containsKey(name)) {
             throw new IllegalStateException(
                     MessageFormat.format("Model already has property ''{0}''", name)
