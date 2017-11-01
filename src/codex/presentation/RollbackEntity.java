@@ -4,6 +4,9 @@ import codex.command.EntityCommand;
 import codex.model.Entity;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import javax.swing.KeyStroke;
 
 /**
  * Команда отката изменений сущности.
@@ -20,7 +23,8 @@ public class RollbackEntity extends EntityCommand {
                 Language.get(EditorPresentation.class.getSimpleName(), "command@rollback"),
                 (entity) -> {
                     return entity.model.hasChanges();
-                }
+                },
+                KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_MASK)
         );
     }
 
