@@ -14,6 +14,11 @@ import javax.swing.ImageIcon;
 import codex.model.IModelListener;
 import codex.presentation.CommitEntity;
 import codex.presentation.RollbackEntity;
+import java.text.MessageFormat;
+import javax.swing.AbstractAction;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
 /**
@@ -25,9 +30,11 @@ import javax.swing.SwingUtilities;
  */
 public abstract class EntityCommand implements ICommand<Entity>, ActionListener, IModelListener {
     
-    private   String   name;
-    private   Entity[] context;
-    protected IButton  button;
+    private   KeyStroke key;
+    private   String    name;
+    private   Entity[]  context;
+    protected IButton   button; 
+    
     protected Predicate<Entity>  available;
     protected Consumer<Entity[]> activator = (entities) -> {
         button.setEnabled(
@@ -46,15 +53,29 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
      * @param available Функция проверки доступности команды.
      */
     public EntityCommand(String name, String title, ImageIcon icon, String hint, Predicate<Entity> available) {
+        this(name, title, icon, hint, available, null);
+    }
+    
+    /**
+     * Конструктор экземпляра команды.
+     * @param name Идентификатор команды.
+     * @param title Подпись кнопки запуска команды.
+     * @param icon Иконка устанавливаемая на кнопку запуска команды, не может быть NULL.
+     * @param hint Описание команды, отображается при наведении мыши на кнопку.
+     * @param available Функция проверки доступности команды.
+     * @param key Код комбинации клавиш клавиатуры для запуска команды.
+     */
+    public EntityCommand(String name, String title, ImageIcon icon, String hint, Predicate<Entity> available, KeyStroke key) {
         if (icon == null) {
             throw new IllegalStateException("Parameter 'icon' can not be NULL");
         }
+        this.key       = key;
         this.name      = name;
         this.available = available;
         
         this.button = new PushButton(icon, title);
         this.button.addActionListener(this);
-        this.button.setHint(hint);
+        this.button.setHint(hint + (key == null ? "" : " ("+getKeyCode(key)+")"));
         
         activator.accept(getContext());
     }
@@ -65,6 +86,11 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     
     @Override
     public final IButton getButton() {
+        if (key != null) {
+            SwingUtilities.invokeLater(() -> {
+                    bindKey(key);
+            });
+        }
         return button;
     }
 
@@ -88,7 +114,7 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     public void actionPerformed(ActionEvent event) {
         SwingUtilities.invokeLater(() -> {
             for (Entity entity : context) {
-                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", new Object[]{name, entity});
+                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", new Object[]{getName(), entity});
                 execute(entity);
             }
             activator.accept(getContext());
@@ -103,6 +129,34 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     @Override
     public final Entity[] getContext() {
         return context;
+    }
+    
+    /**
+     * Привязка команды к комбинации клавиш клавиатуры.
+     */
+    private void bindKey(KeyStroke key) {
+        InputMap inputMap = ((JComponent) ((JComponent) this.button).getParent()).getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        if (inputMap.get(key) != null && inputMap.get(key) != this) {
+            throw new IllegalStateException(MessageFormat.format(
+                    "Key [{0}] already used by command ''{1}''", 
+                    getKeyCode(key), inputMap.get(key).getClass().getSimpleName()
+            ));
+        } else {
+            inputMap.put(key, this);
+            ((JComponent) ((JComponent) this.button).getParent()).getActionMap().put(this, new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent event) {
+                    EntityCommand.this.actionPerformed(event);
+                }
+            });
+        }
+    }
+    
+    /**
+     * Возвращает строковое представление комбинации клавиш.
+     */
+    private String getKeyCode(KeyStroke key) {
+        return key.toString().replaceAll("(\\w+) pressed (\\w+)", "$1+$2").toUpperCase();
     }
     
 }
