@@ -87,6 +87,13 @@ public class AbstractModel {
     }
     
     /**
+     * Установить значение свойства по его имени.
+     */
+    public void setValue(String name, Object value) {
+        getProperty(name).setValue(value);
+    }
+    
+    /**
      * Получить значение свойства по его имени.
      */
     public Object getValue(String name) {
