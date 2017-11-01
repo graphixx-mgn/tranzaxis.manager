@@ -26,23 +26,10 @@ public class CommonRoot extends Entity {
 
     public CommonRoot() {
         super(ImageUtils.getByPath("/images/settings.png"), Language.get("title"), Language.get("desc"));
-        model.addProperty("workDir",  workDir.setMask(new DirMask()), true, Access.Select, true);
-        model.addProperty("logLevel", logLevel, false, Access.Select, true);
-        model.addProperty("guiLang",  guiLang, false, Access.Select, true);
-        model.addProperty("useTray",  useTray, false, Access.Select, true);
+        model.addUserProp("workDir",  workDir.setMask(new DirMask()), true, Access.Select);
+        model.addUserProp("logLevel", logLevel, false, Access.Select);
+        model.addUserProp("guiLang",  guiLang, false, Access.Select);
+        model.addUserProp("useTray",  useTray, false, Access.Select);
     }
-
-//    @Override
-//    public void propertyChange(String name, Object oldValue, Object newValue) {
-//        java.lang.System.out.println("RID: "+name);
-//        java.lang.System.out.println("VAL: "+model.getValue(name));
-//        super.propertyChange(name, oldValue, newValue);
-//        
-//        if (java.lang.Enum.class.isAssignableFrom(newValue.getClass())) {
-//            prefs.put(name, ((java.lang.Enum) newValue).name());
-//        } else {
-//            prefs.put(name, newValue.toString());
-//        }
-//    }
     
 }
