@@ -6,36 +6,69 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import codex.property.IPropertyChangeListener;
+import java.util.Arrays;
+import java.util.function.Supplier;
 
 /**
  * Реализация модели сущности.
  */
 public class EntityModel extends AbstractModel implements IPropertyChangeListener {
     
-    private final List<String> persistent   = new LinkedList<>();
+    private final List<String> dynamicProps = new LinkedList<>();
     private final UndoRegistry undoRegistry = new UndoRegistry();
     private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
     private final List<IModelListener>          modelListeners = new LinkedList<>();
-    
-    /**
-     * Добавление свойства в сущность с возможностью указания должно ли свойство 
-     * быть хранимым.
-     * @param propHolder Ссылка на свойство.
-     * @param restriction Ограничение видимости свойства в редакторе и/или 
-     * селекторе.
-     * @param isPersistent Флаг, указывающий что свойсто - хранимое.
-     */
-    public void addProperty(String name, IComplexType value, boolean require, Access restriction, boolean isPersistent) {
-        addProperty(name, value, require, restriction);
-        if (isPersistent) {
-            persistent.add(name);
-        }
-    }
 
     @Override
-    public void addProperty(String name, IComplexType value, boolean require, Access restriction) {
+    void addProperty(String name, IComplexType value, boolean require, Access restriction) {
         super.addProperty(name, value, require, restriction);
         getProperty(name).addChangeListener(this);
+    }
+    
+    /**
+     * Добавление хранимого свойства в сущность.
+     * @param name Идентификатор свойства.
+     * @param value Начальное значение свойства.
+     * @param require Признак того что свойство должно иметь не значение.
+     * @param restriction  Ограничение видимости свойства в редакторе и/или 
+     * селекторе.
+     */
+    public final void addUserProp(String name, IComplexType value, boolean require, Access restriction) {
+        addProperty(name, value, require, restriction);
+    }
+    
+    /**
+     * Добавление динамического (не хранимого) свойства в сущность.
+     * @param name Идентификатор свойства.
+     * @param value Начальное значение свойства.
+     * @param restriction Ограничение видимости свойства в редакторе и/или 
+     * @param valueProvider Функция расчета значения свойства.
+     * @param baseProps Список свойств сущности, при изменении которых запускать
+     * функцию рассчета значения.
+     */
+    public final void addDynamicProp(String name, IComplexType value, Access restriction, Supplier valueProvider, String... baseProps) {
+        addProperty(name, value, false, restriction);
+        if (valueProvider != null) {
+            addModelListener(new IModelListener() {
+                @Override
+                public void modelChanged(List<String> changes) {
+                    List<String> intersection = new LinkedList<>(dynamicProps);
+                    intersection.retainAll(Arrays.asList(baseProps));
+                    if (!intersection.isEmpty()) {
+                        setValue(name, valueProvider.get());
+                    }
+                }
+                @Override
+                public void modelSaved(List<String> changes) {
+                    List<String> intersection = new LinkedList<>(changes);
+                    intersection.retainAll(Arrays.asList(baseProps));
+                    if (!intersection.isEmpty()) {
+                        setValue(name, valueProvider.get());
+                    }
+                }
+            });
+        }
+        dynamicProps.add(name);
     }
     
     /**
@@ -60,8 +93,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
 
     @Override
-    public void propertyChange(String name, Object oldValue, Object newValue) {
-        if (persistent.contains(name)) {
+    public final void propertyChange(String name, Object oldValue, Object newValue) {
+        if (!dynamicProps.contains(name)) {
             undoRegistry.put(name, oldValue, newValue);
         }
         changeListeners.forEach((listener) -> {
@@ -93,9 +126,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * Возвращает список имен модифицированных свойств.
      */
     public final List<String> getChanges() {
-        return persistent.stream()
+        return getProperties(Access.Any).stream()
                 .filter((name) -> {
-                    return undoRegistry.exists(name);
+                    return !dynamicProps.contains(name) && undoRegistry.exists(name);
                 })
                 .collect(Collectors.toList());
     }
@@ -104,11 +137,12 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * Сохранение изменений модели.
      */
     public final void commit() {
+        List<String> changes = getChanges();
         System.out.println("codex.model.EntityModel.commit(), listeners="+modelListeners.size());
         //TODO: Проверить успешность выполнения
         undoRegistry.clear();
         modelListeners.forEach((listener) -> {
-            listener.modelSaved();
+            listener.modelSaved(changes);
         });
     }
     
@@ -116,18 +150,32 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * Откат изменений модели.
      */
     public final void rollback() {
-        getChanges().forEach((name) -> {
+        List<String> changes = getChanges();
+        changes.forEach((name) -> {
             getProperty(name).setValue(undoRegistry.previous(name));
         });
         modelListeners.forEach((listener) -> {
-            listener.modelRestored();
+            listener.modelRestored(changes);
         });
     }
 
     @Override
     public IEditor getEditor(String name) {
         IEditor editor = super.getEditor(name);
-        editor.setEditable(persistent.contains(name));
+        addModelListener(new IModelListener() {
+            
+            @Override
+            public void modelSaved(List<String> changes) { 
+                editor.getLabel().setText(getProperty(name).getTitle());
+            }
+
+            @Override
+            public void modelChanged(List<String> changes) {
+                editor.getLabel().setText(getProperty(name).getTitle() + (changes.contains(name) ? " *" : ""));
+            }
+            
+        });
+        editor.setEditable(!dynamicProps.contains(name));
         return editor;
     }
 
