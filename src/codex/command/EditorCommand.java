@@ -42,6 +42,9 @@ public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionL
 
     @Override
     public void setContext(PropertyHolder... context) {
+        if (context.length > 1 && !multiContextAllowed()) {
+            throw new IllegalStateException("Multiple context is not allowed");
+        }
         this.context = context;
     }
     
@@ -55,6 +58,11 @@ public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionL
     @Override
     public PropertyHolder[] getContext() {
         return context;
+    }
+
+    @Override
+    public final boolean multiContextAllowed() {
+        return ICommand.super.multiContextAllowed();
     }
     
 }
