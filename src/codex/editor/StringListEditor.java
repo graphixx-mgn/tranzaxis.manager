@@ -168,7 +168,7 @@ public class StringListEditor extends AbstractEditor {
         }
         
         @Override
-        public boolean getAllowsDisable() {
+        public boolean disableWithContext() {
             return false;
         }
     
