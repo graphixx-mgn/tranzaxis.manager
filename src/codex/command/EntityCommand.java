@@ -15,6 +15,7 @@ import codex.model.IModelListener;
 import codex.presentation.CommitEntity;
 import codex.presentation.RollbackEntity;
 import java.text.MessageFormat;
+import java.util.LinkedList;
 import javax.swing.AbstractAction;
 import javax.swing.InputMap;
 import javax.swing.JComponent;
@@ -28,12 +29,14 @@ import javax.swing.SwingUtilities;
  * @see CommitEntity
  * @see RollbackEntity
  */
-public abstract class EntityCommand implements ICommand<Entity>, ActionListener, IModelListener {
+public abstract class EntityCommand implements ICommand<Entity>, ActionListener, IModelListener, ICommandListener<Entity> {
     
     private   KeyStroke key;
     private   String    name;
     private   Entity[]  context;
     protected IButton   button; 
+    
+    private final List<ICommandListener<Entity>> listeners = new LinkedList<>();
     
     protected Predicate<Entity>  available;
     protected Consumer<Entity[]> activator = (entities) -> {
@@ -78,6 +81,7 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         this.button.setHint(hint + (key == null ? "" : " ("+getKeyCode(key)+")"));
         
         activator.accept(getContext());
+        addListener(this);
     }
     
     public final String getName() {
@@ -93,15 +97,23 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         }
         return button;
     }
+    
+    public final void addListener(ICommandListener<Entity> listener) {
+        listeners.add(listener);
+    }
 
     @Override
     public final void setContext(Entity... context) {
+        getButton().setEnabled(!(context.length > 1 && !multiContextAllowed()));
         if (this.context != null) {
             Arrays.asList(this.context).forEach((entity) -> {
                 entity.model.removeModelListener(this);
             });
         }
         this.context = context;
+        listeners.forEach((listener) -> {
+            listener.contextChanged(context);
+        });
         if (this.context != null) {
             Arrays.asList(this.context).forEach((entity) -> {
                 entity.model.addModelListener(this);
@@ -158,5 +170,10 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     private String getKeyCode(KeyStroke key) {
         return key.toString().replaceAll("(\\w+) pressed (\\w+)", "$1+$2").toUpperCase();
     }
+
+    @Override
+    public void contextChanged(Entity... context) {
+        // Do nothing
+    };
     
 }
