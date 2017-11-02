@@ -1,18 +1,23 @@
 package codex.component.button;
 
 import codex.utils.ImageUtils;
-import java.awt.KeyboardFocusManager;
+import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.BoxLayout;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
+import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import net.java.balloontip.BalloonTip;
+import net.java.balloontip.styles.EdgedBalloonStyle;
+import net.java.balloontip.utils.ToolTipUtils;
 
 /**
  * Простая реализация-декоратор кнопки. Используется для упраления в диалоговых окнах.
@@ -90,7 +95,20 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
 
     @Override
     public final void setHint(String text) {
-        button.setToolTipText(text);
+//        button.setToolTipText(text);
+        BalloonTip tooltipBalloon = new BalloonTip(
+                (JComponent) this.button, 
+                new JLabel(
+                        text,
+                        ImageUtils.resize(
+                            ImageUtils.getByPath("/images/event.png"), 
+                            16, 16
+                        ), 
+                        SwingConstants.LEADING), 
+                new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
+                false
+        );
+        ToolTipUtils.balloonToToolTip(tooltipBalloon, 1000, 3000);
     }
     
     @Override
