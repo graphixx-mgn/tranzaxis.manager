@@ -78,4 +78,11 @@ public interface IButton {
      * @return TRUE - кнопка доступна для взаимодействия, иначе - нет.
      */
     public boolean isEnabled();
+    
+    /**
+     * Устанавливает возможность получения фокуса.
+     */
+    default void setFocusable(boolean focusable) {
+        // Do nothing
+    };
 }

@@ -75,10 +75,10 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
      * и нажатие мыши.
      */
     protected void redraw() {
-        if (button.getModel().isPressed()) {
+        if (button.getModel().isPressed() && button.isFocusable()) {
             setBorder(PRESS_BORDER);
             setBackground(PRESS_COLOR);
-        } else if (button.getModel().isRollover()) {
+        } else if (button.getModel().isRollover() && button.isFocusable()) {
             setBorder(HOVER_BORDER);
             setBackground(HOVER_COLOR);
         } else {
@@ -124,5 +124,10 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     @Override
     public final boolean isEnabled() {
         return button.isEnabled();
+    }
+
+    @Override
+    public void setFocusable(boolean focusable) {
+        button.setFocusable(focusable);
     }
 }
