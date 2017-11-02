@@ -1,5 +1,6 @@
 package codex.model;
 
+import codex.command.EntityCommand;
 import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
@@ -19,6 +20,7 @@ import codex.utils.Language;
 import java.awt.event.ActionEvent;
 import java.text.MessageFormat;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import javax.swing.AbstractAction;
 
@@ -34,7 +36,9 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     
     private EditorPresentation   editorPresentation;
     private SelectorPresentation selectorPresentation;
-    private final Map<String, IEditor> editors = new LinkedHashMap<>();
+    
+    private final List<EntityCommand>  commands = new LinkedList<>();
+    private final Map<String, IEditor> editors  = new LinkedHashMap<>();
      
     /**
      * Модель сущности, контейнер всех её свойств.
@@ -75,6 +79,14 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         
         this.model.addUserProp("KEY", new Str(title), true, Access.Edit);
         this.model.addChangeListener(this);
+    }
+    
+    public final void addCommand(EntityCommand command) {
+        commands.add(command);
+    }
+    
+    public final List<EntityCommand> getCommands() {
+        return new LinkedList<>(commands);
     }
     
     @Override
