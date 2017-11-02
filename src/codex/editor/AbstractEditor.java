@@ -107,7 +107,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     public void setEditable(boolean editable) {
         this.editable = editable;
         commands.stream().filter((command) -> {
-            return command.getAllowsDisable();
+            return command.disableWithContext();
         }).forEach((command) -> {
             command.getButton().setEnabled(editable);
         });
