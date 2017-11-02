@@ -1,6 +1,7 @@
 package codex.explorer.browser;
 
 import codex.explorer.tree.INode;
+import codex.presentation.EditorPresentation;
 import java.awt.BorderLayout;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
@@ -41,7 +42,9 @@ public final class Browser extends JPanel {
         selectorPanel.repaint();
         
         if (node.getEditorPresentation() != null) {
-            editorPanel.add(node.getEditorPresentation());
+            EditorPresentation presentation = node.getEditorPresentation();
+            editorPanel.add(presentation);
+            presentation.activateCommands();
         }
         if (node.getSelectorPresentation() != null) {
             selectorPanel.add(node.getSelectorPresentation());
