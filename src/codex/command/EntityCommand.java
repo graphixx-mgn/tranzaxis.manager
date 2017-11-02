@@ -31,10 +31,10 @@ import javax.swing.SwingUtilities;
  */
 public abstract class EntityCommand implements ICommand<Entity>, ActionListener, IModelListener, ICommandListener<Entity> {
     
-    private   KeyStroke key;
-    private   String    name;
-    private   Entity[]  context;
-    protected IButton   button; 
+    private KeyStroke key;
+    private String    name;
+    private Entity[]  context;
+    private IButton   button; 
     
     private final List<ICommandListener<Entity>> listeners = new LinkedList<>();
     
@@ -80,7 +80,6 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         this.button.addActionListener(this);
         this.button.setHint(hint + (key == null ? "" : " ("+getKeyCode(key)+")"));
         
-        activator.accept(getContext());
         addListener(this);
     }
     
@@ -97,6 +96,13 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         }
         return button;
     }
+    
+    /**
+     * Актуализация состояния доступности команды.
+     */
+    public final void activate() {
+        activator.accept(getContext());
+    };
     
     public final void addListener(ICommandListener<Entity> listener) {
         listeners.add(listener);
@@ -119,7 +125,7 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
                 entity.model.addModelListener(this);
             });
         }
-        activator.accept(getContext());
+        activate();
     }
     
     @Override
@@ -129,13 +135,13 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
                 Logger.getLogger().debug("Perform command [{0}]. Context: {1}", new Object[]{getName(), entity});
                 execute(entity);
             }
-            activator.accept(getContext());
+            activate();
         });
     }
 
     @Override
     public void modelChanged(List<String> changes) {
-        activator.accept(getContext());
+        activate();
     }
 
     @Override
