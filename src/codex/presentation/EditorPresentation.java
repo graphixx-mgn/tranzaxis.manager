@@ -20,7 +20,7 @@ public final class EditorPresentation extends JPanel {
     private final List<EntityCommand> commands = new LinkedList<>(Arrays.asList(
                                                         new CommitEntity(), 
                                                         new RollbackEntity()
-                                                ));
+                                                 ));
     
     /**
      * Конструктор презентации. 
@@ -28,14 +28,27 @@ public final class EditorPresentation extends JPanel {
      */
     public EditorPresentation(Entity entity) {
         super(new BorderLayout());
+        commandPanel.setVisible(
+                !entity.model.getProperties(Access.Edit).isEmpty() ||
+                !entity.getCommands().isEmpty()
+        );
+        if (commandPanel.isVisible()) {
+            commands.forEach((command) -> {
+                command.setContext(entity);
+            });
+            commandPanel.addCommands(commands.toArray(new EntityCommand[]{}));
+            
+            List<EntityCommand> entityCommands = entity.getCommands();
+            if (!entity.getCommands().isEmpty()) {
+                commandPanel.addSeparator();
+                entityCommands.forEach((command) -> {
+                    command.setContext(entity);
+                });
+                commandPanel.addCommands(entityCommands.toArray(new EntityCommand[]{}));
+            }
+        }
         
-        commandPanel.setVisible(!entity.model.getProperties(Access.Edit).isEmpty());
-        commands.forEach((command) -> {
-            command.setContext(entity);
-        });
-        commandPanel.addCommands(commands.toArray(new EntityCommand[]{}));
         add(commandPanel, BorderLayout.NORTH);
-        
         add(new EditorPage(entity), BorderLayout.CENTER);
     }
     
