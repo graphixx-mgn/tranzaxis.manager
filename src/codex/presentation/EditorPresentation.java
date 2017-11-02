@@ -4,7 +4,6 @@ import codex.command.EntityCommand;
 import codex.model.Access;
 import codex.model.Entity;
 import java.awt.BorderLayout;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import javax.swing.JPanel;
@@ -17,10 +16,10 @@ import javax.swing.JPanel;
 public final class EditorPresentation extends JPanel {
  
     private final CommandPanel        commandPanel = new CommandPanel();
-    private final List<EntityCommand> commands = new LinkedList<>(Arrays.asList(
+    private final List<EntityCommand> commands = new LinkedList<>();/*Arrays.asList(
                                                         new CommitEntity(), 
                                                         new RollbackEntity()
-                                                 ));
+                                                 ));*/
     
     /**
      * Конструктор презентации. 
@@ -28,28 +27,33 @@ public final class EditorPresentation extends JPanel {
      */
     public EditorPresentation(Entity entity) {
         super(new BorderLayout());
-        commandPanel.setVisible(
-                !entity.model.getProperties(Access.Edit).isEmpty() ||
-                !entity.getCommands().isEmpty()
-        );
-        if (commandPanel.isVisible()) {
-            commands.forEach((command) -> {
-                command.setContext(entity);
-            });
-            commandPanel.addCommands(commands.toArray(new EntityCommand[]{}));
-            
-            List<EntityCommand> entityCommands = entity.getCommands();
-            if (!entity.getCommands().isEmpty()) {
-                commandPanel.addSeparator();
-                entityCommands.forEach((command) -> {
-                    command.setContext(entity);
-                });
-                commandPanel.addCommands(entityCommands.toArray(new EntityCommand[]{}));
-            }
-        }
         
+        if (!entity.model.getProperties(Access.Edit).isEmpty()) {
+            commands.add(new CommitEntity());
+            commands.add(new RollbackEntity());
+            commandPanel.addCommands(commands.toArray(new EntityCommand[]{}));
+        }
+        List<EntityCommand> entityCommands = entity.getCommands();
+        if (!entityCommands.isEmpty()) {
+            if (!commands.isEmpty()) commandPanel.addSeparator();
+            commands.addAll(entityCommands);
+            commandPanel.addCommands(entityCommands.toArray(new EntityCommand[]{}));
+        }
+        commands.forEach((command) -> {
+            command.setContext(entity);
+        });
+        commandPanel.setVisible(!commands.isEmpty());  
         add(commandPanel, BorderLayout.NORTH);
         add(new EditorPage(entity), BorderLayout.CENTER);
+    }
+    
+    /**
+     * Актуализация состояния доступности команд.
+     */
+    public void activateCommands() {
+        commands.forEach((command) -> {
+            command.activate();
+        });
     }
     
 }
