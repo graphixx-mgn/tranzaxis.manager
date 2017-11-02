@@ -2,6 +2,7 @@ package codex.explorer.tree;
 
 import codex.log.Logger;
 import codex.model.Entity;
+import codex.model.IModelListener;
 import codex.utils.ImageUtils;
 import java.awt.Color;
 import java.util.LinkedList;
@@ -10,6 +11,7 @@ import javax.swing.JLabel;
 import javax.swing.JTree;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
@@ -22,7 +24,7 @@ import net.java.balloontip.utils.ToolTipUtils;
 /**
  * Дерево навигации проводника.
  */
-public final class Navigator extends JTree {
+public final class Navigator extends JTree implements IModelListener {
     
     private TreePath path;
     private final List<INavigateListener> listeners = new LinkedList<>();
@@ -35,28 +37,31 @@ public final class Navigator extends JTree {
         setRowHeight((int) (getRowHeight()*1.5));
         setBorder(new EmptyBorder(5, 10, 5, 2));
         addTreeSelectionListener((TreeSelectionEvent event) -> {
-            final JTree tree = (JTree) event.getSource();
-            final INode node = (INode) tree.getLastSelectedPathComponent();
+            final INode node = (INode) getLastSelectedPathComponent();
             if (node == null) return;
             
             if ((node.getMode() & INode.MODE_SELECTABLE) != INode.MODE_SELECTABLE) {
-                tree.clearSelection();
-                tree.getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
+                clearSelection();
+                getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
                 return;
             }
             if (event.getOldLeadSelectionPath() != null) {
-                if (!((Entity) event.getOldLeadSelectionPath().getLastPathComponent()).close()) {
-                    tree.clearSelection();
-                    tree.getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
+                Entity previous = (Entity) event.getOldLeadSelectionPath().getLastPathComponent();
+                if (!previous.close()) {
+                    clearSelection();
+                    getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
                     return;
                 }
+                previous.model.removeModelListener(this);
             }
-            if (path != tree.getSelectionModel().getSelectionPath()) {
-                path = tree.getSelectionModel().getSelectionPath();
+            if (path != getSelectionModel().getSelectionPath()) {
+                path = getSelectionModel().getSelectionPath();
                 Logger.getLogger().debug("Selected path: {0}", node.getPathString());
                 new LinkedList<>(listeners).stream().forEach((listener) -> {
                     listener.nodeChanged(path);
                 });
+                Entity current = (Entity) path.getLastPathComponent();
+                current.model.addModelListener(this);
             }
         });
         getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
@@ -97,6 +102,28 @@ public final class Navigator extends JTree {
                     10, 10, false
             );
             ToolTipUtils.balloonToToolTip(tip, 1500, 3000);
+    }
+
+    @Override
+    public void modelRestored(List<String> changes) {
+        treeModelListener.treeStructureChanged(new TreeModelEvent(
+                this, 
+                path.getParentPath(), 
+                new int[]{getRowForPath(path)}, 
+                new Object[]{path.getLastPathComponent()}
+        ));
+        getSelectionModel().setSelectionPath(path);
+    }
+
+    @Override
+    public void modelSaved(List<String> changes) {
+        treeModelListener.treeStructureChanged(new TreeModelEvent(
+                this, 
+                path.getParentPath(), 
+                new int[]{getRowForPath(path)}, 
+                new Object[]{path.getLastPathComponent()}
+        ));
+        getSelectionModel().setSelectionPath(path);
     }
     
 }

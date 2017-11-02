@@ -1,7 +1,7 @@
 package codex.explorer;
 
 import codex.explorer.browser.Browser;
-import codex.explorer.tree.AbstractNode;
+import codex.explorer.tree.INode;
 import codex.explorer.tree.Navigator;
 import codex.explorer.tree.NodeTreeModel;
 import codex.unit.AbstractUnit;
@@ -30,7 +30,7 @@ public final class ExplorerUnit extends AbstractUnit {
         this.browser   = new Browser();
         
         this.navigator.addNavigateListener((TreePath path) -> {
-            this.browser.browse((AbstractNode) path.getLastPathComponent());
+            this.browser.browse((INode) path.getLastPathComponent());
         });
     }
     
