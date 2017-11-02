@@ -33,9 +33,17 @@ public interface ICommand<T> {
     public void execute(T context);
     
     /**
-     * Возвращает признак разрешена ли блокировка команды при блокировке редактора.
+     * Возвращает признак блокируется ли команда при блокировке контекстного объекта.
      */
-    default boolean getAllowsDisable () {
+    default boolean disableWithContext () {
         return true;
+    }
+    
+    /**
+     * Возвращает признак разрешено ли выполнение команды над множеством контекстных
+     * объектов.
+     */
+    default boolean multiContextAllowed() {
+        return false;
     }
 }
