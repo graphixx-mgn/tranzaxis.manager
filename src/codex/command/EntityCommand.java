@@ -158,7 +158,9 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
             ((JComponent) ((JComponent) this.button).getParent()).getActionMap().put(this, new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent event) {
-                    EntityCommand.this.actionPerformed(event);
+                    if (button.isEnabled()) {
+                        EntityCommand.this.actionPerformed(event);
+                    }
                 }
             });
         }
