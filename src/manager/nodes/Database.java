@@ -6,6 +6,7 @@ import codex.model.Entity;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import manager.commands.CheckDatabase;
 
 public class Database extends Entity {
     
@@ -15,7 +16,10 @@ public class Database extends Entity {
         super(ImageUtils.getByPath("/images/database.png"), title, null);
         
         model.addUserProp("dbUrl", 
-                new Str(null).setMask(new RegexMask("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}:\\d{1,5}/\\w+", Language.get("dbUrl.error"))),
+                new Str(null).setMask(new RegexMask(
+                        "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5])):\\d{1,5}/\\w+", 
+                        Language.get("dbUrl.error")
+                )),
         true, Access.Select);
         model.addUserProp("dbSchema", new Str(null), true, null);
         model.addUserProp("dbPass", new Str(null), true, Access.Select);
@@ -26,6 +30,8 @@ public class Database extends Entity {
         model.addUserProp("instanceId", new Str(null), true, Access.Select);
         model.addUserProp("layerURI", new Str(null), true, Access.Select);
         model.addUserProp("userNote", new Str(null), false, null);
+        
+        addCommand(new CheckDatabase());
     }
     
 }
