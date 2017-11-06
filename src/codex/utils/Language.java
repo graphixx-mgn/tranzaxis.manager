@@ -12,7 +12,7 @@ import java.util.ResourceBundle;
  */
 public class Language {
     
-    private static final String NOT_FOUND = "<not defined>";
+    public  static final String NOT_FOUND = "<not defined>";
     private static final Map<String, ResourceBundle> bundles = new HashMap<>();
     private static final ClassLoader LOADER = ClassLoader.getSystemClassLoader();
     
@@ -58,7 +58,7 @@ public class Language {
                 }
             }
         }
-        return "<not defined>";
+        return NOT_FOUND;
     }
     
     private static Locale getLocale() {
