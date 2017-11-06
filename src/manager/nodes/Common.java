@@ -15,7 +15,7 @@ import java.util.prefs.Preferences;
 import manager.Manager;
 import manager.type.Locale;
 
-public class CommonRoot extends Entity {
+public class Common extends Entity {
     
     private final Preferences prefs = Preferences.userRoot().node(Manager.class.getSimpleName());
     
@@ -24,7 +24,7 @@ public class CommonRoot extends Entity {
     private final Enum     logLevel = new Enum(Level.valueOf(prefs.get("logLevel", Level.Info.name())));
     private final Enum     guiLang  = new Enum(Locale.valueOf(prefs.get("guiLang", Locale.English.name())));
 
-    public CommonRoot() {
+    public Common() {
         super(ImageUtils.getByPath("/images/settings.png"), Language.get("title"), Language.get("desc"));
         model.addUserProp("workDir",  workDir.setMask(new DirMask()), true, Access.Select);
         model.addUserProp("logLevel", logLevel, false, Access.Select);
