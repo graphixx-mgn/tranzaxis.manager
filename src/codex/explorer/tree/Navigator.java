@@ -12,6 +12,7 @@ import javax.swing.JTree;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.TreeModelEvent;
+import javax.swing.event.TreeModelListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
@@ -24,7 +25,7 @@ import net.java.balloontip.utils.ToolTipUtils;
 /**
  * Дерево навигации проводника.
  */
-public final class Navigator extends JTree implements IModelListener {
+public final class Navigator extends JTree implements IModelListener, TreeModelListener {
     
     private TreePath path;
     private final List<INavigateListener> listeners = new LinkedList<>();
@@ -76,13 +77,17 @@ public final class Navigator extends JTree implements IModelListener {
     }
 
     @Override
-    public void setModel(TreeModel newModel) {
-        super.setModel(newModel);
-        if (newModel instanceof NodeTreeModel) {
+    public void setModel(TreeModel model) {
+        if (getModel() != null) {
+            getModel().removeTreeModelListener(this);
+        }
+        super.setModel(model);
+        if (model instanceof NodeTreeModel) {
             for (int rowIdx = 0; rowIdx < getRowCount(); rowIdx++) {
                 setToolTip(getPathForRow(rowIdx));
             }
         }
+        model.addTreeModelListener(this);
     }
     
     private void setToolTip(TreePath path) {
@@ -106,24 +111,32 @@ public final class Navigator extends JTree implements IModelListener {
 
     @Override
     public void modelRestored(List<String> changes) {
-        treeModelListener.treeStructureChanged(new TreeModelEvent(
-                this, 
-                path.getParentPath(), 
-                new int[]{getRowForPath(path)}, 
-                new Object[]{path.getLastPathComponent()}
-        ));
-        getSelectionModel().setSelectionPath(path);
+        treeNodesChanged(new TreeModelEvent(this, path));
     }
 
     @Override
     public void modelSaved(List<String> changes) {
-        treeModelListener.treeStructureChanged(new TreeModelEvent(
-                this, 
-                path.getParentPath(), 
-                new int[]{getRowForPath(path)}, 
-                new Object[]{path.getLastPathComponent()}
-        ));
-        getSelectionModel().setSelectionPath(path);
+        treeNodesChanged(new TreeModelEvent(this, path));
+    }
+
+    @Override
+    public void treeNodesChanged(TreeModelEvent e) {
+        repaint();
+    }
+
+    @Override
+    public void treeNodesInserted(TreeModelEvent e) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void treeNodesRemoved(TreeModelEvent e) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void treeStructureChanged(TreeModelEvent e) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     
 }

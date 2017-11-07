@@ -21,7 +21,7 @@ public class AbstractModel {
     /**
      * Возвращает признак что модель корректна.
      */
-    public final boolean isValid() {
+    public boolean isValid() {
         boolean isValid = true;
         for (String propName : getProperties(Access.Any)) {
             isValid = isValid & getProperty(propName).isValid();
