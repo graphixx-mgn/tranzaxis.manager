@@ -41,5 +41,10 @@ public class Enum implements IComplexType<java.lang.Enum> {
     public IEditorFactory editorFactory() {
         return EDITOR_FACTORY;
     }
+    
+    @Override
+    public String toString() {
+        return value.name();
+    }
 
 }

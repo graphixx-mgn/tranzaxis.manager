@@ -38,4 +38,9 @@ public class Int implements IComplexType<Integer> {
         return EDITOR_FACTORY;
     }
     
+    @Override
+    public String toString() {
+        return IComplexType.coalesce(value, "").toString();
+    }
+    
 }

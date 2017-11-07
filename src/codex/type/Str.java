@@ -61,4 +61,9 @@ public class Str implements IComplexType<String> {
         return mask;
     }
     
+    @Override
+    public String toString() {
+        return IComplexType.coalesce(value, "");
+    }
+    
 }

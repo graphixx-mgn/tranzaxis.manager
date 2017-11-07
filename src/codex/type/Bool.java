@@ -38,4 +38,8 @@ public class Bool implements IComplexType<Boolean> {
         return EDITOR_FACTORY;
     }
     
+    @Override
+    public String toString() {
+        return value == true ? "1" : "0";
+    }
 }

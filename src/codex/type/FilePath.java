@@ -56,4 +56,9 @@ public class FilePath implements IComplexType<Path>  {
         return mask;
     }
     
+    @Override
+    public String toString() {
+        return IComplexType.coalesce(value, "").toString();
+    }
+    
 }

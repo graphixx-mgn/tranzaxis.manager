@@ -54,4 +54,9 @@ public class StringList implements IComplexType<List<String>> {
     public IEditorFactory editorFactory() {
         return EDITOR_FACTORY;
     }
+    
+    @Override
+    public String toString() {
+        return value.toString();
+    }
 }
