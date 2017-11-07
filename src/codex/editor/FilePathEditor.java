@@ -6,6 +6,8 @@ import codex.property.PropertyHolder;
 import codex.type.FilePath;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -45,6 +47,15 @@ public class FilePathEditor extends AbstractEditor {
         
         pathSelector = new PathSelector();
         addCommand(pathSelector);
+        
+        textField.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                if (event.getClickCount() == 2) {
+                    pathSelector.execute(propHolder);
+                }
+            }
+        });
 
         Box container = new Box(BoxLayout.X_AXIS);
         container.setBackground(textField.getBackground());
