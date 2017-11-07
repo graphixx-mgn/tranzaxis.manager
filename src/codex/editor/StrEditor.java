@@ -156,8 +156,8 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
             initialValue = value == null ? "" : value.toString();
             textField.setText(initialValue);
             textField.getDocument().addDocumentListener(this);
+            verify();
         });
-        verify();
     }
     
     @Override

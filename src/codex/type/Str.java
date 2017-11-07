@@ -58,7 +58,6 @@ public class Str implements IComplexType<String> {
      * Возвращает маску значения.
      */
     public IMask<String> getMask() {
-        System.out.println(mask);
         return mask;
     }
     
