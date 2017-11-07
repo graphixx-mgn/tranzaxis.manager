@@ -56,6 +56,11 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
     private Map<Level, ImageIcon> levelIcon = new HashMap<>();
     
     public LogUnit() {
+        JTextPane logPane = new JTextPane();
+        paneAppender = new TextPaneAppender(logPane);
+        Logger.getLogger().addAppender(paneAppender);
+        Logger.getLogger().debug("Initialize unit: Logger");
+        
         levelIcon.put(Level.ALL,   NONE);
         levelIcon.put(Level.DEBUG, DEBUG);
         levelIcon.put(Level.INFO,  INFO);
@@ -81,7 +86,6 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
         PushButton clear = new PushButton(ImageUtils.resize(ImageUtils.getByPath("/images/remove.png"), 26, 26), null);
         toolBar.add(clear);
         
-        JTextPane logPane = new JTextPane();
         logPane.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         logPane.setEditable(false);
         logPane.setBorder(new EmptyBorder(0, 6, 0, 6));
@@ -110,8 +114,6 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
                 .addComponent(toolBar, 40, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                 .addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 535, Short.MAX_VALUE))
         );
-        
-        paneAppender = new TextPaneAppender(logPane);
         paneAppender.addFilter(new Filter() {
 
             @Override
@@ -123,7 +125,6 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
                 return Filter.ACCEPT;
             }
         });
-        Logger.getLogger().addAppender(paneAppender);
         clear.addActionListener((ActionEvent event) -> {
            logPane.setText("");
            maxLevel = Level.ALL_INT;

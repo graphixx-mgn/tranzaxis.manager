@@ -4,6 +4,7 @@ import codex.explorer.browser.Browser;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.Navigator;
 import codex.explorer.tree.NodeTreeModel;
+import codex.log.Logger;
 import codex.unit.AbstractUnit;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -25,6 +26,7 @@ public final class ExplorerUnit extends AbstractUnit {
     private JScrollPane browsePanel;
     
     public ExplorerUnit(NodeTreeModel treeModel) {
+        Logger.getLogger().debug("Initialize unit: Explorer");
         this.treeModel = treeModel;
         this.navigator = new Navigator();
         this.browser   = new Browser();

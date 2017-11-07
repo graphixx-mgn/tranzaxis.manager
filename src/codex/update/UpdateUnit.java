@@ -1,5 +1,6 @@
 package codex.update;
 
+import codex.log.Logger;
 import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -11,6 +12,10 @@ import javax.swing.JComponent;
 public class UpdateUnit extends AbstractUnit {
     
     private final static ImageIcon icon = ImageUtils.resize(ImageUtils.getByPath("/images/upgrade.png"), 17, 17);
+    
+    public UpdateUnit() {
+        Logger.getLogger().debug("Initialize unit: Upgrade Manager");
+    }
 
     @Override
     public JComponent createViewport() {        

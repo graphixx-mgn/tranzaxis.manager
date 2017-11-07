@@ -1,5 +1,6 @@
 package codex.task;
 
+import codex.log.Logger;
 import codex.unit.AbstractUnit;
 import java.awt.event.ActionEvent;
 import java.util.Arrays;
@@ -39,6 +40,10 @@ public final class TaskManager extends AbstractUnit {
                 }
             }
     );
+    
+    public TaskManager() {
+        Logger.getLogger().debug("Initialize unit: Task Manager");
+    }
 
     @Override
     public JComponent createViewport() {
