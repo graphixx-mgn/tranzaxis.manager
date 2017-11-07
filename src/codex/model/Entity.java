@@ -11,7 +11,6 @@ import codex.log.Logger;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.presentation.SwitchInheritance;
-import codex.type.Str;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
@@ -19,6 +18,7 @@ import codex.property.IPropertyChangeListener;
 import codex.utils.Language;
 import java.awt.event.ActionEvent;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -52,10 +52,22 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      * @param hint Описание сущности.
      */
     public Entity(ImageIcon icon, String title, String hint) {
-        this.title = title;
+        String modelTitle;
+        String localTitle = Language.lookup(Arrays.asList(new String[]{this.getClass().getSimpleName()}), title);        
+        if (!localTitle.equals(Language.NOT_FOUND)) {
+            this.title = localTitle;
+        } else {
+            this.title = title;
+        }
+        if (this instanceof Catalog) {
+            modelTitle = this.getClass().getCanonicalName();
+        } else {
+            modelTitle = this.title;
+        }
+        
         this.icon  = icon;
         this.hint  = hint;
-        this.model = new EntityModel() {
+        this.model = new EntityModel(this.getClass(), modelTitle) {
             
             @Override
             public IEditor getEditor(String name) {
@@ -76,8 +88,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             }
             
         };
-        
-        this.model.addUserProp("KEY", new Str(title), true, Access.Edit);
         this.model.addChangeListener(this);
     }
     
