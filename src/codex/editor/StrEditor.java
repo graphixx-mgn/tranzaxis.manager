@@ -157,18 +157,13 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
             textField.setText(initialValue);
             textField.getDocument().addDocumentListener(this);
         });
+        verify();
     }
     
     @Override
     public boolean stopEditing() {
         commit.accept(textField.getText());
         return verify();
-    }
-    
-    @Override
-    public void updateUI() {
-        super.updateUI();
-        verify();
     }
 
     private boolean verify() {

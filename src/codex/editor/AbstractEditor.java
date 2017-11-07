@@ -138,7 +138,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
      * Перерисовка виджета и изменение свойств составных GUI элементов.
      */
     @Override
-    public void updateUI() {
+    public final void updateUI() {
         super.updateUI();
         setValue(propHolder.getPropValue().getValue());
         setEditable(isEditable());
