@@ -43,4 +43,9 @@ public class Int implements IComplexType<Integer> {
         return IComplexType.coalesce(value, "").toString();
     }
     
+    @Override
+    public void valueOf(String value) {
+        setValue(Integer.valueOf(value));
+    }
+    
 }

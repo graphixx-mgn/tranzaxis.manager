@@ -5,6 +5,7 @@ import codex.editor.FilePathEditor;
 import codex.mask.IPathMask;
 import codex.property.PropertyHolder;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * Тип-обертка {@link IComplexType} для интерфейса Path.
@@ -59,6 +60,11 @@ public class FilePath implements IComplexType<Path>  {
     @Override
     public String toString() {
         return IComplexType.coalesce(value, "").toString();
+    }
+    
+    @Override
+    public void valueOf(String value) {
+        setValue(Paths.get(value));
     }
     
 }

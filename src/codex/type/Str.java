@@ -58,12 +58,18 @@ public class Str implements IComplexType<String> {
      * Возвращает маску значения.
      */
     public IMask<String> getMask() {
+        System.out.println(mask);
         return mask;
     }
     
     @Override
     public String toString() {
         return IComplexType.coalesce(value, "");
+    }
+    
+    @Override
+    public void valueOf(String value) {
+        setValue(value);
     }
     
 }

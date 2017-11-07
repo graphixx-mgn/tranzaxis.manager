@@ -67,6 +67,8 @@ public interface IComplexType<T> extends Serializable {
         };
     }
     
+    public void valueOf(String value);
+    
     /**
      * Аналог функции COALESCE (расширенная версия NVL) в Oracle, перебирает 
      * значения аргументов, пока не встретит первый не равный NULL и возвращает его.

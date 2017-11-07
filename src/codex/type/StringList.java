@@ -5,7 +5,9 @@ import codex.editor.StringListEditor;
 import codex.property.PropertyHolder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Тип-обертка {@link IComplexType} для интерфейса {@literal List<String>}.
@@ -59,4 +61,16 @@ public class StringList implements IComplexType<List<String>> {
     public String toString() {
         return value.toString();
     }
+    
+    @Override
+    public void valueOf(String value) {
+        setValue(
+                new LinkedList<>(Arrays.asList(value.substring(1, value.length()-1).split(", ", -1)))
+                        .stream()
+                        .filter((string) -> {
+                            return !string.isEmpty();
+                        }).collect(Collectors.toList())
+        );
+    }
+    
 }

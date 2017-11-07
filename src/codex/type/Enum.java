@@ -46,5 +46,11 @@ public class Enum implements IComplexType<java.lang.Enum> {
     public String toString() {
         return value.name();
     }
+    
+    @Override
+    public void valueOf(String value) {
+        //Enum.valueOf(((java.lang.Enum) propValue.getValue()).getClass(), (String) value);
+        setValue(java.lang.Enum.valueOf(this.value.getClass(), value));
+    }
 
 }

@@ -42,4 +42,10 @@ public class Bool implements IComplexType<Boolean> {
     public String toString() {
         return value == true ? "1" : "0";
     }
+    
+    @Override
+    public void valueOf(String value) {
+        setValue("1".equals(value));
+    }
+    
 }
