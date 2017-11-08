@@ -16,10 +16,7 @@ import javax.swing.JPanel;
 public final class EditorPresentation extends JPanel {
  
     private final CommandPanel        commandPanel = new CommandPanel();
-    private final List<EntityCommand> commands = new LinkedList<>();/*Arrays.asList(
-                                                        new CommitEntity(), 
-                                                        new RollbackEntity()
-                                                 ));*/
+    private final List<EntityCommand> commands = new LinkedList<>();
     
     /**
      * Конструктор презентации. 
