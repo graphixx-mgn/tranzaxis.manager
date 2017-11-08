@@ -20,7 +20,7 @@ public class CommitEntity extends EntityCommand {
     public CommitEntity() {
         super(
                 "commit", null,
-                ImageUtils.resize(ImageUtils.getByPath("/images/save.png"), 28, 28), 
+                ImageUtils.resize(ImageUtils.getByPath("/images/save.png"), 30, 30), 
                 Language.get(EditorPresentation.class.getSimpleName(), "command@commit"),
                 (entity) -> {
                     return entity.model.hasChanges();
