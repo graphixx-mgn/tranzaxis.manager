@@ -190,7 +190,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             // Имеются ошибки в значениях
             MessageBox msgBox = new MessageBox(
                     MessageType.WARNING, null,
-                    MessageFormat.format(Language.get("hasInvalidProp"), String.join("\n", invalidProps)),
+                    MessageFormat.format(Language.get("error@invalidprop"), String.join("\n", invalidProps)),
                     new AbstractAction() {
                         @Override
                         public void actionPerformed(ActionEvent event) {
@@ -212,7 +212,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     public final boolean close() {
         if (validate() && model.hasChanges()) {
             // Предлагаем сохранить
-            MessageBox msgBox = new MessageBox(MessageType.CONFIRMATION, null, Language.get("hasUnsavedProp"), new AbstractAction() {
+            MessageBox msgBox = new MessageBox(MessageType.CONFIRMATION, null, Language.get("error@unsavedprop"), new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     if (e.getID() == Dialog.OK) {
