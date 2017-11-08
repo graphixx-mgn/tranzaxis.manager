@@ -26,7 +26,7 @@ public final class CommandPanel extends Box {
         setBorder(new CompoundBorder(
                 new EmptyBorder(2, 5, 2, 5),
                 new CompoundBorder(
-                        new MatteBorder(0, 0, 1, 0, Color.GRAY), 
+                        new MatteBorder(0, 0, 1, 0, Color.DARK_GRAY), 
                         new EmptyBorder(3, 0, 3, 0)
                 )
         ));
@@ -38,6 +38,7 @@ public final class CommandPanel extends Box {
     public void addCommands(EntityCommand ... commands) {
         for (EntityCommand command : commands) {
             add((JComponent) command.getButton());
+            add(Box.createHorizontalStrut(5));
         }
     }
     
@@ -46,8 +47,7 @@ public final class CommandPanel extends Box {
      */
     public void addSeparator() {
         JSeparator sep = new JSeparator(SwingConstants.VERTICAL);
-        sep.setMaximumSize(new Dimension(1, 30));
-        add(Box.createHorizontalStrut(5));
+        sep.setMaximumSize(new Dimension(1, 40));
         add(sep, BorderLayout.LINE_START);
         add(Box.createHorizontalStrut(5));
     }
