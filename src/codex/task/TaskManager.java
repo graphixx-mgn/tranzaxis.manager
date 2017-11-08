@@ -1,6 +1,7 @@
 package codex.task;
 
 import codex.log.Logger;
+import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
 import java.awt.event.ActionEvent;
 import java.util.Arrays;
@@ -43,6 +44,7 @@ public final class TaskManager extends AbstractUnit {
     
     public TaskManager() {
         Logger.getLogger().debug("Initialize unit: Task Manager");
+        ServiceRegistry.getInstance().registerService(new TaskExecutorService());
     }
 
     @Override
@@ -55,7 +57,7 @@ public final class TaskManager extends AbstractUnit {
      * Добавление задачи в очередь на исполнение и регистрация в окне просмотра
      * задач.
      */
-    public void enqueue(ITask task) {
+    void enqueue(ITask task) {
         taskPanel.addTask(task);
         queuedThreadPool.submit(() -> {
             final Thread thread = Thread.currentThread();
@@ -74,7 +76,7 @@ public final class TaskManager extends AbstractUnit {
      * Незамедлительное исполнение задачи и регистрация в модальном диалоге.
      * При закрытии диалога, все задачи перемещаются в очередь.
      */
-    public void execute(ITask task) {
+    void execute(ITask task) {
         taskDialog.addTask(task);
         demandThreadPool.submit(() -> {
             final Thread thread = Thread.currentThread();
@@ -90,6 +92,21 @@ public final class TaskManager extends AbstractUnit {
         SwingUtilities.invokeLater(() -> {
             taskDialog.setVisible(true);
         });
+    }
+    
+    public class TaskExecutorService implements ITaskExecutorService {
+        
+        TaskExecutorService() {}
+        
+        @Override
+        public void enqueueTask(ITask task) {
+            enqueue(task);
+        }
+
+        @Override
+        public void executeTask(ITask task) {
+            execute(task);
+        }
     }
 
 }
