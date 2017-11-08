@@ -1,30 +1,28 @@
 package manager;
 
 
+import codex.config.ConfigStoreService;
 import codex.explorer.ExplorerUnit;
 import codex.explorer.tree.NodeTreeModel;
 import codex.log.LogUnit;
 import codex.log.Logger;
+import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.task.GroupTask;
 import codex.task.ITask;
 import codex.task.TaskManager;
 import codex.unit.AbstractUnit;
 import codex.update.UpdateUnit;
-import codex.utils.Formatter;
 import codex.utils.ImageUtils;
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import java.awt.event.ActionEvent;
+import java.io.File;
 import javax.swing.JButton;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
-import manager.nodes.CommonRoot;
+import manager.nodes.Common;
 import manager.nodes.Database;
-import manager.nodes.System;
 import manager.nodes.DatabaseRoot;
-import manager.nodes.Development;
-import manager.nodes.ReleaseList;
-import manager.nodes.Repository;
 import manager.nodes.RepositoryRoot;
 import manager.nodes.SystemRoot;
 import org.apache.log4j.Level;
@@ -32,9 +30,10 @@ import manager.ui.Window;
 
 public class Manager {
     
-    private final static Logger logger = Logger.getLogger();
+    private final static String CONFIG_PATH = java.lang.System.getProperty("user.home") + "/.manager.tranzaxis/manager.db";
+    
     static {
-        logger.setLevel(Level.ALL);
+        Logger.getLogger().setLevel(Level.ALL);
         try {
             UIManager.setLookAndFeel(new WindowsLookAndFeel());
             UIManager.put("Tree.drawDashedFocusIndicator", false);
@@ -73,38 +72,40 @@ public class Manager {
     
     }
     
-    
     public Manager() {
         logUnit = new LogUnit();
+        ServiceRegistry.getInstance().registerService(new ConfigStoreService(new File(CONFIG_PATH)));
         taskManager = new TaskManager();
 
-        CommonRoot      root = new CommonRoot();
+        Common      root = new Common();
         RepositoryRoot repos = new RepositoryRoot();
         DatabaseRoot   bases = new DatabaseRoot();
         SystemRoot   systems = new SystemRoot();
         
-        Repository      repo = new Repository("TWRBS");
-        Database        base = new Database("Virtual");
-        System        system = new System("Virtual");
+        //Repository      repo = new Repository("TWRBS");
+        Database       base1 = new Database("Virtual");
+        Database       base2 = new Database("Test");
+        //System        system = new System("Virtual");
         
-        Development      dev = new Development();
-        ReleaseList releases = new ReleaseList();
+        //Development      dev = new Development();
+        //ReleaseList releases = new ReleaseList();
         
         root.insert(repos);
         root.insert(bases);
         root.insert(systems);
         
-        repos.insert(repo);
-        bases.insert(base);
-        systems.insert(system);
+        //repos.insert(repo);
+        bases.insert(base1);
+        bases.insert(base2);
+        //systems.insert(system);
         
-        repo.insert(dev);
-        repo.insert(releases);
+        //repo.insert(dev);
+        //repo.insert(releases);
         
         NodeTreeModel treeModel = new NodeTreeModel(root);
         
-        updateUnit   = new UpdateUnit();
         explorerUnit = new ExplorerUnit(treeModel);
+        updateUnit   = new UpdateUnit();
         
         ((JButton) updateUnit.getViewport()).addActionListener((ActionEvent e) -> {
             ITask task;
@@ -121,19 +122,6 @@ public class Manager {
         window.addUnit(updateUnit, window.upgradePanel);
         window.addUnit(explorerUnit, window.explorePanel);
         window.addUnit(taskManager, window.taskmgrPanel);
-        
-        Runtime runtime = Runtime.getRuntime();
-        StringBuilder sb = new StringBuilder();
-        long maxMemory = runtime.maxMemory();
-        long allocatedMemory = runtime.totalMemory();
-        long freeMemory = runtime.freeMemory();
-        
-        sb.append("free memory: ").append(Formatter.formatSize(freeMemory / 1024)).append("\n");
-        sb.append("allocated memory: ").append(Formatter.formatSize(allocatedMemory / 1024)).append("\n");
-        sb.append("max memory: ").append(Formatter.formatSize(maxMemory / 1024)).append("\n");
-        sb.append("total free memory: ").append(Formatter.formatSize((freeMemory + (maxMemory - allocatedMemory)) / 1024)).append("\n");
-        java.lang.System.err.println(sb);
-        
         window.setVisible(true);
     }
     
