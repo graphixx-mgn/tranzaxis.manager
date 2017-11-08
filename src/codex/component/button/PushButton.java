@@ -43,12 +43,11 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
         setBorder(IButton.EMPTY_BORDER);
         
         button = new JButton(title);
-        button.setFocusable(false);
         button.setFocusPainted(false);
         button.setOpaque(false);
         button.setContentAreaFilled(false);
         button.setRolloverEnabled(true);
-        button.setBorder(new EmptyBorder(2, 5, 2, 5));
+        button.setBorder(new EmptyBorder(5, 8, 5, 8));
         button.getModel().addChangeListener(this);
         setIcon(icon);
         add(button);
