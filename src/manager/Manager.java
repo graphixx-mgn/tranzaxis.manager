@@ -10,6 +10,7 @@ import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.task.GroupTask;
 import codex.task.ITask;
+import codex.task.ITaskExecutorService;
 import codex.task.TaskManager;
 import codex.unit.AbstractUnit;
 import codex.update.UpdateUnit;
@@ -111,9 +112,11 @@ public class Manager {
             ITask task;
             for (int cnt = 1; cnt < 4; cnt++) {
                 task = new TaskImpl(cnt);
-                taskManager.execute(task);
+                ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).executeTask(task);
             }
-            taskManager.enqueue(new GroupTask("Some compound task", new TaskImpl(150), new TaskImpl(200), new TaskImpl(100)));
+            ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).enqueueTask(
+                    new GroupTask("Some compound task", new TaskImpl(150), new TaskImpl(200), new TaskImpl(100))
+            );
         });
 
         
