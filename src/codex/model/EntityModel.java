@@ -1,11 +1,18 @@
 package codex.model;
 
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
+import codex.config.ConfigStoreService;
+import codex.config.IConfigStoreService;
 import codex.editor.IEditor;
 import codex.type.IComplexType;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import codex.property.IPropertyChangeListener;
+import codex.service.ServiceRegistry;
+import codex.type.Str;
+import codex.utils.Language;
 import java.util.Arrays;
 import java.util.function.Supplier;
 
@@ -14,13 +21,34 @@ import java.util.function.Supplier;
  */
 public class EntityModel extends AbstractModel implements IPropertyChangeListener {
     
+    private final static String PID_PROP = "Title";
+    private final static IConfigStoreService STORE = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    
+    private final Class        entityClass;
     private final List<String> dynamicProps = new LinkedList<>();
     private final UndoRegistry undoRegistry = new UndoRegistry();
     private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
     private final List<IModelListener>          modelListeners = new LinkedList<>();
+    
+    EntityModel(Class entityClass, String title) {
+        this.entityClass = entityClass;
+        addProperty(PID_PROP, new Str(title), true, Access.Edit);
+        
+        STORE.createClassCatalog(entityClass);
+        STORE.initClassInstance(entityClass, (String) getValue(PID_PROP));
+    }
 
     @Override
-    void addProperty(String name, IComplexType value, boolean require, Access restriction) {
+    public final boolean isValid() {
+        boolean isValid = true;
+        for (String propName : getProperties(Access.Any)) {
+            isValid = isValid & !(getValue(propName) == null && getProperty(propName).isRequired()) ;
+        }
+        return isValid;
+    };
+    
+    @Override
+    final void addProperty(String name, IComplexType value, boolean require, Access restriction) {
         super.addProperty(name, value, require, restriction);
         getProperty(name).addChangeListener(this);
     }
@@ -29,11 +57,14 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * Добавление хранимого свойства в сущность.
      * @param name Идентификатор свойства.
      * @param value Начальное значение свойства.
-     * @param require Признак того что свойство должно иметь не значение.
+     * @param require Признак того что свойство должно иметь значение.
      * @param restriction  Ограничение видимости свойства в редакторе и/или 
      * селекторе.
      */
     public final void addUserProp(String name, IComplexType value, boolean require, Access restriction) {
+        STORE.addClassProperty(entityClass, name);
+        STORE.readClassProperty(entityClass, (String) getValue(PID_PROP), name, value);
+            
         addProperty(name, value, require, restriction);
     }
     
@@ -138,12 +169,28 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void commit() {
         List<String> changes = getChanges();
-        System.out.println("codex.model.EntityModel.commit(), listeners="+modelListeners.size());
-        //TODO: Проверить успешность выполнения
-        undoRegistry.clear();
-        modelListeners.forEach((listener) -> {
-            listener.modelSaved(changes);
-        });
+        boolean success = STORE.updateClassInstance(
+                entityClass, 
+                (String) getValue(PID_PROP),
+                changes.stream()
+                        .map((propName) -> {
+                            return getProperty(propName);
+                        })
+                        .collect(Collectors.toList())
+        );
+        if (success) {
+            undoRegistry.clear();
+            modelListeners.forEach((listener) -> {
+                listener.modelSaved(changes);
+            });
+        } else {
+            MessageBox msgBox = new MessageBox(
+                    MessageType.ERROR, null,
+                    Language.get("error@notsaved"),
+                    null
+            );
+            msgBox.setVisible(true);
+        }
     }
     
     /**
