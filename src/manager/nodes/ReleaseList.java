@@ -7,7 +7,7 @@ import codex.utils.Language;
 public class ReleaseList extends Entity {
     
     public ReleaseList() {
-        super(ImageUtils.getByPath("/images/releases.png"), Language.get("title"), Language.get("desc"));
+        super(ImageUtils.getByPath("/images/releases.png"), "title", Language.get("desc"));
     }
     
 }

@@ -3,7 +3,6 @@ package manager.nodes;
 import codex.mask.RegexMask;
 import codex.model.Access;
 import codex.model.Entity;
-import codex.type.Int;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -28,10 +27,9 @@ public class Database extends Entity {
             return model.getValue("dbSchema");
         },
         "dbSchema", "dbPass");
-        model.addUserProp("instanceId", new Int(null), true, Access.Select);
+        //model.addUserProp("instanceId", new Int(null), true, Access.Select);
         model.addUserProp("layerURI", new Str(null), true, Access.Select);
         model.addUserProp("userNote", new Str(null), false, null);
-        
         addCommand(new CheckDatabase());
     }
     

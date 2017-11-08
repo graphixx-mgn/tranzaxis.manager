@@ -1,10 +1,10 @@
 package manager.nodes;
 
 
-import codex.model.Entity;
 import codex.log.Level;
 import codex.mask.DirMask;
 import codex.model.Access;
+import codex.model.Catalog;
 import codex.type.Bool;
 import codex.type.Enum;
 import codex.type.FilePath;
@@ -15,7 +15,7 @@ import java.util.prefs.Preferences;
 import manager.Manager;
 import manager.type.Locale;
 
-public class Common extends Entity {
+public class Common extends Catalog {
     
     private final Preferences prefs = Preferences.userRoot().node(Manager.class.getSimpleName());
     
@@ -25,11 +25,16 @@ public class Common extends Entity {
     private final Enum     guiLang  = new Enum(Locale.valueOf(prefs.get("guiLang", Locale.English.name())));
 
     public Common() {
-        super(ImageUtils.getByPath("/images/settings.png"), Language.get("title"), Language.get("desc"));
+        super(ImageUtils.getByPath("/images/settings.png"), Language.get("desc"));
         model.addUserProp("workDir",  workDir.setMask(new DirMask()), true, Access.Select);
         model.addUserProp("logLevel", logLevel, false, Access.Select);
         model.addUserProp("guiLang",  guiLang, false, Access.Select);
         model.addUserProp("useTray",  useTray, false, Access.Select);
+    }
+
+    @Override
+    public Class getChildClass() {
+        return null;
     }
     
 }
