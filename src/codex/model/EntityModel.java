@@ -21,7 +21,7 @@ import java.util.function.Supplier;
  */
 public class EntityModel extends AbstractModel implements IPropertyChangeListener {
     
-    private final static String PID_PROP = "Title";
+    public  final static String PID_PROP = "PID";
     private final static IConfigStoreService STORE = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     
     private final Class        entityClass;
@@ -30,12 +30,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
     private final List<IModelListener>          modelListeners = new LinkedList<>();
     
-    EntityModel(Class entityClass, String title) {
+    EntityModel(Class entityClass, String PID) {
         this.entityClass = entityClass;
-        addProperty(PID_PROP, new Str(title), true, Access.Edit);
+        addProperty(PID_PROP, new Str(PID), true, Access.Edit);
         
-        STORE.createClassCatalog(entityClass);
-        STORE.initClassInstance(entityClass, (String) getValue(PID_PROP));
+        if (PID != null) {
+            STORE.initClassInstance(entityClass, (String) getValue(PID_PROP));
+        }
     }
 
     @Override
@@ -82,7 +83,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         if (valueProvider != null) {
             addModelListener(new IModelListener() {
                 @Override
-                public void modelChanged(List<String> changes) {
+                public void modelChanged(EntityModel model, List<String> changes) {
                     List<String> intersection = new LinkedList<>(dynamicProps);
                     intersection.retainAll(Arrays.asList(baseProps));
                     if (!intersection.isEmpty()) {
@@ -90,7 +91,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     }
                 }
                 @Override
-                public void modelSaved(List<String> changes) {
+                public void modelSaved(EntityModel model, List<String> changes) {
                     List<String> intersection = new LinkedList<>(changes);
                     intersection.retainAll(Arrays.asList(baseProps));
                     if (!intersection.isEmpty()) {
@@ -132,7 +133,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             listener.propertyChange(name, oldValue, newValue);
         });
         modelListeners.forEach((listener) -> {
-            listener.modelChanged(getChanges());
+            listener.modelChanged(this, getChanges());
         });
     }
 
@@ -143,6 +144,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         } else {
             return super.getValue(name);
         }
+    }
+    
+    /**
+     * Получить наименование свойства.
+     */
+    public final String getPropertyTitle(String name) {
+        return getProperty(name).getTitle();
     }
     
     /**
@@ -181,7 +189,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         if (success) {
             undoRegistry.clear();
             modelListeners.forEach((listener) -> {
-                listener.modelSaved(changes);
+                listener.modelSaved(this, changes);
             });
         } else {
             MessageBox msgBox = new MessageBox(
@@ -202,7 +210,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             getProperty(name).setValue(undoRegistry.previous(name));
         });
         modelListeners.forEach((listener) -> {
-            listener.modelRestored(changes);
+            listener.modelRestored(this, changes);
         });
     }
 
@@ -212,12 +220,12 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         addModelListener(new IModelListener() {
             
             @Override
-            public void modelSaved(List<String> changes) { 
+            public void modelSaved(EntityModel model, List<String> changes) { 
                 editor.getLabel().setText(getProperty(name).getTitle());
             }
 
             @Override
-            public void modelChanged(List<String> changes) {
+            public void modelChanged(EntityModel model, List<String> changes) {
                 editor.getLabel().setText(getProperty(name).getTitle() + (changes.contains(name) ? " *" : ""));
             }
             
