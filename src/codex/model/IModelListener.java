@@ -11,16 +11,16 @@ public interface IModelListener {
      * Вызывается при изменении одного из свойств модели.
      * @param changes Список имен модифицированных свойств.
      */
-    default void modelChanged(List<String> changes) {};
+    default void modelChanged(EntityModel model, List<String> changes) {};
     
     /**
      * Вызывается при сохранении изменений модели.
      */
-    default void modelSaved(List<String> changes) {};
+    default void modelSaved(EntityModel model, List<String> changes) {};
     
     /**
      * Вызывается при откате изменений модели.
      */
-    default void modelRestored(List<String> changes) {};
+    default void modelRestored(EntityModel model, List<String> changes) {};
     
 }
