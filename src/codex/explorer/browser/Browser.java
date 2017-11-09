@@ -20,7 +20,7 @@ public final class Browser extends JPanel {
      */
     public Browser() {
         super(new BorderLayout());
-        setBorder(new EmptyBorder(5, 5, 5, 5));
+        setBorder(new EmptyBorder(0, 5, 5, 5));
         
         editorPanel = new JPanel(new BorderLayout());
         add(editorPanel, BorderLayout.NORTH);

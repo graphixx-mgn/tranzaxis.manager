@@ -26,7 +26,7 @@ public final class CommandPanel extends Box {
         setBorder(new CompoundBorder(
                 new EmptyBorder(2, 5, 2, 5),
                 new CompoundBorder(
-                        new MatteBorder(0, 0, 1, 0, Color.DARK_GRAY), 
+                        new MatteBorder(0, 0, 1, 0, Color.GRAY), 
                         new EmptyBorder(3, 0, 3, 0)
                 )
         ));
