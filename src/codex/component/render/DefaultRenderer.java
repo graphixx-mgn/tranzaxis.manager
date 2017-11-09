@@ -12,10 +12,12 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JTable;
 import javax.swing.ListCellRenderer;
+import javax.swing.SwingConstants;
 import static javax.swing.SwingConstants.CENTER;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
+import javax.swing.event.TableModelEvent;
 import javax.swing.table.TableCellRenderer;
 
 /**
@@ -65,11 +67,31 @@ public final class DefaultRenderer extends JLabel implements ListCellRenderer, T
      */
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-        setText(value.toString());
-        setFont(IEditor.FONT_VALUE);
-        setBackground(isSelected ? IButton.PRESS_COLOR : table.getBackground());
+        setText(value != null ? 
+                value.toString() : 
+                IEditor.NOT_DEFINED
+        );
+        setForeground(value != null ? 
+                IEditor.COLOR_NORMAL : 
+                IEditor.COLOR_DISABLED
+        );
+        setFont(row == TableModelEvent.HEADER_ROW ? 
+                IEditor.FONT_BOLD : 
+                IEditor.FONT_VALUE
+        );
+        setHorizontalAlignment(row == TableModelEvent.HEADER_ROW ? 
+                SwingConstants.CENTER : 
+                SwingConstants.LEADING
+        );
+        setBackground(row == TableModelEvent.HEADER_ROW ?
+                Color.decode("#CCCCCC") : isSelected ? 
+                        IButton.PRESS_COLOR : 
+                        table.getBackground()
+        );
         setBorder(new CompoundBorder(
-                new MatteBorder(0, column == 0 ? 0 : 1, 1, 0, Color.LIGHT_GRAY), 
+                new MatteBorder(
+                        0, column == 0 ? 0 : 1, 1, 0, 
+                        row == TableModelEvent.HEADER_ROW ? Color.GRAY : Color.LIGHT_GRAY), 
                 new EmptyBorder(1, 6, 0, 0)
         ));
         return this;
