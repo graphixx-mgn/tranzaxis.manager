@@ -21,7 +21,7 @@ import java.util.function.Supplier;
  */
 public class EntityModel extends AbstractModel implements IPropertyChangeListener {
     
-    public  final static String PID_PROP = "PID";
+    public  final static String PID = "PID";
     private final static IConfigStoreService STORE = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     
     private final Class        entityClass;
@@ -32,10 +32,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     
     EntityModel(Class entityClass, String PID) {
         this.entityClass = entityClass;
-        addProperty(PID_PROP, new Str(PID), true, Access.Edit);
-        
+        addProperty(EntityModel.PID, new Str(PID), true, Access.Edit);
+        init(PID);
+    }
+    
+    public final void init(String PID) {
         if (PID != null) {
-            STORE.initClassInstance(entityClass, (String) getValue(PID_PROP));
+            STORE.initClassInstance(entityClass, PID);
         }
     }
 
@@ -64,7 +67,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void addUserProp(String name, IComplexType value, boolean require, Access restriction) {
         STORE.addClassProperty(entityClass, name);
-        STORE.readClassProperty(entityClass, (String) getValue(PID_PROP), name, value);
+        STORE.readClassProperty(entityClass, (String) getValue(PID), name, value);
             
         addProperty(name, value, require, restriction);
     }
@@ -177,9 +180,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void commit() {
         List<String> changes = getChanges();
-        boolean success = STORE.updateClassInstance(
-                entityClass, 
-                (String) getValue(PID_PROP),
+        boolean success = STORE.updateClassInstance(entityClass, 
+                (String) getValue(PID),
                 changes.stream()
                         .map((propName) -> {
                             return getProperty(propName);
