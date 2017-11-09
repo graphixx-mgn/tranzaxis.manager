@@ -46,7 +46,7 @@ public final class ServiceRegistry {
      */
     public void registerService(IService service) {
         registry.put(service.getClass(), service);
-        Logger.getLogger().debug("Service Registry: register service ''{0}''", service.getClass().getCanonicalName());
+        Logger.getLogger().debug("Service Registry: register service ''{0}''", service.getTitle());
     }
     
     /**

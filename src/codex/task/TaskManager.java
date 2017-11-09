@@ -107,6 +107,11 @@ public final class TaskManager extends AbstractUnit {
         public void executeTask(ITask task) {
             execute(task);
         }
+
+        @Override
+        public String getTitle() {
+            return "Task Executor";
+        }
     }
 
 }

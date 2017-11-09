@@ -162,5 +162,10 @@ public final class ConfigStoreService implements IConfigStoreService {
             return false;
         }
     }
+
+    @Override
+    public String getTitle() {
+        return "Configuration Manager";
+    }
     
 }
