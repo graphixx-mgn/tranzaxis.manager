@@ -47,6 +47,9 @@ public class Language {
      * свойств {@link PropertyHolder}.
      */
     public static String lookup(List<String> classNames, String key) {
+        if (key == null) {
+            return NOT_FOUND;
+        }
         for (String className : classNames) {
             if (bundles.containsKey(className) && bundles.get(className).containsKey(key)) {
                 return bundles.get(className).getString(key);
