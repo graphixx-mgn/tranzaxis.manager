@@ -2,6 +2,7 @@ package codex.explorer.tree;
 
 import codex.log.Logger;
 import codex.model.Entity;
+import codex.model.EntityModel;
 import codex.model.IModelListener;
 import codex.utils.ImageUtils;
 import java.awt.Color;
@@ -110,12 +111,12 @@ public final class Navigator extends JTree implements IModelListener, TreeModelL
     }
 
     @Override
-    public void modelRestored(List<String> changes) {
+    public void modelRestored(EntityModel model, List<String> changes) {
         treeNodesChanged(new TreeModelEvent(this, path));
     }
 
     @Override
-    public void modelSaved(List<String> changes) {
+    public void modelSaved(EntityModel model, List<String> changes) {
         treeNodesChanged(new TreeModelEvent(this, path));
     }
 

@@ -4,6 +4,7 @@ import codex.component.button.IButton;
 import codex.component.button.PushButton;
 import codex.log.Logger;
 import codex.model.Entity;
+import codex.model.EntityModel;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
@@ -140,7 +141,7 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     }
 
     @Override
-    public void modelChanged(List<String> changes) {
+    public void modelChanged(EntityModel model, List<String> changes) {
         activate();
     }
 

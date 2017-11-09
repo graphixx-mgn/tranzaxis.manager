@@ -2,6 +2,7 @@ package codex.presentation;
 
 import codex.command.EntityCommand;
 import codex.model.Entity;
+import codex.model.EntityModel;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.event.InputEvent;
@@ -36,7 +37,7 @@ public class RollbackEntity extends EntityCommand {
     }
     
     @Override
-    public void modelSaved(List<String> changes) {
+    public void modelSaved(EntityModel model, List<String> changes) {
         activator.accept(getContext());
     }
 
