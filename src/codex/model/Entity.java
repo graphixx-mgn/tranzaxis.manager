@@ -16,13 +16,17 @@ import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
 import codex.property.IPropertyChangeListener;
 import codex.utils.Language;
+import java.awt.Color;
 import java.awt.event.ActionEvent;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import javax.swing.AbstractAction;
+import javax.swing.border.MatteBorder;
 
 /**
  * Абстракная сущность, базовый родитель прикладных сущностей приложения.
@@ -52,7 +56,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      * @param hint Описание сущности.
      */
     public Entity(ImageIcon icon, String title, String hint) {
-        String modelTitle;
+        String PID;
         String localTitle = Language.lookup(Arrays.asList(new String[]{this.getClass().getSimpleName()}), title);        
         if (!localTitle.equals(Language.NOT_FOUND)) {
             this.title = localTitle;
@@ -60,14 +64,13 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             this.title = title;
         }
         if (this instanceof Catalog) {
-            modelTitle = this.getClass().getCanonicalName();
+            PID = this.getClass().getCanonicalName();
         } else {
-            modelTitle = this.title;
+            PID = this.title;
         }
-        
         this.icon  = icon;
         this.hint  = hint;
-        this.model = new EntityModel(this.getClass(), modelTitle) {
+        this.model = new EntityModel(this.getClass(), PID) {
             
             @Override
             public IEditor getEditor(String name) {
@@ -91,10 +94,16 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         this.model.addChangeListener(this);
     }
     
+    /**
+     * Добавление новой команды сущности.
+     */
     public final void addCommand(EntityCommand command) {
         commands.add(command);
     }
     
+    /**
+     * Получение списка имеющихся команд сущности.
+     */
     public final List<EntityCommand> getCommands() {
         return new LinkedList<>(commands);
     }
@@ -145,7 +154,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     public final SelectorPresentation getSelectorPresentation() {
         if (getChildClass() == null) return null;
         if (selectorPresentation == null) {
-            selectorPresentation = new SelectorPresentation();
+            selectorPresentation = new SelectorPresentation(this);
         }
         return selectorPresentation;
     };
@@ -229,6 +238,34 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         editors.values().stream().forEach((editor) -> {
             editor.stopEditing();
         });
+    }
+    
+    public static Entity newInstance(Class entityClass) {
+        try {
+            return (Entity) entityClass.getConstructor(String.class).newInstance((Object) null);
+        } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
+            Logger.getLogger().warn("Unable instantiate entity ''{0}''", entityClass.getCanonicalName());
+            return null;
+        } catch (NoSuchMethodException e) {
+            Logger.getLogger().warn("Entity ''{0}'' does not have constructor (String)", entityClass.getCanonicalName());
+            
+            Constructor[] ctors   = entityClass.getConstructors();
+            Constructor   minimal = ctors[0];
+            int paramCount = ctors[0].getParameterCount();
+            
+            for (Constructor ctor : ctors) {
+                if (ctor.getParameterCount() < paramCount) {
+                    minimal = ctor;
+                    paramCount = ctor.getParameterCount();
+                }
+            }
+            try {
+                return (Entity) minimal.newInstance(new Object[paramCount]);
+            } catch (InstantiationException | InvocationTargetException | IllegalAccessException e1) {
+                Logger.getLogger().warn("Unable instantiate entity ''{0}''", entityClass.getCanonicalName());
+                return null;
+            }
+        }
     }
     
 }
