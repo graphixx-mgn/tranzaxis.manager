@@ -32,7 +32,6 @@ public final class ConfigStoreService implements IConfigStoreService {
      * @param configFile Путь к файлу базы данных.
      */
     public ConfigStoreService(File configFile) {
-        Logger.getLogger().debug("Initialize service: Configuration Store");
         this.configFile = configFile;
         
         if (!this.configFile.exists()) {
@@ -43,10 +42,6 @@ public final class ConfigStoreService implements IConfigStoreService {
             connection = DriverManager.getConnection("jdbc:sqlite:"+configFile.getPath());
             if (connection != null) {
                 DatabaseMetaData meta = connection.getMetaData();
-                Logger.getLogger().debug(
-                        " * Database Driver registered: {0}", 
-                        meta.getDriverName()
-                );
                 try (ResultSet rs = meta.getColumns(null, null, "%", "%")) {
                     while (rs.next()) {
                         if (!storeStructure.containsKey(rs.getString(3))) {
@@ -137,8 +132,7 @@ public final class ConfigStoreService implements IConfigStoreService {
         try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
             select.setString(1, PID);
             try (ResultSet rs = select.executeQuery()) {
-                rs.next();
-                if (rs.getString(1) != null) {
+                if (rs.next() && rs.getString(1) != null) {
                     propValue.valueOf(rs.getString(1));
                 }
             }
