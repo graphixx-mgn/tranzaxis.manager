@@ -1,5 +1,9 @@
 package codex.model;
 
+import codex.config.ConfigStoreService;
+import codex.config.IConfigStoreService;
+import codex.service.ServiceRegistry;
+import java.util.List;
 import javax.swing.ImageIcon;
 
 /**
@@ -8,6 +12,8 @@ import javax.swing.ImageIcon;
  */
 public abstract class Catalog extends Entity {
     
+    private final static IConfigStoreService STORE = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    
     /**
      * Конструктор каталога
      * @param icon
@@ -15,6 +21,17 @@ public abstract class Catalog extends Entity {
      */
     public Catalog(ImageIcon icon, String hint) {
         super(icon, "title", hint);
+        loadChildEntities();
+    }
+    
+    private void loadChildEntities() {
+        if (getChildClass() != null) {
+            final List<String> PIDs = STORE.readCatalogEntries(getChildClass());
+            PIDs.forEach((PID) -> {
+                final Entity newEntity = Entity.newInstance(getChildClass(), PID);
+                insert(newEntity);
+            });
+        }
     }
     
     @Override
