@@ -2,6 +2,7 @@ package manager.commands;
 
 import codex.command.EntityCommand;
 import codex.model.Entity;
+import codex.model.EntityModel;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import codex.utils.NetTools;
@@ -23,14 +24,16 @@ public class CheckDatabase extends EntityCommand {
         getButton().setFocusable(false);
         
         activator = (entities) -> {
-            String dbUrl = (String) entities[0].model.getValue("dbUrl");
-            getButton().setEnabled(
-                    entities != null && entities.length > 0 && (
-                            available == null || Arrays.asList(entities).stream().allMatch(available)
-                    ) && dbUrl != null
-            );
-            if (getButton().isEnabled()) {
-                getButton().setIcon(checkPort(dbUrl) ? ACTIVE : PASSIVE);
+            if (entities != null && entities.length > 0) {
+                String dbUrl = (String) entities[0].model.getValue("dbUrl");
+                getButton().setEnabled(
+                        (available == null || Arrays.asList(entities).stream().allMatch(available)) && dbUrl != null
+                );
+                if (getButton().isEnabled()) {
+                    getButton().setIcon(checkPort(dbUrl) ? ACTIVE : PASSIVE);
+                }
+            } else {
+                getButton().setEnabled(false);
             }
         };
     }
@@ -46,8 +49,8 @@ public class CheckDatabase extends EntityCommand {
     }
     
     @Override
-    public void modelSaved(List<String> changes) {
-        super.modelSaved(changes);
+    public void modelSaved(EntityModel model, List<String> changes) {
+        super.modelSaved(model, changes);
         if (changes.contains("dbUrl")) {
             activate();
         }
