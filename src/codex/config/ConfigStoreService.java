@@ -168,16 +168,19 @@ public final class ConfigStoreService implements IConfigStoreService {
     public List<String> readCatalogEntries(Class clazz) {
         final List<String> PIDs = new LinkedList<>();
         final String className  = clazz.getSimpleName().toUpperCase();
-        final String selectSQL  = MessageFormat.format("SELECT PID FROM {0} ORDER BY ROWID", className);
+        
+        if (storeStructure.containsKey(className)) {
+            final String selectSQL  = MessageFormat.format("SELECT PID FROM {0} ORDER BY ROWID", className);
 
-        try (Statement select = connection.createStatement()) {
-            try (ResultSet rs = select.executeQuery(selectSQL)) {
-                while (rs.next()) {
-                    PIDs.add(rs.getString(1));
+            try (Statement select = connection.createStatement()) {
+                try (ResultSet rs = select.executeQuery(selectSQL)) {
+                    while (rs.next()) {
+                        PIDs.add(rs.getString(1));
+                    }
                 }
+            } catch (SQLException e) {
+                Logger.getLogger().error("Unable to init instance", e);
             }
-        } catch (SQLException e) {
-            Logger.getLogger().error("Unable to init instance", e);
         }
         return PIDs;
     };
