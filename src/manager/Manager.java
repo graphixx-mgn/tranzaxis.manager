@@ -22,10 +22,10 @@ import javax.swing.JButton;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import manager.nodes.Common;
-import manager.nodes.Database;
 import manager.nodes.DatabaseRoot;
 import manager.nodes.RepositoryRoot;
 import manager.nodes.SystemRoot;
+import manager.ui.Splash;
 import org.apache.log4j.Level;
 import manager.ui.Window;
 
@@ -74,38 +74,42 @@ public class Manager {
     }
     
     public Manager() {
+        Splash splash = new Splash();
+        splash.setVisible(true);
+        
         logUnit = new LogUnit();
+        
+        splash.setProgress(20, "Read configuration");
         ServiceRegistry.getInstance().registerService(new ConfigStoreService(new File(CONFIG_PATH)));
+        
+        splash.setProgress(30, "Start task management system");
         taskManager = new TaskManager();
 
+        splash.setProgress(40, "Build explorer tree");
         Common      root = new Common();
         RepositoryRoot repos = new RepositoryRoot();
         DatabaseRoot   bases = new DatabaseRoot();
         SystemRoot   systems = new SystemRoot();
         
-        //Repository      repo = new Repository("TWRBS");
-        Database       base1 = new Database("Virtual");
-        Database       base2 = new Database("Test");
-        //System        system = new System("Virtual");
-        
-        //Development      dev = new Development();
-        //ReleaseList releases = new ReleaseList();
+//        Repository      repo = new Repository("TWRBS");
+//        System        system = new System("Virtual");
+//        Development      dev = new Development();
+//        ReleaseList releases = new ReleaseList();
         
         root.insert(repos);
         root.insert(bases);
         root.insert(systems);
         
-        //repos.insert(repo);
-        bases.insert(base1);
-        bases.insert(base2);
-        //systems.insert(system);
+//        repos.insert(repo);
+//        systems.insert(system);
         
-        //repo.insert(dev);
-        //repo.insert(releases);
+//        repo.insert(dev);
+//        repo.insert(releases);
         
         NodeTreeModel treeModel = new NodeTreeModel(root);
-        
         explorerUnit = new ExplorerUnit(treeModel);
+        
+        splash.setProgress(70, "Start upgrade management system");
         updateUnit   = new UpdateUnit();
         
         ((JButton) updateUnit.getViewport()).addActionListener((ActionEvent e) -> {
@@ -119,13 +123,16 @@ public class Manager {
             );
         });
 
-        
+        splash.setProgress(80, "Initialization user interface");
         window = new Window("TranzAxis Manager", ImageUtils.getByPath("/images/project.png"));
         window.addUnit(logUnit, window.loggingPanel);
         window.addUnit(updateUnit, window.upgradePanel);
         window.addUnit(explorerUnit, window.explorePanel);
         window.addUnit(taskManager, window.taskmgrPanel);
+        splash.setProgress(100);
+        splash.setVisible(false);
         window.setVisible(true);
+        
     }
     
 }
