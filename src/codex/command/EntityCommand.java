@@ -42,7 +42,8 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     protected Predicate<Entity>  available;
     protected Consumer<Entity[]> activator = (entities) -> {
         button.setEnabled(
-                entities != null && entities.length > 0 && (
+                entities != null && entities.length > 0 && 
+                !(entities.length > 1 && !multiContextAllowed()) && (
                         available == null || Arrays.asList(entities).stream().allMatch(available)
                 )
         );
@@ -111,7 +112,6 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
 
     @Override
     public final void setContext(Entity... context) {
-        getButton().setEnabled(!(context.length > 1 && !multiContextAllowed()));
         if (this.context != null) {
             Arrays.asList(this.context).forEach((entity) -> {
                 entity.model.removeModelListener(this);
