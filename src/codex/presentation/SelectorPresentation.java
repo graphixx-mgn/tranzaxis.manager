@@ -59,14 +59,14 @@ public final class SelectorPresentation extends JPanel implements IModelListener
         
         add(commandPanel, BorderLayout.NORTH);
         
-        Entity prototype = Entity.newInstance(entity.getChildClass());
+        Entity prototype = Entity.newInstance(entity.getChildClass(), null);
         
         Vector dataVector = new Vector();
         entity.childrenList().forEach((node) -> {
             Vector rowVector = new Vector<>();
             Entity child = (Entity) node;
             child.model.getProperties(Access.Select).forEach((String propName) -> {
-                rowVector.add(propName.equals(EntityModel.PID_PROP) ? child : child.model.getValue(propName));
+                rowVector.add(propName.equals(EntityModel.PID) ? child : child.model.getValue(propName));
             });
             dataVector.addElement(rowVector);
             child.model.addModelListener(this);
@@ -83,6 +83,11 @@ public final class SelectorPresentation extends JPanel implements IModelListener
             @Override
             public Class<?> getColumnClass(int columnIndex) {
                 return String.class;
+            }
+            
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
             }
         };
         final JTable table = new JTable(tableModel);
