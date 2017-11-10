@@ -68,7 +68,7 @@ public class Str implements IComplexType<String> {
     
     @Override
     public void valueOf(String value) {
-        setValue(value);
+        setValue((value == null || value.isEmpty()) ? null : value);
     }
     
 }
