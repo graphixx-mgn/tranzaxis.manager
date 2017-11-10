@@ -3,6 +3,7 @@ package manager.commands;
 import codex.command.EntityCommand;
 import codex.model.Entity;
 import codex.model.EntityModel;
+import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import codex.utils.NetTools;
@@ -24,16 +25,14 @@ public class CheckDatabase extends EntityCommand {
         getButton().setFocusable(false);
         
         activator = (entities) -> {
-            if (entities != null && entities.length > 0) {
-                String dbUrl = (String) entities[0].model.getValue("dbUrl");
-                getButton().setEnabled(
-                        (available == null || Arrays.asList(entities).stream().allMatch(available)) && dbUrl != null
-                );
-                if (getButton().isEnabled()) {
-                    getButton().setIcon(checkPort(dbUrl) ? ACTIVE : PASSIVE);
-                }
-            } else {
-                getButton().setEnabled(false);
+            getButton().setEnabled(
+                entities != null && entities.length > 0 && 
+                !(entities.length > 1 && !multiContextAllowed()) && (
+                        available == null || Arrays.asList(entities).stream().allMatch(available)
+                ) && !IComplexType.coalesce((String) entities[0].model.getValue("dbUrl"), "").isEmpty()
+            );
+            if (getButton().isEnabled()) {
+                getButton().setIcon(checkPort((String) entities[0].model.getValue("dbUrl")) ? ACTIVE : PASSIVE);
             }
         };
     }
