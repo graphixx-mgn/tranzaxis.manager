@@ -45,6 +45,7 @@ public final class SelectorPresentation extends JPanel implements IModelListener
                     new LineBorder(Color.GRAY, 1)
             ));
         }
+        Entity prototype = Entity.newInstance(entity.getChildClass(), null);
         
         commands.add(new EditEntity());
         commands.add(new CreateEntity(entity.getChildClass()));
@@ -53,13 +54,14 @@ public final class SelectorPresentation extends JPanel implements IModelListener
         commandPanel.addCommands(commands.toArray(new EntityCommand[]{}));
         commandPanel.addSeparator();
         
+        commands.addAll(prototype.getCommands());
+        commandPanel.addCommands(prototype.getCommands().toArray(new EntityCommand[]{}));
+        
         commands.forEach((command) -> {
             command.setContext();
         });
         
         add(commandPanel, BorderLayout.NORTH);
-        
-        Entity prototype = Entity.newInstance(entity.getChildClass(), null);
         
         Vector dataVector = new Vector();
         entity.childrenList().forEach((node) -> {
