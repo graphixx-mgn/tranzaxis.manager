@@ -5,6 +5,7 @@ import codex.property.PropertyHolder;
 import codex.service.IService;
 import codex.type.IComplexType;
 import java.rmi.RemoteException;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -55,6 +56,14 @@ public interface IConfigStoreService extends IService {
      */
     default boolean updateClassInstance(Class clazz, String PID, List<PropertyHolder> properties) {
         return false;
+    };
+    
+    /**
+     * Получить список первичных ключей записей каталога.
+     * @param clazz Класс сущности.
+     */
+    default List<String> readCatalogEntries(Class clazz) {
+        return new LinkedList<>();
     };
     
 }
