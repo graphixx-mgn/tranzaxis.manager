@@ -32,14 +32,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     
     EntityModel(Class entityClass, String PID) {
         this.entityClass = entityClass;
-        addProperty(EntityModel.PID, new Str(PID), true, Access.Edit);
         init(PID);
-    }
-    
-    public final void init(String PID) {
-        if (PID != null) {
-            STORE.initClassInstance(entityClass, PID);
-        }
+        addProperty(EntityModel.PID, new Str(PID), true, Access.Edit);
     }
 
     @Override
@@ -173,6 +167,12 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     return !dynamicProps.contains(name) && undoRegistry.exists(name);
                 })
                 .collect(Collectors.toList());
+    }
+    
+    public final void init(String PID) {
+        if (PID != null) {
+            STORE.initClassInstance(entityClass, PID);
+        }
     }
     
     /**

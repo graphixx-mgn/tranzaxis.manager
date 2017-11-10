@@ -8,6 +8,7 @@ import codex.editor.IEditor;
 import codex.explorer.tree.AbstractNode;
 import codex.explorer.tree.INode;
 import codex.log.Logger;
+import static codex.model.EntityModel.PID;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.presentation.SwitchInheritance;
@@ -16,9 +17,7 @@ import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
 import codex.property.IPropertyChangeListener;
 import codex.utils.Language;
-import java.awt.Color;
 import java.awt.event.ActionEvent;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -26,7 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import javax.swing.AbstractAction;
-import javax.swing.border.MatteBorder;
 
 /**
  * Абстракная сущность, базовый родитель прикладных сущностей приложения.
@@ -35,8 +33,8 @@ import javax.swing.border.MatteBorder;
 public abstract class Entity extends AbstractNode implements IPropertyChangeListener {
    
     private final ImageIcon icon;
-    private final String    title;
     private final String    hint;
+    private final String    title;
     
     private EditorPresentation   editorPresentation;
     private SelectorPresentation selectorPresentation;
@@ -129,6 +127,10 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 });
             }
         }
+    }
+    
+    public String getPID() {
+        return (String) model.getValue(PID);
     }
     
     /**
@@ -240,31 +242,17 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         });
     }
     
-    public static Entity newInstance(Class entityClass) {
+    public static Entity newInstance(Class entityClass, String title) {
         try {
-            return (Entity) entityClass.getConstructor(String.class).newInstance((Object) null);
+            return (Entity) entityClass.getConstructor(String.class).newInstance((Object) title);
         } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
-            Logger.getLogger().warn("Unable instantiate entity ''{0}''", entityClass.getCanonicalName());
+            Logger.getLogger().error(
+                    MessageFormat.format("Unable instantiate entity ''{0}''", entityClass.getCanonicalName()), e
+            );
             return null;
         } catch (NoSuchMethodException e) {
-            Logger.getLogger().warn("Entity ''{0}'' does not have constructor (String)", entityClass.getCanonicalName());
-            
-            Constructor[] ctors   = entityClass.getConstructors();
-            Constructor   minimal = ctors[0];
-            int paramCount = ctors[0].getParameterCount();
-            
-            for (Constructor ctor : ctors) {
-                if (ctor.getParameterCount() < paramCount) {
-                    minimal = ctor;
-                    paramCount = ctor.getParameterCount();
-                }
-            }
-            try {
-                return (Entity) minimal.newInstance(new Object[paramCount]);
-            } catch (InstantiationException | InvocationTargetException | IllegalAccessException e1) {
-                Logger.getLogger().warn("Unable instantiate entity ''{0}''", entityClass.getCanonicalName());
-                return null;
-            }
+            Logger.getLogger().error("Entity ''{0}'' does not have universal constructor (String)", entityClass.getCanonicalName());
+            return null;
         }
     }
     
