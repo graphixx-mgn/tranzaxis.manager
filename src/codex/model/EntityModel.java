@@ -190,7 +190,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         );
         if (success) {
             undoRegistry.clear();
-            modelListeners.forEach((listener) -> {
+            new LinkedList<>(modelListeners).forEach((listener) -> {
                 listener.modelSaved(this, changes);
             });
         } else {
@@ -211,7 +211,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         changes.forEach((name) -> {
             getProperty(name).setValue(undoRegistry.previous(name));
         });
-        modelListeners.forEach((listener) -> {
+        new LinkedList<>(modelListeners).forEach((listener) -> {
             listener.modelRestored(this, changes);
         });
     }
