@@ -10,6 +10,9 @@ import codex.model.IModelListener;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
@@ -21,6 +24,8 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 
 /**
@@ -28,11 +33,12 @@ import javax.swing.table.DefaultTableModel;
  * редактирования дочерних сущностей, так и обеспечивает работу команд по созданию
  * новых сущностей.
  */
-public final class SelectorPresentation extends JPanel implements IModelListener {
+public final class SelectorPresentation extends JPanel implements IModelListener, ListSelectionListener {
     
     private final CommandPanel        commandPanel = new CommandPanel();
     private final List<EntityCommand> commands = new LinkedList<>();
     private final DefaultTableModel   tableModel;
+    private final JTable              table;
     
     /**
      * Конструктор презентации. 
@@ -92,7 +98,7 @@ public final class SelectorPresentation extends JPanel implements IModelListener
                 return false;
             }
         };
-        final JTable table = new JTable(tableModel);
+        table = new JTable(tableModel);
         table.setRowHeight((int) (IEditor.FONT_VALUE.getSize() * 2));
         table.setShowVerticalLines(false);
         table.setIntercellSpacing(new Dimension(0,0));
@@ -108,6 +114,27 @@ public final class SelectorPresentation extends JPanel implements IModelListener
                 new MatteBorder(1, 1, 1, 1, Color.GRAY)
         ));
         add(scrollPane, BorderLayout.CENTER);
+        
+        table.getSelectionModel().addListSelectionListener(this);
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+//                int row = table.rowAtPoint(event.getPoint());
+                
+//                commands.forEach((command) -> {
+//                    command.setContext(tableModel.getValueAt(row, 0));
+//                });
+//                AbstractModel model = ((SelectorTableModel) table.getModel()).getModelAt(row);
+//                if (me.getClickCount() == 2) {
+//                    for (Command command : baseCommands) {
+//                        if (command instanceof EditCommand) {
+//                            command.execute();
+//                        }
+//                    }
+//                }
+            }
+
+        });
     }
     
     @Override
@@ -127,6 +154,26 @@ public final class SelectorPresentation extends JPanel implements IModelListener
                 break;
             }
         }
+    }
+
+    @Override
+    public void valueChanged(ListSelectionEvent event) {
+        if (event.getValueIsAdjusting()) return;
+
+        Entity[] entities = Arrays
+                .stream(table.getSelectedRows())
+                .boxed()
+                .collect(Collectors.toList())
+                .stream()
+                .map((rowIdx) -> {
+                    return (Entity) tableModel.getValueAt(rowIdx, 0);
+                })
+                .collect(Collectors.toList())
+                .toArray(new Entity[]{});
+        
+        commands.forEach((command) -> {
+            command.setContext(entities);
+        });
     }
     
 }
