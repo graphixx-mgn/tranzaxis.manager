@@ -110,6 +110,8 @@ public class Dialog extends JDialog {
     private final ActionMap        actionMap = rootPane.getActionMap();
     private boolean                preventDefault = false;
     
+    protected Function<DialogButton, AbstractAction> handler;
+    
     /**
      * Конструктор диалога с указанием шаблонов кнопок.
      * @param parent Указатель на родительское окна для относительного позиционирования на экране.
@@ -155,10 +157,11 @@ public class Dialog extends JDialog {
         buttonPanel = new JPanel();
         add(buttonPanel, BorderLayout.SOUTH);
         
-        Function<DialogButton, AbstractAction> handler = (button) -> {
+        handler = (button) -> {
             return new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent keyEvent) {
+                    System.err.println("DEF handler");
                     preventDefault = true;
                     dispose();
                     if (close != null) {
@@ -179,11 +182,18 @@ public class Dialog extends JDialog {
             buttonPanel.add(button);
             
             // Обрабочик нажатия мыши
-            button.addActionListener(handler.apply(button));
+            button.addActionListener((e) -> {
+                handler.apply(button).actionPerformed(e);
+            });
             if (button.getKeyCode() != null) {
                 // Обработчики нажатия кнопки клавиатуры 
                 inputMap.put(button.getKeyCode(), button.getKeyCode());
-                actionMap.put(button.getKeyCode(), handler.apply(button));
+                actionMap.put(button.getKeyCode(), new AbstractAction() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        handler.apply(button).actionPerformed(e);
+                    }
+                });
             }
         }
         
@@ -191,7 +201,12 @@ public class Dialog extends JDialog {
         KeyStroke stroke = KeyStroke.getKeyStroke(Default.BTN_CANCEL.key, 0);
         if (inputMap.allKeys().length == 0 || !Arrays.asList(inputMap.allKeys()).contains(stroke)) {
             inputMap.put(stroke, stroke);
-            actionMap.put(stroke, handler.apply(null));
+            actionMap.put(stroke, new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    handler.apply(null).actionPerformed(e);
+                }
+            });
         }
         
         // Установка обработчика закрытия окна
