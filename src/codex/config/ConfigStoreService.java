@@ -123,6 +123,21 @@ public final class ConfigStoreService implements IConfigStoreService {
             Logger.getLogger().error("Unable to init instance", e);
         }
     }
+    
+    @Override
+    public boolean removeClassInstance(Class clazz, String PID) {
+        final String className = clazz.getSimpleName().toUpperCase();
+        final String deleteSQL = MessageFormat.format("DELETE FROM {0} WHERE PID = ?", className);
+        
+        try (PreparedStatement delete = connection.prepareStatement(deleteSQL)) {
+            delete.setString(1, PID);
+            delete.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            Logger.getLogger().error("Unable to init instance", e);
+            return false;
+        }
+    }
 
     @Override
     public void readClassProperty(Class clazz, String PID, String propName, IComplexType propValue) {

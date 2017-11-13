@@ -37,6 +37,16 @@ public interface IConfigStoreService extends IService {
     default void initClassInstance(Class clazz, String PID) {};
     
     /**
+     * Удалить запись в каталоге по её уникальному ключу.
+     * @param clazz Класс сущности.
+     * @param PID Уникальный строковый идентификатор сущности.
+     * @throws RemoteException 
+     */
+    default boolean removeClassInstance(Class clazz, String PID) {
+        return false;
+    };
+    
+    /**
      * Считать их каталога значение свойства сущности.
      * @param clazz Класс сущности.
      * @param PID Уникальный строковый идентификатор сущности.
