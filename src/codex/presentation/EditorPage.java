@@ -72,7 +72,7 @@ public final class EditorPage extends JPanel {
                     .stringWidth(propEditor.getLabel().getText()));
             lineIdx++;
         }
-        add(Box.createHorizontalStrut(Math.max(280, maxSize+30)));
+        add(Box.createHorizontalStrut(Math.max(220, maxSize+30)));
         if (focusOrder.size() > 0) {
             setFocusCycleRoot(true);
             setFocusTraversalPolicyProvider(true);
