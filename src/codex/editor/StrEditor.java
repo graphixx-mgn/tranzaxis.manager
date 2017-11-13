@@ -234,7 +234,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
                 new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
                 BalloonTip.Orientation.RIGHT_ABOVE, 
                 BalloonTip.AttachLocation.NORTH,
-                7, 7, false
+                5, 5, false
         );
     }
 
