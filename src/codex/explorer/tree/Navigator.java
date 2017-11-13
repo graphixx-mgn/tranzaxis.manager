@@ -12,9 +12,8 @@ import javax.swing.JLabel;
 import javax.swing.JTree;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.TreeModelEvent;
-import javax.swing.event.TreeModelListener;
 import javax.swing.event.TreeSelectionEvent;
+import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
@@ -26,7 +25,7 @@ import net.java.balloontip.utils.ToolTipUtils;
 /**
  * Дерево навигации проводника.
  */
-public final class Navigator extends JTree implements IModelListener, TreeModelListener {
+public final class Navigator extends JTree implements IModelListener, INodeListener {
     
     private TreePath path;
     private final List<INavigateListener> listeners = new LinkedList<>();
@@ -79,27 +78,26 @@ public final class Navigator extends JTree implements IModelListener, TreeModelL
 
     @Override
     public void setModel(TreeModel model) {
-        if (getModel() != null) {
-            getModel().removeTreeModelListener(this);
-        }
         super.setModel(model);
         if (model instanceof NodeTreeModel) {
             for (int rowIdx = 0; rowIdx < getRowCount(); rowIdx++) {
-                setToolTip(getPathForRow(rowIdx));
+                final TreePath path = getPathForRow(rowIdx);
+                final INode    node = (INode) path.getLastPathComponent();
+                setToolTip(path, node);
+                node.addNodeListener(this);
             }
         }
-        model.addTreeModelListener(this);
     }
     
-    private void setToolTip(TreePath path) {
+    private void setToolTip(TreePath path, INode node) {
         TreeNodeBalloonTip tip = new TreeNodeBalloonTip(
                     this, 
                     new JLabel(
-                            ((Entity) path.getLastPathComponent()).getHint(), 
-                                ImageUtils.resize(
-                                    ImageUtils.getByPath("/images/event.png"), 
-                                    16, 16
-                                ), SwingConstants.LEADING
+                            ((Entity) node).getHint(),
+                            ImageUtils.resize(
+                                ImageUtils.getByPath("/images/event.png"), 
+                                16, 16
+                            ), SwingConstants.LEADING
                     ),
                     path, 
                     new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
@@ -107,37 +105,41 @@ public final class Navigator extends JTree implements IModelListener, TreeModelL
                     BalloonTip.AttachLocation.ALIGNED, 
                     10, 10, false
             );
-            ToolTipUtils.balloonToToolTip(tip, 1500, 3000);
+        ToolTipUtils.balloonToToolTip(tip, 1500, 3000);
     }
 
     @Override
     public void modelRestored(EntityModel model, List<String> changes) {
-        treeNodesChanged(new TreeModelEvent(this, path));
+        ((NodeTreeModel) getModel()).nodeChanged(
+                (INode) path.getLastPathComponent()
+        );
     }
 
     @Override
     public void modelSaved(EntityModel model, List<String> changes) {
-        treeNodesChanged(new TreeModelEvent(this, path));
-    }
-
-    @Override
-    public void treeNodesChanged(TreeModelEvent e) {
-        repaint();
-    }
-
-    @Override
-    public void treeNodesInserted(TreeModelEvent e) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void treeNodesRemoved(TreeModelEvent e) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void treeStructureChanged(TreeModelEvent e) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        ((NodeTreeModel) getModel()).nodeChanged(
+                (INode) path.getLastPathComponent()
+        );
     }
     
+    @Override
+    public void childInserted(INode parentNode, INode childNode) {
+        ((DefaultTreeModel) getModel()).nodesWereInserted(
+                parentNode, 
+                new int[] {parentNode.getIndex(childNode)}
+        );
+    }
+
+    @Override
+    public void childDeleted(INode parentNode, INode childNode) {
+        if (parentNode.getChildCount() == 1) {
+            ((DefaultTreeModel) getModel()).nodeStructureChanged(parentNode);
+        }
+        ((DefaultTreeModel) getModel()).nodesWereRemoved(
+                parentNode, 
+                new int[] {parentNode.getIndex(childNode)}, 
+                new Object[] {childNode}
+        );
+    }
+
 }
