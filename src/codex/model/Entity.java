@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import javax.swing.AbstractAction;
+import javax.swing.SwingUtilities;
 
 /**
  * Абстракная сущность, базовый родитель прикладных сущностей приложения.
@@ -107,25 +108,26 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     }
     
     @Override
-    public final void insert(INode child) {
+    public void insert(INode child) {
         super.insert(child);
         if (child instanceof Entity) {
             Entity entity = (Entity) child;
-
-            List<String> inheritance = entity.model.getProperties(Access.Edit)
-                .stream()
-                .filter(propName -> this.model.hasProperty(propName))
-                .collect(Collectors.toList());
             
-            if (!inheritance.isEmpty()) {
-                Logger.getLogger().debug(
-                        "Properties ''{0}/@{1}'' has possibility of inheritance", 
-                        child, inheritance
-                );
-                inheritance.forEach((propName) -> {
-                    entity.model.getProperty(propName).setInherited(this.model.getProperty(propName));
-                });
-            }
+            SwingUtilities.invokeLater(() -> {
+                List<String> inheritance = entity.model.getProperties(Access.Edit)
+                    .stream()
+                    .filter(propName -> this.model.hasProperty(propName))
+                    .collect(Collectors.toList());
+                if (!inheritance.isEmpty()) {
+                    Logger.getLogger().debug(
+                            "Properties ''{0}/@{1}'' has possibility of inheritance", 
+                            child, inheritance
+                    );
+                    inheritance.forEach((propName) -> {
+                        entity.model.getProperty(propName).setInherited(this.model.getProperty(propName));
+                    });
+                }
+            });
         }
     }
     
