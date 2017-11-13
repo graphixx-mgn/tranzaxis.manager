@@ -14,7 +14,8 @@ public abstract class AbstractNode implements INode {
     
     private INode parent = null; 
     private int   mode   = MODE_ENABLED + MODE_SELECTABLE;
-    private final List<INode> children = new ArrayList<>();
+    private final List<INode>         children = new ArrayList<>();
+    private final List<INodeListener> nodeListeners = new LinkedList<>();
     
     /**
      * Возвращает перечисление потомков узла.
@@ -65,9 +66,25 @@ public abstract class AbstractNode implements INode {
     }
     
     @Override
+    public final void addNodeListener(INodeListener listener) {
+        nodeListeners.add(listener);
+    };
+    
+    @Override
     public void insert(INode child) {
         child.setParent(this);
         children.add(child);
+        new LinkedList<>(nodeListeners).forEach((listener) -> {
+            listener.childInserted(this, child);
+        });
     }
-    
+
+    @Override
+    public void delete(INode child) {
+        new LinkedList<>(nodeListeners).forEach((listener) -> {
+            listener.childDeleted(this, child);
+        });
+        children.remove(child);
+    };
+
 }
