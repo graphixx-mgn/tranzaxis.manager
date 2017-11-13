@@ -35,6 +35,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         init(PID);
         addProperty(EntityModel.PID, new Str(PID), true, Access.Edit);
     }
+    
+    public String getPID() {
+        return (String) getValue(PID);
+    }
 
     @Override
     public final boolean isValid() {
@@ -61,7 +65,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void addUserProp(String name, IComplexType value, boolean require, Access restriction) {
         STORE.addClassProperty(entityClass, name);
-        STORE.readClassProperty(entityClass, (String) getValue(PID), name, value);
+        STORE.readClassProperty(entityClass, getPID(), name, value);
             
         addProperty(name, value, require, restriction);
     }
@@ -175,13 +179,17 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
     }
     
+    public final boolean remove() {
+        return STORE.removeClassInstance(entityClass, getPID());
+    }
+    
     /**
      * Сохранение изменений модели.
      */
     public final void commit() {
         List<String> changes = getChanges();
         boolean success = STORE.updateClassInstance(entityClass, 
-                (String) getValue(PID),
+                getPID(),
                 changes.stream()
                         .map((propName) -> {
                             return getProperty(propName);
