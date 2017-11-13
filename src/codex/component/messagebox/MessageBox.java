@@ -5,7 +5,6 @@ import java.awt.BorderLayout;
 import javax.swing.Action;
 import javax.swing.FocusManager;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
@@ -54,6 +53,7 @@ public final class MessageBox extends Dialog {
             setBorder(new EmptyBorder(20, 20, 20, 20));
 
             final JLabel iconLabel = new JLabel(type.getIcon());
+            iconLabel.setVerticalAlignment(JLabel.TOP);
             iconLabel.setBorder(new EmptyBorder(0, 0, 0, 20));
             add(iconLabel, BorderLayout.WEST);
             
