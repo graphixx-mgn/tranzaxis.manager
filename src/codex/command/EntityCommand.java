@@ -132,8 +132,8 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     @Override
     public void actionPerformed(ActionEvent event) {
         SwingUtilities.invokeLater(() -> {
-            for (Entity entity : context) {
-                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), entity);
+            Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
+            for (Entity entity : getContext()) {
                 execute(entity);
             }
             activate();
