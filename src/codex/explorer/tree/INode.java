@@ -19,26 +19,37 @@ public interface INode extends TreeNode {
      * Возвращает режим отображения узла. 
      */
     int getMode();
+    
     /**
      * Устанавливает режим отображения узла. 
      */
     void setMode(int mode);
+    
     /**
      * Возвращает презентацию редактора узла. 
      */
     EditorPresentation getEditorPresentation();
+    
     /**
      * Возвращает презентацию селектора узла. 
      */
     SelectorPresentation getSelectorPresentation();
+    
     /**
      * Установить родительский узел.
      */
     void setParent(INode parent);
+    
     /**
      * Вставить дочерний узел.
      */
     void insert(INode child);
+    
+    /**
+     * Удалить дочерний узел.
+     */
+    void delete(INode child);
+    
     /**
      * Возвращает список имен узлов от корневого до текущего.
      */
@@ -114,5 +125,7 @@ public interface INode extends TreeNode {
     default Class getChildClass() {
         return null;
     };
+    
+    void addNodeListener(INodeListener listener);
 
 }
