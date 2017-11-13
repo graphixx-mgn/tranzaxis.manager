@@ -1,25 +1,35 @@
 package codex.presentation;
 
 import codex.command.EntityCommand;
+import codex.component.dialog.Dialog;
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
 import codex.component.render.DefaultRenderer;
 import codex.editor.IEditor;
+import codex.log.Logger;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.model.IModelListener;
+import codex.utils.ImageUtils;
+import codex.utils.Language;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
 import java.util.stream.Collectors;
+import javax.swing.AbstractAction;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.SwingUtilities;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -53,9 +63,9 @@ public final class SelectorPresentation extends JPanel implements IModelListener
         }
         Entity prototype = Entity.newInstance(entity.getChildClass(), null);
         
-        commands.add(new EditEntity());
-        commands.add(new CreateEntity(entity.getChildClass()));
-        commands.add(new CloneEntity());
+        //commands.add(new EditEntity());
+        commands.add(new CreateEntity(entity, entity.getChildClass()));
+        //commands.add(new CloneEntity());
         commands.add(new DeleteEntity());
         commandPanel.addCommands(commands.toArray(new EntityCommand[]{}));
         commandPanel.addSeparator();
@@ -150,7 +160,7 @@ public final class SelectorPresentation extends JPanel implements IModelListener
                         this.tableModel.setValueAt(model.getValue(propName), entityIdx, propIdx);
                     }
                 });
-                this.tableModel.fireTableRowsInserted(rowIdx, rowIdx);
+                this.tableModel.fireTableRowsUpdated(rowIdx, rowIdx);
                 break;
             }
         }
@@ -174,6 +184,134 @@ public final class SelectorPresentation extends JPanel implements IModelListener
         commands.forEach((command) -> {
             command.setContext(entities);
         });
+    }
+    
+    
+    public class CreateEntity extends EntityCommand {
+    
+        private final Entity parent;
+        private final Class  entityClass;
+
+        public CreateEntity(Entity parent, Class entityClass) {
+            super(
+                    "create", null,
+                    ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 28, 28), 
+                    Language.get(SelectorPresentation.class.getSimpleName(), "command@create"),
+                    null
+            );
+            activator = (entities) -> {};
+            this.entityClass = entityClass;
+            this.parent = parent;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent event) {
+            SwingUtilities.invokeLater(() -> {
+                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), parent.toString());
+                execute(null);
+                activate();
+            });
+        }
+
+        @Override
+        public void execute(Entity context) {
+            Entity newEntity = Entity.newInstance(entityClass, "NEW #"+(parent.childrenList().size()+1));
+            tableModel.addRow(
+                    newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
+                        return propName.equals(EntityModel.PID) ? newEntity : newEntity.model.getValue(propName);
+                    }).toArray()
+            );
+            parent.insert(newEntity);
+        }
+
+        @Override
+        public boolean multiContextAllowed() {
+            return true;
+        }
+
+    }
+    
+    public class DeleteEntity extends EntityCommand {
+    
+        public DeleteEntity() {
+            super(
+                    "delete", null,
+                    ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28), 
+                    Language.get(SelectorPresentation.class.getSimpleName(), "command@delete"),
+                    (entity) -> true
+            );
+        }
+        
+        @Override
+        public void actionPerformed(ActionEvent event) {
+            SwingUtilities.invokeLater(() -> {
+                String message; 
+                if (getContext().length == 1) {
+                    message = MessageFormat.format(
+                            Language.get(
+                                    SelectorPresentation.class.getSimpleName(), 
+                                    "confirm@del.single"
+                            ), 
+                            getContext()[0]
+                    );
+                } else {
+                    StringBuilder msgBuilder = new StringBuilder(
+                            Language.get(
+                                    SelectorPresentation.class.getSimpleName(), 
+                                    "confirm@del.range"
+                            )
+                    );
+                    Arrays.asList(getContext()).forEach((entity) -> {
+                        msgBuilder.append("<br>&emsp;&#9900&nbsp;&nbsp;").append(entity.toString());
+                    });
+                    message = msgBuilder.toString();
+                }
+                MessageBox msgBox = new MessageBox(
+                        MessageType.CONFIRMATION, null, message,
+                        new AbstractAction() {
+                            @Override
+                            public void actionPerformed(ActionEvent event) {
+                                if(event.getID() == Dialog.OK) {
+                                    Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
+                                    for (Entity entity : getContext()) {
+                                        execute(entity);
+                                    }
+                                    activate();
+                                }
+                            }
+                        }
+                );
+                msgBox.setVisible(true);
+            });
+        }
+
+        @Override
+        public void execute(Entity context) {
+            if (!context.model.remove()) {
+                return;
+            }
+            int rowCount = tableModel.getRowCount();
+            for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+                if (((Entity) tableModel.getValueAt(rowIdx, 0)).model.equals(context.model)) {
+                    tableModel.removeRow(rowIdx);
+                    if (rowIdx < tableModel.getRowCount()) {
+                        table.getSelectionModel().setSelectionInterval(rowIdx, rowIdx);
+                    } else if (rowIdx == tableModel.getRowCount()) {
+                        table.getSelectionModel().setSelectionInterval(rowIdx-1, rowIdx-1);
+                    } else {
+                        table.getSelectionModel().clearSelection();
+                    }
+                    break;
+                }
+            }
+            context.getParent().delete(context);
+        }
+
+        @Override
+        public boolean multiContextAllowed() {
+            return true;
+        }
+
     }
     
 }
