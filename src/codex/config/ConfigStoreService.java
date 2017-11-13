@@ -106,6 +106,10 @@ public final class ConfigStoreService implements IConfigStoreService {
         final String className = clazz.getSimpleName().toUpperCase();
         final String selectSQL = MessageFormat.format("SELECT * FROM {0} WHERE PID = ?", className);
         final String insertSQL = MessageFormat.format("INSERT INTO {0} (PID) VALUES (?);", className);
+        
+        if (!storeStructure.containsKey(className)) {
+            createClassCatalog(clazz);
+        }
 
         try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
             select.setString(1, PID);
