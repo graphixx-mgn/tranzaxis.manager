@@ -8,7 +8,6 @@ import codex.editor.IEditor;
 import codex.explorer.tree.AbstractNode;
 import codex.explorer.tree.INode;
 import codex.log.Logger;
-import static codex.model.EntityModel.PID;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.presentation.SwitchInheritance;
@@ -132,7 +131,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     }
     
     public String getPID() {
-        return (String) model.getValue(PID);
+        return model.getPID();
     }
     
     /**
