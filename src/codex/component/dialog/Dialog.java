@@ -161,7 +161,6 @@ public class Dialog extends JDialog {
             return new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent keyEvent) {
-                    System.err.println("DEF handler");
                     preventDefault = true;
                     dispose();
                     if (close != null) {

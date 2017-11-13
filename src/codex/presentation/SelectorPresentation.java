@@ -1,6 +1,7 @@
 package codex.presentation;
 
 import codex.command.EntityCommand;
+import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
@@ -24,6 +25,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.swing.AbstractAction;
 import javax.swing.JPanel;
@@ -34,6 +36,7 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
+import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
@@ -63,7 +66,7 @@ public final class SelectorPresentation extends JPanel implements IModelListener
         }
         Entity prototype = Entity.newInstance(entity.getChildClass(), null);
         
-        //commands.add(new EditEntity());
+        commands.add(new EditEntity());
         commands.add(new CreateEntity(entity, entity.getChildClass()));
         //commands.add(new CloneEntity());
         commands.add(new DeleteEntity());
@@ -129,21 +132,12 @@ public final class SelectorPresentation extends JPanel implements IModelListener
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent event) {
-//                int row = table.rowAtPoint(event.getPoint());
-                
-//                commands.forEach((command) -> {
-//                    command.setContext(tableModel.getValueAt(row, 0));
-//                });
-//                AbstractModel model = ((SelectorTableModel) table.getModel()).getModelAt(row);
-//                if (me.getClickCount() == 2) {
-//                    for (Command command : baseCommands) {
-//                        if (command instanceof EditCommand) {
-//                            command.execute();
-//                        }
-//                    }
-//                }
+                if (event.getClickCount() == 2) {
+                    for (Entity context : commands.get(0).getContext()) {
+                        commands.get(0).execute(context);
+                    }
+                }
             }
-
         });
     }
     
@@ -310,6 +304,75 @@ public final class SelectorPresentation extends JPanel implements IModelListener
         @Override
         public boolean multiContextAllowed() {
             return true;
+        }
+
+    }
+    
+    public class EditEntity extends EntityCommand {
+    
+        public EditEntity() {
+            super(
+                    "edit", null,
+                    ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 28, 28), 
+                    Language.get(SelectorPresentation.class.getSimpleName(), "command@edit"),
+                    (entity) -> true
+            );
+        }
+
+        @Override
+        public void execute(Entity context) {
+            DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
+            DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
+            
+            EditorPage page = new EditorPage(context);
+            page.setBorder(new CompoundBorder(
+                    new EmptyBorder(10, 5, 5, 5), 
+                    new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())
+            ));
+            
+            Dialog editor = new Dialog(
+                    SwingUtilities.getWindowAncestor(SelectorPresentation.this),
+                    ImageUtils.getByPath("/images/edit.png"),
+                    Language.get(SelectorPresentation.class.getSimpleName(), "editor@title"), page,
+                    new AbstractAction() {
+                        @Override
+                        public void actionPerformed(ActionEvent event) {
+                            if (event.getID() == Dialog.OK) {
+                                context.model.commit();
+                            } else {
+                                context.model.rollback();
+                            }
+                        }
+                    },
+                    confirmBtn, declineBtn
+            ) {
+                {
+                    // Перекрытие обработчика кнопок
+                    Function<DialogButton, AbstractAction> defaultHandler = handler;
+                    handler = (button) -> {
+                        return new AbstractAction() {
+                            @Override
+                            public void actionPerformed(ActionEvent event) {
+                                if (button.getID() != Dialog.OK || context.getInvalidProperties().isEmpty()) {
+                                    defaultHandler.apply(button).actionPerformed(event);
+                                }
+                            }
+                        }; 
+                    };
+                }
+                
+                @Override
+                public Dimension getPreferredSize() {
+                    return new Dimension(550, super.getPreferredSize().height);
+                }
+            };
+            editor.setResizable(false);
+            editor.setVisible(true);
+        }
+
+        @Override
+        public boolean multiContextAllowed() {
+            return false;
         }
 
     }
