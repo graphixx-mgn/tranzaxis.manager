@@ -230,6 +230,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     @Override
     public IEditor getEditor(String name) {
         IEditor editor = super.getEditor(name);
+        editor.getLabel().setText(getProperty(name).getTitle() + (getChanges().contains(name) ? " *" : ""));
         addModelListener(new IModelListener() {
             
             @Override

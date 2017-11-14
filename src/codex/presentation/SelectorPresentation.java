@@ -68,7 +68,7 @@ public final class SelectorPresentation extends JPanel implements IModelListener
         
         commands.add(new EditEntity());
         commands.add(new CreateEntity(entity, entity.getChildClass()));
-        //commands.add(new CloneEntity());
+        commands.add(new CloneEntity());
         commands.add(new DeleteEntity());
         commandPanel.addCommands(commands.toArray(new EntityCommand[]{}));
         commandPanel.addSeparator();
@@ -276,6 +276,155 @@ public final class SelectorPresentation extends JPanel implements IModelListener
 
     }
     
+    public class CloneEntity extends EntityCommand {
+
+        public CloneEntity() {
+            super(
+                    "clone", null,
+                    ImageUtils.resize(ImageUtils.getByPath("/images/clone.png"), 28, 28), 
+                    Language.get(SelectorPresentation.class.getSimpleName(), "command@clone"),
+                    (entity) -> true
+            );
+        }
+
+        @Override
+        public void execute(Entity context) {
+            Entity newEntity = Entity.newInstance(context.getParent().getChildClass(), null);
+            
+            context.model.getProperties(Access.Edit).forEach((propName) -> {
+                newEntity.model.setValue(propName, context.model.getValue(propName));
+            });
+            
+            DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
+            DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
+            
+            EditorPage page = new EditorPage(newEntity, EditorPage.Mode.Create);
+            page.setBorder(new CompoundBorder(
+                    new EmptyBorder(10, 5, 5, 5), 
+                    new TitledBorder(
+                            new LineBorder(Color.LIGHT_GRAY, 1), 
+                            Language.get(SelectorPresentation.class.getSimpleName(), "creator@desc")
+                    )
+            ));
+            
+            Dialog editor = new Dialog(
+                    SwingUtilities.getWindowAncestor(SelectorPresentation.this),
+                    ImageUtils.getByPath("/images/plus.png"),
+                    Language.get(SelectorPresentation.class.getSimpleName(), "creator@title"), page,
+                    new AbstractAction() {
+                        @Override
+                        public void actionPerformed(ActionEvent event) {
+                            if (event.getID() == Dialog.OK) {
+                                newEntity.setTitle(newEntity.model.getPID());
+                                newEntity.model.init(newEntity.model.getPID());
+                                newEntity.model.commit();
+                                
+                                tableModel.addRow(
+                                        newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
+                                            return propName.equals(EntityModel.PID) ? newEntity : newEntity.model.getValue(propName);
+                                        }).toArray()
+                                );
+                                table.getSelectionModel().setSelectionInterval(
+                                        tableModel.getRowCount() - 1, 
+                                        tableModel.getRowCount() - 1
+                                );
+                                context.getParent().insert(newEntity);
+                            }
+                        }
+                    },
+                    confirmBtn, declineBtn
+            ) {
+                {
+                    // Перекрытие обработчика кнопок
+                    Function<DialogButton, AbstractAction> defaultHandler = handler;
+                    handler = (button) -> {
+                        return new AbstractAction() {
+                            @Override
+                            public void actionPerformed(ActionEvent event) {
+                                if (button.getID() != Dialog.OK || newEntity.getInvalidProperties().isEmpty()) {
+                                    defaultHandler.apply(button).actionPerformed(event);
+                                }
+                            }
+                        }; 
+                    };
+                }
+                
+                @Override
+                public Dimension getPreferredSize() {
+                    return new Dimension(550, super.getPreferredSize().height);
+                }
+            };
+            editor.setResizable(false);
+            editor.setVisible(true);
+        }
+
+    }
+    
+    public class EditEntity extends EntityCommand {
+    
+        public EditEntity() {
+            super(
+                    "edit", null,
+                    ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 28, 28), 
+                    Language.get(SelectorPresentation.class.getSimpleName(), "command@edit"),
+                    (entity) -> true
+            );
+        }
+
+        @Override
+        public void execute(Entity context) {
+            DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
+            DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
+            
+            EditorPage page = new EditorPage(context, EditorPage.Mode.Edit);
+            page.setBorder(new CompoundBorder(
+                    new EmptyBorder(10, 5, 5, 5), 
+                    new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())
+            ));
+            
+            Dialog editor = new Dialog(
+                    SwingUtilities.getWindowAncestor(SelectorPresentation.this),
+                    ImageUtils.getByPath("/images/edit.png"),
+                    Language.get(SelectorPresentation.class.getSimpleName(), "editor@title"), page,
+                    new AbstractAction() {
+                        @Override
+                        public void actionPerformed(ActionEvent event) {
+                            if (event.getID() == Dialog.OK) {
+                                //TODO: При изменении перекрытия свойств изменений нет - ошибка сохранения
+                                context.model.commit();
+                            } else {
+                                context.model.rollback();
+                            }
+                        }
+                    },
+                    confirmBtn, declineBtn
+            ) {
+                {
+                    // Перекрытие обработчика кнопок
+                    Function<DialogButton, AbstractAction> defaultHandler = handler;
+                    handler = (button) -> {
+                        return new AbstractAction() {
+                            @Override
+                            public void actionPerformed(ActionEvent event) {
+                                if (button.getID() != Dialog.OK || context.getInvalidProperties().isEmpty()) {
+                                    defaultHandler.apply(button).actionPerformed(event);
+                                }
+                            }
+                        }; 
+                    };
+                }
+                
+                @Override
+                public Dimension getPreferredSize() {
+                    return new Dimension(550, super.getPreferredSize().height);
+                }
+            };
+            editor.setResizable(false);
+            editor.setVisible(true);
+        }
+
+    }
+    
     public class DeleteEntity extends EntityCommand {
     
         public DeleteEntity() {
@@ -358,74 +507,5 @@ public final class SelectorPresentation extends JPanel implements IModelListener
         }
 
     }
-    
-    public class EditEntity extends EntityCommand {
-    
-        public EditEntity() {
-            super(
-                    "edit", null,
-                    ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 28, 28), 
-                    Language.get(SelectorPresentation.class.getSimpleName(), "command@edit"),
-                    (entity) -> true
-            );
-        }
 
-        @Override
-        public void execute(Entity context) {
-            DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
-            DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
-            
-            EditorPage page = new EditorPage(context, EditorPage.Mode.Edit);
-            page.setBorder(new CompoundBorder(
-                    new EmptyBorder(10, 5, 5, 5), 
-                    new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())
-            ));
-            
-            Dialog editor = new Dialog(
-                    SwingUtilities.getWindowAncestor(SelectorPresentation.this),
-                    ImageUtils.getByPath("/images/edit.png"),
-                    Language.get(SelectorPresentation.class.getSimpleName(), "editor@title"), page,
-                    new AbstractAction() {
-                        @Override
-                        public void actionPerformed(ActionEvent event) {
-                            if (event.getID() == Dialog.OK) {
-                                context.model.commit();
-                            } else {
-                                context.model.rollback();
-                            }
-                        }
-                    },
-                    confirmBtn, declineBtn
-            ) {
-                {
-                    // Перекрытие обработчика кнопок
-                    Function<DialogButton, AbstractAction> defaultHandler = handler;
-                    handler = (button) -> {
-                        return new AbstractAction() {
-                            @Override
-                            public void actionPerformed(ActionEvent event) {
-                                if (button.getID() != Dialog.OK || context.getInvalidProperties().isEmpty()) {
-                                    defaultHandler.apply(button).actionPerformed(event);
-                                }
-                            }
-                        }; 
-                    };
-                }
-                
-                @Override
-                public Dimension getPreferredSize() {
-                    return new Dimension(550, super.getPreferredSize().height);
-                }
-            };
-            editor.setResizable(false);
-            editor.setVisible(true);
-        }
-
-        @Override
-        public boolean multiContextAllowed() {
-            return false;
-        }
-
-    }
-    
 }
