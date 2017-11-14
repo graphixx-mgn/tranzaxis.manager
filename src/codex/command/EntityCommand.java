@@ -15,6 +15,7 @@ import javax.swing.ImageIcon;
 import codex.model.IModelListener;
 import codex.presentation.CommitEntity;
 import codex.presentation.RollbackEntity;
+import java.awt.event.KeyEvent;
 import java.text.MessageFormat;
 import java.util.LinkedList;
 import javax.swing.AbstractAction;
@@ -80,7 +81,7 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         
         this.button = new PushButton(icon, title);
         this.button.addActionListener(this);
-        this.button.setHint(hint + (key == null ? "" : " ("+getKeyCode(key)+")"));
+        this.button.setHint(hint + (key == null ? "" : " ("+getKeyText(key)+")"));
         
         addListener(this);
     }
@@ -158,7 +159,7 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         if (inputMap.get(key) != null && inputMap.get(key) != this) {
             throw new IllegalStateException(MessageFormat.format(
                     "Key [{0}] already used by command ''{1}''", 
-                    getKeyCode(key), inputMap.get(key).getClass().getSimpleName()
+                    getKeyText(key), inputMap.get(key).getClass().getSimpleName()
             ));
         } else {
             inputMap.put(key, this);
@@ -176,8 +177,12 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     /**
      * Возвращает строковое представление комбинации клавиш.
      */
-    private String getKeyCode(KeyStroke key) {
-        return key.toString().replaceAll("(\\w+) pressed (\\w+)", "$1+$2").toUpperCase();
+    private String getKeyText(KeyStroke key) {
+        if (key.getModifiers() != 0) {
+            return KeyEvent.getKeyModifiersText(key.getModifiers())+"+"+KeyEvent.getKeyText(key.getKeyCode());
+        } else {
+            return KeyEvent.getKeyText(key.getKeyCode());
+        }
     }
 
     @Override
