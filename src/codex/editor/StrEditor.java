@@ -46,7 +46,6 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     protected Function<String, Object> transformer;
     
     protected final JLabel  signInvalid;
-    protected IMask<String> mask = ((Str) propHolder.getPropValue()).getMask();
     
     /**
      * Конструктор редактора.
@@ -78,6 +77,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
                 ImageUtils.getByPath("/images/warn.png"), 
                 textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
         ));
+        IMask<String> mask = ((Str) propHolder.getPropValue()).getMask();
         if (mask.getErrorHint() != null) {
             signInvalid.addMouseListener(new MouseAdapter() {
                 @Override
@@ -167,8 +167,9 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     }
 
     private boolean verify() {
+        IMask<String> mask = ((Str) propHolder.getPropValue()).getMask();
         String value = ((Str) propHolder.getPropValue()).getValue();
-        boolean inputOk = value == null || value.isEmpty() || mask.verify(value);
+        boolean inputOk = ((value == null || value.isEmpty()) && !mask.notNull()) || mask.verify(value);
         setBorder(!inputOk ? BORDER_ERROR : textField.isFocusOwner() ? BORDER_ACTIVE : BORDER_NORMAL);
         textField.setForeground(inputOk ? COLOR_NORMAL : COLOR_INVALID);
         if (signInvalid != null) {
@@ -226,6 +227,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     }
     
     private BalloonTip getErrorTip() {
+        IMask<String> mask = ((Str) propHolder.getPropValue()).getMask();
         return new BalloonTip(
                 signInvalid, new JLabel(mask.getErrorHint(), ImageUtils.resize(
                     ImageUtils.getByPath("/images/warn.png"), 
