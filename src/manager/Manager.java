@@ -18,6 +18,7 @@ import codex.utils.ImageUtils;
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import java.awt.event.ActionEvent;
 import java.io.File;
+import java.util.prefs.Preferences;
 import javax.swing.JButton;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
@@ -25,6 +26,7 @@ import manager.nodes.Common;
 import manager.nodes.DatabaseRoot;
 import manager.nodes.RepositoryRoot;
 import manager.nodes.SystemRoot;
+import manager.type.Locale;
 import manager.ui.Splash;
 import org.apache.log4j.Level;
 import manager.ui.Window;
@@ -74,6 +76,7 @@ public class Manager {
     }
     
     public Manager() {
+        loadSystemProps();
         Splash splash = new Splash();
         splash.setVisible(true);
         
@@ -86,25 +89,14 @@ public class Manager {
         taskManager = new TaskManager();
 
         splash.setProgress(40, "Build explorer tree");
-        Common      root = new Common();
+        Common          root = new Common();
         RepositoryRoot repos = new RepositoryRoot();
         DatabaseRoot   bases = new DatabaseRoot();
         SystemRoot   systems = new SystemRoot();
-        
-//        Repository      repo = new Repository("TWRBS");
-//        System        system = new System("Virtual");
-//        Development      dev = new Development();
-//        ReleaseList releases = new ReleaseList();
-        
+
         root.insert(repos);
         root.insert(bases);
         root.insert(systems);
-        
-//        repos.insert(repo);
-//        systems.insert(system);
-        
-//        repo.insert(dev);
-//        repo.insert(releases);
         
         NodeTreeModel treeModel = new NodeTreeModel(root);
         explorerUnit = new ExplorerUnit(treeModel);
@@ -131,8 +123,17 @@ public class Manager {
         window.addUnit(taskManager, window.taskmgrPanel);
         splash.setProgress(100);
         splash.setVisible(false);
-        window.setVisible(true);
+        window.setVisible(true);   
+    }
+    
+    private void loadSystemProps() {
+        Preferences prefs = Preferences.userRoot().node(Manager.class.getSimpleName());
         
+        if (prefs.get("guiLang", null) != null) {
+            Locale localeEnum = Locale.valueOf(prefs.get("guiLang", null));
+            java.lang.System.setProperty("user.language", localeEnum.getLocale().getLanguage());
+            java.lang.System.setProperty("user.country",  localeEnum.getLocale().getCountry());
+        }
     }
     
 }
