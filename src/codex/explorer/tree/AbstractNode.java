@@ -61,7 +61,7 @@ public abstract class AbstractNode implements INode {
     }
     
     @Override
-    public final void setParent(INode parent) {
+    public void setParent(INode parent) {
         this.parent = parent;
     }
     

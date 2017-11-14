@@ -2,6 +2,7 @@ package codex.model;
 
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
+import codex.explorer.tree.INode;
 import codex.service.ServiceRegistry;
 import java.util.List;
 import javax.swing.ImageIcon;
@@ -21,6 +22,11 @@ public abstract class Catalog extends Entity {
      */
     public Catalog(ImageIcon icon, String hint) {
         super(icon, "title", hint);
+    }
+    
+    @Override
+    public void setParent(INode parent) {
+        super.setParent(parent);
         loadChildEntities();
     }
     
@@ -33,8 +39,5 @@ public abstract class Catalog extends Entity {
             });
         }
     }
-    
-    @Override
-    public abstract Class getChildClass();
-    
+
 }
