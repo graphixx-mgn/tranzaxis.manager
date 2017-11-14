@@ -5,6 +5,7 @@ import codex.editor.IEditor;
 import codex.model.Entity;
 import codex.model.AbstractModel;
 import codex.model.Access;
+import codex.model.EntityModel;
 import codex.property.PropertyHolder;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -23,13 +24,17 @@ import javax.swing.JPanel;
  * сущности {@link EditorPresentation}. Формирует панель с редакторами свойств 
  * модели сущности.
  */
-public final class EditorPage extends JPanel {
+final class EditorPage extends JPanel {
+    
+    enum Mode {
+        Edit, Create
+    }
     
     /**
      * Конструктор страницы. 
      * @param entity Редактируемая сущность.
      */
-    public EditorPage(Entity entity) {
+    EditorPage(Entity entity, Mode mode) {
         super(new GridBagLayout());
         
         GridBagConstraints gbc = new GridBagConstraints();
@@ -44,7 +49,11 @@ public final class EditorPage extends JPanel {
         }
         
         final Vector<Component> focusOrder = new Vector<>();
-        for (String propName : entity.model.getProperties(Access.Edit)) {        
+        List<String> properties = entity.model.getProperties(Access.Edit);
+        if (mode.equals(Mode.Create)) {
+            properties.add(0, EntityModel.PID);
+        }
+        for (String propName : properties) {
             gbc.gridx = 0; 
             gbc.gridy = lineIdx;
             gbc.weightx = 0;
