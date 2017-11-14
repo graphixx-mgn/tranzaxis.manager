@@ -21,4 +21,11 @@ public interface IMask<T> {
         return null;
     };
     
+    /**
+     * Признак недопустимости пустого значения при проверке.
+     */
+    default boolean notNull() {
+        return false;
+    }
+    
 }
