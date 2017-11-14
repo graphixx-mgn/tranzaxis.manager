@@ -24,6 +24,10 @@ public enum Locale implements Iconified {
     public ImageIcon getIcon() {
         return icon;
     }
+    
+    public java.util.Locale getLocale() {
+        return locale;
+    }
 
     @Override
     public String toString() {
