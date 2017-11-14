@@ -64,8 +64,8 @@ public final class ConfigStoreService implements IConfigStoreService {
         final String className = clazz.getSimpleName().toUpperCase();
         if (!storeStructure.containsKey(className)) {
             String createSQL = MessageFormat.format("CREATE TABLE IF NOT EXISTS {0} ("
-                            //+ "SEQ   INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
                             + "PID TEXT NOT NULL,"
+                            + "SEQ INTEGER NOT NULL,"
                             + "CONSTRAINT CST_PID UNIQUE (PID)"
                     + ");",
                     className
@@ -104,8 +104,12 @@ public final class ConfigStoreService implements IConfigStoreService {
     @Override
     public void initClassInstance(Class clazz, String PID) {
         final String className = clazz.getSimpleName().toUpperCase();
-        final String selectSQL = MessageFormat.format("SELECT * FROM {0} WHERE PID = ?", className);
-        final String insertSQL = MessageFormat.format("INSERT INTO {0} (PID) VALUES (?);", className);
+        final String selectSQL = MessageFormat.format(
+                "SELECT * FROM {0} WHERE PID = ?", className
+        );
+        final String insertSQL = MessageFormat.format(
+                "INSERT INTO {0} (PID, SEQ) VALUES (?, (SELECT IFNULL(MAX(SEQ),0)+1 FROM {0}))", className
+        );
         
         if (!storeStructure.containsKey(className)) {
             createClassCatalog(clazz);
@@ -189,7 +193,7 @@ public final class ConfigStoreService implements IConfigStoreService {
         final String className  = clazz.getSimpleName().toUpperCase();
         
         if (storeStructure.containsKey(className)) {
-            final String selectSQL  = MessageFormat.format("SELECT PID FROM {0} ORDER BY ROWID", className);
+            final String selectSQL  = MessageFormat.format("SELECT PID FROM {0} ORDER BY SEQ", className);
 
             try (Statement select = connection.createStatement()) {
                 try (ResultSet rs = select.executeQuery(selectSQL)) {
