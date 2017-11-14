@@ -32,9 +32,9 @@ import javax.swing.SwingUtilities;
  */
 public abstract class Entity extends AbstractNode implements IPropertyChangeListener {
    
+    private       String    title;
     private final ImageIcon icon;
     private final String    hint;
-    private final String    title;
     
     private EditorPresentation   editorPresentation;
     private SelectorPresentation selectorPresentation;
@@ -90,6 +90,13 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             
         };
         this.model.addChangeListener(this);
+    }
+    
+    /**
+     * Установить наименование сущности.
+     */
+    public final void setTitle(String title) {
+        this.title = title;
     }
     
     /**
