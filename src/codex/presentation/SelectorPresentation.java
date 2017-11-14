@@ -115,7 +115,7 @@ public final class SelectorPresentation extends JPanel implements IModelListener
         table.setRowHeight((int) (IEditor.FONT_VALUE.getSize() * 2));
         table.setShowVerticalLines(false);
         table.setIntercellSpacing(new Dimension(0,0));
-        table.setPreferredScrollableViewportSize(table.getPreferredSize());
+        table.setPreferredScrollableViewportSize(getPreferredSize());
         table.setDefaultRenderer(String.class, new DefaultRenderer());
         table.getTableHeader().setDefaultRenderer(new DefaultRenderer());
         
@@ -209,18 +209,69 @@ public final class SelectorPresentation extends JPanel implements IModelListener
 
         @Override
         public void execute(Entity context) {
-            Entity newEntity = Entity.newInstance(entityClass, "NEW #"+(parent.childrenList().size()+1));
-            tableModel.addRow(
-                    newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
-                        return propName.equals(EntityModel.PID) ? newEntity : newEntity.model.getValue(propName);
-                    }).toArray()
-            );
-            parent.insert(newEntity);
-        }
-
-        @Override
-        public boolean multiContextAllowed() {
-            return true;
+            Entity newEntity = Entity.newInstance(entityClass, null);
+            
+            DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
+            DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
+            
+            EditorPage page = new EditorPage(newEntity, EditorPage.Mode.Create);
+            page.setBorder(new CompoundBorder(
+                    new EmptyBorder(10, 5, 5, 5), 
+                    new TitledBorder(
+                            new LineBorder(Color.LIGHT_GRAY, 1), 
+                            Language.get(SelectorPresentation.class.getSimpleName(), "creator@desc")
+                    )
+            ));
+            
+            Dialog editor = new Dialog(
+                    SwingUtilities.getWindowAncestor(SelectorPresentation.this),
+                    ImageUtils.getByPath("/images/plus.png"),
+                    Language.get(SelectorPresentation.class.getSimpleName(), "creator@title"), page,
+                    new AbstractAction() {
+                        @Override
+                        public void actionPerformed(ActionEvent event) {
+                            if (event.getID() == Dialog.OK) {
+                                newEntity.setTitle(newEntity.model.getPID());
+                                newEntity.model.init(newEntity.model.getPID());
+                                newEntity.model.commit();
+                                
+                                tableModel.addRow(
+                                        newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
+                                            return propName.equals(EntityModel.PID) ? newEntity : newEntity.model.getValue(propName);
+                                        }).toArray()
+                                );
+                                table.getSelectionModel().setSelectionInterval(
+                                        tableModel.getRowCount() - 1, 
+                                        tableModel.getRowCount() - 1
+                                );
+                                parent.insert(newEntity);
+                            }
+                        }
+                    },
+                    confirmBtn, declineBtn
+            ) {
+                {
+                    // Перекрытие обработчика кнопок
+                    Function<DialogButton, AbstractAction> defaultHandler = handler;
+                    handler = (button) -> {
+                        return new AbstractAction() {
+                            @Override
+                            public void actionPerformed(ActionEvent event) {
+                                if (button.getID() != Dialog.OK || newEntity.getInvalidProperties().isEmpty()) {
+                                    defaultHandler.apply(button).actionPerformed(event);
+                                }
+                            }
+                        }; 
+                    };
+                }
+                
+                @Override
+                public Dimension getPreferredSize() {
+                    return new Dimension(550, super.getPreferredSize().height);
+                }
+            };
+            editor.setResizable(false);
+            editor.setVisible(true);
         }
 
     }
@@ -324,7 +375,7 @@ public final class SelectorPresentation extends JPanel implements IModelListener
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
             
-            EditorPage page = new EditorPage(context);
+            EditorPage page = new EditorPage(context, EditorPage.Mode.Edit);
             page.setBorder(new CompoundBorder(
                     new EmptyBorder(10, 5, 5, 5), 
                     new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())

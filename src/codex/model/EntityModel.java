@@ -32,12 +32,12 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     
     EntityModel(Class entityClass, String PID) {
         this.entityClass = entityClass;
-        init(PID);
         addProperty(EntityModel.PID, new Str(PID), true, Access.Edit);
+        init(PID);
     }
     
     public String getPID() {
-        return (String) getValue(PID);
+        return (String) getProperty(PID).getPropValue().getValue();
     }
 
     @Override
@@ -174,8 +174,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
     
     public final void init(String PID) {
-        if (PID != null) {
+        if (PID == null) {
+            ((Str) getProperty(EntityModel.PID).getPropValue()).setMask(new PIDMask(entityClass));
+        } else {
             STORE.initClassInstance(entityClass, PID);
+            ((Str) getProperty(EntityModel.PID).getPropValue()).setMask((String text) -> true);
         }
     }
     
