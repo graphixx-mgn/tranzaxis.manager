@@ -4,6 +4,7 @@ package manager;
 import codex.config.ConfigStoreService;
 import codex.explorer.ExplorerUnit;
 import codex.explorer.tree.NodeTreeModel;
+import codex.log.ILogMgmtService;
 import codex.log.LogUnit;
 import codex.log.Logger;
 import codex.service.ServiceRegistry;
@@ -12,12 +13,16 @@ import codex.task.GroupTask;
 import codex.task.ITask;
 import codex.task.ITaskExecutorService;
 import codex.task.TaskManager;
+import codex.type.Enum;
 import codex.unit.AbstractUnit;
 import codex.update.UpdateUnit;
 import codex.utils.ImageUtils;
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import java.awt.event.ActionEvent;
 import java.io.File;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.prefs.Preferences;
 import javax.swing.JButton;
 import javax.swing.UIManager;
@@ -76,11 +81,11 @@ public class Manager {
     }
     
     public Manager() {
-        loadSystemProps();
         Splash splash = new Splash();
         splash.setVisible(true);
         
         logUnit = new LogUnit();
+        loadSystemProps();
         
         splash.setProgress(20, "Read configuration");
         ServiceRegistry.getInstance().registerService(new ConfigStoreService(new File(CONFIG_PATH)));
@@ -133,6 +138,19 @@ public class Manager {
             Locale localeEnum = Locale.valueOf(prefs.get("guiLang", null));
             java.lang.System.setProperty("user.language", localeEnum.getLocale().getLanguage());
             java.lang.System.setProperty("user.country",  localeEnum.getLocale().getCountry());
+        }
+        if (prefs.get("logLevel", null) != null) {
+            Enum minLevel = new codex.type.Enum(codex.log.Level.Debug);
+            minLevel.valueOf(prefs.get("logLevel", null));
+            
+            ILogMgmtService logMgmt = (ILogMgmtService) ServiceRegistry
+                    .getInstance()
+                    .lookupService(LogUnit.LogMgmtService.class);
+            Map<codex.log.Level, Boolean> levelMap = new HashMap<>();
+            EnumSet.allOf(codex.log.Level.class).forEach((level) -> {
+                levelMap.put(level, level.ordinal() >= ((java.lang.Enum) minLevel.getValue()).ordinal());
+            });
+            logMgmt.changeLevels(levelMap);
         }
     }
     
