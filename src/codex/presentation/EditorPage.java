@@ -59,7 +59,7 @@ final class EditorPage extends JPanel {
             gbc.weightx = 0;
             
             IEditor propEditor = entity.model.getEditor(propName);
-            if (propEditor.getFocusTarget() != null) {
+            if (propEditor.getFocusTarget() != null && propEditor.isEditable()) {
                 focusOrder.add(propEditor.getFocusTarget());
             }
             add(propEditor.getLabel(), gbc);
