@@ -244,7 +244,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             }
             
         });
-        editor.setEditable(!dynamicProps.contains(name));
+        editor.setEditable(!dynamicProps.contains(name) && editor.isEditable());
         return editor;
     }
 
