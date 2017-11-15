@@ -2,6 +2,7 @@ package codex.log;
 
 import codex.component.button.PushButton;
 import codex.component.button.ToggleButton;
+import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -18,8 +19,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowStateListener;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -49,11 +49,12 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
     final static ImageIcon WARN  = ImageUtils.getByPath("/images/warn.png");
     final static ImageIcon ERROR = ImageUtils.getByPath("/images/stop.png");
     
-    private final JFrame frame;
-    private boolean frameState;
+    private final JFrame     frame;
+    private boolean          frameState;
+    private int              maxLevel = Level.ALL_INT;
     private TextPaneAppender paneAppender;
-    private int maxLevel = Level.ALL_INT;
-    private Map<Level, ImageIcon> levelIcon = new HashMap<>();
+    private Map<Level, ImageIcon>          levelIcon = new HashMap<>();
+    private final Map<Level, ToggleButton> filterButtons;
     
     public LogUnit() {
         JTextPane logPane = new JTextPane();
@@ -74,10 +75,11 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
         
         Box toolBar = new Box(BoxLayout.X_AXIS);
         toolBar.setBorder(new EmptyBorder(6, 6, 3, 6));
-        createFilter(Level.DEBUG, Level.INFO, Level.WARN).stream().forEach((toggleButton) -> {
-            toolBar.add(toggleButton);
-            toolBar.add(Box.createHorizontalStrut(2));
-        });        
+        filterButtons = createFilter(Level.DEBUG, Level.INFO, Level.WARN);
+        filterButtons.forEach((level, button) -> {
+            toolBar.add(button);
+            toolBar.add(Box.createHorizontalStrut(2));            
+        });       
         JSeparator sep = new JSeparator(SwingConstants.VERTICAL);
         sep.setMaximumSize(new Dimension(1, 30));
         toolBar.add(Box.createHorizontalStrut(5));
@@ -130,6 +132,8 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
            maxLevel = Level.ALL_INT;
            ((JButton) view).setIcon(ImageUtils.resize(NONE, 17, 17));
         });
+        
+        ServiceRegistry.getInstance().registerService(new LogMgmtService());
     }
 
     @Override
@@ -178,8 +182,8 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
         }
     }
     
-    private List<ToggleButton> createFilter(Level... levels) {
-        List<ToggleButton> toggles = new LinkedList<>();
+    private Map<Level, ToggleButton> createFilter(Level... levels) {
+        Map<Level, ToggleButton> switches = new LinkedHashMap<>();
         for (final Level level : levels) {
             final ToggleButton toggle = new ToggleButton(
                     ImageUtils.resize(levelIcon.get(level), 22, 22), 
@@ -189,8 +193,29 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
             toggle.addActionListener((ActionEvent event) -> {
                 paneAppender.toggleLevel(level, toggle.isChecked());
             });
-            toggles.add(toggle);
+            switches.put(level, toggle);
         }
-        return toggles;
+        return switches;
+    }
+    
+    public class LogMgmtService implements ILogMgmtService {
+        
+        LogMgmtService() {};
+
+        @Override
+        public void changeLevels(Map<codex.log.Level, Boolean> levels) {
+            levels.forEach((level, enable) -> {
+                if (filterButtons.containsKey(level.log4jLevel)) {
+                    filterButtons.get(level.log4jLevel).setChecked(enable);
+                    LogUnit.this.paneAppender.toggleLevel(level.log4jLevel, enable);
+                }
+            });
+        }
+
+        @Override
+        public String getTitle() {
+            return "Logger Management Service";
+        }
+
     }
 }
