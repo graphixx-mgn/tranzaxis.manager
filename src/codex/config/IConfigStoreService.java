@@ -76,4 +76,9 @@ public interface IConfigStoreService extends IService {
         return new LinkedList<>();
     };
     
+    @Override
+    default String getTitle() {
+        return "Configuration Access Service";
+    }
+    
 }

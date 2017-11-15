@@ -208,9 +208,4 @@ public final class ConfigStoreService implements IConfigStoreService {
         return PIDs;
     };
 
-    @Override
-    public String getTitle() {
-        return "Configuration Manager";
-    }
-
 }
