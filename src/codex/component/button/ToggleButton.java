@@ -30,11 +30,27 @@ public class ToggleButton extends PushButton {
     }
     
     /**
-     * Проверка текущего состояния кнопки.
-     * @return TRUE - если включена, иначе - выключена.
+     * Установить состояние переключателя.
+     * @param checked TRUE - если включен, иначе - выключен.
      */
-    public boolean isChecked() {
+    public final void setChecked(boolean checked) {
+        this.checked = checked;
+        redraw();
+    }
+    
+    /**
+     * Проверка текущего состояния переключателя.
+     * @return TRUE - если включен, иначе - выключен.
+     */
+    public final boolean isChecked() {
         return checked;
+    }
+    
+    /**
+     * Установить состояние переключателя на противоположное текущему.
+     */
+    public final void toggle() {
+        setChecked(!isChecked());
     }
 
     @Override
