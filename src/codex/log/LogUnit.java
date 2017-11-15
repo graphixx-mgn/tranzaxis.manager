@@ -16,11 +16,16 @@ import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.AdjustmentListener;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowStateListener;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import javax.swing.BoundedRangeModel;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.GroupLayout;
@@ -52,6 +57,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
     private final JFrame     frame;
     private boolean          frameState;
     private int              maxLevel = Level.ALL_INT;
+    private boolean          autoScroll = true;
     private TextPaneAppender paneAppender;
     private Map<Level, ImageIcon>          levelIcon = new HashMap<>();
     private final Map<Level, ToggleButton> filterButtons;
@@ -131,6 +137,30 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
            logPane.setText("");
            maxLevel = Level.ALL_INT;
            ((JButton) view).setIcon(ImageUtils.resize(NONE, 17, 17));
+        });
+        
+        scrollPane.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {
+            BoundedRangeModel brm = scrollPane.getVerticalScrollBar().getModel();
+            
+            @Override
+            public void adjustmentValueChanged(AdjustmentEvent event) {
+                if (!brm.getValueIsAdjusting()) {
+                    if (autoScroll) brm.setValue(brm.getMaximum());
+                } else {
+                    autoScroll = (brm.getValue() + brm.getExtent()) == brm.getMaximum();
+                }
+            }
+        });
+        scrollPane.addMouseWheelListener(new MouseWheelListener() {
+            BoundedRangeModel brm = scrollPane.getVerticalScrollBar().getModel();
+            @Override
+            public void mouseWheelMoved(MouseWheelEvent event) {
+                if (event.getWheelRotation() < 0) {
+                    autoScroll = false;
+                } else {
+                    autoScroll = (brm.getValue() + brm.getExtent()) == brm.getMaximum();
+                }
+            }
         });
         
         ServiceRegistry.getInstance().registerService(new LogMgmtService());

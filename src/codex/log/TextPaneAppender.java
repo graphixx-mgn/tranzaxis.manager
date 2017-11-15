@@ -3,7 +3,6 @@ package codex.log;
 import java.awt.Color;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.StringJoiner;
 import javax.swing.JTextPane;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
