@@ -11,6 +11,6 @@ public interface ILogMgmtService extends IService {
     /**
      * Установить новые значения отображения событий.
      */
-    void changeLevels(Map<Level, Boolean> levels);
+    default void changeLevels(Map<Level, Boolean> levels) {};
     
 }
