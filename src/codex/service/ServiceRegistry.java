@@ -1,6 +1,5 @@
 package codex.service;
 
-import codex.config.IConfigStoreService;
 import codex.log.Logger;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
@@ -58,19 +57,21 @@ public final class ServiceRegistry {
         if (registry.containsKey(serviceClass)) {
             return registry.get(serviceClass);
         } else {
-            Class prototype = serviceClass.getInterfaces()[0];
+            Class serviceInterface = serviceClass.getInterfaces()[0];
             try {
                 //https://stackoverflow.com/questions/37812393/how-to-explicitly-invoke-default-method-from-a-dynamic-proxy
-                if (!stubs.containsKey(serviceClass)) {
-                    stubs.put(
-                        serviceClass, 
-                        (IService) Proxy.newProxyInstance(
-                            IConfigStoreService.class.getClassLoader(),
-                            new Class[]{IConfigStoreService.class}, 
+                if (!stubs.containsKey(serviceInterface)) {
+                    stubs.put(serviceInterface, 
+                        (IService) Proxy.newProxyInstance(serviceInterface.getClassLoader(),
+                            new Class[]{serviceInterface}, 
                             (Object proxy, Method method, Object[] arguments) -> {
-                                Logger.getLogger().warn("Called not registered service ''{0}'' ", serviceClass.getCanonicalName());
-                                return lookup.newInstance(
-                                        IConfigStoreService.class,
+                                if (!method.getName().equals("getTitle")) {
+                                    Logger.getLogger().warn(
+                                            "Called not registered service ''{0}'' ", 
+                                            stubs.get(serviceInterface).getTitle()
+                                    );
+                                }
+                                return lookup.newInstance(serviceInterface,
                                         MethodHandles.Lookup.PRIVATE
                                 )
                                     .unreflectSpecial(method, method.getDeclaringClass())
@@ -80,12 +81,12 @@ public final class ServiceRegistry {
                         )
                     );
                 }
-                return stubs.get(serviceClass);
+                return stubs.get(serviceInterface);
             } catch (IllegalArgumentException | SecurityException e1) {
-                Logger.getLogger().error(
-                        MessageFormat.format("Service ''{0}'' invocation error", serviceClass.getCanonicalName()),
-                        e1
-                );
+                Logger.getLogger().error(MessageFormat.format(
+                        "Service ''{0}'' invocation error", 
+                        stubs.get(serviceInterface).getTitle()
+                ), e1);
                 return null;
             }
         }
