@@ -17,6 +17,7 @@ import manager.nodes.Database;
 public class CheckDatabase extends EntityCommand {
     
     private final static Pattern   SPLIT   = Pattern.compile("([\\d\\.]+):(\\d+)/");
+    private final static ImageIcon WARN    = ImageUtils.resize(ImageUtils.getByPath("/images/unavailable.png"),  28, 28);
     private final static ImageIcon ACTIVE  = ImageUtils.resize(ImageUtils.getByPath("/images/lamp.png"),  28, 28);
     private final static ImageIcon PASSIVE = ImageUtils.resize(ImageUtils.getByPath("/images/event.png"), 28, 28);
 
@@ -25,14 +26,19 @@ public class CheckDatabase extends EntityCommand {
         getButton().setFocusable(false);
         
         activator = (entities) -> {
-            getButton().setEnabled(
-                entities != null && entities.length > 0 && 
-                !(entities.length > 1 && !multiContextAllowed()) && (
-                        available == null || Arrays.asList(entities).stream().allMatch(available)
-                ) && !IComplexType.coalesce((String) entities[0].model.getValue("dbUrl"), "").isEmpty()
-            );
-            if (getButton().isEnabled()) {
-                getButton().setIcon(checkPort((String) entities[0].model.getValue("dbUrl")) ? ACTIVE : PASSIVE);
+            if (entities != null && entities.length > 0 && !(entities.length > 1 && !multiContextAllowed())) {
+                if (
+                    (available == null || Arrays.asList(entities).stream().allMatch(available)) && 
+                    !IComplexType.coalesce((String) entities[0].model.getValue("dbUrl"), "").isEmpty()
+                ) {
+                    getButton().setIcon(checkPort((String) entities[0].model.getValue("dbUrl")) ? ACTIVE : PASSIVE);
+                } else {
+                    getButton().setIcon(ImageUtils.combine(PASSIVE, WARN));
+                }
+                getButton().setEnabled(true);
+            } else {
+                getButton().setIcon(PASSIVE);
+                getButton().setEnabled(false);
             }
         };
     }
