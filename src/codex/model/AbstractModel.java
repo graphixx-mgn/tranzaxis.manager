@@ -16,7 +16,8 @@ import java.util.stream.Collectors;
 public class AbstractModel {
    
     final Map<String, PropertyHolder> properties = new LinkedHashMap<>();
-    final Map<String, Access> restrictions = new LinkedHashMap<>();
+    final Map<String, IEditor> editors = new LinkedHashMap<>();
+    final Map<String, Access>  restrictions = new LinkedHashMap<>();
     
     /**
      * Возвращает признак что модель корректна.
@@ -101,7 +102,10 @@ public class AbstractModel {
     }
     
     public IEditor getEditor(String name) {
-        return properties.get(name).getPropValue().editorFactory().newInstance(properties.get(name));
+        if (!editors.containsKey(name)) {
+            editors.put(name, properties.get(name).getPropValue().editorFactory().newInstance(properties.get(name)));
+        }
+        return editors.get(name);
     }
     
 }
