@@ -10,6 +10,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.MatteBorder;
 
 /**
  * Заставка загрузки приложения с прогрессом процесса инициализации.
@@ -29,11 +30,14 @@ public final class Splash extends JFrame {
         setLayout(new BorderLayout());
         setLocationRelativeTo(null);
         getContentPane().setBackground(Color.WHITE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         
         JLabel icon = new JLabel(ImageUtils.getByPath("/images/splash.png"));
+        icon.setBorder(new MatteBorder(1, 1, 0, 1, Color.GRAY));
         add(icon, BorderLayout.NORTH);
         
         progress = new JProgressBar(0, 100);
+        progress.setBorder(new EmptyBorder(0, 0, 0, 0));
         progress.setBorderPainted(false);
         progress.setStringPainted(true);
         progress.setUI(new MotifProgressBarUI());
@@ -41,7 +45,7 @@ public final class Splash extends JFrame {
         progress.setBackground(Color.WHITE);
         progress.setForeground(Color.decode("#D93B3B"));
         progress.setString("");
-        progress.setPreferredSize(new Dimension(getWidth(), 6));
+        progress.setPreferredSize(new Dimension(getWidth(), 3));
         
         progressText = new JLabel("");
         progressText.setOpaque(true);
@@ -49,6 +53,7 @@ public final class Splash extends JFrame {
         progressText.setBorder(new EmptyBorder(0, 5, 5, 0));
         
         JPanel info = new JPanel(new BorderLayout());
+        info.setBorder(new MatteBorder(0, 1, 1, 1, Color.GRAY));
         info.add(progress, BorderLayout.CENTER);
         info.add(progressText, BorderLayout.SOUTH);
                 
