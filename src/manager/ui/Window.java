@@ -1,21 +1,39 @@
 package manager.ui;
 
+import codex.log.Logger;
 import codex.unit.AbstractUnit;
+import java.awt.AWTException;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Frame;
+import java.awt.SystemTray;
+import java.awt.TrayIcon;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowStateListener;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.prefs.Preferences;
 import javax.swing.GroupLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.MatteBorder;
+import manager.Manager;
 
-public final class Window extends JFrame {
+public final class Window extends JFrame implements WindowStateListener {
     
     public final JPanel upgradePanel = new JPanel();
     public final JPanel taskmgrPanel = new JPanel();
     public final JPanel loggingPanel = new JPanel();
     public final JPanel explorePanel = new JPanel();
+    
+    private final TrayIcon trayIcon;
+    private int            prevWindowState;
+    Map<String, Boolean>   prevVisibleState = new LinkedHashMap<>();
     
     public Window(String title, ImageIcon icon) {
         super(title);
@@ -57,6 +75,16 @@ public final class Window extends JFrame {
                     .addComponent(loggingPanel, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                 )
         );
+        trayIcon = new TrayIcon(getIconImage(), "TranzAxis Manager");
+        trayIcon.setImageAutoSize(true);
+        trayIcon.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                setVisible(true);
+                setExtendedState(prevWindowState);
+            }
+        });
+        addWindowStateListener(this);
     }
     
     @Override
@@ -72,5 +100,39 @@ public final class Window extends JFrame {
         container.add(unit.getViewport(), BorderLayout.CENTER);
         unit.getViewport().setPreferredSize(container.getSize());
         unit.viewportBound();
+    }
+
+    @Override
+    public void windowStateChanged(WindowEvent event) {
+        boolean minimize = Preferences.userRoot().node(Manager.class.getSimpleName()).getBoolean("useTray", false);
+        
+        if (event.getNewState() == ICONIFIED || event.getNewState() == 7) {
+            prevWindowState = event.getOldState();
+            prevVisibleState.clear();
+            Arrays.asList(Frame.getFrames()).forEach((frame) -> {
+                if (frame.isDisplayable() && frame != event.getWindow()) {
+                    prevVisibleState.put(frame.getName(), frame.isVisible());
+                    frame.setVisible(false);
+                }
+            });
+            if (SystemTray.isSupported() && minimize) {
+                try {
+                    setVisible(false);
+                    SystemTray.getSystemTray().add(trayIcon);
+                } catch (AWTException e) {
+                    Logger.getLogger().warn("Unable to minimize window to tray: {0}", e.getMessage());
+                }
+            }
+        }
+        if (event.getNewState() == MAXIMIZED_BOTH || event.getNewState() == NORMAL) {
+            Arrays.asList(Frame.getFrames()).forEach((frame) -> {
+                if (prevVisibleState.containsKey(frame.getName())) {
+                    frame.setVisible(prevVisibleState.get(frame.getName()));
+                }
+            });
+            if (SystemTray.isSupported() && minimize) {
+                SystemTray.getSystemTray().remove(trayIcon);
+            }
+        }
     }
 }
