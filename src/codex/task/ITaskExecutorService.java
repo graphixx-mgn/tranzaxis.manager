@@ -19,4 +19,9 @@ public interface ITaskExecutorService extends IService {
      */
     default void enqueueTask(ITask task) {};
     
+    @Override
+    default String getTitle() {
+        return "Task Executor Service";
+    }
+    
 }

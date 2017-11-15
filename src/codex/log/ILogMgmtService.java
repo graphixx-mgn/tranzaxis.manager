@@ -13,4 +13,9 @@ public interface ILogMgmtService extends IService {
      */
     default void changeLevels(Map<Level, Boolean> levels) {};
     
+    @Override
+    default String getTitle() {
+        return "Logger Management Service";
+    };
+    
 }

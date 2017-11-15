@@ -211,11 +211,6 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
                 }
             });
         }
-
-        @Override
-        public String getTitle() {
-            return "Logger Management Service";
-        }
-
     }
+    
 }

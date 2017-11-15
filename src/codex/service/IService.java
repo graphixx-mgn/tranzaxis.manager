@@ -5,6 +5,8 @@ package codex.service;
  */
 public interface IService {
 
-    String getTitle();
+    default String getTitle() {
+        return "IService interface";
+    };
     
 }
