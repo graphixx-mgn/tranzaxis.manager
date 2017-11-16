@@ -9,6 +9,7 @@ import codex.utils.ImageUtils;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.KeyboardFocusManager;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
@@ -21,6 +22,7 @@ import java.util.function.Predicate;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -46,6 +48,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     protected Function<String, Object> transformer;
     
     protected final JLabel  signInvalid;
+    protected final JLabel  signDelete;
     
     /**
      * Конструктор редактора.
@@ -77,6 +80,13 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
                 ImageUtils.getByPath("/images/warn.png"), 
                 textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
         ));
+        signDelete = new JLabel(ImageUtils.resize(
+                ImageUtils.getByPath("/images/clearval.png"), 
+                textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
+        ));
+        signDelete.setBorder(new EmptyBorder(0, 3, 0, 0));
+        signInvalid.setCursor(Cursor.getDefaultCursor());
+        signDelete.setCursor(Cursor.getDefaultCursor());
         IMask<String> mask = ((Str) propHolder.getPropValue()).getMask();
         if (mask.getErrorHint() != null) {
             signInvalid.addMouseListener(new MouseAdapter() {
@@ -124,8 +134,22 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         placeHolder.setBorder(textField.getBorder());
         placeHolder.changeAlpha(100);
         
+        JPanel controls = new JPanel(new BorderLayout());
+        controls.setOpaque(false);
+        controls.add(signInvalid, BorderLayout.WEST);
+        controls.add(signDelete, BorderLayout.EAST);
+        
+        signDelete.setVisible(!propHolder.isEmpty());
         signInvalid.setVisible(false);
-        textField.add(signInvalid, BorderLayout.EAST);
+        textField.add(controls, BorderLayout.EAST);
+        
+        signDelete.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                setValue(null);
+                propHolder.setValue(null);
+            }
+        });
     }
 
     @Override
@@ -177,7 +201,8 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
             if (mask.getErrorHint() != null) {
                 TimingUtils.showTimedBalloon(getErrorTip(), 4000);
             }
-        }
+        }                
+        signDelete.setVisible(!propHolder.isEmpty());
         return inputOk;
     }
 
@@ -200,6 +225,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
      */
     @Override
     public void insertUpdate(DocumentEvent event) {
+        signDelete.setVisible(!textField.getText().isEmpty());
         update.accept(textField.getText());
     }
 
@@ -209,6 +235,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
      */
     @Override
     public void removeUpdate(DocumentEvent event) {
+        signDelete.setVisible(!textField.getText().isEmpty());
         update.accept(textField.getText());
     }
 
@@ -218,6 +245,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
      */
     @Override
     public void changedUpdate(DocumentEvent event) {
+        signDelete.setVisible(!textField.getText().isEmpty());
         update.accept(textField.getText());
     }
 
