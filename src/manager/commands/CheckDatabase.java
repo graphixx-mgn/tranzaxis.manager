@@ -23,7 +23,7 @@ public class CheckDatabase extends EntityCommand {
 
     public CheckDatabase() {
         super("activity", null, PASSIVE, Language.get(Database.class.getSimpleName(), "command@activity"), null);
-        getButton().setFocusable(false);
+        getButton().setInactive(true);
         
         activator = (entities) -> {
             if (entities != null && entities.length > 0 && !(entities.length > 1 && !multiContextAllowed())) {
