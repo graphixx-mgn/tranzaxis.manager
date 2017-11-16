@@ -28,5 +28,13 @@ public final class ClearButton extends JButton implements IButton  {
     public void setHint(String text) {
         setToolTipText(text);
     }
+    
+    @Override
+    public void setInactive(boolean inactive) {}
+
+    @Override
+    public boolean isInactive() {
+        return false;
+    }
 
 }
