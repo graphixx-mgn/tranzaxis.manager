@@ -202,7 +202,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
                 TimingUtils.showTimedBalloon(getErrorTip(), 4000);
             }
         }                
-        signDelete.setVisible(!propHolder.isEmpty());
+        signDelete.setVisible(!propHolder.isEmpty() && isEditable());
         return inputOk;
     }
 
@@ -225,7 +225,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
      */
     @Override
     public void insertUpdate(DocumentEvent event) {
-        signDelete.setVisible(!textField.getText().isEmpty());
+        signDelete.setVisible(!textField.getText().isEmpty() && isEditable());
         update.accept(textField.getText());
     }
 
@@ -235,7 +235,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
      */
     @Override
     public void removeUpdate(DocumentEvent event) {
-        signDelete.setVisible(!textField.getText().isEmpty());
+        signDelete.setVisible(!textField.getText().isEmpty() && isEditable());
         update.accept(textField.getText());
     }
 
@@ -245,7 +245,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
      */
     @Override
     public void changedUpdate(DocumentEvent event) {
-        signDelete.setVisible(!textField.getText().isEmpty());
+        signDelete.setVisible(!textField.getText().isEmpty() && isEditable());
         update.accept(textField.getText());
     }
 
