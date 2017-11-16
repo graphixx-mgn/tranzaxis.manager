@@ -23,6 +23,7 @@ import javax.swing.GroupLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.border.MatteBorder;
 import manager.Manager;
 
@@ -137,7 +138,9 @@ public final class Window extends JFrame implements WindowStateListener {
         if (event.getNewState() == MAXIMIZED_BOTH || event.getNewState() == NORMAL) {
             Arrays.asList(Frame.getFrames()).forEach((frame) -> {
                 if (prevVisibleState.containsKey(frame.getName())) {
-                    frame.setVisible(prevVisibleState.get(frame.getName()));
+                    SwingUtilities.invokeLater(() -> {
+                        frame.setVisible(prevVisibleState.get(frame.getName()));
+                    });
                 }
             });
         }
