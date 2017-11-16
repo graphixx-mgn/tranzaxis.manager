@@ -47,7 +47,7 @@ public final class Splash extends JFrame {
         progress.setString("");
         progress.setPreferredSize(new Dimension(getWidth(), 3));
         
-        progressText = new JLabel("");
+        progressText = new JLabel(" ");
         progressText.setOpaque(true);
         progressText.setBackground(Color.WHITE);
         progressText.setBorder(new EmptyBorder(0, 5, 5, 0));
