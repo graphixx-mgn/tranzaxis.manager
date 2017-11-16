@@ -1,6 +1,8 @@
 package manager.ui;
 
 import codex.log.Logger;
+import codex.notification.NotificationService;
+import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
 import java.awt.AWTException;
 import java.awt.BorderLayout;
@@ -38,7 +40,6 @@ public final class Window extends JFrame implements WindowStateListener {
     public Window(String title, ImageIcon icon) {
         super(title);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        
         if (icon != null) {
             setIconImage(icon.getImage());
         }
@@ -75,15 +76,29 @@ public final class Window extends JFrame implements WindowStateListener {
                     .addComponent(loggingPanel, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                 )
         );
-        trayIcon = new TrayIcon(getIconImage(), "TranzAxis Manager");
-        trayIcon.setImageAutoSize(true);
-        trayIcon.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                setVisible(true);
-                setExtendedState(prevWindowState);
+        if (SystemTray.isSupported()) {
+            trayIcon = new TrayIcon(getIconImage(), "TranzAxis Manager");
+            trayIcon.setImageAutoSize(true);
+            trayIcon.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    setVisible(true);
+                    setExtendedState(prevWindowState);
+                }
+            });
+            NotificationService notifier = new NotificationService(trayIcon);
+            notifier.setCondition(() -> {
+                return getState() == JFrame.ICONIFIED || getState() == 7 || !isActive();
+            });
+            ServiceRegistry.getInstance().registerService(notifier);
+            try {
+                SystemTray.getSystemTray().add(trayIcon);
+            } catch (AWTException e) {
+                Logger.getLogger().warn("Unable to minimize window to tray: {0}", e.getMessage());
             }
-        });
+        } else {
+            trayIcon = null;
+        }
         addWindowStateListener(this);
     }
     
@@ -104,7 +119,7 @@ public final class Window extends JFrame implements WindowStateListener {
 
     @Override
     public void windowStateChanged(WindowEvent event) {
-        boolean minimize = Preferences.userRoot().node(Manager.class.getSimpleName()).getBoolean("useTray", false);
+        boolean hideToTray = Preferences.userRoot().node(Manager.class.getSimpleName()).getBoolean("useTray", false);
         
         if (event.getNewState() == ICONIFIED || event.getNewState() == 7) {
             prevWindowState = event.getOldState();
@@ -115,13 +130,8 @@ public final class Window extends JFrame implements WindowStateListener {
                     frame.setVisible(false);
                 }
             });
-            if (SystemTray.isSupported() && minimize) {
-                try {
-                    setVisible(false);
-                    SystemTray.getSystemTray().add(trayIcon);
-                } catch (AWTException e) {
-                    Logger.getLogger().warn("Unable to minimize window to tray: {0}", e.getMessage());
-                }
+            if (hideToTray) {
+                setVisible(false);
             }
         }
         if (event.getNewState() == MAXIMIZED_BOTH || event.getNewState() == NORMAL) {
@@ -130,9 +140,6 @@ public final class Window extends JFrame implements WindowStateListener {
                     frame.setVisible(prevVisibleState.get(frame.getName()));
                 }
             });
-            if (SystemTray.isSupported() && minimize) {
-                SystemTray.getSystemTray().remove(trayIcon);
-            }
         }
     }
 }
