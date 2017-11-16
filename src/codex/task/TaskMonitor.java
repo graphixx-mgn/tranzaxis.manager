@@ -1,6 +1,9 @@
 package codex.task;
 
 import codex.component.render.DefaultRenderer;
+import codex.notification.INotificationService;
+import codex.notification.NotificationService;
+import codex.service.ServiceRegistry;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.BorderLayout;
@@ -8,6 +11,9 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.Point;
+import java.awt.TrayIcon;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -21,6 +27,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.FocusManager;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -59,6 +66,8 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
     private final JProgressBar      poolUsage = new JProgressBar();
     private final JLabel            threadCount = new JLabel();
     private final DefaultTableModel threadTableModel;
+    
+    private boolean viewPortBound = false;
     
     static {
         UIManager.getDefaults().put("TabbedPane.contentBorderInsets", new Insets(0,0,0,0));
@@ -141,7 +150,7 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
         threadTableModel.addColumn("#"); 
         threadTableModel.addColumn(Language.get("thread@name"));
         threadTableModel.addColumn(Language.get("thread@status"));
-        threadTable.setRowHeight((int ) (threadTable.getRowHeight() * 1.3));
+        threadTable.setRowHeight((int) (threadTable.getRowHeight() * 1.3));
         threadTable.getColumnModel().getColumn(0).setMaxWidth(40);
         threadTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
 
@@ -171,11 +180,21 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
             Point invokerLocation = getInvoker().getLocationOnScreen();
             setLocation(invokerLocation.x + 5, invokerLocation.y - getPreferredSize().height);
         }
+        if (!viewPortBound && FocusManager.getCurrentManager().getActiveWindow() != null) {
+            viewPortBound = true;
+            FocusManager.getCurrentManager().getActiveWindow().addComponentListener(new ComponentAdapter() {
+                
+                @Override
+                public void componentResized(ComponentEvent ev) {
+                    setVisible(visibility);
+                }
+            });
+        }
         super.setVisible(visibility);
     }
 
     /**
-     * Перерисовка окна и пересчет его позиции на эеране.
+     * Перерисовка окна и пересчет его позиции на экране.
      */
     @Override
     public void repaint() {
@@ -263,6 +282,18 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
                 threadTableModel.addRow(new Object[]{threadIdx++, THREAD_NAME.group(1), THREAD_STATE.group(1)});
             }
         });
+        if (task.getStatus() == Status.FAILED || task.getStatus() == Status.FINISHED) {
+            String msgTitle = Language.get(
+                    TaskMonitor.class.getSimpleName(),
+                    "notify@"+task.getStatus().name().toLowerCase()
+            );
+            ((INotificationService) ServiceRegistry.getInstance().lookupService(NotificationService.class))
+                    .showMessage(
+                            msgTitle, 
+                            task.getTitle(), 
+                            task.getStatus() == Status.FINISHED ? TrayIcon.MessageType.INFO : TrayIcon.MessageType.ERROR
+                    );
+        }
     }
     
 }
