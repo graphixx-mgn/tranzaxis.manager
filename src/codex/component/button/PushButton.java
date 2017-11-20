@@ -91,10 +91,14 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
         button.setIcon(icon);
         button.setDisabledIcon(ImageUtils.grayscale((ImageIcon) icon));
     }
+    
+    @Override
+    public Icon getIcon() {
+        return button.getIcon();
+    }
 
     @Override
     public final void setHint(String text) {
-//        button.setToolTipText(text);
         BalloonTip tooltipBalloon = new BalloonTip(
                 (JComponent) this.button, 
                 new JLabel(
@@ -113,6 +117,11 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     @Override
     public final void setText(String text) {
         button.setText(text);
+    }
+    
+    @Override
+    public String getText() {
+        return button.getText();
     }
     
     @Override

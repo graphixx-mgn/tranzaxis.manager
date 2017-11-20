@@ -54,6 +54,11 @@ public interface IButton {
     public void setIcon(Icon icon);
     
     /**
+     * Возвращает иконку кнопки.
+     */
+    public Icon getIcon();
+    
+    /**
      * Динамическая смена текста подсказки для кнопки. Следует использовать в случае 
      * когда в зависимости от каких-либо условий текст следует изменить.
      * @see StringListEditor
@@ -66,6 +71,11 @@ public interface IButton {
      * @param text Текст новой надписи.
      */
     public void setText(String text);
+    
+    /**
+     * Возвращает текст кнопки.
+     */
+    public String getText();
     
     /**
      * Переключения состояния интерактивности кнопки.
