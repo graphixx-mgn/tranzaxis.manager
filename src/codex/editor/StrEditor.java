@@ -202,7 +202,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
                 TimingUtils.showTimedBalloon(getErrorTip(), 4000);
             }
         }                
-        signDelete.setVisible(!propHolder.isEmpty() && isEditable());
+        signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
         return inputOk;
     }
 
