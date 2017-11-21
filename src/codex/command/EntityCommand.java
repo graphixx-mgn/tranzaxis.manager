@@ -5,20 +5,22 @@ import codex.component.button.PushButton;
 import codex.log.Logger;
 import codex.model.Entity;
 import codex.model.EntityModel;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import javax.swing.ImageIcon;
 import codex.model.IModelListener;
 import codex.presentation.CommitEntity;
 import codex.presentation.RollbackEntity;
+import codex.type.IComplexType;
+import codex.type.Iconified;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 import javax.swing.AbstractAction;
+import javax.swing.ImageIcon;
 import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.KeyStroke;
@@ -31,10 +33,11 @@ import javax.swing.SwingUtilities;
  * @see CommitEntity
  * @see RollbackEntity
  */
-public abstract class EntityCommand implements ICommand<Entity>, ActionListener, IModelListener, ICommandListener<Entity> {
+public abstract class EntityCommand implements ICommand<Entity>, ActionListener, IModelListener, ICommandListener<Entity>, Iconified {
     
     private KeyStroke key;
     private String    name;
+    private String    title;
     private Entity[]  context;
     private IButton   button; 
     
@@ -77,9 +80,10 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         }
         this.key       = key;
         this.name      = name;
+        this.title     = title;
         this.available = available;
         
-        this.button = new PushButton(icon, title);
+        this.button = new PushButton(icon, null);
         this.button.addActionListener(this);
         this.button.setHint(hint + (key == null ? "" : " ("+getKeyText(key)+")"));
         
@@ -189,5 +193,15 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     public void contextChanged(Entity... context) {
         // Do nothing
     };
+
+    @Override
+    public ImageIcon getIcon() {
+        return (ImageIcon) button.getIcon();
+    }
+    
+    @Override
+    public String toString() {
+        return IComplexType.coalesce(title, name);
+    }
     
 }
