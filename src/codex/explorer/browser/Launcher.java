@@ -33,15 +33,21 @@ final class Launcher extends JPanel {
             final Shortcut shortcut = (Shortcut) Entity.newInstance(Shortcut.class, PID);
             final Entity   entity = (Entity) shortcut.model.getValue("entity");
             final String   cmdName = (String) shortcut.model.getValue("command");
-            for (EntityCommand command : entity.getCommands()) {
-                if (command.getName().equals(cmdName)) {
-                    CommandLauncher launcher = new CommandLauncher(
-                            (Entity) shortcut.model.getValue("entity"), 
-                            command,
-                            PID
-                    );
-                    commandLaunchPanel.add(launcher);
-                    break;
+            
+            if (entity == null) {
+                CommandLauncher launcher = new CommandLauncher(null, null, PID);
+                commandLaunchPanel.add(launcher);
+            } else {
+                for (EntityCommand command : entity.getCommands()) {
+                    if (command.getName().equals(cmdName)) {
+                        CommandLauncher launcher = new CommandLauncher(
+                                (Entity) shortcut.model.getValue("entity"), 
+                                command,
+                                PID
+                        );
+                        commandLaunchPanel.add(launcher);
+                        break;
+                    }
                 }
             }
         });

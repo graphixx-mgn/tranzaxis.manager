@@ -4,11 +4,15 @@ import codex.command.EntityCommand;
 import codex.log.Logger;
 import codex.model.Entity;
 import codex.utils.ImageUtils;
+import java.awt.AlphaComposite;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.event.ChangeEvent;
 
@@ -17,7 +21,10 @@ import javax.swing.event.ChangeEvent;
  */
 final class CommandLauncher extends LaunchButton {
     
-    private final JLabel signDelete;
+    private final ImageIcon TILE = ImageUtils.getByPath("/images/strips_red.png");
+    
+    private final JLabel  signDelete;
+    private final boolean valid;
     
     /**
      * Конструктор ярлыка.
@@ -25,7 +32,12 @@ final class CommandLauncher extends LaunchButton {
      * @param command Ссылка на команду, доступную для класса сущности.
      */
     CommandLauncher(Entity entity, EntityCommand command, String title) {
-        super(title, command.getButton().getIcon());
+        super(
+                title, 
+                command == null ? 
+                    ImageUtils.getByPath("/images/warn.png") : 
+                    command.getButton().getIcon()
+        );
         setLayout(null);
         
         signDelete = new JLabel(ImageUtils.resize(ImageUtils.getByPath("/images/clearval.png"), 18, 18));
@@ -41,11 +53,15 @@ final class CommandLauncher extends LaunchButton {
                 size.width, 
                 size.height
         );
-        
-        addActionListener((event) -> {
-            Logger.getLogger().debug("Perform command [{0}]. Context: {1}", command.getName(), entity);
-            command.execute(entity);
-        });
+        valid = entity != null;
+        if (entity != null) {
+            addActionListener((event) -> {
+                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", command.getName(), entity);
+                command.execute(entity);
+            });
+        } else {
+            setBorder(ERROR_BORDER);
+        }
         
         signDelete.addMouseListener(new MouseAdapter() {
             @Override
@@ -67,8 +83,28 @@ final class CommandLauncher extends LaunchButton {
     
     @Override
     public void stateChanged(ChangeEvent event) {
-        super.stateChanged(event);
+        if (valid) {
+            super.stateChanged(event);
+        }
         signDelete.setVisible(getModel().isRollover());
+    }
+    
+    @Override
+    public void paint(Graphics g) {
+        super.paint(g);
+        if (!valid) {
+            Graphics2D g2d = (Graphics2D) g.create();
+            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.1f));
+            int tileWidth = TILE.getIconWidth();
+            int tileHeight = TILE.getIconHeight();
+            Insets ins = getInsets();
+            for (int y = 2; y < getHeight()-4; y += tileHeight) {
+                for (int x = 2; x < getWidth()-4; x += tileWidth) {
+                    g2d.drawImage(TILE.getImage(), x, y, this);
+                }
+            }
+            g2d.dispose();
+        }
     }
     
 }
