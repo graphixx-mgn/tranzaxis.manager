@@ -7,7 +7,7 @@ import codex.type.Str;
 public class Shortcut extends Entity {
     
     public Shortcut(String title) {
-        super(null, null, null);
+        super(null, title, null);
         
         model.addUserProp("entity", new EntityRef(null), true, null);
         model.addUserProp("command", new Str(null), true, null);

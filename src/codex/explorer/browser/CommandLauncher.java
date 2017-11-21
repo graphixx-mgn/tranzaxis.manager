@@ -1,6 +1,7 @@
 package codex.explorer.browser;
 
 import codex.command.EntityCommand;
+import codex.log.Logger;
 import codex.model.Entity;
 import codex.utils.ImageUtils;
 import java.awt.Dimension;
@@ -41,6 +42,7 @@ final class CommandLauncher extends LaunchButton {
         );
         
         addActionListener((event) -> {
+            Logger.getLogger().debug("Perform command [{0}]. Context: {1}", command.getName(), entity);
             command.execute(entity);
         });
         
