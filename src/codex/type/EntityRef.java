@@ -1,15 +1,21 @@
 package codex.type;
 
+import codex.config.ConfigStoreService;
+import codex.config.IConfigStoreService;
 import codex.editor.EntityRefEditor;
 import codex.editor.IEditorFactory;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
+import codex.service.ServiceRegistry;
+import java.util.List;
 import java.util.function.Predicate;
 
 /**
  * Тип-ссылка на сущность {@link Entity}.
  */
 public class EntityRef implements IComplexType<Entity> {
+    
+    private final static IConfigStoreService STORE = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     
     private Class             entityClass;
     private Predicate<Entity> entityFilter;
@@ -89,8 +95,12 @@ public class EntityRef implements IComplexType<Entity> {
     public void valueOf(String value) {
         String[] parts = value.split("~", -1);
         try {
-            Entity entity = Entity.newInstance(Class.forName(parts[0]), parts[1]);
-            setValue(entity);
+            Class loadClass = Class.forName(parts[0]);
+            final List<String> PIDs = STORE.readCatalogEntries(loadClass);
+            if (PIDs.contains(parts[1])) {
+                Entity entity = Entity.newInstance(loadClass, parts[1]);
+                setValue(entity);
+            }
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
