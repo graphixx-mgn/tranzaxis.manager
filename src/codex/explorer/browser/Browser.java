@@ -12,8 +12,9 @@ import javax.swing.border.EmptyBorder;
  */
 public final class Browser extends JPanel {
     
-    private final JPanel editorPanel;
-    private final JPanel selectorPanel;
+    private final Launcher launchPanel;
+    private final JPanel   editorPanel;
+    private final JPanel   selectorPanel;
     
     /**
      * Конструктор панели.
@@ -22,17 +23,23 @@ public final class Browser extends JPanel {
         super(new BorderLayout());
         setBorder(new EmptyBorder(0, 5, 5, 5));
         
-        editorPanel = new JPanel(new BorderLayout());
-        add(editorPanel, BorderLayout.NORTH);
+        launchPanel   = new Launcher();
+        add(launchPanel, BorderLayout.CENTER);
         
+        editorPanel = new JPanel(new BorderLayout());
         selectorPanel = new JPanel(new BorderLayout());
-        add(selectorPanel, BorderLayout.CENTER);
     }
     
     /**
      * Загружает указанный узел в панель просмотра.
      */
     public void browse(INode node) {
+        if (launchPanel.isVisible()) {
+            launchPanel.setVisible(false);
+            add(editorPanel,   BorderLayout.NORTH);
+            add(selectorPanel, BorderLayout.CENTER);
+        }
+        
         editorPanel.removeAll();
         editorPanel.revalidate();
         editorPanel.repaint();
