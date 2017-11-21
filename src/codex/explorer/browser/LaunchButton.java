@@ -11,7 +11,6 @@ import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.border.Border;
-import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -21,7 +20,7 @@ import javax.swing.event.ChangeListener;
  */
 abstract class LaunchButton extends JButton implements ChangeListener {
     
-    private static final Border NORMAL_BORDER = new EmptyBorder(9, 9, 9, 9);
+    private static final Border NORMAL_BORDER = new RoundedBorder(new LineBorder(Color.decode("#CCCCCC"), 1), 18);
     private static final Border HOVER_BORDER  = new RoundedBorder(new LineBorder(Color.GRAY, 1), 18);
     
     private float opacity = 1;
