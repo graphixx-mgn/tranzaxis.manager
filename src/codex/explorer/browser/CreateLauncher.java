@@ -7,6 +7,7 @@ import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.model.Catalog;
 import codex.model.Entity;
+import codex.model.EntityModel;
 import codex.model.ParamModel;
 import codex.presentation.EditorPage;
 import codex.property.IPropertyChangeListener;
@@ -16,6 +17,7 @@ import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.Color;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -23,6 +25,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.MessageFormat;
 import javax.swing.AbstractAction;
+import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 
@@ -31,23 +34,59 @@ import javax.swing.event.ChangeEvent;
  */
 final class CreateLauncher extends LaunchButton implements ActionListener, IPropertyChangeListener {
     
+    private final Dialog   paramDialog;
     private ParamModel     paramModel;
     private PropertyHolder commandHolder;
     private CommandChooser commandEditor;
+    private EntityCommand  command;
     
-    private DialogButton   confirmBtn = Dialog.Default.BTN_OK.newInstance();
-    private DialogButton   declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
+    private final DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
+    private final DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
     
     CreateLauncher() {
         super("", ImageUtils.getByPath("/images/plus.png"));
-        setOpacity(0.3f);
+        setOpacity(0.6f);
         setBorder(new RoundedBorder(new DashBorder(Color.DARK_GRAY, 5, 1), 18));
         addActionListener(this);
+        
+        paramDialog = new Dialog(
+            SwingUtilities.getWindowAncestor(this), 
+            ImageUtils.getByPath("/images/linkage.png"), 
+            Language.get("title"),
+            new JPanel(),
+            new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent event) {
+                    if (event.getID() == Dialog.OK) {
+                        Entity entity = (Entity) paramModel.getValue("entity");
+                        String title  = (String) paramModel.getValue("linkname");
+                        
+                        CommandLauncher launcher = new CommandLauncher(entity, command, title);
+                        Container panel = CreateLauncher.this.getParent();
+                        panel.remove(CreateLauncher.this);
+                        panel.add(launcher);
+                        panel.add(CreateLauncher.this);
+                        panel.revalidate();
+                        panel.repaint();
+                        
+                        Entity shortcut = Entity.newInstance(Shortcut.class, null);
+                        shortcut.model.setValue(EntityModel.PID, title);
+                        shortcut.model.setValue("entity",        entity);
+                        shortcut.model.setValue("command",       command.getName());
+                        
+                        shortcut.model.init(shortcut.model.getPID());
+                        shortcut.model.commit();
+                    }
+                }
+            },
+            confirmBtn,
+            declineBtn
+        );
     }
     
     @Override
     public void stateChanged(ChangeEvent event) {
-        setOpacity(getModel().isRollover() ? 1 : 0.3f);
+        setOpacity(getModel().isRollover() ? 0.9f : 0.7f);
     }
 
     @Override
@@ -62,9 +101,11 @@ final class CreateLauncher extends LaunchButton implements ActionListener, IProp
         paramModel.addProperty("entity", new EntityRef(null), true);
         paramModel.addProperty("linkname", new Str(null), false);
         paramModel.addChangeListener(this);
-        EditorPage content = new EditorPage(paramModel, EditorPage.Mode.Edit);
         
-        // Инъекция параметра в страницу
+        EditorPage content = new EditorPage(paramModel, EditorPage.Mode.Edit);
+        paramDialog.setContent(content);
+        
+        // Выделение места под новый параметр
         commandHolder = new PropertyHolder("command", new Str(""), true);
         GridBagConstraints gbc = ((GridBagLayout) content.getLayout()).getConstraints(content.getComponent(content.getComponentCount()-2));
         gbc.gridy++;
@@ -73,6 +114,7 @@ final class CreateLauncher extends LaunchButton implements ActionListener, IProp
         gbc.gridy++;
         ((GridBagLayout) content.getLayout()).setConstraints(content.getComponent(content.getComponentCount()-3), gbc);
         
+        // Инъекция параметра в страницу
         gbc.gridy = 3;
         gbc.gridx = 0;
         gbc.weightx = 0;
@@ -84,23 +126,8 @@ final class CreateLauncher extends LaunchButton implements ActionListener, IProp
         commandHolder.addChangeListener(this);
         
         propertyChange(null, null, null);
-        
-        Dialog dialog = new Dialog(
-            SwingUtilities.getWindowAncestor(this), 
-            ImageUtils.getByPath("/images/linkage.png"), 
-            Language.get("title"),
-            content,
-            new AbstractAction() {
-                @Override
-                public void actionPerformed(ActionEvent event) {
-                    //TODO: insert to DB
-                }
-            },
-            confirmBtn,
-            declineBtn
-        );
-        dialog.setPreferredSize(new Dimension(550, dialog.getPreferredSize().height));
-        dialog.setVisible(true);
+        paramDialog.setPreferredSize(new Dimension(550, paramDialog.getPreferredSize().height));
+        paramDialog.setVisible(true);
     }
 
     @Override
@@ -124,6 +151,7 @@ final class CreateLauncher extends LaunchButton implements ActionListener, IProp
                 String commandName = (String) commandHolder.getPropValue().getValue();
                 for (EntityCommand command : entity.getCommands()) {
                     if (command.getName().equals(commandName)) {
+                        this.command = command;
                         paramModel.setValue("linkname", MessageFormat.format(
                                 "{0} ({1})",
                                 command.toString(),

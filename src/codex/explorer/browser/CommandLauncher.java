@@ -7,14 +7,13 @@ import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.text.MessageFormat;
 import javax.swing.JLabel;
 import javax.swing.event.ChangeEvent;
 
 /**
  * Ярлык запуска команды с панели быстрого доступа {@link Launcher}.
  */
-public final class CommandLauncher extends LaunchButton {
+final class CommandLauncher extends LaunchButton {
     
     private final JLabel signDelete;
     
@@ -23,11 +22,8 @@ public final class CommandLauncher extends LaunchButton {
      * @param entity Ссылка на сущность.
      * @param command Ссылка на команду, доступную для класса сущности.
      */
-    CommandLauncher(Entity entity, EntityCommand command) {
-        super(
-                MessageFormat.format("{0} ({1})", command.getButton().getText(), entity.getPID()),
-                command.getButton().getIcon()
-        );
+    CommandLauncher(Entity entity, EntityCommand command, String title) {
+        super(title, command.getButton().getIcon());
         setLayout(null);
         
         signDelete = new JLabel(ImageUtils.resize(ImageUtils.getByPath("/images/clearval.png"), 18, 18));
