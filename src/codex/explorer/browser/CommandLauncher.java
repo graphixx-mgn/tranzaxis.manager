@@ -4,6 +4,7 @@ import codex.command.EntityCommand;
 import codex.log.Logger;
 import codex.model.Entity;
 import codex.utils.ImageUtils;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.event.MouseAdapter;
@@ -53,8 +54,13 @@ final class CommandLauncher extends LaunchButton {
             }
             @Override
             public void mousePressed(MouseEvent e) {
-                //TODO: delete from DB
-                System.err.println("delete launcher");
+                Container panel = CommandLauncher.this.getParent();
+                panel.remove(CommandLauncher.this);
+                panel.revalidate();
+                panel.repaint();
+                
+                Shortcut shortcut = new Shortcut(title);
+                shortcut.model.remove();
             }
         });
     }
