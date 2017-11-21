@@ -11,10 +11,8 @@ import codex.log.Logger;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.presentation.SwitchInheritance;
-import java.util.List;
-import java.util.stream.Collectors;
-import javax.swing.ImageIcon;
 import codex.property.IPropertyChangeListener;
+import codex.type.Iconified;
 import codex.utils.Language;
 import java.awt.event.ActionEvent;
 import java.lang.reflect.InvocationTargetException;
@@ -22,15 +20,18 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.swing.AbstractAction;
+import javax.swing.ImageIcon;
 import javax.swing.SwingUtilities;
 
 /**
  * Абстракная сущность, базовый родитель прикладных сущностей приложения.
  * Также является узлом дерева проводника, реализуя интерфейс {@link INode}.
  */
-public abstract class Entity extends AbstractNode implements IPropertyChangeListener {
+public abstract class Entity extends AbstractNode implements IPropertyChangeListener, Iconified {
    
     private       String    title;
     private final ImageIcon icon;
@@ -144,6 +145,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     /**
      * Возвращает иконку сущности.
      */
+    @Override
     public final ImageIcon getIcon() {
         return icon;
     }
