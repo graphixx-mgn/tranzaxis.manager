@@ -40,7 +40,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     private EditorPresentation   editorPresentation;
     private SelectorPresentation selectorPresentation;
     
-    private final List<EntityCommand>  commands = new LinkedList<>();
+    private final Map<String, EntityCommand> commands = new LinkedHashMap<>();
     private final Map<String, IEditor> editors  = new LinkedHashMap<>();
      
     /**
@@ -104,14 +104,26 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      * Добавление новой команды сущности.
      */
     public final void addCommand(EntityCommand command) {
-        commands.add(command);
+        commands.put(command.getName(), command);
+    }
+    
+    /**
+     * Получение команды по имени.
+     */
+    public final EntityCommand getCommand(String name) {
+        if (!commands.containsKey(name)) {
+            throw new NoSuchFieldError(
+                    MessageFormat.format("Entity does not have command ''{0}''", name)
+            );
+        }
+        return commands.get(name);
     }
     
     /**
      * Получение списка имеющихся команд сущности.
      */
     public final List<EntityCommand> getCommands() {
-        return new LinkedList<>(commands);
+        return new LinkedList<>(commands.values());
     }
     
     @Override

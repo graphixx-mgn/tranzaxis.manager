@@ -1,6 +1,5 @@
 package codex.explorer.browser;
 
-import codex.command.EntityCommand;
 import codex.component.layout.WrapLayout;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
@@ -38,17 +37,12 @@ final class Launcher extends JPanel {
                 CommandLauncher launcher = new CommandLauncher(null, null, PID);
                 commandLaunchPanel.add(launcher);
             } else {
-                for (EntityCommand command : entity.getCommands()) {
-                    if (command.getName().equals(cmdName)) {
-                        CommandLauncher launcher = new CommandLauncher(
-                                (Entity) shortcut.model.getValue("entity"), 
-                                command,
-                                PID
-                        );
-                        commandLaunchPanel.add(launcher);
-                        break;
-                    }
-                }
+                CommandLauncher launcher = new CommandLauncher(
+                        (Entity) shortcut.model.getValue("entity"), 
+                        entity.getCommand(cmdName),
+                        PID
+                );
+                commandLaunchPanel.add(launcher);
             }
         });
         commandLaunchPanel.add(new CreateLauncher());

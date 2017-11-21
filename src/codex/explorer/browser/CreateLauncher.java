@@ -149,17 +149,8 @@ final class CreateLauncher extends LaunchButton implements ActionListener, IProp
             if (!commandHolder.isEmpty()) {
                 Entity entity = (Entity) paramModel.getValue("entity");
                 String commandName = (String) commandHolder.getPropValue().getValue();
-                for (EntityCommand command : entity.getCommands()) {
-                    if (command.getName().equals(commandName)) {
-                        this.command = command;
-                        paramModel.setValue("linkname", MessageFormat.format(
-                                "{0} ({1})",
-                                command.toString(),
-                                entity
-                        ));
-                        break;
-                    }
-                }
+                this.command = entity.getCommand(commandName);
+                paramModel.setValue("linkname", MessageFormat.format("{0} ({1})", command.toString(), entity));
             }
         }
     }

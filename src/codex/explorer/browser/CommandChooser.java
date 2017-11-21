@@ -44,11 +44,9 @@ class CommandChooser extends AbstractEditor implements ActionListener {
         this.entity = entity;
         comboBox.removeAllItems();
         if (entity != null) {
-            for (EntityCommand command : entity.getCommands()) {
-                if (!command.getButton().isInactive()) {
-                    comboBox.addItem(command);
-                }
-            }
+            entity.getCommands().stream().filter((command) -> (!command.getButton().isInactive())).forEachOrdered((command) -> {
+                comboBox.addItem(command);
+            });
         }
         comboBox.addItem(new NullValue());
         comboBox.setSelectedItem(comboBox.getItemAt(comboBox.getItemCount()-1));
@@ -56,9 +54,12 @@ class CommandChooser extends AbstractEditor implements ActionListener {
 
     @Override
     public Box createEditor() {
-        comboBox = new JComboBox(
-                entity != null ? entity.getCommands().toArray() : new Object[]{}
-        );
+        comboBox = new JComboBox();
+        if (entity != null) {
+            entity.getCommands().stream().filter((command) -> (!command.getButton().isInactive())).forEachOrdered((command) -> {
+                comboBox.addItem(command);
+            });
+        }
         comboBox.addItem(new NullValue());
         
         UIManager.put("ComboBox.border", new BorderUIResource(
