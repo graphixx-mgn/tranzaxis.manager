@@ -1,8 +1,8 @@
 package codex.property;
 
 import codex.model.AbstractModel;
-import codex.utils.Language;
 import codex.type.IComplexType;
+import codex.utils.Language;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -100,6 +100,7 @@ public class PropertyHolder<T extends IComplexType<V>, V> {
             if (IComplexType.class.isAssignableFrom(value.getClass())) {
                 if (value.getClass().equals(this.value.getClass())) {
                     this.value = (IComplexType<V>) value;
+                    fireChangeEvent(prevValue, getPropValue());
                 } else {
                     throw new IllegalStateException(
                             MessageFormat.format(
