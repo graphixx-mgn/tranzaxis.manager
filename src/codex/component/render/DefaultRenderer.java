@@ -1,10 +1,11 @@
 package codex.component.render;
 
 import codex.component.button.IButton;
+import codex.editor.AbstractEditor;
 import codex.editor.IEditor;
+import codex.type.Enum;
 import codex.type.Iconified;
 import codex.type.StringList;
-import codex.type.Enum;
 import codex.utils.ImageUtils;
 import java.awt.Color;
 import java.awt.Component;
@@ -50,7 +51,10 @@ public final class DefaultRenderer extends JLabel implements ListCellRenderer, T
         if (Iconified.class.isAssignableFrom(value.getClass())) {
             setBorder(new EmptyBorder(1, 4, 1, 2));
             setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 15, 15));
+        } else {
+            setIcon(null);
         }
+        setForeground(value instanceof AbstractEditor.NullValue ? Color.GRAY : IEditor.COLOR_NORMAL);
         return this;
     }
 
