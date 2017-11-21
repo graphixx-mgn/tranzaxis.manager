@@ -1,11 +1,13 @@
 package codex.component.border;
 
+import java.awt.BasicStroke;
 import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.geom.RoundRectangle2D;
+import java.lang.reflect.Field;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.LineBorder;
 
@@ -40,6 +42,13 @@ public class RoundedBorder extends AbstractBorder {
                 RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_ON
         );
+        try {
+            Field strokeWidth = BasicStroke.class.getDeclaredField("width");
+            strokeWidth.setAccessible(true);
+            strokeWidth.set(g2d.getStroke(), border.getThickness());
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
         g2d.draw(new RoundRectangle2D.Double(x, y, width-1, height-1, radius, radius));
         g2d.dispose();
     }
