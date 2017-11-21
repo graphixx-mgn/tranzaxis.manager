@@ -1,6 +1,7 @@
 package codex.explorer.browser;
 
 import codex.component.border.RoundedBorder;
+import codex.editor.IEditor;
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -20,8 +21,9 @@ import javax.swing.event.ChangeListener;
  */
 abstract class LaunchButton extends JButton implements ChangeListener {
     
-    private static final Border NORMAL_BORDER = new RoundedBorder(new LineBorder(Color.decode("#CCCCCC"), 1), 18);
-    private static final Border HOVER_BORDER  = new RoundedBorder(new LineBorder(Color.GRAY, 1), 18);
+    public static final Border NORMAL_BORDER = new RoundedBorder(new LineBorder(Color.decode("#CCCCCC"), 1), 18);
+    public static final Border HOVER_BORDER  = new RoundedBorder((LineBorder) IEditor.BORDER_ACTIVE, 18);
+    public static final Border ERROR_BORDER  = new RoundedBorder((LineBorder) IEditor.BORDER_ERROR,  18);
     
     private float opacity = 1;
     
