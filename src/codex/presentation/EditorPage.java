@@ -23,9 +23,9 @@ import javax.swing.JPanel;
  * сущности {@link EditorPresentation}. Формирует панель с редакторами свойств 
  * модели сущности.
  */
-final class EditorPage extends JPanel {
+public final class EditorPage extends JPanel {
     
-    enum Mode {
+    public enum Mode {
         Edit, Create
     }
     
@@ -33,7 +33,7 @@ final class EditorPage extends JPanel {
      * Конструктор страницы. 
      * @param entity Редактируемая сущность.
      */
-    EditorPage(AbstractModel model, Mode mode) {
+    public EditorPage(AbstractModel model, Mode mode) {
         super(new GridBagLayout());
         
         GridBagConstraints gbc = new GridBagConstraints();
@@ -42,11 +42,6 @@ final class EditorPage extends JPanel {
         gbc.gridwidth = 1;
         
         int lineIdx = 1, maxSize = 0;
-//        AbstractModel parentModel = null;
-//        if (entity.getParent() != null) {
-//            parentModel = ((Entity) entity.getParent()).model;
-//        }
-        
         final Vector<Component> focusOrder = new Vector<>();
         List<String> properties = model.getProperties(Access.Edit);
         if (mode.equals(Mode.Create)) {
@@ -80,7 +75,10 @@ final class EditorPage extends JPanel {
                     .stringWidth(propEditor.getLabel().getText()));
             lineIdx++;
         }
-        add(Box.createHorizontalStrut(Math.max(220, maxSize+30)));
+        gbc.gridx = 0;
+        gbc.gridy++;
+        gbc.weightx = 0;
+        add(Box.createHorizontalStrut(Math.max(150, maxSize+30)), gbc);
         if (focusOrder.size() > 0) {
             setFocusCycleRoot(true);
             setFocusTraversalPolicyProvider(true);
