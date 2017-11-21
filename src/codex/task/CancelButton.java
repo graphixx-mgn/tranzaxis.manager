@@ -43,4 +43,12 @@ final class CancelButton extends JButton implements IButton {
         setToolTipText(text);
     }
 
+    @Override
+    public void setInactive(boolean inactive) {}
+
+    @Override
+    public boolean isInactive() {
+        return false;
+    }
+
 }

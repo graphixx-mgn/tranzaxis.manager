@@ -90,9 +90,13 @@ public interface IButton {
     public boolean isEnabled();
     
     /**
-     * Устанавливает возможность получения фокуса.
+     * Отключает обработчики нажатия.
      */
-    default void setFocusable(boolean focusable) {
-        // Do nothing
-    };
+    public void setInactive(boolean inactive);
+    
+    /**
+     * Возвращает признак отключения обработчиков.
+     */
+    public boolean isInactive();
+    
 }

@@ -56,7 +56,9 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     @Override
     public void addActionListener(ActionListener listener) {
         button.addActionListener((event) -> {
-            listener.actionPerformed(new ActionEvent(PushButton.this, event.getID(), event.getActionCommand()));
+            if (!isInactive()) {
+                listener.actionPerformed(new ActionEvent(PushButton.this, event.getID(), event.getActionCommand()));
+            }
         });
     }
 
@@ -133,9 +135,16 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     public final boolean isEnabled() {
         return button.isEnabled();
     }
+    
+    @Override
+    public void setInactive(boolean inactive) {
+        button.setFocusable(!inactive);
+        
+    }
 
     @Override
-    public void setFocusable(boolean focusable) {
-        button.setFocusable(focusable);
+    public boolean isInactive() {
+        return !button.isFocusable();
     }
+    
 }
