@@ -2,6 +2,7 @@ package codex.editor;
 
 import codex.command.ICommand;
 import codex.property.PropertyHolder;
+import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import java.awt.Color;
 import java.awt.Component;
@@ -10,6 +11,7 @@ import java.awt.event.FocusListener;
 import java.util.LinkedList;
 import java.util.List;
 import javax.swing.Box;
+import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.SwingConstants;
@@ -29,7 +31,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     protected Box        editor;
     private boolean      editable = true;
     
-    final PropertyHolder propHolder;
+    protected final PropertyHolder propHolder;
     private final List<ICommand<PropertyHolder>> commands = new LinkedList<>();
 
     /**
@@ -143,6 +145,22 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         setValue(propHolder.getPropValue().getValue());
         setEditable(isEditable());
         label.setFont((propHolder.isValid() ? IEditor.FONT_NORMAL : IEditor.FONT_BOLD));
+    }
+    
+    public class NullValue implements Iconified {
+        
+        ImageIcon ICON = ImageUtils.getByPath("/images/clearval.png");
+
+        @Override
+        public ImageIcon getIcon() {
+            return AbstractEditor.this.isEditable() ? ICON : ImageUtils.grayscale(ICON);
+        }
+        
+        @Override
+        public String toString() {
+            return NOT_DEFINED;
+        }
+    
     }
 
 }
