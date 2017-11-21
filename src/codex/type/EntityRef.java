@@ -87,7 +87,13 @@ public class EntityRef implements IComplexType<Entity> {
 
     @Override
     public void valueOf(String value) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        String[] parts = value.split("~", -1);
+        try {
+            Entity entity = Entity.newInstance(Class.forName(parts[0]), parts[1]);
+            setValue(entity);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
     }
     
 }
