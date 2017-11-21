@@ -214,7 +214,7 @@ public final class SelectorPresentation extends JPanel implements IModelListener
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
             
-            EditorPage page = new EditorPage(newEntity, EditorPage.Mode.Create);
+            EditorPage page = new EditorPage(newEntity.model, EditorPage.Mode.Create);
             page.setBorder(new CompoundBorder(
                     new EmptyBorder(10, 5, 5, 5), 
                     new TitledBorder(
@@ -298,7 +298,7 @@ public final class SelectorPresentation extends JPanel implements IModelListener
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
             
-            EditorPage page = new EditorPage(newEntity, EditorPage.Mode.Create);
+            EditorPage page = new EditorPage(newEntity.model, EditorPage.Mode.Create);
             page.setBorder(new CompoundBorder(
                     new EmptyBorder(10, 5, 5, 5), 
                     new TitledBorder(
@@ -376,7 +376,7 @@ public final class SelectorPresentation extends JPanel implements IModelListener
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
             
-            EditorPage page = new EditorPage(context, EditorPage.Mode.Edit);
+            EditorPage page = new EditorPage(context.model, EditorPage.Mode.Edit);
             page.setBorder(new CompoundBorder(
                     new EmptyBorder(10, 5, 5, 5), 
                     new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())

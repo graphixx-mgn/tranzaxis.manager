@@ -2,7 +2,6 @@ package codex.presentation;
 
 import codex.command.ICommand;
 import codex.editor.IEditor;
-import codex.model.Entity;
 import codex.model.AbstractModel;
 import codex.model.Access;
 import codex.model.EntityModel;
@@ -34,7 +33,7 @@ final class EditorPage extends JPanel {
      * Конструктор страницы. 
      * @param entity Редактируемая сущность.
      */
-    EditorPage(Entity entity, Mode mode) {
+    EditorPage(AbstractModel model, Mode mode) {
         super(new GridBagLayout());
         
         GridBagConstraints gbc = new GridBagConstraints();
@@ -43,13 +42,13 @@ final class EditorPage extends JPanel {
         gbc.gridwidth = 1;
         
         int lineIdx = 1, maxSize = 0;
-        AbstractModel parentModel = null;
-        if (entity.getParent() != null) {
-            parentModel = ((Entity) entity.getParent()).model;
-        }
+//        AbstractModel parentModel = null;
+//        if (entity.getParent() != null) {
+//            parentModel = ((Entity) entity.getParent()).model;
+//        }
         
         final Vector<Component> focusOrder = new Vector<>();
-        List<String> properties = entity.model.getProperties(Access.Edit);
+        List<String> properties = model.getProperties(Access.Edit);
         if (mode.equals(Mode.Create)) {
             properties.add(0, EntityModel.PID);
         }
@@ -58,7 +57,7 @@ final class EditorPage extends JPanel {
             gbc.gridy = lineIdx;
             gbc.weightx = 0;
             
-            IEditor propEditor = entity.model.getEditor(propName);
+            IEditor propEditor = model.getEditor(propName);
             if (propEditor.getFocusTarget() != null && propEditor.isEditable()) {
                 focusOrder.add(propEditor.getFocusTarget());
             }

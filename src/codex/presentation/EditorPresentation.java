@@ -41,7 +41,7 @@ public final class EditorPresentation extends JPanel {
         });
         commandPanel.setVisible(!commands.isEmpty());  
         add(commandPanel, BorderLayout.NORTH);
-        add(new EditorPage(entity, EditorPage.Mode.Edit), BorderLayout.CENTER);
+        add(new EditorPage(entity.model, EditorPage.Mode.Edit), BorderLayout.CENTER);
     }
     
     /**
