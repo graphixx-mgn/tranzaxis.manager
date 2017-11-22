@@ -10,7 +10,10 @@ import codex.utils.ImageUtils;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.KeyboardFocusManager;
 import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.function.Consumer;
@@ -98,18 +101,37 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
         };
         
         textField.getDocument().addDocumentListener(this);
-//        textField.addKeyListener(new KeyAdapter() {
-//            @Override
-//            public void keyTyped(KeyEvent event) {
-//                if (event.getKeyChar() == KeyEvent.VK_TAB) {
-//                    stopEditing();
-//                }
-//                if (event.getKeyChar() == KeyEvent.VK_ENTER) {
-//                    stopEditing();
-//                    KeyboardFocusManager.getCurrentKeyboardFocusManager().clearGlobalFocusOwner();
-//                }
-//            }
-//        });
+        textField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent event) {
+                if (event.getKeyChar() == KeyEvent.VK_TAB) {
+                    stopEditing();
+                }
+                if (event.getKeyChar() == KeyEvent.VK_ENTER) {
+                    stopEditing();
+                    KeyboardFocusManager.getCurrentKeyboardFocusManager().clearGlobalFocusOwner();
+                }
+            }
+
+            @Override
+            public void keyPressed(KeyEvent event) {
+                if (event.getKeyCode() == KeyEvent.VK_UP) {
+                    Integer curr = Integer.valueOf(previousValue != null && !previousValue.isEmpty() ? previousValue : "0")+1;
+                    if (curr < Integer.MAX_VALUE) {
+                        update.accept(curr.toString());
+                        textField.setText(curr.toString());
+                    }
+                }
+                if (event.getKeyCode() == KeyEvent.VK_DOWN) {
+                    Integer curr = Integer.valueOf(previousValue != null && !previousValue.isEmpty() ? previousValue : "0")-1;
+                    if (curr >= 0) {
+                        update.accept(curr.toString());
+                        textField.setText(curr.toString());
+                    }
+                }
+            }
+            
+        });
         
         PlaceHolder placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.FOCUS_LOST);
         placeHolder.setBorder(textField.getBorder());
