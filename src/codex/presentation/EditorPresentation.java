@@ -38,10 +38,13 @@ public final class EditorPresentation extends JPanel {
         commands.forEach((command) -> {
             command.setContext(entity);
         });
-        setVisible(!entity.model.getProperties(Access.Edit).isEmpty() || !commands.isEmpty());
-        commandPanel.setVisible(!commands.isEmpty());
-        add(commandPanel, BorderLayout.NORTH);
-        add(new EditorPage(entity.model, EditorPage.Mode.Edit), BorderLayout.CENTER);
+        if (!entity.model.getProperties(Access.Edit).isEmpty() || !commands.isEmpty()) {
+            commandPanel.setVisible(!commands.isEmpty());
+            add(commandPanel, BorderLayout.NORTH);
+            add(new EditorPage(entity.model, EditorPage.Mode.Edit), BorderLayout.CENTER);
+        } else {
+            setVisible(false);
+        }
     }
     
     /**
