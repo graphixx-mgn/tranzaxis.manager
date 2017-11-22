@@ -11,7 +11,6 @@ import codex.log.Logger;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.model.EntityModel;
-import codex.model.IModelListener;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.BorderLayout;
@@ -24,7 +23,6 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Vector;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.swing.AbstractAction;
@@ -46,7 +44,7 @@ import javax.swing.table.DefaultTableModel;
  * редактирования дочерних сущностей, так и обеспечивает работу команд по созданию
  * новых сущностей.
  */
-public final class SelectorPresentation extends JPanel implements IModelListener, ListSelectionListener {
+public final class SelectorPresentation extends JPanel implements /*IModelListener,*/ ListSelectionListener {
     
     private final CommandPanel        commandPanel = new CommandPanel();
     private final List<EntityCommand> commands = new LinkedList<>();
@@ -60,7 +58,7 @@ public final class SelectorPresentation extends JPanel implements IModelListener
         super(new BorderLayout());
         if (!entity.model.getProperties(Access.Edit).isEmpty()) {
             setBorder(new CompoundBorder(
-                    new EmptyBorder(0, 5, 0, 5), 
+                    new EmptyBorder(0, 5, 3, 5), 
                     new LineBorder(Color.GRAY, 1)
             ));
         }
@@ -82,35 +80,7 @@ public final class SelectorPresentation extends JPanel implements IModelListener
         
         add(commandPanel, BorderLayout.NORTH);
         
-        Vector dataVector = new Vector();
-        entity.childrenList().forEach((node) -> {
-            Vector rowVector = new Vector<>();
-            Entity child = (Entity) node;
-            child.model.getProperties(Access.Select).forEach((String propName) -> {
-                rowVector.add(propName.equals(EntityModel.PID) ? child : child.model.getValue(propName));
-            });
-            dataVector.addElement(rowVector);
-            child.model.addModelListener(this);
-        });
-        
-        tableModel = new DefaultTableModel(
-                dataVector,
-                new Vector<>(
-                        prototype.model.getProperties(Access.Select).stream().map((propName) -> {
-                            return prototype.model.getPropertyTitle(propName);
-                        }).collect(Collectors.toList())
-                )
-        ) {
-            @Override
-            public Class<?> getColumnClass(int columnIndex) {
-                return String.class;
-            }
-            
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
+        tableModel = new SelectorTableModel(entity, prototype);
         table = new JTable(tableModel);
         table.setRowHeight((int) (IEditor.FONT_VALUE.getSize() * 2));
         table.setShowVerticalLines(false);
@@ -139,25 +109,6 @@ public final class SelectorPresentation extends JPanel implements IModelListener
                 }
             }
         });
-    }
-    
-    @Override
-    public void modelSaved(EntityModel model, List<String> changes) {
-        int rowCount = this.tableModel.getRowCount();
-        for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-            if (((Entity) this.tableModel.getValueAt(rowIdx, 0)).model.equals(model)) {
-                final int entityIdx = rowIdx;
-                List<String> selectorProps = model.getProperties(Access.Select);
-                selectorProps.forEach((propName) -> {
-                    if (changes.contains(propName)) {
-                        int propIdx = selectorProps.indexOf(propName);
-                        this.tableModel.setValueAt(model.getValue(propName), entityIdx, propIdx);
-                    }
-                });
-                this.tableModel.fireTableRowsUpdated(rowIdx, rowIdx);
-                break;
-            }
-        }
     }
 
     @Override
