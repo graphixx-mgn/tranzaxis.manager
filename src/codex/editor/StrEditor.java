@@ -38,17 +38,17 @@ import net.java.balloontip.utils.TimingUtils;
  */
 public class StrEditor extends AbstractEditor implements DocumentListener {
     
-    protected JTextField textField;
-    protected String     initialValue;
-    protected String     previousValue;
+    private JTextField textField;
+    private String     initialValue;
+    private String     previousValue;
     
-    protected Predicate<String>        checker;
-    protected final Consumer<String>   update;
-    protected final Consumer<String>   commit;
-    protected Function<String, Object> transformer;
+    private Predicate<String>        checker;
+    private final Consumer<String>   update;
+    private final Consumer<String>   commit;
+    private Function<String, Object> transformer;
     
-    protected final JLabel  signInvalid;
-    protected final JLabel  signDelete;
+    private final JLabel  signInvalid;
+    private final JLabel  signDelete;
     
     /**
      * Конструктор редактора.
@@ -71,7 +71,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
      * @param transformer Функция-конвертер, вызывается для получения значения 
      * свойства из введенного текста при фиксации изменения.
      */
-    protected StrEditor(PropertyHolder propHolder, Predicate<String> checker, Function<String, Object> transformer) {
+    private StrEditor(PropertyHolder propHolder, Predicate<String> checker, Function<String, Object> transformer) {
         super(propHolder);
         this.checker     = checker;
         this.transformer = transformer;
