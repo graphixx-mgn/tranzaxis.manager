@@ -13,6 +13,7 @@ import javax.swing.table.DefaultTableModel;
 public class SelectorTableModel extends DefaultTableModel implements /*Reorderable*/ IModelListener {
     
     private final List<Class<? extends IComplexType>> columnClasses = new LinkedList<>();
+    private final Entity entity;
     
     public SelectorTableModel(Entity entity, final Entity prototype) {
         super(generateData(entity), generateHeader(entity, prototype));
@@ -22,6 +23,7 @@ public class SelectorTableModel extends DefaultTableModel implements /*Reorderab
         prototype.model.getProperties(Access.Select).forEach((propName) -> {
             columnClasses.add(prototype.model.getPropertyType(propName));
         });
+        this.entity = entity;
     }
     
     @Override
@@ -34,11 +36,15 @@ public class SelectorTableModel extends DefaultTableModel implements /*Reorderab
         return false;
     }
     
+    public final Entity getEntityAt(int row) {
+        return (Entity) entity.childrenList().get(row);
+    }
+    
     @Override
     public void modelSaved(EntityModel model, List<String> changes) {
         int rowCount = getRowCount();
         for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-            if (((Entity) getValueAt(rowIdx, 0)).model.equals(model)) {
+            if (getEntityAt(rowIdx).model.equals(model)) {
                 final int entityIdx = rowIdx;
                 List<String> selectorProps = model.getProperties(Access.Select);
                 selectorProps.forEach((propName) -> {
@@ -67,7 +73,6 @@ public class SelectorTableModel extends DefaultTableModel implements /*Reorderab
             Vector rowVector = new Vector<>();
             Entity child = (Entity) node;
             child.model.getProperties(Access.Select).forEach((String propName) -> {
-//                rowVector.add(propName.equals(EntityModel.PID) ? child : child.model.getValue(propName));
                 rowVector.add(child.model.getValue(propName));
             });
             dataVector.addElement(rowVector);
