@@ -1,4 +1,4 @@
-package codex.explorer.launcher;
+package codex.launcher;
 
 import codex.component.layout.WrapLayout;
 import codex.config.ConfigStoreService;

@@ -1,4 +1,4 @@
-package codex.explorer.launcher;
+package codex.launcher;
 
 import codex.command.EntityCommand;
 import codex.log.Logger;

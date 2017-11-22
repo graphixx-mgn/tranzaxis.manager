@@ -1,4 +1,4 @@
-package codex.explorer.launcher;
+package codex.launcher;
 
 import codex.model.Entity;
 import codex.type.EntityRef;
