@@ -93,16 +93,19 @@ public class EntityRef implements IComplexType<Entity> {
 
     @Override
     public void valueOf(String value) {
-        String[] parts = value.split("~", -1);
-        try {
-            Class loadClass = Class.forName(parts[0]);
-            final List<String> PIDs = STORE.readCatalogEntries(loadClass);
-            if (PIDs.contains(parts[1])) {
-                Entity entity = Entity.newInstance(loadClass, parts[1]);
-                setValue(entity);
+        if (value != null && !value.isEmpty()) {
+            String[] parts = value.split("~", -1);
+            try {
+                Class loadClass = Class.forName(parts[0]);
+                final List<String> PIDs = STORE.readCatalogEntries(loadClass);
+                if (PIDs.contains(parts[1])) {
+                    Entity entity = Entity.newInstance(loadClass, parts[1]);
+                    setValue(entity);
+                }
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+                System.err.println("["+value+"]");
             }
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
         }
     }
     
