@@ -11,6 +11,7 @@ import codex.log.Logger;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.type.Bool;
+import codex.type.EntityRef;
 import codex.type.Enum;
 import codex.type.Int;
 import codex.type.Str;
@@ -93,6 +94,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
         table.setDefaultRenderer(Int.class,  new GeneralRenderer());
         table.setDefaultRenderer(Bool.class, new GeneralRenderer());
         table.setDefaultRenderer(Enum.class, new GeneralRenderer());
+        table.setDefaultRenderer(EntityRef.class, new GeneralRenderer());
         
         table.getTableHeader().setDefaultRenderer(new GeneralRenderer());
         
