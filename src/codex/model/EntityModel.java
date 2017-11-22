@@ -5,16 +5,16 @@ import codex.component.messagebox.MessageType;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.editor.IEditor;
-import codex.type.IComplexType;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.stream.Collectors;
 import codex.property.IPropertyChangeListener;
 import codex.service.ServiceRegistry;
+import codex.type.IComplexType;
 import codex.type.Str;
 import codex.utils.Language;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Реализация модели сущности.
@@ -145,6 +145,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         } else {
             return super.getValue(name);
         }
+    }
+    
+    /**
+     * Получить тип свойства по его имени.
+     */
+    public Class<? extends IComplexType> getPropertyType(String name) {
+        return getProperty(name).getPropValue().getClass();
     }
     
     /**
