@@ -21,6 +21,8 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.MessageFormat;
@@ -28,10 +30,12 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.swing.AbstractAction;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -40,7 +44,6 @@ import javax.swing.border.MatteBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.table.DefaultTableModel;
 
 /**
  * Презентация селектора сущности. Реализует как функциональность отображения и 
@@ -51,7 +54,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
     
     private final CommandPanel        commandPanel = new CommandPanel();
     private final List<EntityCommand> commands = new LinkedList<>();
-    private final DefaultTableModel   tableModel;
+    private final SelectorTableModel  tableModel;
     private final JTable              table;
     
     /**
@@ -124,23 +127,22 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
     public void valueChanged(ListSelectionEvent event) {
         if (event.getValueIsAdjusting()) return;
 
-//        Entity[] entities = Arrays
-//                .stream(table.getSelectedRows())
-//                .boxed()
-//                .collect(Collectors.toList())
-//                .stream()
-//                .map((rowIdx) -> {
-//                    return (Entity) tableModel.getValueAt(rowIdx, 0);
-//                })
-//                .collect(Collectors.toList())
-//                .toArray(new Entity[]{});
-//        
-//        commands.forEach((command) -> {
-//            command.setContext(entities);
-//        });
+        Entity[] entities = Arrays
+                .stream(table.getSelectedRows())
+                .boxed()
+                .collect(Collectors.toList())
+                .stream()
+                .map((rowIdx) -> {
+                    return tableModel.getEntityAt(rowIdx);
+                })
+                .collect(Collectors.toList())
+                .toArray(new Entity[]{});
+        
+        commands.forEach((command) -> {
+            command.setContext(entities);
+        });
     }
-    
-    
+    //TODO: Перестала работать блокировка окна при дубликации имени: Create & Copy
     public class CreateEntity extends EntityCommand {
     
         private final Entity parent;
@@ -151,7 +153,8 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                     "create", null,
                     ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 28, 28), 
                     Language.get(SelectorPresentation.class.getSimpleName(), "command@create"),
-                    null
+                    null,
+                    KeyStroke.getKeyStroke(KeyEvent.VK_ADD, InputEvent.CTRL_MASK)
             );
             activator = (entities) -> {};
             this.entityClass = entityClass;
@@ -194,17 +197,17 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                                 newEntity.setTitle(newEntity.model.getPID());
                                 newEntity.model.init(newEntity.model.getPID());
                                 newEntity.model.commit();
-                                
-//                                tableModel.addRow(
-//                                        newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
-//                                            return propName.equals(EntityModel.PID) ? newEntity : newEntity.model.getValue(propName);
-//                                        }).toArray()
-//                                );
-//                                table.getSelectionModel().setSelectionInterval(
-//                                        tableModel.getRowCount() - 1, 
-//                                        tableModel.getRowCount() - 1
-//                                );
+
+                                tableModel.addRow(
+                                        newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
+                                            return newEntity.model.getValue(propName);
+                                        }).toArray()
+                                );
                                 parent.insert(newEntity);
+                                table.getSelectionModel().setSelectionInterval(
+                                        tableModel.getRowCount() - 1, 
+                                        tableModel.getRowCount() - 1
+                                );
                             }
                         }
                     },
@@ -243,7 +246,8 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                     "clone", null,
                     ImageUtils.resize(ImageUtils.getByPath("/images/clone.png"), 28, 28), 
                     Language.get(SelectorPresentation.class.getSimpleName(), "command@clone"),
-                    (entity) -> true
+                    (entity) -> true,
+                    KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_MASK)
             );
         }
 
@@ -263,14 +267,14 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                     new EmptyBorder(10, 5, 5, 5), 
                     new TitledBorder(
                             new LineBorder(Color.LIGHT_GRAY, 1), 
-                            Language.get(SelectorPresentation.class.getSimpleName(), "creator@desc")
+                            Language.get(SelectorPresentation.class.getSimpleName(), "copier@desc")
                     )
             ));
             
             Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
-                    ImageUtils.getByPath("/images/plus.png"),
-                    Language.get(SelectorPresentation.class.getSimpleName(), "creator@title"), page,
+                    ImageUtils.getByPath("/images/clone.png"),
+                    Language.get(SelectorPresentation.class.getSimpleName(), "copier@title"), page,
                     new AbstractAction() {
                         @Override
                         public void actionPerformed(ActionEvent event) {
@@ -279,15 +283,16 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                                 newEntity.model.init(newEntity.model.getPID());
                                 newEntity.model.commit();
                                 
-//                                tableModel.addRow(
-//                                        newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
-//                                            return propName.equals(EntityModel.PID) ? newEntity : newEntity.model.getValue(propName);
-//                                        }).toArray()
-//                                );
-//                                table.getSelectionModel().setSelectionInterval(
-//                                        tableModel.getRowCount() - 1, 
-//                                        tableModel.getRowCount() - 1
-//                                );
+                                tableModel.addRow(
+                                        newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
+                                            return newEntity.model.getValue(propName);
+                                        }).toArray()
+                                );
+                                context.getParent().insert(newEntity);
+                                table.getSelectionModel().setSelectionInterval(
+                                        tableModel.getRowCount() - 1, 
+                                        tableModel.getRowCount() - 1
+                                );
                                 context.getParent().insert(newEntity);
                             }
                         }
@@ -392,7 +397,8 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                     "delete", null,
                     ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28), 
                     Language.get(SelectorPresentation.class.getSimpleName(), "command@delete"),
-                    (entity) -> true
+                    (entity) -> true,
+                    KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0)
             );
         }
         
@@ -441,24 +447,24 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
 
         @Override
         public void execute(Entity context) {
-//            if (!context.model.remove()) {
-//                return;
-//            }
-//            int rowCount = tableModel.getRowCount();
-//            for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-//                if (((Entity) tableModel.getValueAt(rowIdx, 0)).model.equals(context.model)) {
-//                    tableModel.removeRow(rowIdx);
-//                    if (rowIdx < tableModel.getRowCount()) {
-//                        table.getSelectionModel().setSelectionInterval(rowIdx, rowIdx);
-//                    } else if (rowIdx == tableModel.getRowCount()) {
-//                        table.getSelectionModel().setSelectionInterval(rowIdx-1, rowIdx-1);
-//                    } else {
-//                        table.getSelectionModel().clearSelection();
-//                    }
-//                    break;
-//                }
-//            }
-//            context.getParent().delete(context);
+            if (!context.model.remove()) {
+                return;
+            }
+            int rowCount = tableModel.getRowCount();
+            for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+                if (tableModel.getEntityAt(rowIdx).model.equals(context.model)) {
+                    tableModel.removeRow(rowIdx);
+                    if (rowIdx < tableModel.getRowCount()) {
+                        table.getSelectionModel().setSelectionInterval(rowIdx, rowIdx);
+                    } else if (rowIdx == tableModel.getRowCount()) {
+                        table.getSelectionModel().setSelectionInterval(rowIdx-1, rowIdx-1);
+                    } else {
+                        table.getSelectionModel().clearSelection();
+                    }
+                    break;
+                }
+            }
+            context.getParent().delete(context);
         }
 
         @Override
