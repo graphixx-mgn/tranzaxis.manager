@@ -4,9 +4,11 @@ import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.editor.EntityRefEditor;
 import codex.editor.IEditorFactory;
+import codex.log.Logger;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -103,8 +105,9 @@ public class EntityRef implements IComplexType<Entity> {
                     setValue(entity);
                 }
             } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-                System.err.println("["+value+"]");
+                Logger.getLogger().error(
+                        MessageFormat.format("Unable instantiate entity ''{0}''", entityClass.getCanonicalName()), e
+                );
             }
         }
     }
