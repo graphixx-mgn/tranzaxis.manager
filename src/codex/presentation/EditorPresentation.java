@@ -24,7 +24,6 @@ public final class EditorPresentation extends JPanel {
      */
     public EditorPresentation(Entity entity) {
         super(new BorderLayout());
-        
         if (!entity.model.getProperties(Access.Edit).isEmpty()) {
             commands.add(new CommitEntity());
             commands.add(new RollbackEntity());
@@ -39,7 +38,8 @@ public final class EditorPresentation extends JPanel {
         commands.forEach((command) -> {
             command.setContext(entity);
         });
-        commandPanel.setVisible(!commands.isEmpty());  
+        setVisible(!entity.model.getProperties(Access.Edit).isEmpty() || !commands.isEmpty());
+        commandPanel.setVisible(!commands.isEmpty());
         add(commandPanel, BorderLayout.NORTH);
         add(new EditorPage(entity.model, EditorPage.Mode.Edit), BorderLayout.CENTER);
     }
