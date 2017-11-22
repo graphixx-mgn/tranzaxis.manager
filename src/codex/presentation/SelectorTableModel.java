@@ -26,9 +26,7 @@ public class SelectorTableModel extends DefaultTableModel implements /*Reorderab
     
     @Override
     public Class<?> getColumnClass(int columnIndex) {
-        // TODO: реализовать разные виды колонок
-        //return columnClasses.get(columnIndex);
-        return String.class;
+        return columnClasses.get(columnIndex);
     }
 
     @Override
@@ -69,7 +67,8 @@ public class SelectorTableModel extends DefaultTableModel implements /*Reorderab
             Vector rowVector = new Vector<>();
             Entity child = (Entity) node;
             child.model.getProperties(Access.Select).forEach((String propName) -> {
-                rowVector.add(propName.equals(EntityModel.PID) ? child : child.model.getValue(propName));
+//                rowVector.add(propName.equals(EntityModel.PID) ? child : child.model.getValue(propName));
+                rowVector.add(child.model.getValue(propName));
             });
             dataVector.addElement(rowVector);
         });

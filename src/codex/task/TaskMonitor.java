@@ -1,9 +1,11 @@
 package codex.task;
 
-import codex.component.render.DefaultRenderer;
+import codex.component.render.GeneralRenderer;
+import codex.editor.IEditor;
 import codex.notification.INotificationService;
 import codex.notification.NotificationService;
 import codex.service.ServiceRegistry;
+import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.BorderLayout;
@@ -140,12 +142,21 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
         threadTableModel = new DefaultTableModel() {
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                return String.class;
+                return Str.class;
+            }
+            
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
             }
         }; 
         JTable threadTable = new JTable(threadTableModel);
-        threadTable.setDefaultRenderer(String.class, new DefaultRenderer());
-        threadTable.setShowGrid(false);
+        threadTable.setRowHeight((int) (IEditor.FONT_VALUE.getSize() * 1.5));
+        threadTable.setShowVerticalLines(false);
+        threadTable.setIntercellSpacing(new Dimension(0,0));
+        
+        threadTable.setDefaultRenderer(Str.class, new GeneralRenderer());
+        threadTable.getTableHeader().setDefaultRenderer(new GeneralRenderer());
 
         threadTableModel.addColumn("#"); 
         threadTableModel.addColumn(Language.get("thread@name"));
@@ -157,7 +168,7 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
         JScrollPane threadScrollPane = new JScrollPane(threadTable);
         threadScrollPane.setBorder(new CompoundBorder(
                 new EmptyBorder(3, 0, 0, 0),
-                new LineBorder(Color.LIGHT_GRAY, 1)
+                new LineBorder(Color.GRAY, 1)
         ));
         threadPanel.add(threadScrollPane, BorderLayout.CENTER);
         
@@ -279,7 +290,7 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
             for (String name : threadNames) {
                 THREAD_NAME.reset(name).find();
                 THREAD_STATE.reset(name).find();
-                threadTableModel.addRow(new Object[]{threadIdx++, THREAD_NAME.group(1), THREAD_STATE.group(1)});
+                threadTableModel.addRow(new Object[]{(threadIdx++)+"", THREAD_NAME.group(1), THREAD_STATE.group(1)});
             }
         });
         if (task.getStatus() == Status.FAILED || task.getStatus() == Status.FINISHED) {

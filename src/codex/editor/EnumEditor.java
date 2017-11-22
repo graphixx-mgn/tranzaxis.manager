@@ -1,7 +1,7 @@
 package codex.editor;
 
 import codex.component.button.IButton;
-import codex.component.render.DefaultRenderer;
+import codex.component.render.GeneralRenderer;
 import codex.property.PropertyHolder;
 import codex.type.Enum;
 import codex.type.Iconified;
@@ -44,7 +44,7 @@ public class EnumEditor extends AbstractEditor implements ActionListener {
         SwingUtilities.updateComponentTreeUI(comboBox);
         
         comboBox.setFont(FONT_VALUE);
-        comboBox.setRenderer(new DefaultRenderer());
+        comboBox.setRenderer(new GeneralRenderer());
         comboBox.addFocusListener(this);
         comboBox.addActionListener(this);
         

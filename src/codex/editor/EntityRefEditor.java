@@ -1,7 +1,7 @@
 package codex.editor;
 
 import codex.component.button.IButton;
-import codex.component.render.DefaultRenderer;
+import codex.component.render.GeneralRenderer;
 import static codex.editor.IEditor.FONT_VALUE;
 import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
@@ -78,7 +78,7 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
         SwingUtilities.updateComponentTreeUI(comboBox);
         
         comboBox.setFont(FONT_VALUE);
-        comboBox.setRenderer(new DefaultRenderer());
+        comboBox.setRenderer(new GeneralRenderer());
         comboBox.addFocusListener(this);
         comboBox.addActionListener(this);
         

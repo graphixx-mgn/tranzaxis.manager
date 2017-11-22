@@ -1,14 +1,12 @@
 package codex.component.list;
 
-import codex.component.render.DefaultRenderer;
+import codex.component.render.GeneralRenderer;
 import codex.editor.IEditor;
 import codex.editor.StringListEditor;
 import codex.type.IComplexType;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
 import java.awt.event.KeyEvent;
 import java.util.Arrays;
 import java.util.List;
@@ -104,7 +102,7 @@ public final class EditableList extends JPanel {
         table.setShowVerticalLines(false);
         table.setIntercellSpacing(new Dimension(0,0));
         table.setRowHeight(cellEditor.getPreferredSize().height + 2);
-        table.setDefaultRenderer(String.class, new DefaultRenderer());
+        table.setDefaultRenderer(String.class, new GeneralRenderer());
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setDefaultEditor(String.class, new DefaultCellEditor(cellEditor));
         table.putClientProperty("terminateEditOnFocusLost", true);

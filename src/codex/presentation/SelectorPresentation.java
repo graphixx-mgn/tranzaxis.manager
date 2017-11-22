@@ -5,12 +5,15 @@ import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
-import codex.component.render.DefaultRenderer;
+import codex.component.render.GeneralRenderer;
 import codex.editor.IEditor;
 import codex.log.Logger;
 import codex.model.Access;
 import codex.model.Entity;
-import codex.model.EntityModel;
+import codex.type.Bool;
+import codex.type.Enum;
+import codex.type.Int;
+import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.BorderLayout;
@@ -24,7 +27,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import javax.swing.AbstractAction;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -86,8 +88,13 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
         table.setShowVerticalLines(false);
         table.setIntercellSpacing(new Dimension(0,0));
         table.setPreferredScrollableViewportSize(getPreferredSize());
-        table.setDefaultRenderer(String.class, new DefaultRenderer());
-        table.getTableHeader().setDefaultRenderer(new DefaultRenderer());
+        
+        table.setDefaultRenderer(Str.class,  new GeneralRenderer());
+        table.setDefaultRenderer(Int.class,  new GeneralRenderer());
+        table.setDefaultRenderer(Bool.class, new GeneralRenderer());
+        table.setDefaultRenderer(Enum.class, new GeneralRenderer());
+        
+        table.getTableHeader().setDefaultRenderer(new GeneralRenderer());
         
         final JScrollPane scrollPane = new JScrollPane();
         scrollPane.getViewport().setBackground(Color.WHITE);
@@ -115,20 +122,20 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
     public void valueChanged(ListSelectionEvent event) {
         if (event.getValueIsAdjusting()) return;
 
-        Entity[] entities = Arrays
-                .stream(table.getSelectedRows())
-                .boxed()
-                .collect(Collectors.toList())
-                .stream()
-                .map((rowIdx) -> {
-                    return (Entity) tableModel.getValueAt(rowIdx, 0);
-                })
-                .collect(Collectors.toList())
-                .toArray(new Entity[]{});
-        
-        commands.forEach((command) -> {
-            command.setContext(entities);
-        });
+//        Entity[] entities = Arrays
+//                .stream(table.getSelectedRows())
+//                .boxed()
+//                .collect(Collectors.toList())
+//                .stream()
+//                .map((rowIdx) -> {
+//                    return (Entity) tableModel.getValueAt(rowIdx, 0);
+//                })
+//                .collect(Collectors.toList())
+//                .toArray(new Entity[]{});
+//        
+//        commands.forEach((command) -> {
+//            command.setContext(entities);
+//        });
     }
     
     
@@ -186,15 +193,15 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                                 newEntity.model.init(newEntity.model.getPID());
                                 newEntity.model.commit();
                                 
-                                tableModel.addRow(
-                                        newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
-                                            return propName.equals(EntityModel.PID) ? newEntity : newEntity.model.getValue(propName);
-                                        }).toArray()
-                                );
-                                table.getSelectionModel().setSelectionInterval(
-                                        tableModel.getRowCount() - 1, 
-                                        tableModel.getRowCount() - 1
-                                );
+//                                tableModel.addRow(
+//                                        newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
+//                                            return propName.equals(EntityModel.PID) ? newEntity : newEntity.model.getValue(propName);
+//                                        }).toArray()
+//                                );
+//                                table.getSelectionModel().setSelectionInterval(
+//                                        tableModel.getRowCount() - 1, 
+//                                        tableModel.getRowCount() - 1
+//                                );
                                 parent.insert(newEntity);
                             }
                         }
@@ -270,15 +277,15 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                                 newEntity.model.init(newEntity.model.getPID());
                                 newEntity.model.commit();
                                 
-                                tableModel.addRow(
-                                        newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
-                                            return propName.equals(EntityModel.PID) ? newEntity : newEntity.model.getValue(propName);
-                                        }).toArray()
-                                );
-                                table.getSelectionModel().setSelectionInterval(
-                                        tableModel.getRowCount() - 1, 
-                                        tableModel.getRowCount() - 1
-                                );
+//                                tableModel.addRow(
+//                                        newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
+//                                            return propName.equals(EntityModel.PID) ? newEntity : newEntity.model.getValue(propName);
+//                                        }).toArray()
+//                                );
+//                                table.getSelectionModel().setSelectionInterval(
+//                                        tableModel.getRowCount() - 1, 
+//                                        tableModel.getRowCount() - 1
+//                                );
                                 context.getParent().insert(newEntity);
                             }
                         }
@@ -432,24 +439,24 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
 
         @Override
         public void execute(Entity context) {
-            if (!context.model.remove()) {
-                return;
-            }
-            int rowCount = tableModel.getRowCount();
-            for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-                if (((Entity) tableModel.getValueAt(rowIdx, 0)).model.equals(context.model)) {
-                    tableModel.removeRow(rowIdx);
-                    if (rowIdx < tableModel.getRowCount()) {
-                        table.getSelectionModel().setSelectionInterval(rowIdx, rowIdx);
-                    } else if (rowIdx == tableModel.getRowCount()) {
-                        table.getSelectionModel().setSelectionInterval(rowIdx-1, rowIdx-1);
-                    } else {
-                        table.getSelectionModel().clearSelection();
-                    }
-                    break;
-                }
-            }
-            context.getParent().delete(context);
+//            if (!context.model.remove()) {
+//                return;
+//            }
+//            int rowCount = tableModel.getRowCount();
+//            for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+//                if (((Entity) tableModel.getValueAt(rowIdx, 0)).model.equals(context.model)) {
+//                    tableModel.removeRow(rowIdx);
+//                    if (rowIdx < tableModel.getRowCount()) {
+//                        table.getSelectionModel().setSelectionInterval(rowIdx, rowIdx);
+//                    } else if (rowIdx == tableModel.getRowCount()) {
+//                        table.getSelectionModel().setSelectionInterval(rowIdx-1, rowIdx-1);
+//                    } else {
+//                        table.getSelectionModel().clearSelection();
+//                    }
+//                    break;
+//                }
+//            }
+//            context.getParent().delete(context);
         }
 
         @Override

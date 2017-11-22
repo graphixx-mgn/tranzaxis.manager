@@ -2,7 +2,7 @@ package codex.launcher;
 
 import codex.command.EntityCommand;
 import codex.component.button.IButton;
-import codex.component.render.DefaultRenderer;
+import codex.component.render.GeneralRenderer;
 import codex.editor.AbstractEditor;
 import static codex.editor.IEditor.FONT_VALUE;
 import codex.model.Entity;
@@ -68,7 +68,7 @@ class CommandChooser extends AbstractEditor implements ActionListener {
         SwingUtilities.updateComponentTreeUI(comboBox);
         
         comboBox.setFont(FONT_VALUE);
-        comboBox.setRenderer(new DefaultRenderer());
+        comboBox.setRenderer(new GeneralRenderer());
         comboBox.addFocusListener(this);
         comboBox.addActionListener(this);
         

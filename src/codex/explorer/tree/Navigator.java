@@ -1,5 +1,6 @@
 package codex.explorer.tree;
 
+import codex.component.render.GeneralRenderer;
 import codex.log.Logger;
 import codex.model.Entity;
 import codex.model.EntityModel;
@@ -66,7 +67,7 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
             }
         });
         getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
-        setCellRenderer(new NodeRenderer());
+        setCellRenderer(new GeneralRenderer());
     }
     
     /**
