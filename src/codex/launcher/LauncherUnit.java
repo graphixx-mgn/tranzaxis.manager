@@ -5,27 +5,30 @@ import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
-import java.awt.BorderLayout;
+import codex.unit.AbstractUnit;
 import java.awt.FlowLayout;
 import java.util.List;
+import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 
 /**
  * Панель быстрого запуска, отображается до выбора элементов дерева проводника.
  */
-public final class Launcher extends JPanel {
+public final class LauncherUnit extends AbstractUnit {
 
     private final static IConfigStoreService STORE = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     
-    private final JPanel commandLaunchPanel;
+    private JScrollPane  launchPanel;
+    private final JPanel commandPanel = new JPanel(new WrapLayout(FlowLayout.LEFT));
 
-    public Launcher() {
-        super(new BorderLayout());
-        
-        commandLaunchPanel = new JPanel(new WrapLayout(FlowLayout.LEFT));
-        commandLaunchPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
-        add(commandLaunchPanel, BorderLayout.CENTER);
+    @Override
+    public JComponent createViewport() {
+        launchPanel = new JScrollPane();
+        launchPanel.setBorder(null);
+
+        commandPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
         List<String> PIDs = STORE.readCatalogEntries(Shortcut.class);
         PIDs.forEach((PID) -> {
@@ -35,17 +38,23 @@ public final class Launcher extends JPanel {
             
             if (entity == null) {
                 CommandLauncher launcher = new CommandLauncher(null, null, PID);
-                commandLaunchPanel.add(launcher);
+                commandPanel.add(launcher);
             } else {
                 CommandLauncher launcher = new CommandLauncher(
                         (Entity) shortcut.model.getValue("entity"), 
                         entity.getCommand(cmdName),
                         PID
                 );
-                commandLaunchPanel.add(launcher);
+                commandPanel.add(launcher);
             }
         });
-        commandLaunchPanel.add(new CreateLauncher());
+        commandPanel.add(new CreateLauncher());
+        return launchPanel;
+    }
+    
+    @Override
+    public void viewportBound() {
+        launchPanel.setViewportView(commandPanel);
     }
     
 }
