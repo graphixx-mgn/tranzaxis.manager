@@ -24,7 +24,7 @@ final class Launcher extends JPanel {
         super(new BorderLayout());
         
         commandLaunchPanel = new JPanel(new WrapLayout(FlowLayout.LEFT));
-        commandLaunchPanel.setBorder(new EmptyBorder(5, 0, 0, 0));
+        commandLaunchPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
         add(commandLaunchPanel, BorderLayout.CENTER);
 
         List<String> PIDs = STORE.readCatalogEntries(Shortcut.class);

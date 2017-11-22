@@ -2,9 +2,13 @@ package codex.explorer.browser;
 
 import codex.explorer.tree.INode;
 import codex.presentation.EditorPresentation;
+import codex.utils.ImageUtils;
 import java.awt.BorderLayout;
+import java.awt.Color;
+import javax.swing.ImageIcon;
 import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
+import javax.swing.JTabbedPane;
+import javax.swing.border.LineBorder;
 
 /**
  * Панель просмотра проводника. Отображает презентации редактора и селектора
@@ -12,6 +16,10 @@ import javax.swing.border.EmptyBorder;
  */
 public final class Browser extends JPanel {
     
+    private final static ImageIcon LAUNCH = ImageUtils.resize(ImageUtils.getByPath("/images/launch.png"), 20, 20);
+    private final static ImageIcon VIEWER = ImageUtils.resize(ImageUtils.getByPath("/images/viewer.png"), 20, 20);
+    
+    private final JTabbedPane tabPanel;
     private final Launcher launchPanel;
     private final JPanel   editorPanel;
     private final JPanel   selectorPanel;
@@ -21,23 +29,35 @@ public final class Browser extends JPanel {
      */
     public Browser() {
         super(new BorderLayout());
-        setBorder(new EmptyBorder(0, 5, 5, 5));
         
         launchPanel   = new Launcher();
-        add(launchPanel, BorderLayout.CENTER);
-        
-        editorPanel = new JPanel(new BorderLayout());
+        editorPanel   = new JPanel(new BorderLayout());
         selectorPanel = new JPanel(new BorderLayout());
+        editorPanel.setBorder(new LineBorder(Color.GREEN, 1));
+        
+        JPanel viewerPanel = new JPanel(new BorderLayout());
+        viewerPanel.add(editorPanel,   BorderLayout.NORTH);
+        viewerPanel.add(selectorPanel, BorderLayout.CENTER);
+
+        tabPanel = new JTabbedPane();
+        tabPanel.setTabPlacement(JTabbedPane.LEFT);
+        tabPanel.addTab(null, LAUNCH, launchPanel);
+        tabPanel.addTab(null, VIEWER, viewerPanel);
+        tabPanel.setDisabledIconAt(0, ImageUtils.grayscale(LAUNCH));
+        tabPanel.setDisabledIconAt(1, ImageUtils.grayscale(VIEWER));
+        tabPanel.setEnabledAt(1, false);
+        add(tabPanel, BorderLayout.CENTER);
     }
     
     /**
      * Загружает указанный узел в панель просмотра.
      */
     public void browse(INode node) {
-        if (launchPanel.isVisible()) {
-            launchPanel.setVisible(false);
-            add(editorPanel,   BorderLayout.NORTH);
-            add(selectorPanel, BorderLayout.CENTER);
+        if (tabPanel.getSelectedIndex() != 1) {
+            tabPanel.setSelectedIndex(1);
+        }
+        if (!tabPanel.isEnabledAt(1)) {
+            tabPanel.setEnabledAt(1, true);
         }
         
         editorPanel.removeAll();
