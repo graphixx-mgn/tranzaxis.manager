@@ -1,4 +1,4 @@
-package codex.explorer.browser;
+package codex.explorer.launcher;
 
 import codex.component.layout.WrapLayout;
 import codex.config.ConfigStoreService;
@@ -14,13 +14,13 @@ import javax.swing.border.EmptyBorder;
 /**
  * Панель быстрого запуска, отображается до выбора элементов дерева проводника.
  */
-final class Launcher extends JPanel {
+public final class Launcher extends JPanel {
 
     private final static IConfigStoreService STORE = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     
     private final JPanel commandLaunchPanel;
 
-    Launcher() {
+    public Launcher() {
         super(new BorderLayout());
         
         commandLaunchPanel = new JPanel(new WrapLayout(FlowLayout.LEFT));

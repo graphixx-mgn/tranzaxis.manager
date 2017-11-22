@@ -1,4 +1,4 @@
-package codex.explorer.browser;
+package codex.explorer.launcher;
 
 import codex.component.border.RoundedBorder;
 import codex.editor.IEditor;

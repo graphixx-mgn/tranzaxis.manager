@@ -1,4 +1,4 @@
-package codex.explorer.browser;
+package codex.explorer.launcher;
 
 import codex.command.EntityCommand;
 import codex.component.border.DashBorder;
