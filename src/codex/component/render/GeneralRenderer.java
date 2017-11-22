@@ -5,6 +5,7 @@ import codex.editor.AbstractEditor;
 import codex.editor.IEditor;
 import codex.explorer.tree.INode;
 import codex.model.Entity;
+import codex.type.Bool;
 import codex.type.Enum;
 import codex.type.Iconified;
 import codex.type.StringList;
@@ -17,7 +18,6 @@ import javax.swing.JList;
 import javax.swing.JTable;
 import javax.swing.JTree;
 import javax.swing.ListCellRenderer;
-import javax.swing.SwingConstants;
 import static javax.swing.SwingConstants.CENTER;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -29,9 +29,9 @@ import javax.swing.tree.TreeCellRenderer;
 /**
  * Стандартный рендерер ячеек списка, таблицы и элементов дерева.
  */
-public final class DefaultRenderer extends JLabel implements ListCellRenderer, TableCellRenderer, TreeCellRenderer {
+public final class GeneralRenderer extends JLabel implements ListCellRenderer, TableCellRenderer, TreeCellRenderer {
     
-    public DefaultRenderer() {
+    public GeneralRenderer() {
         setOpaque(true);
         setIconTextGap(6);
         setVerticalAlignment(CENTER);
@@ -64,8 +64,8 @@ public final class DefaultRenderer extends JLabel implements ListCellRenderer, T
     }
 
     /**
-     * Метод задает внешний вид ячеек списка. Вызывается для каждой ячейки при 
-     * перерисовке виджета. 
+     * Метод задает внешний вид ячеек таблицы. Вызывается для каждой ячейки при 
+     * перерисовке. 
      * @param table Виджет - таблица.
      * @param value Значение ячейки.
      * @param isSelected Признак того что ячейка выделена.
@@ -76,34 +76,31 @@ public final class DefaultRenderer extends JLabel implements ListCellRenderer, T
      */
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-        setText(value != null ? 
-                value.toString() : 
-                IEditor.NOT_DEFINED
-        );
-        setForeground(value != null ? 
-                IEditor.COLOR_NORMAL : 
-                IEditor.COLOR_DISABLED
-        );
-        setFont(row == TableModelEvent.HEADER_ROW ? 
-                IEditor.FONT_BOLD : 
-                IEditor.FONT_VALUE
-        );
-        setHorizontalAlignment(row == TableModelEvent.HEADER_ROW ? 
-                SwingConstants.CENTER : 
-                SwingConstants.LEADING
-        );
-        setBackground(row == TableModelEvent.HEADER_ROW ?
-                Color.decode("#CCCCCC") : isSelected ? 
-                        IButton.PRESS_COLOR : 
-                        table.getBackground()
-        );
-        setBorder(new CompoundBorder(
-                new MatteBorder(
-                        0, column == 0 ? 0 : 1, 1, 0, 
-                        row == TableModelEvent.HEADER_ROW ? Color.GRAY : Color.LIGHT_GRAY), 
-                new EmptyBorder(1, 6, 0, 0)
-        ));
-        return this;
+        Class columnClass = table.getColumnClass(column);
+        CellRenderer cellBox;
+        if (row == TableModelEvent.HEADER_ROW) {
+            TableHeaderRenderer cellHead = TableHeaderRenderer.getInstance();
+            cellHead.setValue((String) value);
+            cellHead.setBorder(new CompoundBorder(
+                    new MatteBorder(0, column == 0 ? 0 : 1, 1, 0, Color.GRAY),
+                    new EmptyBorder(1, 6, 0, 0)
+            ));
+            return cellHead;
+            
+        } else {
+            if (Bool.class.equals(columnClass)) {
+                cellBox = BoolCellRenderer.getInstance();
+            } else {
+                cellBox = ComplexCellRenderer.getInstance();
+            }
+            cellBox.setValue(value);
+            cellBox.setBackground(isSelected ? IButton.PRESS_COLOR : table.getBackground());
+            cellBox.setBorder(new CompoundBorder(
+                    new MatteBorder(0, column == 0 ? 0 : 1, 1, 0, Color.LIGHT_GRAY), 
+                    new EmptyBorder(1, 6, 0, 0)
+            ));
+            return cellBox;
+        }
     }
 
     /**
