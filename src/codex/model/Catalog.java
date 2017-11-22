@@ -39,5 +39,8 @@ public abstract class Catalog extends Entity {
             });
         }
     }
+    
+    @Override
+    public abstract Class getChildClass();
 
 }
