@@ -142,7 +142,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
             command.setContext(entities);
         });
     }
-    //TODO: Перестала работать блокировка окна при дубликации имени: Create & Copy
+
     public class CreateEntity extends EntityCommand {
     
         private final Entity parent;
@@ -173,7 +173,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
         @Override
         public void execute(Entity context) {
             Entity newEntity = Entity.newInstance(entityClass, null);
-            
+ 
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
             
@@ -293,7 +293,6 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                                         tableModel.getRowCount() - 1, 
                                         tableModel.getRowCount() - 1
                                 );
-                                context.getParent().insert(newEntity);
                             }
                         }
                     },
