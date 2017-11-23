@@ -16,6 +16,13 @@ public interface IExplorerAccessService extends IService {
         return null;
     }
     
+    /**
+     * Возвращает сущность заданного класса по её PID.
+     */
+    default Entity getEntity(Class entityClass, String PID) {
+        return null;
+    }
+    
     @Override
     default String getTitle() {
         return "Explorer Access Service";
