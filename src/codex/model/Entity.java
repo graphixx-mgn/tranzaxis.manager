@@ -41,7 +41,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     private SelectorPresentation selectorPresentation;
     
     private final Map<String, EntityCommand> commands = new LinkedHashMap<>();
-    private final Map<String, IEditor> editors  = new LinkedHashMap<>();
+    private final Map<String, IEditor>       editors  = new LinkedHashMap<>();
      
     /**
      * Модель сущности, контейнер всех её свойств.
@@ -76,6 +76,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 IEditor propEditor = super.getEditor(name);
                 if (Entity.this.getParent() != null && ((Entity) Entity.this.getParent()).model.hasProperty(name)) {
                     EntityModel parent = ((Entity) Entity.this.getParent()).model;
+                    //TODO: При каждом открытии редактора создаются новые кнопки
                     propEditor.addCommand(new SwitchInheritance(
                             getProperty(name), parent.getProperty(name)
                     ));
@@ -85,7 +86,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                         }
                     });
                 }
-                editors.put(name, propEditor);
+                Entity.this.editors.put(name, propEditor);
                 return propEditor;
             }
             
