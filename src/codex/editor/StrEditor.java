@@ -80,13 +80,17 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
                 ImageUtils.getByPath("/images/warn.png"), 
                 textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
         ));
+        signInvalid.setVisible(false);
+        
         signDelete = new JLabel(ImageUtils.resize(
                 ImageUtils.getByPath("/images/clearval.png"), 
                 textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
         ));
+        signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
         signDelete.setBorder(new EmptyBorder(0, 3, 0, 0));
         signInvalid.setCursor(Cursor.getDefaultCursor());
         signDelete.setCursor(Cursor.getDefaultCursor());
+        
         IMask<String> mask = ((Str) propHolder.getPropValue()).getMask();
         if (mask.getErrorHint() != null) {
             signInvalid.addMouseListener(new MouseAdapter() {
@@ -138,9 +142,6 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         controls.setOpaque(false);
         controls.add(signInvalid, BorderLayout.WEST);
         controls.add(signDelete, BorderLayout.EAST);
-        
-        signDelete.setVisible(!propHolder.isEmpty());
-        signInvalid.setVisible(false);
         textField.add(controls, BorderLayout.EAST);
         
         signDelete.addMouseListener(new MouseAdapter() {
