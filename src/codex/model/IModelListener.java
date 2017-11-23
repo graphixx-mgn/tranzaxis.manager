@@ -23,4 +23,9 @@ public interface IModelListener {
      */
     default void modelRestored(EntityModel model, List<String> changes) {};
     
+    /**
+     * Вызывается при удалении модели из БД.
+     */
+    default void modelDeleted(EntityModel model) {};
+    
 }

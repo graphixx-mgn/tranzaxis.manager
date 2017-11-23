@@ -190,7 +190,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
     
     public final boolean remove() {
-        return STORE.removeClassInstance(entityClass, getPID());
+        boolean result = STORE.removeClassInstance(entityClass, getPID());
+        if (result) {
+            new LinkedList<>(modelListeners).forEach((listener) -> {
+                listener.modelDeleted(this);
+            });
+        }
+        return result;
     }
     
     /**
