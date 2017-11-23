@@ -24,7 +24,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -141,7 +140,7 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
         controls.setOpaque(false);
         controls.add(signDelete, BorderLayout.EAST);
         
-        signDelete.setVisible(!propHolder.isEmpty() && textField.isFocusOwner());
+        signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
         textField.add(controls, BorderLayout.EAST);
         
         signDelete.addMouseListener(new MouseAdapter() {
@@ -176,13 +175,13 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
 
     @Override
     public void setValue(Object value) {
-        SwingUtilities.invokeLater(() -> {
-            textField.getDocument().removeDocumentListener(this);
-            initialValue = value == null ? "" : value.toString();
-            textField.setText(initialValue);
-            textField.getDocument().addDocumentListener(this);
+        textField.getDocument().removeDocumentListener(this);
+        initialValue = value == null ? "" : value.toString();
+        textField.setText(initialValue);
+        textField.getDocument().addDocumentListener(this);
+        if (signDelete != null) {
             signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
-        });
+        }
     }
     
     @Override

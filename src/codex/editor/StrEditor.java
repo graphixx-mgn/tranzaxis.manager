@@ -25,7 +25,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -79,15 +78,13 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         signInvalid = new JLabel(ImageUtils.resize(
                 ImageUtils.getByPath("/images/warn.png"), 
                 textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
-        ));
-        signInvalid.setVisible(false);
-        
+        ));        
         signDelete = new JLabel(ImageUtils.resize(
                 ImageUtils.getByPath("/images/clearval.png"), 
                 textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
         ));
-        signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
-        signDelete.setBorder(new EmptyBorder(0, 3, 0, 0));
+        
+        signInvalid.setBorder(new EmptyBorder(0, 3, 0, 0));
         signInvalid.setCursor(Cursor.getDefaultCursor());
         signDelete.setCursor(Cursor.getDefaultCursor());
         
@@ -96,7 +93,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
             signInvalid.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    TimingUtils.showTimedBalloon(getErrorTip(), 4000);
+                    TimingUtils.showTimedBalloon(getErrorTip(), 3000);
                 }
             });
         }
@@ -140,8 +137,11 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         
         JPanel controls = new JPanel(new BorderLayout());
         controls.setOpaque(false);
-        controls.add(signInvalid, BorderLayout.WEST);
-        controls.add(signDelete, BorderLayout.EAST);
+        controls.add(signDelete, BorderLayout.WEST);
+        controls.add(signInvalid, BorderLayout.EAST);
+        
+        signInvalid.setVisible(false);
+        signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
         textField.add(controls, BorderLayout.EAST);
         
         signDelete.addMouseListener(new MouseAdapter() {
@@ -176,13 +176,11 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
 
     @Override
     public void setValue(Object value) {
-        SwingUtilities.invokeLater(() -> {
-            textField.getDocument().removeDocumentListener(this);
-            initialValue = value == null ? "" : value.toString();
-            textField.setText(initialValue);
-            textField.getDocument().addDocumentListener(this);
-            verify();
-        });
+        textField.getDocument().removeDocumentListener(this);
+        initialValue = value == null ? "" : value.toString();
+        textField.setText(initialValue);
+        textField.getDocument().addDocumentListener(this);
+        verify();
     }
     
     @Override
@@ -192,6 +190,9 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     }
 
     private boolean verify() {
+        if (signDelete != null) {
+            signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
+        }
         IMask<String> mask = ((Str) propHolder.getPropValue()).getMask();
         String value = ((Str) propHolder.getPropValue()).getValue();
         boolean inputOk = ((value == null || value.isEmpty()) && !mask.notNull()) || mask.verify(value);
@@ -200,10 +201,9 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         if (signInvalid != null) {
             signInvalid.setVisible(!inputOk);
             if (mask.getErrorHint() != null) {
-                TimingUtils.showTimedBalloon(getErrorTip(), 4000);
+                TimingUtils.showTimedBalloon(getErrorTip(), 3000);
             }
-        }                
-        signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
+        }
         return inputOk;
     }
 
