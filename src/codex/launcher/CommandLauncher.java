@@ -1,6 +1,7 @@
 package codex.launcher;
 
 import codex.command.EntityCommand;
+import static codex.launcher.LaunchButton.ERROR_BORDER;
 import codex.log.Logger;
 import codex.model.Entity;
 import codex.utils.ImageUtils;
@@ -23,8 +24,8 @@ final class CommandLauncher extends LaunchButton {
     
     private final ImageIcon TILE = ImageUtils.getByPath("/images/strips_red.png");
     
-    private final JLabel  signDelete;
-    private final boolean valid;
+    private final JLabel signDelete;
+    private boolean invalid;
     
     /**
      * Конструктор ярлыка.
@@ -53,15 +54,13 @@ final class CommandLauncher extends LaunchButton {
                 size.width, 
                 size.height
         );
-        valid = entity != null;
-        if (entity != null) {
-            addActionListener((event) -> {
+        setInvalid(entity == null);
+        addActionListener((event) -> {
+            if (!invalid) {
                 Logger.getLogger().debug("Perform command [{0}]. Context: {1}", command.getName(), entity);
                 command.execute(entity);
-            });
-        } else {
-            setBorder(ERROR_BORDER);
-        }
+            }
+        });
         
         signDelete.addMouseListener(new MouseAdapter() {
             @Override
@@ -81,18 +80,28 @@ final class CommandLauncher extends LaunchButton {
         });
     }
     
+    public final void setInvalid(boolean invalid) {
+        this.invalid = invalid;
+        setBorder(invalid ? ERROR_BORDER : NORMAL_BORDER);
+        repaint();
+    }
+    
+    public final boolean isInvalid() {
+        return this.invalid;
+    }
+    
     @Override
-    public void stateChanged(ChangeEvent event) {
-        if (valid) {
+    public final void stateChanged(ChangeEvent event) {
+        if (!invalid) {
             super.stateChanged(event);
         }
         signDelete.setVisible(getModel().isRollover());
     }
     
     @Override
-    public void paint(Graphics g) {
+    public final void paint(Graphics g) {
         super.paint(g);
-        if (!valid) {
+        if (invalid) {
             Graphics2D g2d = (Graphics2D) g.create();
             g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.1f));
             int tileWidth = TILE.getIconWidth();

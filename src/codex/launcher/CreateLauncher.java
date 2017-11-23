@@ -8,6 +8,7 @@ import codex.component.dialog.Dialog;
 import codex.model.Catalog;
 import codex.model.Entity;
 import codex.model.EntityModel;
+import codex.model.IModelListener;
 import codex.model.ParamModel;
 import codex.presentation.EditorPage;
 import codex.property.IPropertyChangeListener;
@@ -76,6 +77,13 @@ final class CreateLauncher extends LaunchButton implements ActionListener, IProp
                         
                         shortcut.model.init(shortcut.model.getPID());
                         shortcut.model.commit();
+                        
+                        entity.model.addModelListener(new IModelListener() {
+                            @Override
+                            public void modelDeleted(EntityModel model) {
+                                launcher.setInvalid(true);
+                            }
+                        });
                     }
                 }
             },
