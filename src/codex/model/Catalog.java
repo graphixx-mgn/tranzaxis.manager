@@ -5,6 +5,7 @@ import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
 import codex.service.ServiceRegistry;
 import java.util.List;
+import java.util.Map;
 import javax.swing.ImageIcon;
 
 /**
@@ -32,10 +33,16 @@ public abstract class Catalog extends Entity {
     
     private void loadChildEntities() {
         if (getChildClass() != null) {
-            final List<String> PIDs = STORE.readCatalogEntries(getChildClass());
-            PIDs.forEach((PID) -> {
-                final Entity newEntity = Entity.newInstance(getChildClass(), PID);
-                insert(newEntity);
+            List<Map<String, String>> rowsData = STORE.readCatalogEntries(getChildClass());
+            rowsData.forEach((map) -> {
+                String title  = map.get(EntityModel.PID);
+                Entity entity = Entity.newInstance(getChildClass(), null);
+                entity.setTitle(title);
+                map.forEach((propName, propVal) -> {
+                    entity.model.getProperty(propName).getPropValue().valueOf(propVal);
+                });
+                entity.model.init();
+                insert(entity);
             });
         }
     }
