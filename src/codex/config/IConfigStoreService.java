@@ -1,12 +1,12 @@
 package codex.config;
 
 import codex.model.EntityModel;
-import codex.property.PropertyHolder;
 import codex.service.IService;
-import codex.type.IComplexType;
 import java.rmi.RemoteException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Интерфейс сервиса загрузки и сохранения данных модели {@link EntityModel}.
@@ -31,40 +31,43 @@ public interface IConfigStoreService extends IService {
     /**
      * Создать пустую запись в каталоге для модели сушности по её уникальному ключу.
      * @param clazz Класс сущности.
-     * @param PID Уникальный строковый идентификатор сущности.
+     * @param PID Наименование сущности.
      * @throws RemoteException 
      */
-    default void initClassInstance(Class clazz, String PID) {};
+    default Integer initClassInstance(Class clazz, String PID) {
+        return null;
+    };
     
     /**
      * Удалить запись в каталоге по её уникальному ключу.
      * @param clazz Класс сущности.
-     * @param PID Уникальный строковый идентификатор сущности.
+     * @param ID Уникальный числовой идентификатор сущности.
      * @throws RemoteException 
      */
-    default boolean removeClassInstance(Class clazz, String PID) {
+    default boolean removeClassInstance(Class clazz, Integer ID) {
         return false;
     };
     
     /**
      * Считать их каталога значение свойства сущности.
      * @param clazz Класс сущности.
-     * @param PID Уникальный строковый идентификатор сущности.
+     * @param ID Уникальный числовой идентификатор сущности.
      * @param propName Имя свойства.
-     * @param propValue Внутреннее значение свойства сущности.
      * @throws RemoteException 
      */
-    default void readClassProperty(Class clazz, String PID, String propName, IComplexType propValue) {};
+    default String readClassProperty(Class clazz, Integer ID, String propName) {
+        return null;
+    };
     
     /**
      * Сохранить свойства сущности в каталог. 
      * @param clazz Класс сущности.
-     * @param PID Уникальный строковый идентификатор сущности.
+     * @param ID Уникальный числовой идентификатор сущности.
      * @param properties Список имен свойств, которые требуется сохранить.
      * @return Признак успешности операции сохранения.
      * @throws RemoteException 
      */
-    default boolean updateClassInstance(Class clazz, String PID, List<PropertyHolder> properties) {
+    default boolean updateClassInstance(Class clazz, Integer ID, Map<String, String> properties) {
         return false;
     };
     
@@ -72,8 +75,12 @@ public interface IConfigStoreService extends IService {
      * Получить список первичных ключей записей каталога.
      * @param clazz Класс сущности.
      */
-    default List<String> readCatalogEntries(Class clazz) {
+    default List<Map<String, String>> readCatalogEntries(Class clazz) {
         return new LinkedList<>();
+    };
+    
+    default Map<String, String> readClassInstance(Class clazz, Integer ID) {
+        return new HashMap<>();
     };
     
     @Override
