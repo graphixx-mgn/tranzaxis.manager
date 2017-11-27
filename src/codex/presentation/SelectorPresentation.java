@@ -10,6 +10,7 @@ import codex.editor.IEditor;
 import codex.log.Logger;
 import codex.model.Access;
 import codex.model.Entity;
+import codex.model.EntityModel;
 import codex.type.Bool;
 import codex.type.EntityRef;
 import codex.type.Enum;
@@ -177,7 +178,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
             
-            EditorPage page = new EditorPage(newEntity.model, EditorPage.Mode.Create);
+            EditorPage page = new EditorPage(newEntity.model);
             page.setBorder(new CompoundBorder(
                     new EmptyBorder(10, 5, 5, 5), 
                     new TitledBorder(
@@ -195,7 +196,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                         public void actionPerformed(ActionEvent event) {
                             if (event.getID() == Dialog.OK) {
                                 newEntity.setTitle(newEntity.model.getPID());
-                                newEntity.model.init(newEntity.model.getPID());
+                                newEntity.model.init();
                                 newEntity.model.commit();
 
                                 tableModel.addRow(
@@ -256,13 +257,17 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
             Entity newEntity = Entity.newInstance(context.getParent().getChildClass(), null);
             
             context.model.getProperties(Access.Edit).forEach((propName) -> {
-                newEntity.model.setValue(propName, context.model.getValue(propName));
+                if (EntityModel.PID.equals(propName)) {
+                    newEntity.model.setValue(propName, context.model.getValue(propName)+" (1)");
+                } else {
+                    newEntity.model.setValue(propName, context.model.getValue(propName));
+                }
             });
             
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
             
-            EditorPage page = new EditorPage(newEntity.model, EditorPage.Mode.Create);
+            EditorPage page = new EditorPage(newEntity.model);
             page.setBorder(new CompoundBorder(
                     new EmptyBorder(10, 5, 5, 5), 
                     new TitledBorder(
@@ -280,7 +285,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                         public void actionPerformed(ActionEvent event) {
                             if (event.getID() == Dialog.OK) {
                                 newEntity.setTitle(newEntity.model.getPID());
-                                newEntity.model.init(newEntity.model.getPID());
+                                newEntity.model.init();
                                 newEntity.model.commit();
                                 
                                 tableModel.addRow(
@@ -340,7 +345,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
             
-            EditorPage page = new EditorPage(context.model, EditorPage.Mode.Edit);
+            EditorPage page = new EditorPage(context.model);
             page.setBorder(new CompoundBorder(
                     new EmptyBorder(10, 5, 5, 5), 
                     new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())
@@ -362,8 +367,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                         }
                     },
                     confirmBtn, declineBtn
-            ) {
-                {
+            ) {{
                     // Перекрытие обработчика кнопок
                     Function<DialogButton, AbstractAction> defaultHandler = handler;
                     handler = (button) -> {
@@ -421,7 +425,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                             )
                     );
                     Arrays.asList(getContext()).forEach((entity) -> {
-                        msgBuilder.append("<br>&emsp;&#9900&nbsp;&nbsp;").append(entity.toString());
+                        msgBuilder.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(entity.toString());
                     });
                     message = msgBuilder.toString();
                 }

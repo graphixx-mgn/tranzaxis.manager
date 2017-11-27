@@ -41,7 +41,7 @@ public final class EditorPresentation extends JPanel {
         if (!entity.model.getProperties(Access.Edit).isEmpty() || !commands.isEmpty()) {
             commandPanel.setVisible(!commands.isEmpty());
             add(commandPanel, BorderLayout.NORTH);
-            add(new EditorPage(entity.model, EditorPage.Mode.Edit), BorderLayout.CENTER);
+            add(new EditorPage(entity.model), BorderLayout.CENTER);
         } else {
             setVisible(false);
         }
