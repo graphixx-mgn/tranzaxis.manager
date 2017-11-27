@@ -10,8 +10,8 @@ import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
-import codex.presentation.SwitchInheritance;
 import codex.property.IPropertyChangeListener;
+import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.Language;
 import java.awt.event.ActionEvent;
@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import javax.swing.AbstractAction;
 import javax.swing.ImageIcon;
-import javax.swing.SwingUtilities;
 
 /**
  * Абстракная сущность, базовый родитель прикладных сущностей приложения.
@@ -74,18 +73,18 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             @Override
             public IEditor getEditor(String name) {
                 IEditor propEditor = super.getEditor(name);
-                if (Entity.this.getParent() != null && ((Entity) Entity.this.getParent()).model.hasProperty(name)) {
-                    EntityModel parent = ((Entity) Entity.this.getParent()).model;
-                    //TODO: При каждом открытии редактора создаются новые кнопки
-                    propEditor.addCommand(new SwitchInheritance(
-                            getProperty(name), parent.getProperty(name)
-                    ));
-                    parent.getProperty(name).addChangeListener((n, oldValue, newValue) -> {
-                        if (getProperty(name).isInherited()) {
-                            propEditor.getEditor().updateUI();
-                        }
-                    });
-                }
+//                if (Entity.this.getParent() != null && ((Entity) Entity.this.getParent()).model.hasProperty(name)) {
+//                    EntityModel parent = ((Entity) Entity.this.getParent()).model;
+//                    //TODO: При каждом открытии редактора создаются новые кнопки
+//                    propEditor.addCommand(new SwitchInheritance(
+//                            getProperty(name), parent.getProperty(name)
+//                    ));
+//                    parent.getProperty(name).addChangeListener((n, oldValue, newValue) -> {
+//                        if (getProperty(name).isInherited()) {
+//                            propEditor.getEditor().updateUI();
+//                        }
+//                    });
+//                }
                 Entity.this.editors.put(name, propEditor);
                 return propEditor;
             }
@@ -130,29 +129,25 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     @Override
     public void insert(INode child) {
         super.insert(child);
-        if (child instanceof Entity) {
-            Entity entity = (Entity) child;
-            
-            SwingUtilities.invokeLater(() -> {
-                List<String> inheritance = entity.model.getProperties(Access.Edit)
-                    .stream()
-                    .filter(propName -> this.model.hasProperty(propName))
-                    .collect(Collectors.toList());
-                if (!inheritance.isEmpty()) {
-                    Logger.getLogger().debug(
-                            "Properties ''{0}/@{1}'' has possibility of inheritance", 
-                            child, inheritance
-                    );
-                    inheritance.forEach((propName) -> {
-                        entity.model.getProperty(propName).setInherited(this.model.getProperty(propName));
-                    });
-                }
-            });
-        }
-    }
-    
-    public String getPID() {
-        return model.getPID();
+//        if (child instanceof Entity) {
+//            Entity entity = (Entity) child;
+//            
+//            SwingUtilities.invokeLater(() -> {
+//                List<String> inheritance = entity.model.getProperties(Access.Edit)
+//                    .stream()
+//                    .filter(propName -> this.model.hasProperty(propName))
+//                    .collect(Collectors.toList());
+//                if (!inheritance.isEmpty()) {
+//                    Logger.getLogger().debug(
+//                            "Properties ''{0}/@{1}'' has possibility of inheritance", 
+//                            child, inheritance
+//                    );
+//                    inheritance.forEach((propName) -> {
+//                        entity.model.getProperty(propName).setInherited(this.model.getProperty(propName));
+//                    });
+//                }
+//            });
+//        }
     }
     
     /**
@@ -169,11 +164,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     public final String getHint() {
         return hint;
     }
-    
-    @Override
-    public final String toString() {
-        return title;
-    }
 
     @Override
     public final SelectorPresentation getSelectorPresentation() {
@@ -186,10 +176,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
 
     @Override
     public final EditorPresentation getEditorPresentation() {
-        if (editorPresentation == null) {
-            editorPresentation = new EditorPresentation(this);
-        }
-        return editorPresentation;
+        return new EditorPresentation(this);
     };
     
     public final List<String> getInvalidProperties() {
@@ -270,6 +257,11 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         editors.values().stream().forEach((editor) -> {
             editor.stopEditing();
         });
+    }
+    
+    @Override
+    public final String toString() {
+        return IComplexType.coalesce(title, "<new "+getClass().getSimpleName()+">");
     }
     
     public static Entity newInstance(Class entityClass, String title) {
