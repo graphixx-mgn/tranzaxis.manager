@@ -17,9 +17,9 @@ public interface IExplorerAccessService extends IService {
     }
     
     /**
-     * Возвращает сущность заданного класса по её PID.
+     * Возвращает сущность заданного класса по её ID.
      */
-    default Entity getEntity(Class entityClass, String PID) {
+    default Entity getEntity(Class entityClass, Integer ID) {
         return null;
     }
     
