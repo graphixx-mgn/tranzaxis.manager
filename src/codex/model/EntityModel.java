@@ -7,6 +7,7 @@ import codex.config.IConfigStoreService;
 import codex.editor.IEditor;
 import codex.property.IPropertyChangeListener;
 import codex.service.ServiceRegistry;
+import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Int;
 import codex.type.Str;
@@ -91,7 +92,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * селекторе.
      */
     public final void addUserProp(String name, IComplexType value, boolean require, Access restriction) {
-        STORE.addClassProperty(entityClass, name);
+        if (value instanceof EntityRef) {
+            STORE.addClassProperty(entityClass, name, ((EntityRef) value).getEntityClass());
+        } else {
+            STORE.addClassProperty(entityClass, name, null);
+        }
         addProperty(name, value, require, restriction);
         if (getID() != null) {
             String val = STORE.readClassProperty(entityClass, getID(), name);
