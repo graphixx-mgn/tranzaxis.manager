@@ -4,7 +4,6 @@ import codex.command.ICommand;
 import codex.editor.IEditor;
 import codex.model.AbstractModel;
 import codex.model.Access;
-import codex.model.EntityModel;
 import codex.property.PropertyHolder;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -25,15 +24,11 @@ import javax.swing.JPanel;
  */
 public final class EditorPage extends JPanel {
     
-    public enum Mode {
-        Edit, Create
-    }
-    
     /**
      * Конструктор страницы. 
      * @param entity Редактируемая сущность.
      */
-    public EditorPage(AbstractModel model, Mode mode) {
+    public EditorPage(AbstractModel model) {
         super(new GridBagLayout());
         
         GridBagConstraints gbc = new GridBagConstraints();
@@ -44,9 +39,6 @@ public final class EditorPage extends JPanel {
         int lineIdx = 1, maxSize = 0;
         final Vector<Component> focusOrder = new Vector<>();
         List<String> properties = model.getProperties(Access.Edit);
-        if (mode.equals(Mode.Create)) {
-            properties.add(0, EntityModel.PID);
-        }
         for (String propName : properties) {
             gbc.gridx = 0; 
             gbc.gridy = lineIdx;
@@ -78,12 +70,12 @@ public final class EditorPage extends JPanel {
         gbc.gridx = 0;
         gbc.gridy++;
         gbc.weightx = 0;
-        add(Box.createHorizontalStrut(Math.max(150, maxSize+30)), gbc);
+        add(Box.createHorizontalStrut(Math.max(220, maxSize+30)), gbc);
         if (focusOrder.size() > 0) {
             setFocusCycleRoot(true);
             setFocusTraversalPolicyProvider(true);
             setFocusTraversalPolicy(new FocusPolicy(focusOrder));
         }
     }
-    
+
 }
