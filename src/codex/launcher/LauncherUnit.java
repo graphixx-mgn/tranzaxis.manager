@@ -12,6 +12,7 @@ import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
 import java.awt.FlowLayout;
 import java.util.List;
+import java.util.Map;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -34,16 +35,16 @@ public final class LauncherUnit extends AbstractUnit {
         launchPanel.setBorder(null);
         commandPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
-        List<String> PIDs = STORE.readCatalogEntries(Shortcut.class);
-        PIDs.forEach((PID) -> {
-            final Shortcut shortcut  = (Shortcut) Entity.newInstance(Shortcut.class, PID);
+        List<Map<String, String>> rowsData = STORE.readCatalogEntries(Shortcut.class);
+        rowsData.forEach((map) -> {
+            String PID  = map.get(EntityModel.PID);
+            final Shortcut shortcut = (Shortcut) Entity.newInstance(Shortcut.class, PID);
             final Entity   entityRef = (Entity) shortcut.model.getValue("entity");
-            
             if (entityRef == null) {
                 CommandLauncher launcher = new CommandLauncher(null, null, PID);
                 commandPanel.add(launcher);
             } else {
-                final Entity entity  = EAS.getEntity(entityRef.getClass(), entityRef.getPID());
+                final Entity entity  = EAS.getEntity(entityRef.getClass(), entityRef.model.getID());
                 final String cmdName = (String) shortcut.model.getValue("command");
                 CommandLauncher launcher = new CommandLauncher(
                         (Entity) shortcut.model.getValue("entity"), 

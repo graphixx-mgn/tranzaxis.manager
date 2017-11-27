@@ -46,7 +46,7 @@ final class CreateLauncher extends LaunchButton implements ActionListener, IProp
     
     CreateLauncher() {
         super("", ImageUtils.getByPath("/images/plus.png"));
-        setOpacity(0.6f);
+        setOpacity(0.5f);
         setBorder(new RoundedBorder(new DashBorder(Color.DARK_GRAY, 5, 1), 18));
         addActionListener(this);
         
@@ -61,7 +61,7 @@ final class CreateLauncher extends LaunchButton implements ActionListener, IProp
                     if (event.getID() == Dialog.OK) {
                         Entity entity = (Entity) paramModel.getValue("entity");
                         String title  = (String) paramModel.getValue("linkname");
-                        
+
                         CommandLauncher launcher = new CommandLauncher(entity, command, title);
                         Container panel = CreateLauncher.this.getParent();
                         panel.remove(CreateLauncher.this);
@@ -72,10 +72,9 @@ final class CreateLauncher extends LaunchButton implements ActionListener, IProp
                         
                         Entity shortcut = Entity.newInstance(Shortcut.class, null);
                         shortcut.model.setValue(EntityModel.PID, title);
-                        shortcut.model.setValue("entity",        entity);
-                        shortcut.model.setValue("command",       command.getName());
-                        
-                        shortcut.model.init(shortcut.model.getPID());
+                        shortcut.model.setValue("entity",  entity);
+                        shortcut.model.setValue("command", command.getName()); 
+                        shortcut.model.init();
                         shortcut.model.commit();
                         
                         entity.model.addModelListener(new IModelListener() {
@@ -94,7 +93,7 @@ final class CreateLauncher extends LaunchButton implements ActionListener, IProp
     
     @Override
     public void stateChanged(ChangeEvent event) {
-        setOpacity(getModel().isRollover() ? 0.9f : 0.7f);
+        setOpacity(getModel().isRollover() ? 1f : 0.5f);
     }
 
     @Override
@@ -110,7 +109,7 @@ final class CreateLauncher extends LaunchButton implements ActionListener, IProp
         paramModel.addProperty("linkname", new Str(null), false);
         paramModel.addChangeListener(this);
         
-        EditorPage content = new EditorPage(paramModel, EditorPage.Mode.Edit);
+        EditorPage content = new EditorPage(paramModel);
         paramDialog.setContent(content);
         
         // Выделение места под новый параметр
