@@ -6,11 +6,11 @@ import codex.mask.IMask;
 import codex.presentation.SelectorPresentation;
 import codex.service.ServiceRegistry;
 import codex.utils.Language;
-import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * Маска проверки свойства PID модели сущности, которое должно быть заполнено и 
- * быть уникально. Подключается и удаляется в методе {@link EntityModel#init}. 
+ * Маска проверки наименования модели сущности, которое должно быть заполнено и 
+ * быть уникально.
  */
 class PIDMask implements IMask<String> {
     
@@ -19,21 +19,30 @@ class PIDMask implements IMask<String> {
             SelectorPresentation.class.getSimpleName(), 
             "creator@pid.hint"
     );
-    private final Class entityClass;
+    private final Class   entityClass;
+    private final Integer ID;
 
     /**
      * Конструктор маски.
-     * @param entityClass Класс сущности, используется для подучения списка PID-ов
-     * уже существующих сущностей.
+     * @param entityClass Класс сущности, используется для подучения списка 
+     * существующих сущностей.
+     * @param ID Идентификатор сущности которой назначена маска.
      */
-    public PIDMask(Class entityClass) {
+    public PIDMask(Class entityClass, Integer ID) {
         this.entityClass = entityClass;
+        this.ID = ID;
     }
 
     @Override
     public boolean verify(String value) {
-        final List<String> PIDs = STORE.readCatalogEntries(entityClass);
-        return value != null && !value.isEmpty() && !PIDs.contains(value);
+        //TODO: При сохранении новой (copy || create) сущности поле подсвечено красным
+        if (value != null) {
+            return STORE.readCatalogEntries(entityClass).stream().filter((map) -> {
+                return map.get(EntityModel.PID).equals(value) && (ID == null || !ID.toString().equals(map.get(EntityModel.ID)));
+            }).collect(Collectors.toList()).isEmpty();
+        } else {
+            return false;
+        }
     }
 
     @Override
