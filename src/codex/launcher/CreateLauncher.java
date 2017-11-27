@@ -72,6 +72,7 @@ final class CreateLauncher extends LaunchButton implements ActionListener, IProp
                         
                         Entity shortcut = Entity.newInstance(Shortcut.class, null);
                         shortcut.model.setValue(EntityModel.PID, title);
+                        shortcut.model.setValue("class",   entity.getClass().getCanonicalName());
                         shortcut.model.setValue("entity",  entity);
                         shortcut.model.setValue("command", command.getName()); 
                         shortcut.model.init();
