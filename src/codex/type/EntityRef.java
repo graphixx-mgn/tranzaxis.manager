@@ -4,12 +4,10 @@ import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.editor.EntityRefEditor;
 import codex.editor.IEditorFactory;
-import codex.log.Logger;
 import codex.model.Entity;
+import codex.model.EntityModel;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
-import java.text.MessageFormat;
-import java.util.List;
 import java.util.function.Predicate;
 
 /**
@@ -90,24 +88,16 @@ public class EntityRef implements IComplexType<Entity> {
     
     @Override
     public String toString() {
-        return isEmpty() ? "" : value.getClass().getCanonicalName()+"~"+value.getPID();
+        return isEmpty() ? "" : value.model.getID().toString();
     }
 
     @Override
     public void valueOf(String value) {
         if (value != null && !value.isEmpty()) {
-            String[] parts = value.split("~", -1);
-            try {
-                Class loadClass = Class.forName(parts[0]);
-                final List<String> PIDs = STORE.readCatalogEntries(loadClass);
-                if (PIDs.contains(parts[1])) {
-                    Entity entity = Entity.newInstance(loadClass, parts[1]);
-                    setValue(entity);
-                }
-            } catch (ClassNotFoundException e) {
-                Logger.getLogger().error(
-                        MessageFormat.format("Unable instantiate entity ''{0}''", entityClass.getCanonicalName()), e
-                );
+            String PID = STORE.readClassInstance(entityClass, Integer.valueOf(value)).get(EntityModel.PID);
+            if (PID != null) {
+                Entity entity = Entity.newInstance(entityClass, PID);
+                setValue(entity);
             }
         }
     }
