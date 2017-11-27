@@ -8,11 +8,14 @@ import codex.editor.IEditor;
 import codex.property.IPropertyChangeListener;
 import codex.service.ServiceRegistry;
 import codex.type.IComplexType;
+import codex.type.Int;
 import codex.type.Str;
 import codex.utils.Language;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -21,7 +24,10 @@ import java.util.stream.Collectors;
  */
 public class EntityModel extends AbstractModel implements IPropertyChangeListener {
     
+    public  final static String ID  = "ID";
+    public  final static String SEQ = "SEQ";
     public  final static String PID = "PID";
+    
     private final static IConfigStoreService STORE = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     
     private final Class        entityClass;
@@ -32,11 +38,32 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     
     EntityModel(Class entityClass, String PID) {
         this.entityClass = entityClass;
-        addProperty(EntityModel.PID, new Str(PID), true, Access.Edit);
-        init(PID);
+        addDynamicProp(EntityModel.ID, new Int(null), Access.Any, null);
+        addUserProp(EntityModel.SEQ,   new Int(null), true, Access.Any);
+        addUserProp(EntityModel.PID,   new Str(PID),  true, 
+                Catalog.class.isAssignableFrom(entityClass) ? Access.Any : null
+        );
+        init();
     }
     
-    public String getPID() {
+    public final void init() {
+        if (getPID() != null) {
+            Integer newID = STORE.initClassInstance(entityClass, getPID());
+            if (newID != null) {
+                setValue(ID, newID);
+            }
+            getProperty(EntityModel.SEQ).getPropValue().valueOf(
+                    STORE.readClassProperty(entityClass, getID(), EntityModel.SEQ)
+            );
+        }
+        ((Str) getProperty(EntityModel.PID).getPropValue()).setMask(new PIDMask(entityClass, getID()));
+    }
+    
+    public final Integer getID() {
+        return (Integer) getProperty(ID).getPropValue().getValue();
+    }
+    
+    public final String getPID() {
         return (String) getProperty(PID).getPropValue().getValue();
     }
 
@@ -44,7 +71,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public final boolean isValid() {
         boolean isValid = true;
         for (String propName : getProperties(Access.Any)) {
-            isValid = isValid & !(getValue(propName) == null && getProperty(propName).isRequired()) ;
+            isValid = isValid & !(getValue(propName) == null && getProperty(propName).isRequired());
         }
         return isValid;
     };
@@ -65,9 +92,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void addUserProp(String name, IComplexType value, boolean require, Access restriction) {
         STORE.addClassProperty(entityClass, name);
-        STORE.readClassProperty(entityClass, getPID(), name, value);
-            
         addProperty(name, value, require, restriction);
+        if (getID() != null) {
+            String val = STORE.readClassProperty(entityClass, getID(), name);
+            if (val != null) {
+                getProperty(name).getPropValue().valueOf(val);
+            }
+        }
     }
     
     /**
@@ -161,6 +192,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         return getProperty(name).getTitle();
     }
     
+    public final boolean isPropertyDynamic(String name) {
+        return dynamicProps.contains(name);
+    }
+    
     /**
      * Возвращает признак отсуствия несохраненных изменений среди хранимых
      * свойств модели сущности.
@@ -180,17 +215,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 .collect(Collectors.toList());
     }
     
-    public final void init(String PID) {
-        if (PID == null) {
-            ((Str) getProperty(EntityModel.PID).getPropValue()).setMask(new PIDMask(entityClass));
-        } else {
-            STORE.initClassInstance(entityClass, PID);
-            ((Str) getProperty(EntityModel.PID).getPropValue()).setMask((String text) -> true);
-        }
-    }
-    
     public final boolean remove() {
-        boolean result = STORE.removeClassInstance(entityClass, getPID());
+        boolean result = STORE.removeClassInstance(entityClass, getID());
         if (result) {
             new LinkedList<>(modelListeners).forEach((listener) -> {
                 listener.modelDeleted(this);
@@ -204,26 +230,25 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void commit() {
         List<String> changes = getChanges();
-        boolean success = STORE.updateClassInstance(entityClass, 
-                getPID(),
-                changes.stream()
-                        .map((propName) -> {
-                            return getProperty(propName);
-                        })
-                        .collect(Collectors.toList())
-        );
-        if (success) {
-            undoRegistry.clear();
-            new LinkedList<>(modelListeners).forEach((listener) -> {
-                listener.modelSaved(this, changes);
+        if (!changes.isEmpty()) {
+            Map<String, String> values = new LinkedHashMap<>();
+            changes.forEach((propName) -> {
+                values.put(propName, getProperty(propName).getPropValue().toString());
             });
-        } else {
-            MessageBox msgBox = new MessageBox(
-                    MessageType.ERROR, null,
-                    Language.get("error@notsaved"),
-                    null
-            );
-            msgBox.setVisible(true);
+            boolean success = STORE.updateClassInstance(entityClass, getID(), values);
+            if (success) {
+                undoRegistry.clear();
+                new LinkedList<>(modelListeners).forEach((listener) -> {
+                    listener.modelSaved(this, changes);
+                });
+            } else {
+                MessageBox msgBox = new MessageBox(
+                        MessageType.ERROR, null,
+                        Language.get("error@notsaved"),
+                        null
+                );
+                msgBox.setVisible(true);
+            }
         }
     }
     
