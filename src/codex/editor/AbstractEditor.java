@@ -58,7 +58,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     }
 
     @Override
-    public final Box getEditor() {
+    public Box getEditor() {
         return editor;
     }
 
