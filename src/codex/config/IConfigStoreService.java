@@ -26,7 +26,7 @@ public interface IConfigStoreService extends IService {
      * @param propName Имя свойства.
      * @throws RemoteException 
      */
-    default void addClassProperty(Class clazz, String propName) {};
+    default void addClassProperty(Class clazz, String propName, Class refClazz) {};
     
     /**
      * Создать пустую запись в каталоге для модели сушности по её уникальному ключу.

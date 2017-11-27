@@ -41,6 +41,7 @@ public final class ConfigStoreService implements IConfigStoreService {
 
         try {
             connection = DriverManager.getConnection("jdbc:sqlite:"+configFile.getPath());
+            connection.createStatement().executeUpdate("PRAGMA foreign_keys = ON");            
             if (connection != null) {
                 final DatabaseMetaData meta = connection.getMetaData();
                 try (ResultSet rs = meta.getColumns(null, null, "%", "%")) {
@@ -82,17 +83,27 @@ public final class ConfigStoreService implements IConfigStoreService {
     }
 
     @Override
-    public void addClassProperty(Class clazz, String propName) {
+    public void addClassProperty(Class clazz, String propName, Class refClazz) {
         final String className = clazz.getSimpleName().toUpperCase();
         if (!storeStructure.containsKey(className)) {
             createClassCatalog(clazz);
         }
         if (!storeStructure.get(className).contains(propName)) {
-            final String alterSQL = MessageFormat.format("ALTER TABLE {0} ADD COLUMN {1} {2}",
-                    className,
-                    propName,
-                    "TEXT"
-            );
+            String alterSQL;
+            if (refClazz == null) {
+                alterSQL = MessageFormat.format("ALTER TABLE {0} ADD COLUMN {1} {2}",
+                        className,
+                        propName,
+                        "TEXT"
+                );
+            } else {
+                alterSQL = MessageFormat.format("ALTER TABLE {0} ADD COLUMN {1} {2} REFERENCES {3}(ID)",
+                        className,
+                        propName,
+                        "INTEGER",
+                        refClazz.getSimpleName().toUpperCase()
+                );
+            }
             try (final Statement stmt = connection.createStatement()) {
                 stmt.execute(alterSQL);
                 connection.commit();
@@ -186,7 +197,7 @@ public final class ConfigStoreService implements IConfigStoreService {
             try (PreparedStatement update = connection.prepareStatement(updateSQL)) {
                 List keys = new ArrayList(properties.keySet());
                 properties.forEach((key, value) -> {
-                    try { 
+                    try {
                         update.setString(keys.indexOf(key)+1, value);
                     } catch (SQLException e) {
                         Logger.getLogger().error("Unable to update instance", e);
