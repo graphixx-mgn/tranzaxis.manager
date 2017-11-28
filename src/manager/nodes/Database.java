@@ -5,11 +5,15 @@ import codex.log.Level;
 import codex.mask.RegexMask;
 import codex.model.Access;
 import codex.model.Entity;
+import codex.property.PropertyHolder;
 import codex.type.Bool;
+import codex.type.EntityRef;
+import codex.type.IComplexType;
 import codex.type.Int;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import java.util.Map;
 import manager.commands.CheckDatabase;
 
 public class Database extends Entity {
@@ -29,7 +33,7 @@ public class Database extends Entity {
             return model.getValue("dbSchema");
         },
         "dbSchema", "dbPass");
-        //model.addUserProp("instanceId", new Int(null), true, Access.Select);
+        model.addUserProp("instanceId", new Int(null), true, Access.Select);
         model.addUserProp("layerURI", new Str(null), true, Access.Select);
         model.addUserProp("userNote", new Str(null), false, null);
         
@@ -54,7 +58,7 @@ public class Database extends Entity {
         }
 
         @Override
-        public void execute(Entity context) {
+        public void execute(Entity context, Map<String, IComplexType> params) {
             java.lang.System.err.println(toString()+": "+context);
         }
     }
@@ -68,11 +72,19 @@ public class Database extends Entity {
                     "Run test command #2",
                     (entity) -> true
             );
+            setParameters(
+                    new PropertyHolder("PARAM_ENUM", new codex.type.Enum(Level.Debug), true),
+                    new PropertyHolder("PARAM_STR", new Str(null), true),
+                    new PropertyHolder("PARAM_REF", new EntityRef(Database.class), true)
+            );
         }
 
         @Override
-        public void execute(Entity context) {
+        public void execute(Entity context, Map<String, IComplexType> params) {
             java.lang.System.err.println(toString()+": "+context);
+            params.forEach((name, value) -> {
+                java.lang.System.err.println(name+": "+value);
+            });
         }
     }
     
