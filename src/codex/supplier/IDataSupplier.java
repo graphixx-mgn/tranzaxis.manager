@@ -1,4 +1,4 @@
-package codex.provider;
+package codex.supplier;
 
 import java.util.concurrent.Callable;
 

@@ -20,7 +20,7 @@ import javax.swing.AbstractAction;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-import codex.provider.IDataSupplier;
+import codex.supplier.IDataSupplier;
 
 /**
  * Реализация поставщика данных - параметров команды. Представляет собой диалог
