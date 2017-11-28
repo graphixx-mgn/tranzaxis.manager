@@ -206,6 +206,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                                             return newEntity.model.getValue(propName);
                                         }).toArray()
                                 );
+                                newEntity.model.addModelListener(tableModel);
                                 parent.insert(newEntity);
                                 table.getSelectionModel().setSelectionInterval(
                                         tableModel.getRowCount() - 1, 
@@ -295,6 +296,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                                             return newEntity.model.getValue(propName);
                                         }).toArray()
                                 );
+                                newEntity.model.addModelListener(tableModel);
                                 context.getParent().insert(newEntity);
                                 table.getSelectionModel().setSelectionInterval(
                                         tableModel.getRowCount() - 1, 
