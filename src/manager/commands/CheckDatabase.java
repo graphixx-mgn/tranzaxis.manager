@@ -9,6 +9,7 @@ import codex.utils.Language;
 import codex.utils.NetTools;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.ImageIcon;
@@ -44,7 +45,7 @@ public class CheckDatabase extends EntityCommand {
     }
 
     @Override
-    public void execute(Entity entity) {
+    public void execute(Entity entity, Map<String, IComplexType> params) {
         // Do nothing
     }
 
