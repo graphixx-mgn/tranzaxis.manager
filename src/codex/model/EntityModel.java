@@ -5,6 +5,8 @@ import codex.component.messagebox.MessageType;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.editor.IEditor;
+import codex.explorer.ExplorerAccessService;
+import codex.explorer.IExplorerAccessService;
 import codex.property.IPropertyChangeListener;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
@@ -12,6 +14,7 @@ import codex.type.IComplexType;
 import codex.type.Int;
 import codex.type.Str;
 import codex.utils.Language;
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -29,7 +32,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public  final static String SEQ = "SEQ";
     public  final static String PID = "PID";
     
-    private final static IConfigStoreService STORE = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private final static IConfigStoreService    STORE = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
     
     private final Class        entityClass;
     private final List<String> dynamicProps = new LinkedList<>();
@@ -221,13 +225,31 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
     
     public final boolean remove() {
-        boolean result = STORE.removeClassInstance(entityClass, getID());
-        if (result) {
+        int result = STORE.removeClassInstance(entityClass, getID());
+        if (result == IConfigStoreService.RC_SUCCESS) {
             new LinkedList<>(modelListeners).forEach((listener) -> {
                 listener.modelDeleted(this);
             });
+        } else {
+            StringBuilder msgBuilder = new StringBuilder(
+                    MessageFormat.format(Language.get("error@notdeleted"), getPID())
+            );
+            List<IConfigStoreService.ForeignLink> links = STORE.findReferencedEntries(entityClass, getID());
+            links.forEach((link) -> {
+                try {
+                    Entity referenced = EAS.getEntity(Class.forName(link.entryClass), link.entryID);
+                    if (referenced != null) {
+                        msgBuilder.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(referenced.getPathString());
+                    }
+                } catch (ClassNotFoundException e) {}
+            });
+            MessageBox msgBox = new MessageBox(
+                    MessageType.ERROR, null,
+                    msgBuilder.toString(), null
+            );
+            msgBox.setVisible(true);
         }
-        return result;
+        return result == IConfigStoreService.RC_SUCCESS;
     }
     
     /**
@@ -240,8 +262,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             changes.forEach((propName) -> {
                 values.put(propName, getProperty(propName).getPropValue().toString());
             });
-            boolean success = STORE.updateClassInstance(entityClass, getID(), values);
-            if (success) {
+            int result = STORE.updateClassInstance(entityClass, getID(), values);
+            if (result == IConfigStoreService.RC_SUCCESS) {
                 undoRegistry.clear();
                 new LinkedList<>(modelListeners).forEach((listener) -> {
                     listener.modelSaved(this, changes);
