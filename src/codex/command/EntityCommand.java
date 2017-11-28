@@ -8,6 +8,7 @@ import codex.model.EntityModel;
 import codex.model.IModelListener;
 import codex.presentation.CommitEntity;
 import codex.presentation.RollbackEntity;
+import codex.property.PropertyHolder;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import java.awt.event.ActionEvent;
@@ -17,8 +18,10 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import javax.swing.AbstractAction;
 import javax.swing.ImageIcon;
 import javax.swing.InputMap;
@@ -40,8 +43,8 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     private String    title;
     private Entity[]  context;
     private IButton   button; 
-    
     private final List<ICommandListener<Entity>> listeners = new LinkedList<>();
+    private Supplier<PropertyHolder[]> provider = () -> { return new PropertyHolder[] {}; };
     
     protected Predicate<Entity>  available;
     protected Consumer<Entity[]> activator = (entities) -> {
@@ -134,16 +137,47 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         activate();
     }
     
+    /**
+     * Установка списка пераметров команды.
+     * @param propHolders Список объектов {@link PropertyHolder} произвольной длины.
+     */
+    public EntityCommand setParameters(PropertyHolder... propHolders) {
+        if (propHolders != null && propHolders.length > 0) {
+            provider = () -> { return propHolders; };
+        }
+        return this;
+    }
+
+    
     @Override
     public void actionPerformed(ActionEvent event) {
-        SwingUtilities.invokeLater(() -> {
-            Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
-            for (Entity entity : getContext()) {
-                execute(entity);
-            }
-            activate();
-        });
+        Map<String, IComplexType> params = getParameters();
+        if (params != null) {
+            SwingUtilities.invokeLater(() -> {
+                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
+                for (Entity entity : getContext()) {
+                    execute(entity, params);
+                }
+                activate();
+            });
+        }
     }
+    
+    public final Map<String, IComplexType> getParameters() {
+        ParametersDialog paramDialog = new ParametersDialog(this, provider);
+        try {
+            return paramDialog.call();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+    @Override
+    @Deprecated
+    public final void execute(Entity context) {};
+    
+    public abstract void execute(Entity context, Map<String, IComplexType> params);
 
     @Override
     public void modelChanged(EntityModel model, List<String> changes) {
