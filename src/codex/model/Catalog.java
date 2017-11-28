@@ -39,7 +39,9 @@ public abstract class Catalog extends Entity {
                 Entity entity = Entity.newInstance(getChildClass(), null);
                 entity.setTitle(title);
                 map.forEach((propName, propVal) -> {
-                    entity.model.getProperty(propName).getPropValue().valueOf(propVal);
+                    if (entity.model.hasProperty(propName)) {
+                        entity.model.getProperty(propName).getPropValue().valueOf(propVal);
+                    }
                 });
                 entity.model.init();
                 insert(entity);
