@@ -4,6 +4,7 @@ import codex.command.EntityCommand;
 import static codex.launcher.LaunchButton.ERROR_BORDER;
 import codex.log.Logger;
 import codex.model.Entity;
+import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import java.awt.AlphaComposite;
 import java.awt.Container;
@@ -13,6 +14,7 @@ import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Map;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.event.ChangeEvent;
@@ -57,8 +59,11 @@ final class CommandLauncher extends LaunchButton {
         setInvalid(entity == null);
         addActionListener((event) -> {
             if (!invalid) {
-                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", command.getName(), entity);
-                command.execute(entity);
+                Map<String, IComplexType> params = command.getParameters();
+                if (params != null) {
+                    Logger.getLogger().debug("Perform command [{0}]. Context: {1}", command.getName(), entity);
+                    command.execute(entity, params);
+                }
             }
         });
         

@@ -3,11 +3,13 @@ package codex.presentation;
 import codex.command.EntityCommand;
 import codex.model.Entity;
 import codex.model.EntityModel;
+import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.List;
+import java.util.Map;
 import javax.swing.KeyStroke;
 
 /**
@@ -31,7 +33,7 @@ public class CommitEntity extends EntityCommand {
     }
 
     @Override
-    public void execute(Entity context) {
+    public void execute(Entity context, Map<String, IComplexType> params) {
         if (context.validate()) {
             context.model.commit();
         }

@@ -14,6 +14,7 @@ import codex.model.EntityModel;
 import codex.type.Bool;
 import codex.type.EntityRef;
 import codex.type.Enum;
+import codex.type.IComplexType;
 import codex.type.Int;
 import codex.type.Str;
 import codex.utils.ImageUtils;
@@ -30,6 +31,7 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.swing.AbstractAction;
@@ -117,7 +119,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
             public void mouseClicked(MouseEvent event) {
                 if (event.getClickCount() == 2) {
                     for (Entity context : commands.get(0).getContext()) {
-                        commands.get(0).execute(context);
+                        commands.get(0).execute(context, null);
                     }
                 }
             }
@@ -166,13 +168,13 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
         public void actionPerformed(ActionEvent event) {
             SwingUtilities.invokeLater(() -> {
                 Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), parent.toString());
-                execute(null);
+                execute(null, null);
                 activate();
             });
         }
 
         @Override
-        public void execute(Entity context) {
+        public void execute(Entity context, Map<String, IComplexType> params) {
             Entity newEntity = Entity.newInstance(entityClass, null);
  
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
@@ -253,7 +255,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
         }
 
         @Override
-        public void execute(Entity context) {
+        public void execute(Entity context, Map<String, IComplexType> params) {
             Entity newEntity = Entity.newInstance(context.getParent().getChildClass(), null);
             
             context.model.getProperties(Access.Edit).forEach((propName) -> {
@@ -341,7 +343,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
         }
 
         @Override
-        public void execute(Entity context) {
+        public void execute(Entity context, Map<String, IComplexType> params) {
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
             
@@ -437,7 +439,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                                 if(event.getID() == Dialog.OK) {
                                     Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
                                     for (Entity entity : getContext()) {
-                                        execute(entity);
+                                        execute(entity, null);
                                     }
                                     activate();
                                 }
@@ -449,7 +451,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
         }
 
         @Override
-        public void execute(Entity context) {
+        public void execute(Entity context, Map<String, IComplexType> params) {
             if (!context.model.remove()) {
                 return;
             }
