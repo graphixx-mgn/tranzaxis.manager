@@ -66,21 +66,22 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
     
     @Override
     public Box getEditor() {
-        Object selected = comboBox.getSelectedItem();
         comboBox.removeActionListener(this);
         comboBox.removeAllItems();
         
-        boolean found = false;
-        for (Object item : getValues()) {
-            comboBox.addItem(item);
-            if (item == selected) {
-                found = true;
+        Object[] values = getValues();
+        for (Object item : values) {
+            if (propHolder.getPropValue().getValue() != null && 
+                ((Entity) item).model.getPID().equals(((Entity) propHolder.getPropValue().getValue()).model.getPID())) 
+            {
+                comboBox.addItem(propHolder.getPropValue().getValue());
+            } else {
+                comboBox.addItem(item);
             }
         }
         comboBox.addItem(new NullValue());
         
-        setValue(found ? selected : null);
-        propHolder.setValue(found ? selected : null);
+        setValue(propHolder.getPropValue().getValue());
         comboBox.addActionListener(this);
         return super.getEditor();
     }
