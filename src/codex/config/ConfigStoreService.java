@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import org.sqlite.core.Codes;
 
 /**
  * Реализация интерфейса сервиса загрузки и сохранения данных модели на базе
@@ -53,6 +54,11 @@ public final class ConfigStoreService implements IConfigStoreService {
                     }
                     connection.setAutoCommit(false);
                 }
+                Logger.getLogger().debug(MessageFormat.format(
+                        "DB product version: {0} v.{1}",
+                        meta.getDatabaseProductName(),
+                        meta.getDatabaseProductVersion()
+                ));
             }
         } catch (SQLException e) {
             Logger.getLogger().error("Unable to read DB file", e);
@@ -67,15 +73,16 @@ public final class ConfigStoreService implements IConfigStoreService {
             String createSQL = MessageFormat.format("CREATE TABLE IF NOT EXISTS {0} ("
                             + "ID  INTEGER PRIMARY KEY AUTOINCREMENT,"
                             + "SEQ INTEGER NOT NULL,"
+                            + "CLS TEXT    NOT NULL DEFAULT ''{1}'',"
                             + "PID TEXT    NOT NULL,"
                             + "CONSTRAINT UNIQUE_PID UNIQUE (PID)"
                     + ");",
-                    className
+                    className, clazz.getCanonicalName()
             );
             try (final Statement statement = connection.createStatement()) {
                 statement.execute(createSQL);
                 connection.commit();
-                storeStructure.put(className, new ArrayList<>(Arrays.asList(new String[] {"ID", "SEQ", "PID"})));
+                storeStructure.put(className, new ArrayList<>(Arrays.asList(new String[] {"ID", "SEQ", "CLS", "PID"})));
             } catch (SQLException e) {
                 Logger.getLogger().error("Unable to create class catalog", e);
             }
@@ -156,18 +163,49 @@ public final class ConfigStoreService implements IConfigStoreService {
     }
     
     @Override
-    public boolean removeClassInstance(Class clazz, Integer ID) {
+    public int updateClassInstance(Class clazz, Integer ID, Map<String, String> properties) {
+        if (!properties.isEmpty()) {
+            final String className = clazz.getSimpleName().toUpperCase();
+            final String[] parts   = properties.keySet().toArray(new String[]{});
+            final String updateSQL = "UPDATE "+className+" SET "+String.join(" = ?, ", parts)+" = ? WHERE ID = ?";
+            try (PreparedStatement update = connection.prepareStatement(updateSQL)) {
+                List keys = new ArrayList(properties.keySet());
+                properties.forEach((key, value) -> {
+                    try {
+                        update.setString(keys.indexOf(key)+1, value.isEmpty() ? null : value);
+                    } catch (SQLException e) {
+                        Logger.getLogger().error("Unable to update instance", e);
+                    }
+                });
+                update.setInt(properties.size()+1, ID);
+                update.executeUpdate();
+                connection.commit();
+                return RC_SUCCESS;
+            } catch (SQLException e) {
+                Logger.getLogger().error("Unable to update instance", e);
+                return RC_ERROR;
+            }
+        }
+        return RC_ERROR;
+    }
+    
+    @Override
+    public int removeClassInstance(Class clazz, Integer ID) {
         final String className = clazz.getSimpleName().toUpperCase();
         final String deleteSQL = MessageFormat.format("DELETE FROM {0} WHERE ID = ?", className);
 
         try (PreparedStatement delete = connection.prepareStatement(deleteSQL)) {
             delete.setInt(1, ID);
-            int affectedRows = delete.executeUpdate();
+            delete.executeUpdate();
             connection.commit();
-            return affectedRows == 1;
+            return RC_SUCCESS;
         } catch (SQLException e) {
-            Logger.getLogger().error("Unable to delete instance", e);
-            return false;
+            if (e.getErrorCode() == Codes.SQLITE_CONSTRAINT) {
+                return RC_DEL_CONSTRAINT;
+            } else {
+                Logger.getLogger().error("Unable to delete instance", e);
+                return RC_ERROR;
+            }
         }
     }
 
@@ -186,33 +224,6 @@ public final class ConfigStoreService implements IConfigStoreService {
             Logger.getLogger().error("Unable to init instance", e);
         }
         return null;
-    }
-
-    @Override
-    public boolean updateClassInstance(Class clazz, Integer ID, Map<String, String> properties) {
-        if (!properties.isEmpty()) {
-            final String className = clazz.getSimpleName().toUpperCase();
-            final String[] parts   = properties.keySet().toArray(new String[]{});
-            final String updateSQL = "UPDATE "+className+" SET "+String.join(" = ?, ", parts)+" = ? WHERE ID = ?";
-            try (PreparedStatement update = connection.prepareStatement(updateSQL)) {
-                List keys = new ArrayList(properties.keySet());
-                properties.forEach((key, value) -> {
-                    try {
-                        update.setString(keys.indexOf(key)+1, value);
-                    } catch (SQLException e) {
-                        Logger.getLogger().error("Unable to update instance", e);
-                    }
-                });
-                update.setInt(properties.size()+1, ID);
-                int affectedRows = update.executeUpdate();
-                connection.commit();
-                return affectedRows == 1;
-            } catch (SQLException e) {
-                Logger.getLogger().error("Unable to update instance", e);
-                return false;
-            }
-        }
-        return false;
     }
 
     @Override
@@ -273,6 +284,33 @@ public final class ConfigStoreService implements IConfigStoreService {
             }
         }
         return rowData;
+    }
+    
+    @Override
+    public List<ForeignLink> findReferencedEntries(Class clazz, Integer ID) {
+        List<ForeignLink> links = new LinkedList<>();
+        final String className = clazz.getSimpleName().toUpperCase();
+        try {
+            DatabaseMetaData metaData = connection.getMetaData();
+            ResultSet foreignKeys = metaData.getExportedKeys(null, null, className);
+            while (foreignKeys.next()) {
+                String fkTableName  = foreignKeys.getString("FKTABLE_NAME");
+                String fkColumnName = foreignKeys.getString("FKCOLUMN_NAME");
+                String selectSQL    = MessageFormat.format(
+                        "SELECT CLS, ID FROM {0} WHERE {1} = ?", 
+                        fkTableName, fkColumnName
+                );
+                try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
+                    select.setInt(1, ID);
+                    try (ResultSet selectRS = select.executeQuery()) {
+                        while (selectRS.next()) {
+                            links.add(new ForeignLink(selectRS.getString(1), selectRS.getInt(2)));
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {}
+        return links;
     }
 
 }
