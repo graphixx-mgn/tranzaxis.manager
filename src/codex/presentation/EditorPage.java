@@ -53,12 +53,13 @@ public final class EditorPage extends JPanel {
             gbc.gridx = 1;
             gbc.weightx = 1;
             Box container = new Box(BoxLayout.X_AXIS);
+            Box editor    = propEditor.getEditor();
             
-            container.add(propEditor.getEditor());
+            container.add(editor);
             container.add(Box.createRigidArea(new Dimension(1, 28)));
 
             ((List<ICommand<PropertyHolder>>) propEditor.getCommands()).stream().forEach((command) -> {
-                propEditor.getEditor().add((JComponent) command.getButton());
+                editor.add((JComponent) command.getButton());
             });
             add(container, gbc);
             
