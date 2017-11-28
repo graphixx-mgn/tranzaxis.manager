@@ -30,6 +30,10 @@ public class AbstractModel {
         return isValid;
     };
     
+    void addProperty(String name, IComplexType value, boolean require, Access restriction) {
+        this.addProperty(new PropertyHolder(name, value, require), restriction);
+    }
+    
     /**
      * Добавление нового свойства в модель.
      * @param propHolder Ссылка на свойство.
@@ -40,14 +44,14 @@ public class AbstractModel {
      *  addProperty("svnUrl", new Str("svn://demo.org/sources"), true, Access.Any);
      * </pre>
      */
-    void addProperty(String name, IComplexType value, boolean require, Access restriction) {
-        if (properties.containsKey(name)) {
+    protected void addProperty(PropertyHolder propHolder, Access restriction) {
+        if (properties.containsKey(propHolder.getName())) {
             throw new IllegalStateException(
-                    MessageFormat.format("Model already has property ''{0}''", name)
+                    MessageFormat.format("Model already has property ''{0}''", propHolder.getName())
             );
         }
-        properties.put(name, new PropertyHolder(name, value, require));
-        restrictions.put(name, restriction);
+        properties.put(propHolder.getName(), propHolder);
+        restrictions.put(propHolder.getName(), restriction);
     }
     
     /**
