@@ -65,6 +65,13 @@ public final class ServiceRegistry {
                         (IService) Proxy.newProxyInstance(serviceInterface.getClassLoader(),
                             new Class[]{serviceInterface}, 
                             (Object proxy, Method method, Object[] arguments) -> {
+                                if (registry.containsKey(serviceClass)) {
+                                    for (Method classMethod : registry.get(serviceClass).getClass().getMethods()) {
+                                        if (classMethod.getName().equals(method.getName())) {
+                                            return classMethod.invoke(registry.get(serviceClass), arguments);
+                                        }
+                                    }
+                                }
                                 if (!method.getName().equals("getTitle")) {
                                     Logger.getLogger().warn(
                                             "Called not registered service ''{0}'' ", 
