@@ -172,7 +172,7 @@ public class Dialog extends JDialog {
                         close.actionPerformed(event);
                     }
                 }
-            }; 
+            };
         };
 
         int maxWidth = Arrays.asList(buttons).stream().map((button) -> button.getPreferredSize().width).max(Integer::compareTo).get();
@@ -182,7 +182,7 @@ public class Dialog extends JDialog {
             
             // Обрабочик нажатия мыши
             button.addActionListener((e) -> {
-                handler.apply(button).actionPerformed(e);
+                handler.apply(button).actionPerformed(new ActionEvent(this, button.getID(), null));
             });
             if (button.getKeyCode() != null) {
                 // Обработчики нажатия кнопки клавиатуры 
@@ -190,7 +190,7 @@ public class Dialog extends JDialog {
                 actionMap.put(button.getKeyCode(), new AbstractAction() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        handler.apply(button).actionPerformed(e);
+                        handler.apply(button).actionPerformed(new ActionEvent(this, button.getID(), null));
                     }
                 });
             }
@@ -203,7 +203,7 @@ public class Dialog extends JDialog {
             actionMap.put(stroke, new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    handler.apply(null).actionPerformed(e);
+                    handler.apply(null).actionPerformed(new ActionEvent(this, Default.BTN_CANCEL.ID, null));
                 }
             });
         }
@@ -212,8 +212,8 @@ public class Dialog extends JDialog {
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
-                if (close != null && !preventDefault) {
-                    close.actionPerformed(new ActionEvent(this, EXIT, null));
+                if (!preventDefault) {
+                    handler.apply(null).actionPerformed(new ActionEvent(this, EXIT, null));
                 }
                 preventDefault = false;
             }
