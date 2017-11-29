@@ -85,4 +85,20 @@ public interface IComplexType<T> extends Serializable {
         return null;
     }
     
+    /**
+     * Проверка всех переданных аргументов что они не NULL.
+     * @param <T> Тип передаваемых аргументов
+     * @param values Набор однотипных аргументов произвольной длины.
+     * @return TRUE, если все аргументы != NULL, иначе FALSE.
+     */
+    static public <T> boolean notNull(final T... values) {
+        if (values != null) {
+            for (T value : values)
+                if (value == null)
+                    return false;
+            return true;
+        }
+        return false;
+    }
+    
 }
