@@ -224,7 +224,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                         return new AbstractAction() {
                             @Override
                             public void actionPerformed(ActionEvent event) {
-                                if (button.getID() != Dialog.OK || newEntity.getInvalidProperties().isEmpty()) {
+                                if (event.getID() != Dialog.OK || newEntity.getInvalidProperties().isEmpty()) {
                                     defaultHandler.apply(button).actionPerformed(event);
                                 }
                             }
@@ -314,7 +314,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                         return new AbstractAction() {
                             @Override
                             public void actionPerformed(ActionEvent event) {
-                                if (button.getID() != Dialog.OK || newEntity.getInvalidProperties().isEmpty()) {
+                                if (event.getID() != Dialog.OK || newEntity.getInvalidProperties().isEmpty()) {
                                     defaultHandler.apply(button).actionPerformed(event);
                                 }
                             }
@@ -378,7 +378,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                         return new AbstractAction() {
                             @Override
                             public void actionPerformed(ActionEvent event) {
-                                if (button.getID() != Dialog.OK || context.getInvalidProperties().isEmpty()) {
+                                if (event.getID() != Dialog.OK || context.getInvalidProperties().isEmpty()) {
                                     defaultHandler.apply(button).actionPerformed(event);
                                 }
                             }
