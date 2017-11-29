@@ -6,6 +6,7 @@ import codex.model.Entity;
 import codex.model.ParamModel;
 import codex.presentation.EditorPage;
 import codex.property.PropertyHolder;
+import codex.supplier.IDataSupplier;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -13,14 +14,12 @@ import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.Semaphore;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.swing.AbstractAction;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-import codex.supplier.IDataSupplier;
 
 /**
  * Реализация поставщика данных - параметров команды. Представляет собой диалог
@@ -28,7 +27,6 @@ import codex.supplier.IDataSupplier;
  */
 public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>> {
     
-    private final Semaphore  lock = new Semaphore(1);
     private final Dialog     dialog;
     private final ParamModel paramModel = new ParamModel();
     
@@ -51,7 +49,6 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
                         if (event.getID() == Dialog.OK) {
                             ParametersDialog.this.data = paramModel.getParameters();
                         }
-                        ParametersDialog.this.lock.release();
                     }
                 }, 
                 Dialog.Default.BTN_OK,
@@ -63,29 +60,26 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
                 return new AbstractAction() {
                     @Override
                     public void actionPerformed(ActionEvent event) {
-                        if (button.getID() != Dialog.OK || paramModel.isValid()) {
+                        if (event.getID() != Dialog.OK || paramModel.isValid()) {
                             defaultHandler.apply(button).actionPerformed(event);
                         }
                     }
                 }; 
-            };}
-        
+            };
+        }
             @Override
             public void setVisible(boolean visible) {
-                try {
-                    PropertyHolder[] propHolders = paramProps.get();
-                    if (propHolders.length != 0) {
-                        lock.acquire();
-                        for (PropertyHolder propHolder : propHolders) {
-                            paramModel.addProperty(propHolder);
-                        }
-                        dialog.setContent(new EditorPage(paramModel));
-                        dialog.setPreferredSize(new Dimension(550, dialog.getPreferredSize().height));
-                        super.setVisible(visible);
-                    } else {
-                        ParametersDialog.this.data = new LinkedHashMap<>();
+                PropertyHolder[] propHolders = paramProps.get();
+                if (propHolders.length != 0) {
+                    for (PropertyHolder propHolder : propHolders) {
+                        paramModel.addProperty(propHolder);
                     }
-                } catch (InterruptedException e) {}
+                    dialog.setContent(new EditorPage(paramModel));
+                    dialog.setPreferredSize(new Dimension(550, dialog.getPreferredSize().height));
+                    super.setVisible(visible);
+                } else {
+                    ParametersDialog.this.data = new LinkedHashMap<>();
+                }
             }
         };
     }
@@ -93,7 +87,6 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
     @Override
     public Map<String, IComplexType> call() throws Exception {
         dialog.setVisible(true);
-        lock.acquire();
         return data;
     }
     
