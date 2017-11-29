@@ -1,12 +1,17 @@
 package manager.commands;
 
 import codex.command.EntityCommand;
+import codex.database.IDatabaseAccessService;
+import codex.database.OracleAccessService;
+import codex.log.Logger;
 import codex.model.Entity;
 import codex.model.EntityModel;
+import codex.service.ServiceRegistry;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import codex.utils.NetTools;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +37,17 @@ public class CheckDatabase extends EntityCommand {
                     (available == null || Arrays.asList(entities).stream().allMatch(available)) && 
                     !IComplexType.coalesce((String) entities[0].model.getValue("dbUrl"), "").isEmpty()
                 ) {
-                    getButton().setIcon(checkPort((String) entities[0].model.getValue("dbUrl")) ? ACTIVE : PASSIVE);
+                    if (checkPort((String) entities[0].model.getValue("dbUrl"))) {
+                        getButton().setIcon(ACTIVE);
+                        startService(
+                                entities[0],
+                                "jdbc:oracle:thin:@//"+entities[0].model.getValue("dbUrl"), 
+                                (String) entities[0].model.getValue("dbSchema"), 
+                                (String) entities[0].model.getValue("dbPass")
+                        );
+                    } else {
+                        getButton().setIcon(PASSIVE);
+                    }
                 } else {
                     getButton().setIcon(ImageUtils.combine(PASSIVE, WARN));
                 }
@@ -71,6 +86,24 @@ public class CheckDatabase extends EntityCommand {
         } else {
             return false;
         }
+    }
+    
+    private void startService(Entity context,  String url, String user, String password) {
+        Thread starter = new Thread(() -> {
+            try {
+                Integer ID = ((IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class)).registerConnection(
+                        url, user, password
+                );
+            } catch (SQLException e) {
+                Logger.getLogger().warn(
+                        "Unable to connect to database ''{0}'': {1}",
+                        context, e.getMessage()
+                );
+            }
+        });
+        starter.setDaemon(true);
+        starter.start();
+        starter = null;
     }
     
 }
