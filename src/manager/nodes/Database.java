@@ -1,22 +1,36 @@
 package manager.nodes;
 
 import codex.command.EntityCommand;
+import codex.command.ValueProvider;
+import codex.database.IDatabaseAccessService;
+import codex.database.OracleAccessService;
+import codex.database.RowSelector;
 import codex.log.Level;
+import codex.log.Logger;
 import codex.mask.RegexMask;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
-import codex.type.Bool;
+import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Int;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import codex.utils.NetTools;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import manager.commands.CheckDatabase;
 
 public class Database extends Entity {
+    
+    static {
+        ServiceRegistry.getInstance().registerService(OracleAccessService.getInstance());
+    }
 
     public Database(String title) {
         super(ImageUtils.getByPath("/images/database.png"), title, null);
@@ -37,39 +51,79 @@ public class Database extends Entity {
         model.addUserProp("layerURI", new Str(null), true, Access.Select);
         model.addUserProp("userNote", new Str(null), false, null);
         
-        model.addUserProp("bool", new Bool(true), false, null);
-        model.addUserProp("enum", new codex.type.Enum(Level.Debug), false, null);
-        model.addUserProp("int", new Int(1000), false, null);
-        
         addCommand(new CheckDatabase());
-        addCommand(new TestCommand1());
-        addCommand(new TestCommand2());
+        addCommand(new TestOracle());
+        addCommand(new TestParams());
+        
+        model.getEditor("instanceId").addCommand(new ValueProvider(new RowSelector()));
     }
     
-    public class TestCommand1 extends EntityCommand {
+    private boolean checkPort(String dbUrl) {
+        Matcher verMatcher = Pattern.compile("([\\d\\.]+):(\\d+)/").matcher(dbUrl);
+        if (verMatcher.find()) {
+            String  host = verMatcher.group(1);
+            Integer port = Integer.valueOf(verMatcher.group(2));
+            return NetTools.isPortAvailable(host, port, 35);
+        } else {
+            return false;
+        }
+    }
+    
+    public class TestOracle extends EntityCommand {
 
-        public TestCommand1() {
+        public TestOracle() {
             super(
-                    "test1", "Run test command #1",
+                    "test_oracle", "Test oracle connection",
                     ImageUtils.resize(ImageUtils.getByPath("/images/branch.png"), 28, 28), 
-                    "Run test command #1",
+                    "Test oracle connection",
                     (entity) -> true
             );
         }
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            java.lang.System.err.println(toString()+": "+context);
+            if (IComplexType.notNull(context.model.getValue("dbUrl"), context.model.getValue("dbSchema"), context.model.getValue("dbPass"))) {
+                if (checkPort((String) context.model.getValue("dbUrl"))) {
+                    IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
+                    try {
+                        Integer connectionID = DAS.registerConnection(
+                                "jdbc:oracle:thin:@//"+context.model.getValue("dbUrl"), 
+                                (String) context.model.getValue("dbSchema"), 
+                                (String) context.model.getValue("dbPass")
+                        );
+                        Logger.getLogger().info("Database connection ID: "+connectionID);
+                        if (connectionID != null) {
+                            ResultSet rset = DAS.select(connectionID, "SELECT ID, TITLE FROM RDX_INSTANCE");
+                            try {
+                                while (rset.next()) {
+                                    Logger.getLogger().info(rset.getInt(1)+"-"+rset.getString(2));
+                                }
+                            } catch (SQLException e) {
+                                e.printStackTrace();
+                            } finally {
+                                rset.getStatement().close();
+                                rset.close();
+                            }
+                        }
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    Logger.getLogger().warn("Database listener not available");
+                }
+            } else {
+                Logger.getLogger().warn("Database parameters are not filled completely");
+            }
         }
     }
     
-    public class TestCommand2 extends EntityCommand {
+    public class TestParams extends EntityCommand {
 
-        public TestCommand2() {
+        public TestParams() {
             super(
-                    "test2", "Run test command #2",
+                    "test_params", "Test command parameters",
                     ImageUtils.resize(ImageUtils.getByPath("/images/development.png"), 28, 28), 
-                    "Run test command #2",
+                    "Test command parameters",
                     (entity) -> true
             );
             setParameters(
@@ -81,7 +135,6 @@ public class Database extends Entity {
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            java.lang.System.err.println(toString()+": "+context);
             params.forEach((name, value) -> {
                 java.lang.System.err.println(name+": "+value);
             });
