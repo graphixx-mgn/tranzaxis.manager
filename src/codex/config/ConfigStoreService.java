@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import org.sqlite.JDBC;
 import org.sqlite.core.Codes;
 
 /**
@@ -41,6 +42,7 @@ public final class ConfigStoreService implements IConfigStoreService {
         }
 
         try {
+            DriverManager.registerDriver(new JDBC());
             connection = DriverManager.getConnection("jdbc:sqlite:"+configFile.getPath());
             connection.createStatement().executeUpdate("PRAGMA foreign_keys = ON");            
             if (connection != null) {
@@ -55,7 +57,7 @@ public final class ConfigStoreService implements IConfigStoreService {
                     connection.setAutoCommit(false);
                 }
                 Logger.getLogger().debug(MessageFormat.format(
-                        "DB product version: {0} v.{1}",
+                        "CAS: DB product version: {0} v.{1}",
                         meta.getDatabaseProductName(),
                         meta.getDatabaseProductVersion()
                 ));
@@ -83,6 +85,9 @@ public final class ConfigStoreService implements IConfigStoreService {
                 statement.execute(createSQL);
                 connection.commit();
                 storeStructure.put(className, new ArrayList<>(Arrays.asList(new String[] {"ID", "SEQ", "CLS", "PID"})));
+                Logger.getLogger().debug(MessageFormat.format(
+                        "CAS: Created catalog {0}:{1}", className, storeStructure.get(className)
+                ));
             } catch (SQLException e) {
                 Logger.getLogger().error("Unable to create class catalog", e);
             }
@@ -115,6 +120,9 @@ public final class ConfigStoreService implements IConfigStoreService {
                 stmt.execute(alterSQL);
                 connection.commit();
                 storeStructure.get(className).add(propName);
+                Logger.getLogger().debug(MessageFormat.format(
+                        "CAS: Altered catalog {0}:{1}", className, storeStructure.get(className)
+                ));
             } catch (SQLException e) {
                 Logger.getLogger().error("Unable to append class property", e);
             }
@@ -148,6 +156,9 @@ public final class ConfigStoreService implements IConfigStoreService {
                         connection.commit();
                         try (ResultSet updateRS = insert.getGeneratedKeys()) {
                             if (updateRS.next()) {
+                                Logger.getLogger().debug(MessageFormat.format(
+                                        "CAS: New catalog {0} entry: {1}-{2}", className, updateRS.getInt(1), PID
+                                ));
                                 return updateRS.getInt(1);
                             }
                         }
@@ -180,6 +191,9 @@ public final class ConfigStoreService implements IConfigStoreService {
                 update.setInt(properties.size()+1, ID);
                 update.executeUpdate();
                 connection.commit();
+                Logger.getLogger().debug(MessageFormat.format(
+                        "CAS: Altered catalog {0} entry: {1} {2}", className, ID, properties
+                ));
                 return RC_SUCCESS;
             } catch (SQLException e) {
                 Logger.getLogger().error("Unable to update instance", e);
@@ -198,6 +212,9 @@ public final class ConfigStoreService implements IConfigStoreService {
             delete.setInt(1, ID);
             delete.executeUpdate();
             connection.commit();
+            Logger.getLogger().debug(MessageFormat.format(
+                    "CAS: Deleted catalog {0} entry: {1}", className, ID
+            ));
             return RC_SUCCESS;
         } catch (SQLException e) {
             if (e.getErrorCode() == Codes.SQLITE_CONSTRAINT) {
@@ -296,14 +313,25 @@ public final class ConfigStoreService implements IConfigStoreService {
             while (foreignKeys.next()) {
                 String fkTableName  = foreignKeys.getString("FKTABLE_NAME");
                 String fkColumnName = foreignKeys.getString("FKCOLUMN_NAME");
-                String selectSQL    = MessageFormat.format(
-                        "SELECT CLS, ID FROM {0} WHERE {1} = ?", 
+                String pkTableName  = foreignKeys.getString("PKTABLE_NAME");
+                String pkColumnName = foreignKeys.getString("PKCOLUMN_NAME");
+                Logger.getLogger().debug(MessageFormat.format(
+                    "CAS: Found declared reference: {0}.{1} -> {2}.{3}",
+                    fkTableName.toUpperCase(), fkColumnName.toUpperCase(), 
+                    pkTableName.toUpperCase(), pkColumnName.toUpperCase()
+                ));
+                String selectSQL = MessageFormat.format(
+                        "SELECT CLS, ID, PID FROM {0} WHERE {1} = ?", 
                         fkTableName, fkColumnName
                 );
                 try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
                     select.setInt(1, ID);
                     try (ResultSet selectRS = select.executeQuery()) {
                         while (selectRS.next()) {
+                            Logger.getLogger().debug(MessageFormat.format(
+                                "CAS: Found existing reference: {0}/{1}-{2}",
+                                selectRS.getString(1), selectRS.getInt(2), selectRS.getString(3)
+                            ));
                             links.add(new ForeignLink(selectRS.getString(1), selectRS.getInt(2)));
                         }
                     }
