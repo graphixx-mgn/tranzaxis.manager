@@ -99,7 +99,9 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         }
         
         this.update = (text) -> {
-            setBorder(BORDER_ACTIVE);
+            if (getBorder() == BORDER_ERROR) {
+                setBorder(BORDER_ACTIVE);
+            }
             signInvalid.setVisible(false);
             textField.setForeground(COLOR_NORMAL);
             if (checker.test(text)) {

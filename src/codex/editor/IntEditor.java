@@ -82,7 +82,9 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
         signDelete.setCursor(Cursor.getDefaultCursor());
         
         this.update = (text) -> {
-            setBorder(BORDER_ACTIVE);
+            if (getBorder() == BORDER_ERROR) {
+                setBorder(BORDER_ACTIVE);
+            }
             textField.setForeground(COLOR_NORMAL);
             if (checker.test(text)) {
                 previousValue = text;
