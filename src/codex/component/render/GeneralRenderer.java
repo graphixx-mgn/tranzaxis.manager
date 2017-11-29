@@ -12,6 +12,7 @@ import codex.type.StringList;
 import codex.utils.ImageUtils;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Font;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -51,11 +52,11 @@ public final class GeneralRenderer extends JLabel implements ListCellRenderer, T
     @Override
     public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean hasFocus) {
         setText(value.toString());
-        setFont(IEditor.FONT_VALUE);
+        setFont(new Font(IEditor.FONT_VALUE.getName(), Font.PLAIN, (int) (IEditor.FONT_VALUE.getSize()*1.2)));
         setBackground(isSelected ? IButton.PRESS_COLOR : list.getBackground());
         if (Iconified.class.isAssignableFrom(value.getClass())) {
             setBorder(new EmptyBorder(1, 4, 1, 2));
-            setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 15, 15));
+            setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 17, 17));
         } else {
             setIcon(null);
         }
