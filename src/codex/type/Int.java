@@ -45,7 +45,7 @@ public class Int implements IComplexType<Integer> {
     
     @Override
     public void valueOf(String value) {
-        setValue(value.isEmpty() ? null : Integer.valueOf(value));
+        setValue(value == null || value.isEmpty() ? null : Integer.valueOf(value));
     }
     
 }
