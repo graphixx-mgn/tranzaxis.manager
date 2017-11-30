@@ -216,8 +216,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             .collect(Collectors.toList());
         if (!invalidProps.isEmpty()) {
             // Имеются ошибки в значениях
-            MessageBox msgBox = new MessageBox(
-                    MessageType.WARNING, null,
+            MessageBox.show(
+                    MessageType.ERROR, null, 
                     MessageFormat.format(Language.get("error@invalidprop"), String.join("\n", invalidProps)),
                     new AbstractAction() {
                         @Override
@@ -226,7 +226,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                         }
                     }
             );
-            msgBox.setVisible(true);
             return false;
         } else {
             return true;
@@ -240,15 +239,18 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     public final boolean close() {
         if (validate() && model.hasChanges()) {
             // Предлагаем сохранить
-            MessageBox msgBox = new MessageBox(MessageType.CONFIRMATION, null, Language.get("error@unsavedprop"), new AbstractAction() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    if (e.getID() == Dialog.OK) {
-                        model.commit();
+            MessageBox.show(
+                    MessageType.CONFIRMATION, null, 
+                    Language.get("error@unsavedprop"), 
+                    new AbstractAction() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            if (e.getID() == Dialog.OK) {
+                                model.commit();
+                            }
+                        }
                     }
-                }
-            });
-            msgBox.setVisible(true);
+            );
         }
         return !model.hasChanges();
     };

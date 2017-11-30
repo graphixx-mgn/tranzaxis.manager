@@ -32,7 +32,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public  final static String SEQ = "SEQ";
     public  final static String PID = "PID";
     
-    private final static IConfigStoreService    STORE = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private final static IConfigStoreService    CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
     
     private final Class        entityClass;
@@ -53,12 +53,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     
     public final void init() {
         if (getPID() != null) {
-            Integer newID = STORE.initClassInstance(entityClass, getPID());
+            Integer newID = CAS.initClassInstance(entityClass, getPID());
             if (newID != null) {
                 setValue(ID, newID);
             }
-            getProperty(EntityModel.SEQ).getPropValue().valueOf(
-                    STORE.readClassProperty(entityClass, getID(), EntityModel.SEQ)
+            getProperty(EntityModel.SEQ).getPropValue().valueOf(CAS.readClassProperty(entityClass, getID(), EntityModel.SEQ)
             );
         }
         ((Str) getProperty(EntityModel.PID).getPropValue()).setMask(new PIDMask(entityClass, getID()));
@@ -97,13 +96,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void addUserProp(String name, IComplexType value, boolean require, Access restriction) {
         if (value instanceof EntityRef) {
-            STORE.addClassProperty(entityClass, name, ((EntityRef) value).getEntityClass());
+            CAS.addClassProperty(entityClass, name, ((EntityRef) value).getEntityClass());
         } else {
-            STORE.addClassProperty(entityClass, name, null);
+            CAS.addClassProperty(entityClass, name, null);
         }
         addProperty(name, value, require, restriction);
         if (getID() != null) {
-            String val = STORE.readClassProperty(entityClass, getID(), name);
+            String val = CAS.readClassProperty(entityClass, getID(), name);
             if (val != null) {
                 getProperty(name).getPropValue().valueOf(val);
             }
@@ -225,7 +224,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
     
     public final boolean remove() {
-        int result = STORE.removeClassInstance(entityClass, getID());
+        int result = CAS.removeClassInstance(entityClass, getID());
         if (result == IConfigStoreService.RC_SUCCESS) {
             new LinkedList<>(modelListeners).forEach((listener) -> {
                 listener.modelDeleted(this);
@@ -234,7 +233,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             StringBuilder msgBuilder = new StringBuilder(
                     MessageFormat.format(Language.get("error@notdeleted"), getPID())
             );
-            List<IConfigStoreService.ForeignLink> links = STORE.findReferencedEntries(entityClass, getID());
+            List<IConfigStoreService.ForeignLink> links = CAS.findReferencedEntries(entityClass, getID());
             links.forEach((link) -> {
                 try {
                     Entity referenced = EAS.getEntity(Class.forName(link.entryClass), link.entryID);
@@ -243,11 +242,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     }
                 } catch (ClassNotFoundException e) {}
             });
-            MessageBox msgBox = new MessageBox(
-                    MessageType.ERROR, null,
-                    msgBuilder.toString(), null
-            );
-            msgBox.setVisible(true);
+            MessageBox.show(MessageType.ERROR, msgBuilder.toString());
         }
         return result == IConfigStoreService.RC_SUCCESS;
     }
@@ -262,19 +257,14 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             changes.forEach((propName) -> {
                 values.put(propName, getProperty(propName).getPropValue().toString());
             });
-            int result = STORE.updateClassInstance(entityClass, getID(), values);
+            int result = CAS.updateClassInstance(entityClass, getID(), values);
             if (result == IConfigStoreService.RC_SUCCESS) {
                 undoRegistry.clear();
                 new LinkedList<>(modelListeners).forEach((listener) -> {
                     listener.modelSaved(this, changes);
                 });
             } else {
-                MessageBox msgBox = new MessageBox(
-                        MessageType.ERROR, null,
-                        Language.get("error@notsaved"),
-                        null
-                );
-                msgBox.setVisible(true);
+                MessageBox.show(MessageType.ERROR, Language.get("error@notsaved"));
             }
         }
     }

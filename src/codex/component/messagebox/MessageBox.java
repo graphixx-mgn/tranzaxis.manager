@@ -13,6 +13,18 @@ import javax.swing.border.EmptyBorder;
  */
 public final class MessageBox extends Dialog {
     
+    public static void show(MessageType type, String text) {
+        new MessageBox(type, null, text, null).setVisible(true);
+    }
+    
+    public static void show(MessageType type, String title, String text) {
+        new MessageBox(type, title, text, null).setVisible(true);
+    }
+    
+    public static void show(MessageType type, String title, String text, Action close) {
+        new MessageBox(type, title, text, close).setVisible(true);
+    }
+    
     /**
      * Конструктор окна.
      * @param parent Указатель на родительское окна для относительного позиционирования на экране.
@@ -22,7 +34,7 @@ public final class MessageBox extends Dialog {
      * @param text Текст сообщения, поддерживающий перенос строк.
      * @param close Слушатель события закрытия окна.
      */
-    public MessageBox(MessageType type, String title, String text, Action close) {
+    private MessageBox(MessageType type, String title, String text, Action close) {
         super(
                 FocusManager.getCurrentManager().getActiveWindow(),
                 type.getIcon(), 
@@ -31,7 +43,6 @@ public final class MessageBox extends Dialog {
                 close, 
                 buttonSet(type)
         );
-        //setLocationRelativeTo(JOptionPane.getRootFrame());
         setResizable(false);
     }
     

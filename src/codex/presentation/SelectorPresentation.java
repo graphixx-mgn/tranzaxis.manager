@@ -433,7 +433,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                     });
                     message = msgBuilder.toString();
                 }
-                MessageBox msgBox = new MessageBox(
+                MessageBox.show(
                         MessageType.CONFIRMATION, null, message,
                         new AbstractAction() {
                             @Override
@@ -448,7 +448,6 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                             }
                         }
                 );
-                msgBox.setVisible(true);
             });
         }
 
