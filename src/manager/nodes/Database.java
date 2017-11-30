@@ -2,11 +2,12 @@ package manager.nodes;
 
 import codex.command.EntityCommand;
 import codex.command.ValueProvider;
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
 import codex.database.IDatabaseAccessService;
 import codex.database.OracleAccessService;
 import codex.database.RowSelector;
 import codex.log.Level;
-import codex.log.Logger;
 import codex.mask.RegexMask;
 import codex.model.Access;
 import codex.model.Entity;
@@ -18,12 +19,9 @@ import codex.type.Int;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import codex.utils.NetTools;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.function.Supplier;
 import manager.commands.CheckDatabase;
 
 public class Database extends Entity {
@@ -52,69 +50,31 @@ public class Database extends Entity {
         model.addUserProp("userNote", new Str(null), false, null);
         
         addCommand(new CheckDatabase());
-        addCommand(new TestOracle());
         addCommand(new TestParams());
         
-        model.getEditor("instanceId").addCommand(new ValueProvider(new RowSelector()));
-    }
-    
-    private boolean checkPort(String dbUrl) {
-        Matcher verMatcher = Pattern.compile("([\\d\\.]+):(\\d+)/").matcher(dbUrl);
-        if (verMatcher.find()) {
-            String  host = verMatcher.group(1);
-            Integer port = Integer.valueOf(verMatcher.group(2));
-            return NetTools.isPortAvailable(host, port, 35);
-        } else {
-            return false;
-        }
-    }
-    
-    public class TestOracle extends EntityCommand {
-
-        public TestOracle() {
-            super(
-                    "test_oracle", "Test oracle connection",
-                    ImageUtils.resize(ImageUtils.getByPath("/images/branch.png"), 28, 28), 
-                    "Test oracle connection",
-                    (entity) -> true
-            );
-        }
-
-        @Override
-        public void execute(Entity context, Map<String, IComplexType> params) {
-            if (IComplexType.notNull(context.model.getValue("dbUrl"), context.model.getValue("dbSchema"), context.model.getValue("dbPass"))) {
-                if (checkPort((String) context.model.getValue("dbUrl"))) {
-                    IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
-                    try {
-                        Integer connectionID = DAS.registerConnection(
-                                "jdbc:oracle:thin:@//"+context.model.getValue("dbUrl"), 
-                                (String) context.model.getValue("dbSchema"), 
-                                (String) context.model.getValue("dbPass")
-                        );
-                        Logger.getLogger().info("Database connection ID: "+connectionID);
-                        if (connectionID != null) {
-                            ResultSet rset = DAS.select(connectionID, "SELECT ID, TITLE FROM RDX_INSTANCE");
-                            try {
-                                while (rset.next()) {
-                                    Logger.getLogger().info(rset.getInt(1)+"-"+rset.getString(2));
-                                }
-                            } catch (SQLException e) {
-                                e.printStackTrace();
-                            } finally {
-                                rset.getStatement().close();
-                                rset.close();
-                            }
-                        }
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    Logger.getLogger().warn("Database listener not available");
+        Supplier<Integer> connectionSupplier = () -> {
+            if (IComplexType.notNull(model.getValue("dbUrl"), model.getValue("dbSchema"), model.getValue("dbPass"))) {
+                try {
+                    return ((IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class)).registerConnection(
+                            "jdbc:oracle:thin:@//"+model.getValue("dbUrl"), 
+                            (String) model.getValue("dbSchema"), 
+                            (String) model.getValue("dbPass")
+                    );
+                } catch (SQLException e) {
+                    MessageBox.show(MessageType.ERROR, e.getMessage());
                 }
-            } else {
-                Logger.getLogger().warn("Database parameters are not filled completely");
             }
-        }
+            return null;
+        };
+
+        model.getEditor("instanceId").addCommand(new ValueProvider(new RowSelector(
+                connectionSupplier,
+                "SELECT ID, TITLE FROM RDX_INSTANCE ORDER BY ID"
+        )));
+        model.getEditor("layerURI").addCommand(new ValueProvider(new RowSelector(
+                connectionSupplier,
+                "SELECT LAYERURI, VERSION, UPGRADEDATE FROM RDX_DDSVERSION"
+        )));
     }
     
     public class TestParams extends EntityCommand {
