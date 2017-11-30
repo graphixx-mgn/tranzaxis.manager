@@ -86,6 +86,14 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             
         };
         this.model.addChangeListener(this);
+        this.model.addModelListener(new IModelListener() {
+            @Override
+            public void modelSaved(EntityModel model, List<String> changes) {
+                if (changes.contains(EntityModel.PID)) {
+                    setTitle(model.getPID());
+                }
+            }
+        });
     }
     
     /**
