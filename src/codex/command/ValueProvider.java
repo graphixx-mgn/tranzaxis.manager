@@ -21,7 +21,10 @@ public class ValueProvider extends EditorCommand {
     public ValueProvider(IDataSupplier<String> supplier) {
         super(
             ImageUtils.resize(ImageUtils.getByPath("/images/selector.png"), 18, 18), 
-            null
+            null,
+            (holder) -> {
+                return supplier.isReady();
+            }
         );
         this.supplier = supplier;
     }

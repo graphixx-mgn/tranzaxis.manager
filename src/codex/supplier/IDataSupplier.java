@@ -7,6 +7,12 @@ import java.util.concurrent.Callable;
  * @param <T> Тип возвращаемого поставщиком значения.
  */
 public interface IDataSupplier<T> extends Callable<T> {
-    
+
+    /**
+     * Возвращает флаг показывающий готовность поставщика к запросу данных.
+     */
+    default boolean isReady() {
+        return true;
+    }
     
 }
