@@ -30,13 +30,13 @@ public class OracleAccessService implements IDatabaseAccessService {
     
     private OracleAccessService() {}
     
-    private final Map<String, DataSource> urlToPool = new HashMap<>();
-    private final Map<Integer, String>    idToUrl   = new HashMap<>();
+    private final Map<String, Integer>     urlToIdMap = new HashMap<>();
+    private final Map<Integer, DataSource> idToPoolMap = new HashMap<>();
     
     @Override
     public Integer registerConnection(String url, String user, String password) throws SQLException {
-        String PID = url+"~"+user;
-        if (!urlToPool.containsKey(PID)) {
+        String PID = url.concat("~").concat(user);
+        if (!urlToIdMap.containsKey(PID)) {
             try {
                 PoolDataSource pds = PoolDataSourceFactory.getPoolDataSource();
                 pds.setConnectionFactoryClassName("oracle.jdbc.pool.OracleDataSource");
@@ -49,16 +49,14 @@ public class OracleAccessService implements IDatabaseAccessService {
                 pds.setMinPoolSize(1);
                 pds.setMaxPoolSize(5);
                 
-                urlToPool.put(PID, pds);
-                idToUrl.put(SEQ.incrementAndGet(), PID);
+                urlToIdMap.put(PID, SEQ.incrementAndGet());
+                idToPoolMap.put(SEQ.get(), pds);
                 return SEQ.get();
             } catch (SQLException e) {
                 throw new SQLException(getCause(e).getMessage().trim());
             }
         } else {
-            return idToUrl.entrySet().stream().filter((entry) -> {
-                return entry.getValue().equals(PID);
-            }).findFirst().get().getKey();
+            return urlToIdMap.get(PID);
         }
     }
     
@@ -82,7 +80,7 @@ public class OracleAccessService implements IDatabaseAccessService {
     }
     
     private RowSet prepareSet(Integer connectionID) throws SQLException {
-        Connection connection = urlToPool.get(idToUrl.get(connectionID)).getConnection();
+        Connection connection = idToPoolMap.get(connectionID).getConnection();
         final RowSet rowSet = new OracleJDBCRowSet(connection);
         rowSet.addRowSetListener(new RowSetAdapter() {                
             @Override
