@@ -3,9 +3,12 @@ package codex.database;
 import codex.command.EditorCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
 import codex.component.render.GeneralRenderer;
 import codex.editor.IEditor;
 import codex.editor.StrEditor;
+import codex.log.Logger;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.supplier.IDataSupplier;
@@ -20,10 +23,13 @@ import java.awt.event.ActionEvent;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.text.MessageFormat;
 import java.util.Vector;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import javax.swing.AbstractAction;
+import javax.swing.FocusManager;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -54,9 +60,16 @@ public class RowSelector implements IDataSupplier<String> {
     private IEditor lookupEditor;
     private TableRowSorter<TableModel> sorter;
     
-    public RowSelector() {
+    /**
+     * Конструктор поставщика.
+     * @param connectionID Поставщик идентификатора подключения.
+     * @param query Запрос, при необходимости включающий в себя параметры.
+     * @param params Список значений параметров запроса, не указывать если 
+     * параметров нет.
+     */
+    public RowSelector(Supplier<Integer> connectionID, String query, PropertyHolder... params) {
         dialog = new Dialog(
-                null,
+                FocusManager.getCurrentManager().getActiveWindow(),
                 ImageUtils.getByPath("/images/selector.png"), 
                 Language.get("title"),
                 new JPanel(),
@@ -91,105 +104,101 @@ public class RowSelector implements IDataSupplier<String> {
                 JPanel content = new JPanel(new BorderLayout());
                 IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
                 try {
-                    Integer connectionID = DAS.registerConnection(
-                            "jdbc:oracle:thin:@//10.7.1.55:1521/TERMINALPAB", 
-                            "TX_WIRECARD_TRUNK", 
-                            "TX_WIRECARD_TRUNK"
-                    );
-                    ResultSet rset = DAS.select(connectionID, "SELECT ID, TITLE FROM RDX_INSTANCE");
-                    if (connectionID != null) {
-                        try {
-                            ResultSetMetaData meta = rset.getMetaData();
-                            int colomnCount = meta.getColumnCount();
-                            Vector<String> columns = new Vector<>();
-                            for (int colIdx = 1; colIdx <= colomnCount; colIdx++) {
-                                columns.add(meta.getColumnName(colIdx));
-                            }
-
-                            DefaultTableModel tableModel = new DefaultTableModel(null, columns) {
-                                @Override
-                                public Class<?> getColumnClass(int columnIndex) {
-                                    return String.class;
-                                }
-                                
-                                @Override
-                                public boolean isCellEditable(int row, int column) {
-                                    return false;
-                                }
-                            };
-                            table = new JTable(tableModel);
-                            table.setRowHeight((int) (IEditor.FONT_VALUE.getSize() * 2));
-                            table.setShowVerticalLines(false);
-                            table.setIntercellSpacing(new Dimension(0,0));
-                            table.setPreferredScrollableViewportSize(getPreferredSize());
-
-                            table.setDefaultRenderer(String.class, new GeneralRenderer());
-                            table.getTableHeader().setDefaultRenderer(new HeaderRenderer());
-                            table.getInputMap(
-                                    JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
-                            ).put(KeyStroke.getKeyStroke("ENTER"), "none");
-            
-                            sorter = new TableRowSorter<>(table.getModel());
-                            table.setRowSorter(sorter);
-
-                            PropertyHolder lookupHolder = new PropertyHolder("filter", new Str(null), false);
-                            lookupEditor = new StrEditor(lookupHolder);
-                            EditorCommand search = new ApplyFilter();
-                            lookupEditor.addCommand(search);
-                            lookupEditor.getEditor().add((JComponent) search.getButton());
-                            lookupHolder.addChangeListener((name, oldValue, newValue) -> {
-                                search.execute(lookupHolder);
-                            });
-                            
-                            JLabel filterIcon  = new JLabel(ImageUtils.resize(ImageUtils.getByPath("/images/filter.png"), 20, 20));
-                            filterIcon.setBorder(new EmptyBorder(0, 5, 0, 5));
-                            
-                            JPanel filterPanel = new JPanel(new BorderLayout());
-                            filterPanel.setBorder(new EmptyBorder(5, 5, 0, 5));
-                            filterPanel.add(filterIcon, BorderLayout.WEST);
-                            filterPanel.add(lookupEditor.getEditor(), BorderLayout.CENTER);
-                            
-                            content.add(filterPanel, BorderLayout.NORTH);
-
-                            final JScrollPane scrollPane = new JScrollPane();
-                            scrollPane.getViewport().setBackground(Color.WHITE);
-                            scrollPane.setViewportView(table);
-                            scrollPane.setBorder(new CompoundBorder(
-                                    new EmptyBorder(5, 5, 5, 5), 
-                                    new MatteBorder(1, 1, 1, 1, Color.GRAY)
-                            ));
-                            content.add(scrollPane, BorderLayout.CENTER);
-                            while (rset.next()) {
-                                Vector<String> row = new Vector<>();
-                                for (int colIdx = 1; colIdx <= colomnCount; colIdx++) {
-                                    row.add(rset.getString(colIdx));
-                                }
-                                tableModel.addRow(row);
-                            }
-                        } catch (SQLException e) {
-                            e.printStackTrace();
+                    Integer connID = connectionID.get();
+                    if (connID != null) {
+                        ResultSet rset = DAS.select(connID, query, params);
+                        ResultSetMetaData meta = rset.getMetaData();
+                        int colomnCount = meta.getColumnCount();
+                        Vector<String> columns = new Vector<>();
+                        for (int colIdx = 1; colIdx <= colomnCount; colIdx++) {
+                            columns.add(meta.getColumnName(colIdx));
                         }
+
+                        DefaultTableModel tableModel = new DefaultTableModel(null, columns) {
+                            @Override
+                            public Class<?> getColumnClass(int columnIndex) {
+                                return String.class;
+                            }
+
+                            @Override
+                            public boolean isCellEditable(int row, int column) {
+                                return false;
+                            }
+                        };
+                        table = new JTable(tableModel);
+                        table.setRowHeight((int) (IEditor.FONT_VALUE.getSize() * 2));
+                        table.setShowVerticalLines(false);
+                        table.setIntercellSpacing(new Dimension(0,0));
+                        table.setPreferredScrollableViewportSize(getPreferredSize());
+
+                        table.setDefaultRenderer(String.class, new GeneralRenderer());
+                        table.getTableHeader().setDefaultRenderer(new HeaderRenderer());
+                        table.getInputMap(
+                                JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
+                        ).put(KeyStroke.getKeyStroke("ENTER"), "none");
+
+                        sorter = new TableRowSorter<>(table.getModel());
+                        table.setRowSorter(sorter);
+
+                        PropertyHolder lookupHolder = new PropertyHolder("filter", new Str(null), false);
+                        lookupEditor = new StrEditor(lookupHolder);
+                        EditorCommand search = new ApplyFilter();
+                        lookupEditor.addCommand(search);
+                        lookupEditor.getEditor().add((JComponent) search.getButton());
+                        lookupHolder.addChangeListener((name, oldValue, newValue) -> {
+                            search.execute(lookupHolder);
+                        });
+
+                        JLabel filterIcon  = new JLabel(ImageUtils.resize(ImageUtils.getByPath("/images/filter.png"), 20, 20));
+                        filterIcon.setBorder(new EmptyBorder(0, 5, 0, 5));
+
+                        JPanel filterPanel = new JPanel(new BorderLayout());
+                        filterPanel.setBorder(new EmptyBorder(5, 5, 0, 5));
+                        filterPanel.add(filterIcon, BorderLayout.WEST);
+                        filterPanel.add(lookupEditor.getEditor(), BorderLayout.CENTER);
+
+                        content.add(filterPanel, BorderLayout.NORTH);
+
+                        final JScrollPane scrollPane = new JScrollPane();
+                        scrollPane.getViewport().setBackground(Color.WHITE);
+                        scrollPane.setViewportView(table);
+                        scrollPane.setBorder(new CompoundBorder(
+                                new EmptyBorder(5, 5, 5, 5), 
+                                new MatteBorder(1, 1, 1, 1, Color.GRAY)
+                        ));
+                        content.add(scrollPane, BorderLayout.CENTER);
+                        while (rset.next()) {
+                            Vector<String> row = new Vector<>();
+                            for (int colIdx = 1; colIdx <= colomnCount; colIdx++) {
+                                row.add(rset.getString(colIdx));
+                            }
+                            tableModel.addRow(row);
+                        }
+                        dialog.setContent(content);
+                        dialog.setMinimumSize(new Dimension(
+                                table.getColumnCount() * 150,
+                                200
+                        ));
+                        dialog.setPreferredSize(new Dimension(
+                                table.getColumnCount() * 200, 
+                                400
+                        ));
+                        super.setVisible(visible);
                     }
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    String template = MessageFormat.format(
+                            query.replaceAll("\\?", "{0}"),
+                            params
+                    );
+                    Logger.getLogger().error(e.getMessage()+" ["+template+"]");
+                    MessageBox.show(MessageType.ERROR, e.getMessage());
                 }
-                dialog.setContent(content);
-                dialog.setMinimumSize(new Dimension(
-                        table.getColumnCount() * 150,
-                        200
-                ));
-                dialog.setPreferredSize(new Dimension(
-                        table.getColumnCount() * 200, 
-                        400
-                ));
-                super.setVisible(visible);
             }
         };
     }
 
     @Override
     public String call() throws Exception {
-        dialog.setModalityType(java.awt.Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setVisible(true);
         return data;
     }
