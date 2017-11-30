@@ -284,21 +284,23 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
 
     @Override
     public IEditor getEditor(String name) {
+        boolean editorExists = editors.containsKey(name);
         IEditor editor = super.getEditor(name);
         editor.getLabel().setText(getProperty(name).getTitle() + (getChanges().contains(name) ? " *" : ""));
-        addModelListener(new IModelListener() {
-            
-            @Override
-            public void modelSaved(EntityModel model, List<String> changes) { 
-                editor.getLabel().setText(getProperty(name).getTitle());
-            }
+        
+        if (!editorExists) {
+            addModelListener(new IModelListener() {
+                @Override
+                public void modelSaved(EntityModel model, List<String> changes) { 
+                    editor.getLabel().setText(getProperty(name).getTitle());
+                }
 
-            @Override
-            public void modelChanged(EntityModel model, List<String> changes) {
-                editor.getLabel().setText(getProperty(name).getTitle() + (changes.contains(name) ? " *" : ""));
-            }
-            
-        });
+                @Override
+                public void modelChanged(EntityModel model, List<String> changes) {
+                    editor.getLabel().setText(getProperty(name).getTitle() + (changes.contains(name) ? " *" : ""));
+                }
+            });
+        }
         editor.setEditable(!dynamicProps.contains(name) && editor.isEditable());
         return editor;
     }
