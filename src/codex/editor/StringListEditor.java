@@ -4,12 +4,12 @@ import codex.command.EditorCommand;
 import codex.component.button.DialogButton;
 import codex.component.button.PushButton;
 import codex.component.dialog.Dialog;
-import codex.property.PropertyHolder;
-import codex.utils.ImageUtils;
-import codex.utils.Language;
 import codex.component.list.EditableList;
+import codex.property.PropertyHolder;
 import codex.type.IComplexType;
 import codex.type.StringList;
+import codex.utils.ImageUtils;
+import codex.utils.Language;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
@@ -152,7 +152,7 @@ public class StringListEditor extends AbstractEditor {
                         
                         @Override
                         public void actionPerformed(ActionEvent event) {
-                            if (event.getID() == Dialog.OK) {
+                            if (event.getID() == Dialog.OK && !values.equals(contex.getPropValue().getValue())) {
                                 list.stopEditing();
                                 propHolder.setValue(new StringList(values));
                             }
