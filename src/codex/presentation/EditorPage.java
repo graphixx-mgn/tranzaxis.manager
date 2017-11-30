@@ -45,6 +45,9 @@ public final class EditorPage extends JPanel {
             gbc.weightx = 0;
             
             IEditor propEditor = model.getEditor(propName);
+            /* Нужно перерисовать компонент на случай если уже было обращение к нему
+             * на ранней стадии инициализации сухности */
+            ((JComponent) propEditor).updateUI();
             if (propEditor.getFocusTarget() != null && propEditor.isEditable()) {
                 focusOrder.add(propEditor.getFocusTarget());
             }
