@@ -36,14 +36,12 @@ public abstract class Catalog extends Entity {
             List<Map<String, String>> rowsData = STORE.readCatalogEntries(getChildClass());
             rowsData.forEach((map) -> {
                 String title  = map.get(EntityModel.PID);
-                Entity entity = Entity.newInstance(getChildClass(), null);
-                entity.setTitle(title);
+                Entity entity = Entity.newInstance(getChildClass(), title);
                 map.forEach((propName, propVal) -> {
                     if (entity.model.hasProperty(propName)) {
                         entity.model.getProperty(propName).getPropValue().valueOf(propVal);
                     }
                 });
-                entity.model.init();
                 insert(entity);
             });
         }

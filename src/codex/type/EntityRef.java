@@ -1,11 +1,10 @@
 package codex.type;
 
-import codex.config.ConfigStoreService;
-import codex.config.IConfigStoreService;
 import codex.editor.EntityRefEditor;
 import codex.editor.IEditorFactory;
+import codex.explorer.ExplorerAccessService;
+import codex.explorer.IExplorerAccessService;
 import codex.model.Entity;
-import codex.model.EntityModel;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import java.util.function.Predicate;
@@ -14,12 +13,11 @@ import java.util.function.Predicate;
  * Тип-ссылка на сущность {@link Entity}.
  */
 public class EntityRef implements IComplexType<Entity> {
-    
-    private final static IConfigStoreService STORE = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
-    
+
     private Class             entityClass;
+    private Integer           entityID;
+    private Entity            entityInstance;
     private Predicate<Entity> entityFilter;
-    private Entity value;
     
     /**
      * Констуктор типа.
@@ -66,17 +64,27 @@ public class EntityRef implements IComplexType<Entity> {
 
     @Override
     public Entity getValue() {
-        return value;
+        return entityID == null ? null : entityInstance != null ? entityInstance : findEntity();
+    }
+    
+    private Entity findEntity() {
+        entityInstance = (
+                (IExplorerAccessService) ServiceRegistry
+                        .getInstance()
+                        .lookupService(ExplorerAccessService.class)
+        ).getEntity(entityClass, entityID);
+        return entityInstance;
     }
 
     @Override
     public void setValue(Entity value) {
-        this.value = value;
+        entityInstance = value == null ? null : value;
+        entityID = value == null ? null : value.model.getID();
     }
     
     @Override
     public boolean isEmpty() {
-        return getValue() == null;
+        return entityID == null && entityInstance == null;
     }
     
     @Override
@@ -88,17 +96,13 @@ public class EntityRef implements IComplexType<Entity> {
     
     @Override
     public String toString() {
-        return isEmpty() ? "" : value.model.getID().toString();
+        return isEmpty() ? "" : entityID.toString();
     }
 
     @Override
     public void valueOf(String value) {
         if (value != null && !value.isEmpty()) {
-            String PID = STORE.readClassInstance(entityClass, Integer.valueOf(value)).get(EntityModel.PID);
-            if (PID != null) {
-                Entity entity = Entity.newInstance(entityClass, PID);
-                setValue(entity);
-            }
+            entityID = Integer.valueOf(value);
         }
     }
     
