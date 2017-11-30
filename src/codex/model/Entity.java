@@ -4,7 +4,6 @@ import codex.command.EntityCommand;
 import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
-import codex.editor.IEditor;
 import codex.explorer.tree.AbstractNode;
 import codex.explorer.tree.INode;
 import codex.log.Logger;
@@ -36,11 +35,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     private final ImageIcon icon;
     private final String    hint;
     
-    private EditorPresentation   editorPresentation;
     private SelectorPresentation selectorPresentation;
-    
     private final Map<String, EntityCommand> commands = new LinkedHashMap<>();
-    private final Map<String, IEditor>       editors  = new LinkedHashMap<>();
      
     /**
      * Модель сущности, контейнер всех её свойств.
@@ -70,9 +66,9 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         this.hint  = hint;
         this.model = new EntityModel(this.getClass(), PID) {
             
-            @Override
-            public IEditor getEditor(String name) {
-                IEditor propEditor = super.getEditor(name);
+//            @Override
+//            public IEditor getEditor(String name) {
+//                IEditor propEditor = super.getEditor(name);
 //                if (Entity.this.getParent() != null && ((Entity) Entity.this.getParent()).model.hasProperty(name)) {
 //                    EntityModel parent = ((Entity) Entity.this.getParent()).model;
 //                    //TODO: При каждом открытии редактора создаются новые кнопки
@@ -85,9 +81,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
 //                        }
 //                    });
 //                }
-                Entity.this.editors.put(name, propEditor);
-                return propEditor;
-            }
+//                return propEditor;
+//            }
             
         };
         this.model.addChangeListener(this);
@@ -181,7 +176,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     
     public final List<String> getInvalidProperties() {
         stopEditing();
-        return editors.entrySet().stream()
+        return model.editors.entrySet().stream()
                 .filter((entry) -> {
                     return !entry.getValue().stopEditing();
                 }).map((entry) -> {
@@ -222,7 +217,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                     new AbstractAction() {
                         @Override
                         public void actionPerformed(ActionEvent event) {
-                            editors.get(getInvalidProperties().get(0)).getFocusTarget().requestFocus();
+                            model.editors.get(getInvalidProperties().get(0)).getFocusTarget().requestFocus();
                         }
                     }
             );
@@ -256,7 +251,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     };
     
     public final void stopEditing() {
-        editors.values().stream().forEach((editor) -> {
+        model.editors.values().stream().forEach((editor) -> {
             editor.stopEditing();
         });
     }
