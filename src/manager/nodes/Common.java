@@ -51,12 +51,9 @@ public class Common extends Catalog {
                     switch (propName) {
                         case "guiLang":
                             prefs.put(propName, ((Locale) model.getValue(propName)).name());
-                            MessageBox msgBox = new MessageBox(
-                                    MessageType.INFORMATION, null,
-                                    Language.get(Common.class.getSimpleName(), "guiLang.notify"),
-                                    null
-                            );
-                            SwingUtilities.invokeLater(() -> {msgBox.setVisible(true);});
+                            SwingUtilities.invokeLater(() -> {
+                                MessageBox.show(MessageType.INFORMATION, Language.get(Common.class.getSimpleName(), "guiLang.notify"));
+                            });
                             break;
                         case "useTray":
                             prefs.putBoolean(propName, (boolean) model.getValue(propName));
