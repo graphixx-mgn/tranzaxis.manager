@@ -101,19 +101,21 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
 
     @Override
     public final void setHint(String text) {
-        BalloonTip tooltipBalloon = new BalloonTip(
-                (JComponent) this.button, 
-                new JLabel(
-                        text,
-                        ImageUtils.resize(
-                            ImageUtils.getByPath("/images/event.png"), 
-                            16, 16
-                        ), 
-                        SwingConstants.LEADING), 
-                new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
-                false
-        );
-        ToolTipUtils.balloonToToolTip(tooltipBalloon, 1000, 3000);
+        if (text != null) {
+            BalloonTip tooltipBalloon = new BalloonTip(
+                    (JComponent) this.button, 
+                    new JLabel(
+                            text,
+                            ImageUtils.resize(
+                                ImageUtils.getByPath("/images/event.png"), 
+                                16, 16
+                            ), 
+                            SwingConstants.LEADING), 
+                    new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
+                    false
+            );
+            ToolTipUtils.balloonToToolTip(tooltipBalloon, 2000, 3000);
+        }
     }
     
     @Override

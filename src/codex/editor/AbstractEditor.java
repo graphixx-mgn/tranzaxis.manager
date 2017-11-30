@@ -80,7 +80,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
                         new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
                         false
                 );
-                ToolTipUtils.balloonToToolTip(tooltipBalloon, 1500, 3000);
+                ToolTipUtils.balloonToToolTip(tooltipBalloon, 2000, 3000);
             }
         }
     }
@@ -112,7 +112,9 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
             return command.disableWithContext();
         }).forEach((command) -> {
             command.getButton().setEnabled(editable);
-            command.activate();
+            if (editable) {
+                command.activate();
+            }
         });
     }
     
