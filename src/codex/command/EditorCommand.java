@@ -7,6 +7,9 @@ import codex.type.FilePath;
 import codex.type.StringList;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Arrays;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 import javax.swing.ImageIcon;
 
 /**
@@ -19,6 +22,15 @@ public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionL
     
     protected PropertyHolder[] context;
     protected IButton          button;
+    protected Predicate<PropertyHolder> available;
+    protected Consumer<PropertyHolder[]> activator = (holders) -> {
+        button.setEnabled(
+                holders != null && holders.length > 0 && 
+                !(holders.length > 1 && !multiContextAllowed()) && (
+                        available == null || Arrays.asList(holders).stream().allMatch(available)
+                )
+        );
+    };
     
     /**
      * Конструктор экземпляра команды.
@@ -26,9 +38,20 @@ public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionL
      * @param hint Описание команды, отображается при наведении мыши на кнопку.
      */
     public EditorCommand(ImageIcon icon, String hint) {
+        this(icon, hint, null);
+    }
+    
+    /**
+     * Конструктор экземпляра команды.
+     * @param icon Иконка устанавливаемая на кнопку запуска команды, не может быть NULL.
+     * @param hint Описание команды, отображается при наведении мыши на кнопку.
+     * @param available Предикат определяющий доступность команды.
+     */
+    public EditorCommand(ImageIcon icon, String hint, Predicate<PropertyHolder> available) {
         if (icon == null) {
             throw new IllegalStateException("Parameter 'icon' can not be NULL");
         }
+        this.available = available;
         this.button = new CommandButton(icon);
         this.button.addActionListener(this);
         this.button.setHint(hint);
@@ -39,6 +62,11 @@ public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionL
     public IButton getButton() {
         return button;
     }
+    
+    @Override
+    public final void activate() {
+        activator.accept(getContext());
+    };
 
     @Override
     public void setContext(PropertyHolder... context) {
@@ -46,6 +74,7 @@ public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionL
             throw new IllegalStateException("Multiple context is not allowed");
         }
         this.context = context;
+        activate();
     }
     
     @Override

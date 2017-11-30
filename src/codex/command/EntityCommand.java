@@ -107,9 +107,7 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         return button;
     }
     
-    /**
-     * Актуализация состояния доступности команды.
-     */
+    @Override
     public final void activate() {
         activator.accept(getContext());
     };
