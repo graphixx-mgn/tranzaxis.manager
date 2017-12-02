@@ -18,7 +18,15 @@ public class SelectorTableModel extends DefaultTableModel implements /*Reorderab
     public SelectorTableModel(Entity entity, final Entity prototype) {
         super(generateData(entity), generateHeader(entity, prototype));
         entity.childrenList().forEach((node) -> {
-            ((Entity) node).model.addModelListener(this);
+            EntityModel childModel = ((Entity) node).model;
+            childModel.addModelListener(this);
+            childModel.addChangeListener((name, oldValue, newValue) -> {
+                if (childModel.isPropertyDynamic(name)) {
+                    final int entityIdx = entity.getIndex(node);
+                    int propIdx = childModel.getProperties(Access.Select).indexOf(name);
+                    setValueAt(newValue, entityIdx, propIdx);
+                }
+            });
         });
         prototype.model.getProperties(Access.Select).forEach((propName) -> {
             columnClasses.add(prototype.model.getPropertyType(propName));

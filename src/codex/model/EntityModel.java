@@ -51,7 +51,6 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         addUserProp(EntityModel.PID,   new Str(PID),  true, 
                 Catalog.class.isAssignableFrom(entityClass) ? Access.Any : null
         );
-        //addChangeListener(dynamicResolver);
         addModelListener(dynamicResolver);
         init();
     }
@@ -88,7 +87,12 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     @Override
     final void addProperty(String name, IComplexType value, boolean require, Access restriction) {
         super.addProperty(name, value, require, restriction);
-        getProperty(name).addChangeListener(this);
+    }
+    
+    @Override
+    protected void addProperty(PropertyHolder propHolder, Access restriction) {
+        super.addProperty(propHolder, restriction);
+        getProperty(propHolder.getName()).addChangeListener(this);
     }
     
     /**

@@ -207,6 +207,14 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                                         }).toArray()
                                 );
                                 newEntity.model.addModelListener(tableModel);
+                                newEntity.model.addChangeListener((name, oldValue, newValue) -> {
+                                    if (newEntity.model.isPropertyDynamic(name)) {
+                                        final int entityIdx = tableModel.getRowCount() - 1;
+                                        int propIdx = newEntity.model.getProperties(Access.Select).indexOf(name);
+                                        tableModel.setValueAt(newValue, entityIdx, propIdx);
+                                    }
+                                });
+                                
                                 parent.insert(newEntity);
                                 table.getSelectionModel().setSelectionInterval(
                                         tableModel.getRowCount() - 1, 
@@ -297,6 +305,14 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                                         }).toArray()
                                 );
                                 newEntity.model.addModelListener(tableModel);
+                                newEntity.model.addChangeListener((name, oldValue, newValue) -> {
+                                    if (newEntity.model.isPropertyDynamic(name)) {
+                                        final int entityIdx = tableModel.getRowCount() - 1;
+                                        int propIdx = newEntity.model.getProperties(Access.Select).indexOf(name);
+                                        tableModel.setValueAt(newValue, entityIdx, propIdx);
+                                    }
+                                });
+                                
                                 context.getParent().insert(newEntity);
                                 table.getSelectionModel().setSelectionInterval(
                                         tableModel.getRowCount() - 1, 
