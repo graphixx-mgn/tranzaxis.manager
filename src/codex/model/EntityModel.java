@@ -8,6 +8,7 @@ import codex.editor.IEditor;
 import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
 import codex.property.IPropertyChangeListener;
+import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
@@ -15,11 +16,12 @@ import codex.type.Int;
 import codex.type.Str;
 import codex.utils.Language;
 import java.text.MessageFormat;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -35,9 +37,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     private final static IConfigStoreService    CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
     
-    private final Class        entityClass;
-    private final List<String> dynamicProps = new LinkedList<>();
-    private final UndoRegistry undoRegistry = new UndoRegistry();
+    private final Class           entityClass;
+    private final DynamicResolver dynamicResolver = new DynamicResolver();
+    private final List<String>    dynamicProps = new LinkedList<>();
+    private final UndoRegistry    undoRegistry = new UndoRegistry();
     private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
     private final List<IModelListener>          modelListeners = new LinkedList<>();
     
@@ -48,6 +51,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         addUserProp(EntityModel.PID,   new Str(PID),  true, 
                 Catalog.class.isAssignableFrom(entityClass) ? Access.Any : null
         );
+        //addChangeListener(dynamicResolver);
+        addModelListener(dynamicResolver);
         init();
     }
     
@@ -119,26 +124,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * функцию рассчета значения.
      */
     public final void addDynamicProp(String name, IComplexType value, Access restriction, Supplier valueProvider, String... baseProps) {
-        addProperty(name, value, false, restriction);
         if (valueProvider != null) {
-            addModelListener(new IModelListener() {
-                @Override
-                public void modelChanged(EntityModel model, List<String> changes) {
-                    List<String> intersection = new LinkedList<>(dynamicProps);
-                    intersection.retainAll(Arrays.asList(baseProps));
-                    if (!intersection.isEmpty()) {
-                        setValue(name, valueProvider.get());
-                    }
-                }
-                @Override
-                public void modelSaved(EntityModel model, List<String> changes) {
-                    List<String> intersection = new LinkedList<>(changes);
-                    intersection.retainAll(Arrays.asList(baseProps));
-                    if (!intersection.isEmpty()) {
-                        setValue(name, valueProvider.get());
-                    }
-                }
-            });
+            addProperty(
+                    dynamicResolver.newProperty(name, value, valueProvider, baseProps), 
+                    restriction
+            );
+        } else {
+            addProperty(name, value, false, restriction);
         }
         dynamicProps.add(name);
     }
@@ -305,4 +297,66 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         return editor;
     }
 
+    
+    private final class DynamicResolver implements IPropertyChangeListener, IModelListener {
+
+        private final List<String> resolveOrder = new LinkedList<>();
+        private final Map<String, String> resolveMap = new HashMap<>();
+        private final Map<String, Supplier> valueProvides = new HashMap<>();
+        private final Map<String, PropertyHolder> propertyHolders = new HashMap<>();
+
+        PropertyHolder newProperty(String name, IComplexType value, Supplier valueProvider, String... baseProps) {
+            
+            for (String basePropName : baseProps) {
+                if (resolveOrder.contains(name)) {
+                    int propIdx = resolveOrder.indexOf(name);
+                    resolveOrder.add(propIdx, basePropName);
+                } else {
+                    resolveOrder.add(basePropName);
+                }
+                resolveMap.put(basePropName, name);
+            }
+            valueProvides.put(name, valueProvider);
+            
+            AtomicBoolean propInitiated = new AtomicBoolean(false);
+            propertyHolders.put(name, new PropertyHolder(name, value, false) {
+                @Override
+                public IComplexType getPropValue() {
+                    if (!propInitiated.getAndSet(true)) {
+                        value.setValue(valueProvider.get());
+                    }
+                    return value;
+                }
+            });
+            propertyHolders.get(name).addChangeListener(this);
+            
+            return propertyHolders.get(name);
+        };
+
+        @Override
+        public void propertyChange(String name, Object oldValue, Object newValue) {
+            if (resolveOrder.contains(name) && EntityModel.this.isPropertyDynamic(name)) {
+                String dynamicProp = resolveMap.get(name);
+                Object dynValue = valueProvides.get(dynamicProp).get();
+                propertyHolders.get(dynamicProp).setValue(dynValue);
+            }
+        }
+
+        @Override
+        public void modelSaved(EntityModel model, List<String> changes) {
+            resolveOrder.stream()
+                    .filter((changedProp) -> {
+                        return changes.contains(changedProp);
+                    })
+                    .map((baseProp) -> {
+                        return resolveMap.get(baseProp);
+                    })
+                    .distinct()
+                    .forEach((dynamicProp) -> {
+                        Object dynValue = valueProvides.get(dynamicProp).get();
+                        propertyHolders.get(dynamicProp).setValue(dynValue);
+                    });
+        }
+
+    }
 }
