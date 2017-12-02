@@ -183,7 +183,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     };
     
     public final List<String> getInvalidProperties() {
-        stopEditing();
         return model.editors.entrySet().stream()
                 .filter((entry) -> {
                     return !entry.getValue().stopEditing();
@@ -194,17 +193,10 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
 
     @Override
     public final void propertyChange(String name, Object oldValue, Object newValue) {
-        if (getInvalidProperties().contains(name)) {
-            Logger.getLogger().warn(
-                    "Property ''{0}@{1}'' has been changed: ''{2}'' -> ''{3}'' (invalid value)", 
-                    this, name, oldValue, newValue
-            );
-        } else {
-            Logger.getLogger().debug(
-                    "Property ''{0}@{1}'' has been changed: ''{2}'' -> ''{3}''", 
-                    this, name, oldValue, newValue
-            );
-        }
+        Logger.getLogger().debug(
+                "Property ''{0}@{1}'' has been changed: ''{2}'' -> ''{3}''", 
+                this, name, oldValue, newValue
+        );
     }
     
     /**
