@@ -24,6 +24,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -34,13 +35,10 @@ import javax.swing.event.DocumentListener;
 public class IntEditor extends AbstractEditor implements DocumentListener {
     
     private JTextField textField;
-    private String     initialValue;
     private String     previousValue;
 
-    private Predicate<String>        checker;
     private final Consumer<String>   update;
     private final Consumer<String>   commit;
-    private Function<String, Object> transformer;
     
     private final JLabel signDelete;
     
@@ -71,8 +69,6 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
      */
     private IntEditor(PropertyHolder propHolder, Predicate<String> checker, Function<String, Object> transformer) {
         super(propHolder);
-        this.checker     = checker;
-        this.transformer = transformer;
         
         signDelete = new JLabel(ImageUtils.resize(
                 ImageUtils.getByPath("/images/clearval.png"), 
@@ -93,11 +89,10 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
             }
         };
         this.commit = (text) -> {
-            if (!text.equals(initialValue)) {
+            if (text != propHolder.getPropValue().getValue()) {
                 propHolder.setValue(
-                        previousValue == null || previousValue.isEmpty() ? null : transformer.apply(previousValue)
+                        text == null || text.isEmpty() ? null : transformer.apply(text)
                 );
-                initialValue = previousValue;
             }
         };
         
@@ -105,6 +100,13 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
         textField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyTyped(KeyEvent event) {
+                char c = event.getKeyChar();
+                if (!((c >= '0') && (c <= '9') ||
+                     (c == KeyEvent.VK_BACK_SPACE) ||
+                     (c == KeyEvent.VK_DELETE))) 
+                {
+                    event.consume();
+                }
                 if (event.getKeyChar() == KeyEvent.VK_TAB) {
                     stopEditing();
                 }
@@ -148,7 +150,7 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
         signDelete.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                setValue(null);
+                previousValue = null;
                 propHolder.setValue(null);
             }
         });
@@ -177,13 +179,12 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
 
     @Override
     public void setValue(Object value) {
-        textField.getDocument().removeDocumentListener(this);
-        initialValue = value == null ? "" : value.toString();
-        textField.setText(initialValue);
-        textField.getDocument().addDocumentListener(this);
-        if (signDelete != null) {
-            signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
-        }
+        SwingUtilities.invokeLater(() -> {
+            textField.getDocument().removeDocumentListener(this);
+            textField.setText(value == null ? "" : value.toString());
+            textField.getDocument().addDocumentListener(this);
+            signDelete.setVisible(!textField.getText().isEmpty() && isEditable() && textField.isFocusOwner());
+        });
     }
     
     @Override
@@ -196,8 +197,7 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
     public void focusGained(FocusEvent event) {
         super.focusGained(event);
         signDelete.setVisible(!propHolder.isEmpty() && isEditable());
-        initialValue  = textField.getText();
-        previousValue = initialValue;
+        previousValue = textField.getText();
     }
     
     @Override

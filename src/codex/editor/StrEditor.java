@@ -18,13 +18,13 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -38,13 +38,9 @@ import net.java.balloontip.utils.TimingUtils;
 public class StrEditor extends AbstractEditor implements DocumentListener {
     
     private JTextField textField;
-    private String     initialValue;
-    private String     previousValue;
     
-    private Predicate<String>        checker;
     private final Consumer<String>   update;
     private final Consumer<String>   commit;
-    private Function<String, Object> transformer;
     
     private final JLabel  signInvalid;
     private final JLabel  signDelete;
@@ -56,9 +52,6 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     public StrEditor(PropertyHolder propHolder) {
         this(
                 propHolder,
-                (text) -> {
-                    return true;
-                }, 
                 String::valueOf
         );
     }
@@ -70,10 +63,8 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
      * @param transformer Функция-конвертер, вызывается для получения значения 
      * свойства из введенного текста при фиксации изменения.
      */
-    private StrEditor(PropertyHolder propHolder, Predicate<String> checker, Function<String, Object> transformer) {
+    private StrEditor(PropertyHolder propHolder, Function<String, Object> transformer) {
         super(propHolder);
-        this.checker     = checker;
-        this.transformer = transformer;
         
         signInvalid = new JLabel(ImageUtils.resize(
                 ImageUtils.getByPath("/images/warn.png"), 
@@ -88,7 +79,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         signInvalid.setCursor(Cursor.getDefaultCursor());
         signDelete.setCursor(Cursor.getDefaultCursor());
         
-        IMask<String> mask = ((Str) propHolder.getPropValue()).getMask();
+        IMask<String> mask = propHolder.getPropValue().getMask();
         if (mask.getErrorHint() != null) {
             signInvalid.addMouseListener(new MouseAdapter() {
                 @Override
@@ -104,18 +95,12 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
             }
             signInvalid.setVisible(false);
             textField.setForeground(COLOR_NORMAL);
-            if (checker.test(text)) {
-                previousValue = text;
-            } else {
-                setValue(previousValue);
-            }
         };
         this.commit = (text) -> {
-            if (!text.equals(initialValue)) {
+            if (text != propHolder.getPropValue().getValue()) {
                 propHolder.setValue(
-                        previousValue == null || previousValue.isEmpty() ? null : transformer.apply(previousValue)
+                        text == null || text.isEmpty() ? null : transformer.apply(text)
                 );
-                initialValue = previousValue;
             }
         };
         
@@ -149,7 +134,6 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         signDelete.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                setValue(null);
                 propHolder.setValue(null);
             }
         });
@@ -178,11 +162,12 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
 
     @Override
     public void setValue(Object value) {
-        textField.getDocument().removeDocumentListener(this);
-        initialValue = value == null ? "" : value.toString();
-        textField.setText(initialValue);
-        textField.getDocument().addDocumentListener(this);
-        verify();
+        SwingUtilities.invokeLater(() -> {
+            textField.getDocument().removeDocumentListener(this);
+            textField.setText(value == null ? "" : value.toString());
+            textField.getDocument().addDocumentListener(this);
+            verify();
+        });
     }
     
     @Override
@@ -192,11 +177,9 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     }
 
     private boolean verify() {
-        if (signDelete != null) {
-            signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
-        }
-        IMask<String> mask = ((Str) propHolder.getPropValue()).getMask();
-        String value = ((Str) propHolder.getPropValue()).getValue();
+        signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
+        IMask<String> mask = propHolder.getPropValue().getMask();
+        String value = (String) propHolder.getPropValue().getValue();
         boolean inputOk = ((value == null || value.isEmpty()) && !mask.notNull()) || mask.verify(value);
         setBorder(!inputOk ? BORDER_ERROR : textField.isFocusOwner() ? BORDER_ACTIVE : BORDER_NORMAL);
         textField.setForeground(inputOk ? COLOR_NORMAL : COLOR_INVALID);
@@ -212,7 +195,6 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     @Override
     public void focusGained(FocusEvent event) {
         super.focusGained(event);
-        initialValue = textField.getText();
         verify();
     }
     
@@ -258,7 +240,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     }
     
     private BalloonTip getErrorTip() {
-        IMask<String> mask = ((Str) propHolder.getPropValue()).getMask();
+        IMask<String> mask = propHolder.getPropValue().getMask();
         return new BalloonTip(
                 signInvalid, new JLabel(mask.getErrorHint(), ImageUtils.resize(
                     ImageUtils.getByPath("/images/warn.png"), 
