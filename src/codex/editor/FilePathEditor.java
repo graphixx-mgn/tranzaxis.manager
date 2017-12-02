@@ -84,7 +84,7 @@ public class FilePathEditor extends AbstractEditor {
         public void execute(PropertyHolder contex) {
             JFileChooser fileChooser = new JFileChooser(contex.getPropValue() == null ? "" : contex.toString());
             fileChooser.setDialogTitle(Language.get("title"));
-            IPathMask mask = ((FilePath) contex.getPropValue()).getMask();
+            IPathMask mask = (IPathMask) contex.getPropValue().getMask();
             if (mask != null) {
                 fileChooser.setFileSelectionMode(mask.getSelectionMode());
                 if (mask.getFilter() != null) {
