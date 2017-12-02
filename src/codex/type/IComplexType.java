@@ -2,6 +2,7 @@ package codex.type;
 
 import codex.editor.AbstractEditor;
 import codex.editor.IEditorFactory;
+import codex.mask.IMask;
 import codex.property.PropertyHolder;
 import codex.utils.Language;
 import java.awt.Color;
@@ -37,6 +38,20 @@ public interface IComplexType<T> extends Serializable {
      */
     default boolean isEmpty() {
         return getValue() == null;
+    };
+    
+    /**
+     * Установить маску значения.
+     */
+    default public IComplexType setMask(IMask<T> mask) {
+        return this;
+    };
+    
+    /**
+     * Возвращает маску значения.
+     */
+    default public IMask<T> getMask() {
+        return null;
     };
     
     /**

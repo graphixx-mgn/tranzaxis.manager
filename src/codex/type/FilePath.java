@@ -2,7 +2,7 @@ package codex.type;
 
 import codex.editor.IEditorFactory;
 import codex.editor.FilePathEditor;
-import codex.mask.IPathMask;
+import codex.mask.IMask;
 import codex.property.PropertyHolder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -16,8 +16,8 @@ public class FilePath implements IComplexType<Path>  {
         return new FilePathEditor(propHolder);
     };
     
-    private Path      value;
-    private IPathMask mask;
+    private Path        value;
+    private IMask<Path> mask;
     
     /**
      * Конструктор типа.
@@ -45,7 +45,8 @@ public class FilePath implements IComplexType<Path>  {
     /**
      * Установить маску значения.
      */
-    public IComplexType setMask(IPathMask mask) {
+    @Override
+    public IComplexType setMask(IMask<Path> mask) {
         this.mask = mask;
         return this;
     }
@@ -53,7 +54,8 @@ public class FilePath implements IComplexType<Path>  {
     /**
      * Возвращает маску значения.
      */
-    public IPathMask getMask() {
+    @Override
+    public IMask<Path> getMask() {
         return mask;
     }
     

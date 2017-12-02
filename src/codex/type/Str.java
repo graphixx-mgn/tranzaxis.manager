@@ -49,6 +49,7 @@ public class Str implements IComplexType<String> {
     /**
      * Установить маску значения.
      */
+    @Override
     public IComplexType setMask(IMask<String> mask) {
         this.mask = mask;
         return this;
@@ -57,6 +58,7 @@ public class Str implements IComplexType<String> {
     /**
      * Возвращает маску значения.
      */
+    @Override
     public IMask<String> getMask() {
         return mask;
     }
