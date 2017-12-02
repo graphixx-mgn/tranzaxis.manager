@@ -84,7 +84,7 @@ public class PropertyHolder<T extends IComplexType<V>, V> {
     /**
      * Получить экземпляр хранимого объекта {@link IComplexType}
      */
-    public final IComplexType<? extends V> getPropValue() {
+    public IComplexType<? extends V> getPropValue() {
         return inherit == null ? value : inherit.getPropValue();
     }
     
