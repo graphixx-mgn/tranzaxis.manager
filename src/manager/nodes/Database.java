@@ -41,24 +41,34 @@ public class Database extends Entity {
         true, Access.Select);
         model.addUserProp("dbSchema", new Str(null), true, null);
         model.addUserProp("dbPass", new Str(null), true, Access.Select);
-        model.addDynamicProp("version", new Str(null), null, () -> {
-            return model.getValue("dbSchema");
-        },
-        "dbSchema", "dbPass");
         model.addUserProp("instanceId", new Int(null), true, Access.Select);
         model.addUserProp("layerURI", new Str(null), true, Access.Select);
+        model.addDynamicProp("version", new Str(null), null, () -> {
+            return model.getValue("layerURI")+"~"+model.getValue("instanceId");
+        },
+        "instanceId", "layerURI");
         model.addUserProp("userNote", new Str(null), false, null);
         
         addCommand(new CheckDatabase());
         addCommand(new TestParams());
         
         Supplier<Integer> connectionSupplier = () -> {
-            if (IComplexType.notNull(model.getValue("dbUrl"), model.getValue("dbSchema"), model.getValue("dbPass"))) {
+            if (IComplexType.notNull(
+                    model.getUnsavedValue("dbUrl"), 
+                    model.getUnsavedValue("dbSchema"), 
+                    model.getUnsavedValue("dbPass")
+                ) && !getInvalidProperties().contains("dbUrl")
+            ) {
+                String dbUrl = (String) model.getUnsavedValue("dbUrl");
+                if (!CheckDatabase.checkUrlPort(dbUrl)) {
+                    MessageBox.show(MessageType.ERROR, "Unable to connect to port:");
+                    return null;
+                }
                 try {
                     return ((IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class)).registerConnection(
-                            "jdbc:oracle:thin:@//"+model.getValue("dbUrl"), 
-                            (String) model.getValue("dbSchema"), 
-                            (String) model.getValue("dbPass")
+                            "jdbc:oracle:thin:@//"+dbUrl, 
+                            (String) model.getUnsavedValue("dbSchema"), 
+                            (String) model.getUnsavedValue("dbPass")
                     );
                 } catch (SQLException e) {
                     MessageBox.show(MessageType.ERROR, e.getMessage());
@@ -66,7 +76,6 @@ public class Database extends Entity {
             }
             return null;
         };
-
         model.getEditor("instanceId").addCommand(new ValueProvider(new RowSelector(
                 connectionSupplier,
                 "SELECT ID, TITLE FROM RDX_INSTANCE ORDER BY ID"
