@@ -12,16 +12,18 @@ public class NetTools {
     /**
      * Проверка доступности сетевого порта.
      */
-    public static boolean isPortAvailable(String ip, int port, int timeout) {
+    public static boolean isPortAvailable(String host, int port, int timeout) {
         if (port < 1 || port > 65535) {
             throw new IllegalStateException("Invalid port number");
         }
-        if (!ip.matches("^(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))$")) {
-            throw new IllegalStateException("Invalid IP address");
+        if (!host.matches("^(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))$")) {
+            if (!host.matches("^[^\\s]+$")) {
+                throw new IllegalStateException("Invalid host address: "+host);
+            }
         }
         try {
             try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(ip, port), timeout);
+                socket.connect(new InetSocketAddress(host, port), timeout);
                 return true;
             }
         } catch (IOException e) {
