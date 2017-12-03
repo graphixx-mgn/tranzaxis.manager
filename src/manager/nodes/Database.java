@@ -20,6 +20,7 @@ import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.sql.SQLException;
+import java.text.MessageFormat;
 import java.util.Map;
 import java.util.function.Supplier;
 import manager.commands.CheckDatabase;
@@ -35,7 +36,7 @@ public class Database extends Entity {
         
         model.addUserProp("dbUrl", 
                 new Str(null).setMask(new RegexMask(
-                        "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5])):\\d{1,5}/\\w+", 
+                        "((([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))|[^\\s]+):\\d{1,5}/\\w+", 
                         Language.get("dbUrl.error")
                 )),
         true, Access.Select);
@@ -61,7 +62,10 @@ public class Database extends Entity {
             ) {
                 String dbUrl = (String) model.getUnsavedValue("dbUrl");
                 if (!CheckDatabase.checkUrlPort(dbUrl)) {
-                    MessageBox.show(MessageType.ERROR, "Unable to connect to port:");
+                    MessageBox.show(MessageType.ERROR, MessageFormat.format(
+                            Language.get(Database.class.getSimpleName(), "error@unavailable"),
+                            dbUrl.substring(0, dbUrl.indexOf("/"))
+                    ));
                     return null;
                 }
                 try {
