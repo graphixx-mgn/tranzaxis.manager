@@ -84,6 +84,9 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
         };
     }
 
+    /**
+     * Делает запрос к поставщику и возвращает параметры в виде карты имя-значение.
+     */
     @Override
     public Map<String, IComplexType> call() throws Exception {
         dialog.setVisible(true);

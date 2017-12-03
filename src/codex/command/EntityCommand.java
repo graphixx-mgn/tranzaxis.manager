@@ -93,6 +93,9 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         addListener(this);
     }
     
+    /**
+     * Возвращает имя (ID) команды.
+     */
     public final String getName() {
         return name;
     }
@@ -112,6 +115,9 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         activator.accept(getContext());
     };
     
+    /**
+     * Добавляет слушатель событий команды.
+     */
     public final void addListener(ICommandListener<Entity> listener) {
         listeners.add(listener);
     }

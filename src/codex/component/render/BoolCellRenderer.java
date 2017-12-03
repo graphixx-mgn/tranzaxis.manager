@@ -1,5 +1,7 @@
 package codex.component.render;
 
+import codex.presentation.SelectorTableModel;
+import codex.type.Bool;
 import codex.utils.ImageUtils;
 import java.awt.Color;
 import javax.swing.Box;

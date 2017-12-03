@@ -21,7 +21,7 @@ public class RegexMask implements IMask<String> {
     
     /**
      * Конструктор маски.
-     * @pattern expression Паттерн, которому должно соответствовать сначение
+     * @param pattern Паттерн, которому должно соответствовать сначение
      * свойства.
      */
     public RegexMask(Pattern pattern, String errorHint) {

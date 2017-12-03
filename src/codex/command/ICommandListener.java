@@ -2,7 +2,7 @@ package codex.command;
 
 /**
  * Интерфейс слушателя событий команды.
- * @param <T> 
+ * @param <T> Тип контекста команды.
  */
 @FunctionalInterface
 public interface ICommandListener<T> {

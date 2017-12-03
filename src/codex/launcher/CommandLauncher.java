@@ -20,7 +20,7 @@ import javax.swing.JLabel;
 import javax.swing.event.ChangeEvent;
 
 /**
- * Ярлык запуска команды с панели быстрого доступа {@link Launcher}.
+ * Ярлык запуска команды с панели быстрого доступа {@link LauncherUnit}.
  */
 final class CommandLauncher extends LaunchButton {
     

@@ -28,7 +28,6 @@ public interface ITask<T> extends RunnableFuture<T> {
     String  getDescription();
     /**
      * Код исполнения.
-     * @throws Exception 
      */
     T execute() throws Exception;
     /**

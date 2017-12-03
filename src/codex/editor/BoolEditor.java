@@ -1,6 +1,7 @@
 package codex.editor;
 
 import codex.property.PropertyHolder;
+import codex.type.Bool;
 import codex.utils.ImageUtils;
 import java.awt.Color;
 import java.awt.Component;

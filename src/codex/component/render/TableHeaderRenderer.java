@@ -1,6 +1,7 @@
 package codex.component.render;
 
 import codex.editor.IEditor;
+import codex.presentation.SelectorTableModel;
 import java.awt.Color;
 import javax.swing.JLabel;
 import javax.swing.SwingConstants;

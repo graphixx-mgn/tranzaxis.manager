@@ -1,5 +1,6 @@
 package codex.mask;
 
+import codex.editor.FilePathEditor;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 

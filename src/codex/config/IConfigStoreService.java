@@ -2,7 +2,6 @@ package codex.config;
 
 import codex.model.EntityModel;
 import codex.service.IService;
-import java.rmi.RemoteException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,7 +21,6 @@ public interface IConfigStoreService extends IService {
     /**
      * Создать каталог для сохранения моделей сущностей указанного класса. 
      * @param clazz Класс сущности.
-     * @throws RemoteException 
      */
     default void createClassCatalog(Class clazz) {};
     

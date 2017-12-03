@@ -26,7 +26,6 @@ public class FocusPolicy extends DefaultFocusTraversalPolicy {
      * Вычисление следующего компонета, который должен быть сфокусирован.
      * @param focusCycleRoot Контейнер-владелец компонентов.
      * @param prev Компонент имеющий фокус в данный момент. 
-     * @return 
      */
     @Override
     public Component getComponentAfter(Container focusCycleRoot, Component prev) {

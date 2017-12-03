@@ -1,6 +1,7 @@
 package codex.component.render;
 
 import codex.editor.IEditor;
+import codex.presentation.SelectorTableModel;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;

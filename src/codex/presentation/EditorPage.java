@@ -26,7 +26,7 @@ public final class EditorPage extends JPanel {
     
     /**
      * Конструктор страницы. 
-     * @param entity Редактируемая сущность.
+     * @param model Редактируемая модель сущности.
      */
     public EditorPage(AbstractModel model) {
         super(new GridBagLayout());

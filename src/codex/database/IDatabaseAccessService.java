@@ -17,7 +17,6 @@ public interface IDatabaseAccessService extends IService {
      * @param url Адрес БД в формате JDBC для конкретного драйвера.
      * @param user Имя пользователя.
      * @param password Пароль.
-     * @throws SQLException 
      */
     default Integer registerConnection(String url, String user, String password) throws SQLException {
         return null;
@@ -29,7 +28,6 @@ public interface IDatabaseAccessService extends IService {
      * @param query Запрос, при необходимости включающий в себя параметры.
      * @param params Список значений параметров запроса, не указывать если 
      * параметров нет.
-     * @throws SQLException 
      */
     default ResultSet select(Integer connectionID, String query, PropertyHolder... params) throws SQLException {
         return null;

@@ -96,7 +96,6 @@ public class Dialog extends JDialog {
          * update.setIcon(UPDATE_ICON);
          * update.setText("Check update");
          * }</pre>
-         * @return 
          */
         public DialogButton newInstance() {
             return new DialogButton(icon, title, key, ID);

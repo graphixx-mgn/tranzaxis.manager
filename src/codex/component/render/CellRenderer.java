@@ -1,5 +1,6 @@
 package codex.component.render;
 
+import codex.presentation.SelectorTableModel;
 import javax.swing.Box;
 
 /**

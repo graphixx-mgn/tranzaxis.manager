@@ -57,7 +57,6 @@ public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionL
         this.button.setHint(hint);
     }
     
-    
     @Override
     public IButton getButton() {
         return button;

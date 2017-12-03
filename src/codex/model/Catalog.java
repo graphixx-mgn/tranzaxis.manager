@@ -18,8 +18,8 @@ public abstract class Catalog extends Entity {
     
     /**
      * Конструктор каталога
-     * @param icon
-     * @param hint 
+     * @param icon Иконка каталога для отображения в дереве проводника.
+     * @param hint Подсказка о назначении каталога.
      */
     public Catalog(ImageIcon icon, String hint) {
         super(icon, "title", hint);

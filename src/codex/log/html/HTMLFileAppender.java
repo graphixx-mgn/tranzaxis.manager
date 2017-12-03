@@ -31,7 +31,6 @@ public class HTMLFileAppender extends AppenderSkeleton {
     /**
      * Set output file to write logs.
      * @param file File path
-     * @throws IOException
      */
     public void setFile(String file) throws IOException {
         this.fileName = file;
