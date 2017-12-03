@@ -5,14 +5,17 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 
 /**
- * Класс вспомогательных методов дляя работы с сетью.
+ * Класс вспомогательных методов для работы с сетью.
  */
 public class NetTools {
     
     /**
      * Проверка доступности сетевого порта.
+     * @param host Символьное имя хоста или IP-адрес.
+     * @param port Номер порта.
+     * @param timeout Таймаут подключения в миллисекундах.
      */
-    public static boolean isPortAvailable(String host, int port, int timeout) {
+    public static boolean isPortAvailable(String host, int port, int timeout) throws IllegalStateException {
         if (port < 1 || port > 65535) {
             throw new IllegalStateException("Invalid port number");
         }
