@@ -16,12 +16,12 @@ import codex.type.Int;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import manager.commands.CheckDatabase;
+import manager.commands.EditSAPPorts;
 
 public class Database extends Entity {
     
@@ -77,31 +77,34 @@ public class Database extends Entity {
                         Language.get("dbUrl.error")
                 )),
         true, Access.Select);
-        model.addUserProp("dbSchema", new Str(null), true, null);
-        model.addUserProp("dbPass", new Str(null), true, Access.Select);
+        model.addUserProp("dbSchema",   new Str(null), true, null);
+        model.addUserProp("dbPass",     new Str(null), true, Access.Select);
         model.addUserProp("instanceId", new Int(null), true, Access.Select);
-        model.addUserProp("layerURI", new Str(null), true, Access.Select);
-        model.addDynamicProp("version", new Str(null), null, () -> {
-            Integer connId = getConnectionID();
-            if (connId != null && model.getValue("layerURI") != null) {
-                try {
-                    ResultSet rset = DAS.select(
-                            connId, 
-                            "SELECT VERSION FROM RDX_DDSVERSION WHERE LAYERURI = ?",
-                            new PropertyHolder("layer", new Str((String) model.getValue("layerURI")), false)
-                    );
-                    if (rset.next()) {
-                        return rset.getString(1);
-                    }
-                } catch (SQLException e) {}
-            }
-            return null;
-        },
-        "layerURI");
+        model.addUserProp("layerURI",   new Str(null), true, Access.Select);
+        model.addUserProp("version",    new Str(null), true, null);
+        
+//        model.addDynamicProp("version", new Str(null), null, () -> {
+//            Integer connId = getConnectionID();
+//            if (connId != null && model.getValue("layerURI") != null) {
+//                try {
+//                    ResultSet rset = DAS.select(
+//                            connId, 
+//                            "SELECT VERSION FROM RDX_DDSVERSION WHERE LAYERURI = ?",
+//                            new PropertyHolder("layer", new Str((String) model.getValue("layerURI")), false)
+//                    );
+//                    if (rset.next()) {
+//                        return rset.getString(1);
+//                    }
+//                } catch (SQLException e) {}
+//            }
+//            return null;
+//        },
+//        "layerURI");
+
         model.addUserProp("userNote", new Str(null), false, null);
         
         addCommand(new CheckDatabase());
-//        addCommand(new EditSAPPorts());
+        addCommand(new EditSAPPorts());
         
         model.getEditor("instanceId").addCommand(new ValueProvider(new RowSelector(
                 connectionSupplier,
@@ -111,6 +114,13 @@ public class Database extends Entity {
                 connectionSupplier,
                 "SELECT LAYERURI, VERSION, UPGRADEDATE FROM RDX_DDSVERSION"
         )));
+        model.getEditor("version").addCommand(new ValueProvider(() -> {
+            return new RowSelector(
+                    connectionSupplier,
+                    "SELECT VERSION, UPGRADEDATE FROM RDX_DDSVERSION WHERE LAYERURI = ?",
+                    new PropertyHolder("layer", new Str((String) model.getUnsavedValue("layerURI")), false)
+            ).call();
+        }));
     }
     
     public Integer getConnectionID() {
