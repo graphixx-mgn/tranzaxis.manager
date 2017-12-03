@@ -12,7 +12,6 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import codex.utils.NetTools;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -33,17 +32,15 @@ public class CheckDatabase extends EntityCommand {
         
         activator = (entities) -> {
             if (entities != null && entities.length > 0 && !(entities.length > 1 && !multiContextAllowed())) {
-                if (
-                    (available == null || Arrays.asList(entities).stream().allMatch(available)) && 
-                    !IComplexType.coalesce((String) entities[0].model.getValue("dbUrl"), "").isEmpty()
-                ) {
-                    if (checkPort((String) entities[0].model.getValue("dbUrl"))) {
+                String dbUrl = (String) entities[0].model.getUnsavedValue("dbUrl");
+                if (dbUrl != null && !entities[0].getInvalidProperties().contains("dbUrl")) {
+                    if (checkUrlPort(dbUrl)) {
                         getButton().setIcon(ACTIVE);
                         startService(
                                 entities[0],
-                                "jdbc:oracle:thin:@//"+entities[0].model.getValue("dbUrl"), 
-                                (String) entities[0].model.getValue("dbSchema"), 
-                                (String) entities[0].model.getValue("dbPass")
+                                "jdbc:oracle:thin:@//"+dbUrl, 
+                                (String) entities[0].model.getUnsavedValue("dbSchema"), 
+                                (String) entities[0].model.getUnsavedValue("dbPass")
                         );
                     } else {
                         getButton().setIcon(PASSIVE);
@@ -77,7 +74,7 @@ public class CheckDatabase extends EntityCommand {
         }
     }
     
-    private boolean checkPort(String dbUrl) {
+    public static boolean checkUrlPort(String dbUrl) {
         Matcher verMatcher = SPLIT.matcher(dbUrl);
         if (verMatcher.find()) {
             String  host = verMatcher.group(1);
