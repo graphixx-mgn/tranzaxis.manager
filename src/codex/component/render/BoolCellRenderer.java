@@ -4,6 +4,7 @@ import codex.presentation.SelectorTableModel;
 import codex.type.Bool;
 import codex.utils.ImageUtils;
 import java.awt.Color;
+import java.awt.Dimension;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
@@ -42,6 +43,11 @@ class BoolCellRenderer extends CellRenderer<Boolean> {
     @Override
     public void setValue(Boolean value) {
         checkBox.setSelected(value != null && value);
+    }
+
+    @Override
+    public Dimension getPreferredSize() {
+        return checkBox.getPreferredSize();
     }
 
 }

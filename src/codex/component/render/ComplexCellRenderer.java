@@ -5,6 +5,7 @@ import codex.presentation.SelectorTableModel;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
+import java.awt.Dimension;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 
@@ -38,6 +39,11 @@ class ComplexCellRenderer extends CellRenderer<Object> {
         }
         label.setText(value != null ? value.toString() : IEditor.NOT_DEFINED);
         label.setForeground(value != null ? IEditor.COLOR_NORMAL : IEditor.COLOR_DISABLED);
+    }
+
+    @Override
+    public Dimension getPreferredSize() {
+        return label.getPreferredSize();
     }
 
 }
