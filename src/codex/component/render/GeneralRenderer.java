@@ -84,7 +84,7 @@ public final class GeneralRenderer extends JLabel implements ListCellRenderer, T
             cellHead.setValue((String) value);
             cellHead.setBorder(new CompoundBorder(
                     new MatteBorder(0, column == 0 ? 0 : 1, 1, 0, Color.GRAY),
-                    new EmptyBorder(1, 6, 0, 0)
+                    new EmptyBorder(1, 6, 0, 6)
             ));
             return cellHead;
             
@@ -98,7 +98,7 @@ public final class GeneralRenderer extends JLabel implements ListCellRenderer, T
             cellBox.setBackground(isSelected ? IButton.PRESS_COLOR : table.getBackground());
             cellBox.setBorder(new CompoundBorder(
                     new MatteBorder(0, column == 0 ? 0 : 1, 1, 0, Color.LIGHT_GRAY), 
-                    new EmptyBorder(1, 6, 0, 0)
+                    new EmptyBorder(1, 6, 0, 6)
             ));
             return cellBox;
         }
