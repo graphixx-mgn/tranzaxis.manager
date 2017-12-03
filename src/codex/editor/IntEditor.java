@@ -183,7 +183,9 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
             textField.getDocument().removeDocumentListener(this);
             textField.setText(value == null ? "" : value.toString());
             textField.getDocument().addDocumentListener(this);
-            signDelete.setVisible(!textField.getText().isEmpty() && isEditable() && textField.isFocusOwner());
+            if (signDelete!= null) {
+                signDelete.setVisible(!textField.getText().isEmpty() && isEditable() && textField.isFocusOwner());
+            }
         });
     }
     

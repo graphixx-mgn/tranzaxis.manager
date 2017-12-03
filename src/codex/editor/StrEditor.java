@@ -177,7 +177,9 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     }
 
     private boolean verify() {
-        signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
+        if (signDelete!= null) {
+            signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
+        }
         IMask<String> mask = propHolder.getPropValue().getMask();
         String value = (String) propHolder.getPropValue().getValue();
         boolean inputOk = ((value == null || value.isEmpty()) && !mask.notNull()) || mask.verify(value);
