@@ -58,7 +58,7 @@ public class Database extends Entity {
                     model.getUnsavedValue("dbUrl"), 
                     model.getUnsavedValue("dbSchema"), 
                     model.getUnsavedValue("dbPass")
-                ) && !getInvalidProperties().contains("dbUrl")
+                )
             ) {
                 String dbUrl = (String) model.getUnsavedValue("dbUrl");
                 if (!CheckDatabase.checkUrlPort(dbUrl)) {

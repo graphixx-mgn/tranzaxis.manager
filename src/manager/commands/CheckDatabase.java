@@ -33,7 +33,7 @@ public class CheckDatabase extends EntityCommand {
         activator = (entities) -> {
             if (entities != null && entities.length > 0 && !(entities.length > 1 && !multiContextAllowed())) {
                 String dbUrl = (String) entities[0].model.getUnsavedValue("dbUrl");
-                if (dbUrl != null && !entities[0].getInvalidProperties().contains("dbUrl")) {
+                if (dbUrl != null) {
                     if (checkUrlPort(dbUrl)) {
                         getButton().setIcon(ACTIVE);
                         startService(
@@ -79,7 +79,7 @@ public class CheckDatabase extends EntityCommand {
         if (verMatcher.find()) {
             String  host = verMatcher.group(1);
             Integer port = Integer.valueOf(verMatcher.group(2));
-            return NetTools.isPortAvailable(host, port, 25);
+            return NetTools.isPortAvailable(host, port, 35);
         } else {
             return false;
         }
