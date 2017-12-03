@@ -35,7 +35,7 @@ public class OracleAccessService implements IDatabaseAccessService {
     
     @Override
     public Integer registerConnection(String url, String user, String password) throws SQLException {
-        String PID = url.concat("~").concat(user);
+        String PID = url+"~"+user+"~"+password;
         if (!urlToIdMap.containsKey(PID)) {
             try {
                 PoolDataSource pds = PoolDataSourceFactory.getPoolDataSource();
