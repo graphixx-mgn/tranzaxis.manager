@@ -2,7 +2,7 @@ package codex.component.messagebox;
 
 import codex.component.dialog.Dialog;
 import java.awt.BorderLayout;
-import javax.swing.Action;
+import java.awt.event.ActionListener;
 import javax.swing.FocusManager;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -21,7 +21,7 @@ public final class MessageBox extends Dialog {
         new MessageBox(type, title, text, null).setVisible(true);
     }
     
-    public static void show(MessageType type, String title, String text, Action close) {
+    public static void show(MessageType type, String title, String text, ActionListener close) {
         new MessageBox(type, title, text, close).setVisible(true);
     }
     
@@ -34,7 +34,7 @@ public final class MessageBox extends Dialog {
      * @param text Текст сообщения, поддерживающий перенос строк.
      * @param close Слушатель события закрытия окна.
      */
-    private MessageBox(MessageType type, String title, String text, Action close) {
+    private MessageBox(MessageType type, String title, String text, ActionListener close) {
         super(
                 FocusManager.getCurrentManager().getActiveWindow(),
                 type.getIcon(), 

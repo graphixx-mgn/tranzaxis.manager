@@ -13,7 +13,6 @@ import codex.property.IPropertyChangeListener;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.Language;
-import java.awt.event.ActionEvent;
 import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -22,7 +21,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.swing.AbstractAction;
 import javax.swing.ImageIcon;
 
 /**
@@ -214,11 +212,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             MessageBox.show(
                     MessageType.ERROR, null, 
                     MessageFormat.format(Language.get("error@invalidprop"), String.join("\n", invalidProps)),
-                    new AbstractAction() {
-                        @Override
-                        public void actionPerformed(ActionEvent event) {
-                            model.editors.get(getInvalidProperties().get(0)).getFocusTarget().requestFocus();
-                        }
+                    (event) -> {
+                        model.editors.get(getInvalidProperties().get(0)).getFocusTarget().requestFocus();
                     }
             );
             return false;
@@ -237,12 +232,9 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             MessageBox.show(
                     MessageType.CONFIRMATION, null, 
                     Language.get("error@unsavedprop"), 
-                    new AbstractAction() {
-                        @Override
-                        public void actionPerformed(ActionEvent e) {
-                            if (e.getID() == Dialog.OK) {
-                                model.commit();
-                            }
+                    (event) -> {
+                        if (event.getID() == Dialog.OK) {
+                            model.commit();
                         }
                     }
             );

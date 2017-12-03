@@ -25,7 +25,6 @@ import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.MessageFormat;
-import javax.swing.AbstractAction;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
@@ -55,36 +54,33 @@ final class CreateLauncher extends LaunchButton implements ActionListener, IProp
             ImageUtils.getByPath("/images/linkage.png"), 
             Language.get("title"),
             new JPanel(),
-            new AbstractAction() {
-                @Override
-                public void actionPerformed(ActionEvent event) {
-                    if (event.getID() == Dialog.OK) {
-                        Entity entity = (Entity) paramModel.getValue("entity");
-                        String title  = (String) paramModel.getValue("linkname");
+            (event) -> {
+                if (event.getID() == Dialog.OK) {
+                    Entity entity = (Entity) paramModel.getValue("entity");
+                    String title  = (String) paramModel.getValue("linkname");
 
-                        CommandLauncher launcher = new CommandLauncher(entity, command, title);
-                        Container panel = CreateLauncher.this.getParent();
-                        panel.remove(CreateLauncher.this);
-                        panel.add(launcher);
-                        panel.add(CreateLauncher.this);
-                        panel.revalidate();
-                        panel.repaint();
-                        
-                        Entity shortcut = Entity.newInstance(Shortcut.class, null);
-                        shortcut.model.setValue(EntityModel.PID, title);
-                        shortcut.model.setValue("class",   entity.getClass().getCanonicalName());
-                        shortcut.model.setValue("entity",  entity);
-                        shortcut.model.setValue("command", command.getName()); 
-                        shortcut.model.init();
-                        shortcut.model.commit();
-                        
-                        entity.model.addModelListener(new IModelListener() {
-                            @Override
-                            public void modelDeleted(EntityModel model) {
-                                launcher.setInvalid(true);
-                            }
-                        });
-                    }
+                    CommandLauncher launcher = new CommandLauncher(entity, command, title);
+                    Container panel = CreateLauncher.this.getParent();
+                    panel.remove(CreateLauncher.this);
+                    panel.add(launcher);
+                    panel.add(CreateLauncher.this);
+                    panel.revalidate();
+                    panel.repaint();
+
+                    Entity shortcut = Entity.newInstance(Shortcut.class, null);
+                    shortcut.model.setValue(EntityModel.PID, title);
+                    shortcut.model.setValue("class",   entity.getClass().getCanonicalName());
+                    shortcut.model.setValue("entity",  entity);
+                    shortcut.model.setValue("command", command.getName()); 
+                    shortcut.model.init();
+                    shortcut.model.commit();
+
+                    entity.model.addModelListener(new IModelListener() {
+                        @Override
+                        public void modelDeleted(EntityModel model) {
+                            launcher.setInvalid(true);
+                        }
+                    });
                 }
             },
             confirmBtn,

@@ -22,6 +22,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -33,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.swing.AbstractAction;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -90,11 +90,6 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
         
         tableModel = new SelectorTableModel(entity, prototype);
         table = new SelectorTable(tableModel);
-//        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-//        table.setRowHeight((int) (IEditor.FONT_VALUE.getSize() * 2));
-//        table.setShowVerticalLines(false);
-//        table.setIntercellSpacing(new Dimension(0,0));
-//        table.setPreferredScrollableViewportSize(getPreferredSize());
         
         table.setDefaultRenderer(Str.class,  new GeneralRenderer());
         table.setDefaultRenderer(Int.class,  new GeneralRenderer());
@@ -123,51 +118,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                 }
             }
         });
-//        table.addHierarchyBoundsListener(new HierarchyBoundsAdapter() {
-//            @Override
-//            public void ancestorResized(HierarchyEvent e) {
-//                super.ancestorResized(e);
-//                resizeColumnWidth();
-//            }
-//        });
     }
-    
-//    public void resizeColumnWidth() {
-//        int cumulativeActual = 0;
-//        for (int columnIndex = 0; columnIndex < table.getColumnCount(); columnIndex++) {
-//            int width = 0;
-//            TableColumn column = table.getColumnModel().getColumn(columnIndex);
-//            
-//            for (int row = -1; row < table.getRowCount(); row++) {
-//                JComponent comp;
-//                TableCellRenderer renderer;
-//                if (row == -1) {
-//                    renderer = table.getTableHeader().getDefaultRenderer();
-//                    comp = (JComponent) renderer.getTableCellRendererComponent(
-//                            table, 
-//                            table.getColumnName(columnIndex),
-//                            false, false, row, columnIndex
-//                    );
-//                } else {
-//                    renderer = table.getCellRenderer(row, columnIndex);
-//                    comp = (JComponent) table.prepareRenderer(renderer, row, columnIndex);
-//                }
-//                Insets cellInsets = comp.getInsets();
-//                width = Math.max(
-//                        column.getPreferredWidth(),
-//                        comp.getPreferredSize().width+cellInsets.left+cellInsets.right
-//                );
-//                column.setPreferredWidth(width);
-//            }
-//            if (columnIndex < table.getColumnCount() - 1) {
-//                cumulativeActual += width;
-//            } else {
-//                column.setPreferredWidth(
-//                        table.getParent().getSize().width-cumulativeActual
-//                );
-//            }
-//        }
-//    }
 
     @Override
     public void valueChanged(ListSelectionEvent event) {
@@ -236,48 +187,42 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
                     ImageUtils.getByPath("/images/plus.png"),
                     Language.get(SelectorPresentation.class.getSimpleName(), "creator@title"), page,
-                    new AbstractAction() {
-                        @Override
-                        public void actionPerformed(ActionEvent event) {
-                            if (event.getID() == Dialog.OK) {
-                                newEntity.setTitle(newEntity.model.getPID());
-                                newEntity.model.init();
-                                newEntity.model.commit();
+                    (event) -> {
+                        if (event.getID() == Dialog.OK) {
+                            newEntity.setTitle(newEntity.model.getPID());
+                            newEntity.model.init();
+                            newEntity.model.commit();
 
-                                tableModel.addRow(
-                                        newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
-                                            return newEntity.model.getValue(propName);
-                                        }).toArray()
-                                );
-                                newEntity.model.addModelListener(tableModel);
-                                newEntity.model.addChangeListener((name, oldValue, newValue) -> {
-                                    if (newEntity.model.isPropertyDynamic(name)) {
-                                        final int entityIdx = tableModel.getRowCount() - 1;
-                                        int propIdx = newEntity.model.getProperties(Access.Select).indexOf(name);
-                                        tableModel.setValueAt(newValue, entityIdx, propIdx);
-                                    }
-                                });
-                                
-                                parent.insert(newEntity);
-                                table.getSelectionModel().setSelectionInterval(
-                                        tableModel.getRowCount() - 1, 
-                                        tableModel.getRowCount() - 1
-                                );
-                            }
+                            tableModel.addRow(
+                                    newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
+                                        return newEntity.model.getValue(propName);
+                                    }).toArray()
+                            );
+                            newEntity.model.addModelListener(tableModel);
+                            newEntity.model.addChangeListener((name, oldValue, newValue) -> {
+                                if (newEntity.model.isPropertyDynamic(name)) {
+                                    final int entityIdx = tableModel.getRowCount() - 1;
+                                    int propIdx = newEntity.model.getProperties(Access.Select).indexOf(name);
+                                    tableModel.setValueAt(newValue, entityIdx, propIdx);
+                                }
+                            });
+
+                            parent.insert(newEntity);
+                            table.getSelectionModel().setSelectionInterval(
+                                    tableModel.getRowCount() - 1, 
+                                    tableModel.getRowCount() - 1
+                            );
                         }
                     },
                     confirmBtn, declineBtn
             ) {
                 {
                     // Перекрытие обработчика кнопок
-                    Function<DialogButton, AbstractAction> defaultHandler = handler;
+                    Function<DialogButton, ActionListener> defaultHandler = handler;
                     handler = (button) -> {
-                        return new AbstractAction() {
-                            @Override
-                            public void actionPerformed(ActionEvent event) {
-                                if (event.getID() != Dialog.OK || newEntity.getInvalidProperties().isEmpty()) {
-                                    defaultHandler.apply(button).actionPerformed(event);
-                                }
+                        return (event) -> {
+                            if (event.getID() != Dialog.OK || newEntity.getInvalidProperties().isEmpty()) {
+                                defaultHandler.apply(button).actionPerformed(event);
                             }
                         }; 
                     };
@@ -334,48 +279,42 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
                     ImageUtils.getByPath("/images/clone.png"),
                     Language.get(SelectorPresentation.class.getSimpleName(), "copier@title"), page,
-                    new AbstractAction() {
-                        @Override
-                        public void actionPerformed(ActionEvent event) {
-                            if (event.getID() == Dialog.OK) {
-                                newEntity.setTitle(newEntity.model.getPID());
-                                newEntity.model.init();
-                                newEntity.model.commit();
-                                
-                                tableModel.addRow(
-                                        newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
-                                            return newEntity.model.getValue(propName);
-                                        }).toArray()
-                                );
-                                newEntity.model.addModelListener(tableModel);
-                                newEntity.model.addChangeListener((name, oldValue, newValue) -> {
-                                    if (newEntity.model.isPropertyDynamic(name)) {
-                                        final int entityIdx = tableModel.getRowCount() - 1;
-                                        int propIdx = newEntity.model.getProperties(Access.Select).indexOf(name);
-                                        tableModel.setValueAt(newValue, entityIdx, propIdx);
-                                    }
-                                });
-                                
-                                context.getParent().insert(newEntity);
-                                table.getSelectionModel().setSelectionInterval(
-                                        tableModel.getRowCount() - 1, 
-                                        tableModel.getRowCount() - 1
-                                );
-                            }
+                    (event) -> {
+                        if (event.getID() == Dialog.OK) {
+                            newEntity.setTitle(newEntity.model.getPID());
+                            newEntity.model.init();
+                            newEntity.model.commit();
+
+                            tableModel.addRow(
+                                    newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
+                                        return newEntity.model.getValue(propName);
+                                    }).toArray()
+                            );
+                            newEntity.model.addModelListener(tableModel);
+                            newEntity.model.addChangeListener((name, oldValue, newValue) -> {
+                                if (newEntity.model.isPropertyDynamic(name)) {
+                                    final int entityIdx = tableModel.getRowCount() - 1;
+                                    int propIdx = newEntity.model.getProperties(Access.Select).indexOf(name);
+                                    tableModel.setValueAt(newValue, entityIdx, propIdx);
+                                }
+                            });
+
+                            context.getParent().insert(newEntity);
+                            table.getSelectionModel().setSelectionInterval(
+                                    tableModel.getRowCount() - 1, 
+                                    tableModel.getRowCount() - 1
+                            );
                         }
                     },
                     confirmBtn, declineBtn
             ) {
                 {
                     // Перекрытие обработчика кнопок
-                    Function<DialogButton, AbstractAction> defaultHandler = handler;
+                    Function<DialogButton, ActionListener> defaultHandler = handler;
                     handler = (button) -> {
-                        return new AbstractAction() {
-                            @Override
-                            public void actionPerformed(ActionEvent event) {
-                                if (event.getID() != Dialog.OK || newEntity.getInvalidProperties().isEmpty()) {
-                                    defaultHandler.apply(button).actionPerformed(event);
-                                }
+                        return (event) -> {
+                            if (event.getID() != Dialog.OK || newEntity.getInvalidProperties().isEmpty()) {
+                                defaultHandler.apply(button).actionPerformed(event);
                             }
                         }; 
                     };
@@ -418,28 +357,22 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
                     ImageUtils.getByPath("/images/edit.png"),
                     Language.get(SelectorPresentation.class.getSimpleName(), "editor@title"), page,
-                    new AbstractAction() {
-                        @Override
-                        public void actionPerformed(ActionEvent event) {
-                            if (event.getID() == Dialog.OK) {
-                                //TODO: При изменении перекрытия свойств изменений нет - ошибка сохранения
-                                context.model.commit();
-                            } else {
-                                context.model.rollback();
-                            }
+                    (event) -> {
+                        if (event.getID() == Dialog.OK) {
+                            //TODO: При изменении перекрытия свойств изменений нет - ошибка сохранения
+                            context.model.commit();
+                        } else {
+                            context.model.rollback();
                         }
                     },
                     confirmBtn, declineBtn
             ) {{
                     // Перекрытие обработчика кнопок
-                    Function<DialogButton, AbstractAction> defaultHandler = handler;
+                    Function<DialogButton, ActionListener> defaultHandler = handler;
                     handler = (button) -> {
-                        return new AbstractAction() {
-                            @Override
-                            public void actionPerformed(ActionEvent event) {
-                                if (event.getID() != Dialog.OK || context.getInvalidProperties().isEmpty()) {
-                                    defaultHandler.apply(button).actionPerformed(event);
-                                }
+                        return (event) -> {
+                            if (event.getID() != Dialog.OK || context.getInvalidProperties().isEmpty()) {
+                                defaultHandler.apply(button).actionPerformed(event);
                             }
                         }; 
                     };
@@ -494,16 +427,13 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                 }
                 MessageBox.show(
                         MessageType.CONFIRMATION, null, message,
-                        new AbstractAction() {
-                            @Override
-                            public void actionPerformed(ActionEvent event) {
-                                if(event.getID() == Dialog.OK) {
-                                    Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
-                                    for (Entity entity : getContext()) {
-                                        execute(entity, null);
-                                    }
-                                    activate();
+                        (close) -> {
+                            if (close.getID() == Dialog.OK) {
+                                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
+                                for (Entity entity : getContext()) {
+                                    execute(entity, null);
                                 }
+                                activate();
                             }
                         }
                 );

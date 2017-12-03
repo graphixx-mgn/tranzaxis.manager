@@ -11,12 +11,11 @@ import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.Dimension;
-import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import javax.swing.AbstractAction;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -43,28 +42,22 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
                 ImageUtils.getByPath("/images/param.png"), 
                 Language.get(EntityCommand.class.getSimpleName(), "params@title"), 
                 new JPanel(), 
-                new AbstractAction() {
-                    @Override
-                    public void actionPerformed(ActionEvent event) {
-                        if (event.getID() == Dialog.OK) {
-                            ParametersDialog.this.data = paramModel.getParameters();
-                        }
+                (event) -> {
+                    if (event.getID() == Dialog.OK) {
+                        ParametersDialog.this.data = paramModel.getParameters();
                     }
                 }, 
                 Dialog.Default.BTN_OK,
                 Dialog.Default.BTN_CANCEL
         ) {{
             // Перекрытие обработчика кнопок
-            Function<DialogButton, AbstractAction> defaultHandler = handler;
+            Function<DialogButton, ActionListener> defaultHandler = handler;
             handler = (button) -> {
-                return new AbstractAction() {
-                    @Override
-                    public void actionPerformed(ActionEvent event) {
-                        if (event.getID() != Dialog.OK || paramModel.isValid()) {
-                            defaultHandler.apply(button).actionPerformed(event);
-                        }
+                return (event) -> {
+                    if (event.getID() != Dialog.OK || paramModel.isValid()) {
+                        defaultHandler.apply(button).actionPerformed(event);
                     }
-                }; 
+                };
             };
         }
             @Override

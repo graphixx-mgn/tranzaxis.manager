@@ -12,12 +12,10 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.AbstractAction;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -148,14 +146,10 @@ public class StringListEditor extends AbstractEditor {
                     StringListEditor.this.isEditable() && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON, 
                     Language.get("title"), 
                     content,
-                    new AbstractAction() {
-                        
-                        @Override
-                        public void actionPerformed(ActionEvent event) {
-                            if (event.getID() == Dialog.OK && !values.equals(contex.getPropValue().getValue())) {
-                                list.stopEditing();
-                                propHolder.setValue(new StringList(values));
-                            }
+                    (event) -> {
+                        if (event.getID() == Dialog.OK && !values.equals(contex.getPropValue().getValue())) {
+                            list.stopEditing();
+                            propHolder.setValue(new StringList(values));
                         }
                     },
                     confirmBtn,

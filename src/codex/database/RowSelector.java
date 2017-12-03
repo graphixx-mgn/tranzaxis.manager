@@ -20,7 +20,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -29,7 +29,6 @@ import java.util.Vector;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-import javax.swing.AbstractAction;
 import javax.swing.FocusManager;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -73,13 +72,10 @@ public class RowSelector implements IDataSupplier<String> {
                 ImageUtils.getByPath("/images/selector.png"), 
                 Language.get("title"),
                 new JPanel(),
-                new AbstractAction() {
-                    @Override
-                    public void actionPerformed(ActionEvent event) {
-                        if (event.getID() == Dialog.OK) {
-                            if (table.getSelectedRow() != TableModelEvent.HEADER_ROW) {
-                                data = (String) table.getValueAt(table.getSelectedRow(), 0);
-                            }
+                (event) -> {
+                    if (event.getID() == Dialog.OK) {
+                        if (table.getSelectedRow() != TableModelEvent.HEADER_ROW) {
+                            data = (String) table.getValueAt(table.getSelectedRow(), 0);
                         }
                     }
                 },
@@ -87,14 +83,11 @@ public class RowSelector implements IDataSupplier<String> {
                 Dialog.Default.BTN_CANCEL
         ) {{
             // Перекрытие обработчика кнопок
-            Function<DialogButton, AbstractAction> defaultHandler = handler;
+            Function<DialogButton, ActionListener> defaultHandler = handler;
             handler = (button) -> {
-                return new AbstractAction() {
-                    @Override
-                    public void actionPerformed(ActionEvent event) {
-                        if (event.getID() != Dialog.OK || !lookupEditor.getFocusTarget().isFocusOwner()) {
-                            defaultHandler.apply(button).actionPerformed(event);
-                        }
+                return (event) -> {
+                    if (event.getID() != Dialog.OK || !lookupEditor.getFocusTarget().isFocusOwner()) {
+                        defaultHandler.apply(button).actionPerformed(event);
                     }
                 }; 
             };
@@ -126,16 +119,8 @@ public class RowSelector implements IDataSupplier<String> {
                             }
                         };
                         table = new SelectorTable(tableModel);
-//                        table.setRowHeight((int) (IEditor.FONT_VALUE.getSize() * 2));
-//                        table.setShowVerticalLines(false);
-//                        table.setIntercellSpacing(new Dimension(0,0));
-//                        table.setPreferredScrollableViewportSize(getPreferredSize());
-
                         table.setDefaultRenderer(String.class, new GeneralRenderer());
                         table.getTableHeader().setDefaultRenderer(new HeaderRenderer());
-//                        table.getInputMap(
-//                                JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
-//                        ).put(KeyStroke.getKeyStroke("ENTER"), "none");
 
                         sorter = new TableRowSorter<>(table.getModel());
                         table.setRowSorter(sorter);

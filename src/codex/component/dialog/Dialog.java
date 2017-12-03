@@ -7,6 +7,7 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -15,7 +16,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.swing.AbstractAction;
-import javax.swing.Action;
 import javax.swing.ActionMap;
 import javax.swing.ImageIcon;
 import javax.swing.InputMap;
@@ -109,7 +109,7 @@ public class Dialog extends JDialog {
     private final ActionMap        actionMap = rootPane.getActionMap();
     private boolean                preventDefault = false;
     
-    protected Function<DialogButton, AbstractAction> handler;
+    protected Function<DialogButton, ActionListener> handler;
     
     /**
      * Конструктор диалога с указанием шаблонов кнопок.
@@ -120,7 +120,7 @@ public class Dialog extends JDialog {
      * @param close Слушатель события закрытия окна.
      * @param buttonTemplates Список шаблонов кнопок произвольной длины.
      */
-    public Dialog(Window parent, ImageIcon icon, String title, JPanel content, Action close, Default... buttonTemplates) {
+    public Dialog(Window parent, ImageIcon icon, String title, JPanel content, ActionListener close, Default... buttonTemplates) {
         this(parent, icon, title, content, close, Arrays.asList(buttonTemplates)
                 .stream()
                 .map((template) -> template.newInstance())
@@ -138,7 +138,7 @@ public class Dialog extends JDialog {
      * @param close Слушатель события закрытия окна.
      * @param buttons Список кнопок произвольной длины.
      */
-    public Dialog(Window parent, ImageIcon icon, String title, JPanel content, Action close, DialogButton... buttons) {
+    public Dialog(Window parent, ImageIcon icon, String title, JPanel content, ActionListener close, DialogButton... buttons) {
         super(parent, title, ModalityType.APPLICATION_MODAL);
         
         relocate = (dialog) -> {
@@ -157,19 +157,16 @@ public class Dialog extends JDialog {
         add(buttonPanel, BorderLayout.SOUTH);
         
         handler = (button) -> {
-            return new AbstractAction() {
-                @Override
-                public void actionPerformed(ActionEvent keyEvent) {
-                    preventDefault = true;
-                    dispose();
-                    if (close != null) {
-                        final ActionEvent event = new ActionEvent(
-                                keyEvent, 
-                                button == null || !button.isEnabled() ? EXIT : button.getID(),
-                                null
-                        );
-                        close.actionPerformed(event);
-                    }
+            return (keyEvent) -> {
+                preventDefault = true;
+                dispose();
+                if (close != null) {
+                    final ActionEvent event = new ActionEvent(
+                            keyEvent, 
+                            button == null || !button.isEnabled() ? EXIT : button.getID(),
+                            null
+                    );
+                    close.actionPerformed(event);
                 }
             };
         };

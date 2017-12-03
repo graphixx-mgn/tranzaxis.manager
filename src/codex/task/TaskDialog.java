@@ -8,10 +8,10 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Window;
+import java.awt.event.ActionListener;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
-import javax.swing.Action;
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 import javax.swing.border.CompoundBorder;
@@ -49,7 +49,7 @@ class TaskDialog extends Dialog implements ITaskListener {
      * Конструктор окна.
      * @param closeAction Слушатель события закрытия окна.
      */
-    public TaskDialog(Window parent, Action closeAction) {
+    public TaskDialog(Window parent, ActionListener closeAction) {
         super(parent, 
                 ImageUtils.getByPath("/images/progress.png"),
                 Language.get("title"),
