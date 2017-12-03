@@ -9,6 +9,7 @@ import codex.component.render.GeneralRenderer;
 import codex.editor.IEditor;
 import codex.editor.StrEditor;
 import codex.log.Logger;
+import codex.presentation.SelectorTable;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.supplier.IDataSupplier;
@@ -35,7 +36,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.KeyStroke;
 import javax.swing.RowFilter;
 import javax.swing.SwingConstants;
 import javax.swing.border.CompoundBorder;
@@ -125,17 +125,17 @@ public class RowSelector implements IDataSupplier<String> {
                                 return false;
                             }
                         };
-                        table = new JTable(tableModel);
-                        table.setRowHeight((int) (IEditor.FONT_VALUE.getSize() * 2));
-                        table.setShowVerticalLines(false);
-                        table.setIntercellSpacing(new Dimension(0,0));
-                        table.setPreferredScrollableViewportSize(getPreferredSize());
+                        table = new SelectorTable(tableModel);
+//                        table.setRowHeight((int) (IEditor.FONT_VALUE.getSize() * 2));
+//                        table.setShowVerticalLines(false);
+//                        table.setIntercellSpacing(new Dimension(0,0));
+//                        table.setPreferredScrollableViewportSize(getPreferredSize());
 
                         table.setDefaultRenderer(String.class, new GeneralRenderer());
                         table.getTableHeader().setDefaultRenderer(new HeaderRenderer());
-                        table.getInputMap(
-                                JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
-                        ).put(KeyStroke.getKeyStroke("ENTER"), "none");
+//                        table.getInputMap(
+//                                JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
+//                        ).put(KeyStroke.getKeyStroke("ENTER"), "none");
 
                         sorter = new TableRowSorter<>(table.getModel());
                         table.setRowSorter(sorter);

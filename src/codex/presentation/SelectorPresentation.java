@@ -6,7 +6,6 @@ import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.component.render.GeneralRenderer;
-import codex.editor.IEditor;
 import codex.log.Logger;
 import codex.model.Access;
 import codex.model.Entity;
@@ -90,18 +89,18 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
         add(commandPanel, BorderLayout.NORTH);
         
         tableModel = new SelectorTableModel(entity, prototype);
-        table = new JTable(tableModel);
-        table.setRowHeight((int) (IEditor.FONT_VALUE.getSize() * 2));
-        table.setShowVerticalLines(false);
-        table.setIntercellSpacing(new Dimension(0,0));
-        table.setPreferredScrollableViewportSize(getPreferredSize());
+        table = new SelectorTable(tableModel);
+//        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+//        table.setRowHeight((int) (IEditor.FONT_VALUE.getSize() * 2));
+//        table.setShowVerticalLines(false);
+//        table.setIntercellSpacing(new Dimension(0,0));
+//        table.setPreferredScrollableViewportSize(getPreferredSize());
         
         table.setDefaultRenderer(Str.class,  new GeneralRenderer());
         table.setDefaultRenderer(Int.class,  new GeneralRenderer());
         table.setDefaultRenderer(Bool.class, new GeneralRenderer());
         table.setDefaultRenderer(Enum.class, new GeneralRenderer());
         table.setDefaultRenderer(EntityRef.class, new GeneralRenderer());
-        
         table.getTableHeader().setDefaultRenderer(new GeneralRenderer());
         
         final JScrollPane scrollPane = new JScrollPane();
@@ -124,7 +123,51 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                 }
             }
         });
+//        table.addHierarchyBoundsListener(new HierarchyBoundsAdapter() {
+//            @Override
+//            public void ancestorResized(HierarchyEvent e) {
+//                super.ancestorResized(e);
+//                resizeColumnWidth();
+//            }
+//        });
     }
+    
+//    public void resizeColumnWidth() {
+//        int cumulativeActual = 0;
+//        for (int columnIndex = 0; columnIndex < table.getColumnCount(); columnIndex++) {
+//            int width = 0;
+//            TableColumn column = table.getColumnModel().getColumn(columnIndex);
+//            
+//            for (int row = -1; row < table.getRowCount(); row++) {
+//                JComponent comp;
+//                TableCellRenderer renderer;
+//                if (row == -1) {
+//                    renderer = table.getTableHeader().getDefaultRenderer();
+//                    comp = (JComponent) renderer.getTableCellRendererComponent(
+//                            table, 
+//                            table.getColumnName(columnIndex),
+//                            false, false, row, columnIndex
+//                    );
+//                } else {
+//                    renderer = table.getCellRenderer(row, columnIndex);
+//                    comp = (JComponent) table.prepareRenderer(renderer, row, columnIndex);
+//                }
+//                Insets cellInsets = comp.getInsets();
+//                width = Math.max(
+//                        column.getPreferredWidth(),
+//                        comp.getPreferredSize().width+cellInsets.left+cellInsets.right
+//                );
+//                column.setPreferredWidth(width);
+//            }
+//            if (columnIndex < table.getColumnCount() - 1) {
+//                cumulativeActual += width;
+//            } else {
+//                column.setPreferredWidth(
+//                        table.getParent().getSize().width-cumulativeActual
+//                );
+//            }
+//        }
+//    }
 
     @Override
     public void valueChanged(ListSelectionEvent event) {
