@@ -184,15 +184,20 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     
     /**
      * Возвращает несохраненное (текущее) значение значение свойства. При этом 
-     * возможно получить некорректное (не соответствующее маскам) значение, 
-     * проверку следует провести самомтоятельно.
+     * если свойству назначена маска и согласно её значение некорректно - будет
+     * возвращено сохнаненное значение.
      * @param name Имя свойства модели.
      * @deprecated
      */
     @Deprecated
     public final Object getUnsavedValue(String name) {
         if (undoRegistry.exists(name)) {
-            return undoRegistry.current(name);
+            Object value = undoRegistry.current(name);
+            if (getProperty(name).getPropValue().getMask().verify(value)) {
+                return value;
+            } else {
+                return super.getValue(name);
+            }
         } else {
             return super.getValue(name);
         }
