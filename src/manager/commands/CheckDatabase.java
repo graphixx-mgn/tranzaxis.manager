@@ -1,12 +1,9 @@
 package manager.commands;
 
 import codex.command.EntityCommand;
-import codex.database.IDatabaseAccessService;
-import codex.database.OracleAccessService;
 import codex.log.Logger;
 import codex.model.Entity;
 import codex.model.EntityModel;
-import codex.service.ServiceRegistry;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -88,9 +85,7 @@ public class CheckDatabase extends EntityCommand {
     private void startService(Entity context,  String url, String user, String password) {
         Thread starter = new Thread(() -> {
             try {
-                Integer ID = ((IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class)).registerConnection(
-                        url, user, password
-                );
+                Database.DAS.registerConnection(url, user, password);
             } catch (SQLException e) {
                 Logger.getLogger().warn(
                         "Unable to connect to database ''{0}'': {1}",

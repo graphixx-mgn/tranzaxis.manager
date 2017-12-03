@@ -1,35 +1,72 @@
 package manager.nodes;
 
-import codex.command.EntityCommand;
 import codex.command.ValueProvider;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.database.IDatabaseAccessService;
 import codex.database.OracleAccessService;
 import codex.database.RowSelector;
-import codex.log.Level;
 import codex.mask.RegexMask;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
-import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Int;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
-import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import manager.commands.CheckDatabase;
 
 public class Database extends Entity {
     
+    public static IDatabaseAccessService DAS;
     static {
         ServiceRegistry.getInstance().registerService(OracleAccessService.getInstance());
+        DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
     }
+    
+    private Function<Boolean, Integer> connectionGetter = (showError) -> {
+        if (IComplexType.notNull(
+                model.getUnsavedValue("dbUrl"), 
+                model.getUnsavedValue("dbSchema"), 
+                model.getUnsavedValue("dbPass")
+            )
+        ) {
+            String dbUrl = (String) model.getUnsavedValue("dbUrl");
+            if (!CheckDatabase.checkUrlPort(dbUrl)) {
+                if (showError) {
+                    MessageBox.show(MessageType.ERROR, MessageFormat.format(
+                            Language.get(Database.class.getSimpleName(), "error@unavailable"),
+                            dbUrl.substring(0, dbUrl.indexOf("/"))
+                    ));
+                }
+                return null;
+            }
+            try {
+                return DAS.registerConnection(
+                        "jdbc:oracle:thin:@//"+dbUrl, 
+                        (String) model.getUnsavedValue("dbSchema"), 
+                        (String) model.getUnsavedValue("dbPass")
+                );
+            } catch (SQLException e) {
+                e.printStackTrace();
+                if (showError) {
+                    MessageBox.show(MessageType.ERROR, e.getMessage());
+                }
+            }
+        }
+        return null;
+    };
+    
+    private Supplier<Integer> connectionSupplier = () -> {
+        return connectionGetter.apply(true);
+    };
 
     public Database(String title) {
         super(ImageUtils.getByPath("/images/database.png"), title, null);
@@ -45,41 +82,27 @@ public class Database extends Entity {
         model.addUserProp("instanceId", new Int(null), true, Access.Select);
         model.addUserProp("layerURI", new Str(null), true, Access.Select);
         model.addDynamicProp("version", new Str(null), null, () -> {
-            return model.getValue("layerURI")+"~"+model.getValue("instanceId");
+            Integer connId = getConnectionID();
+            if (connId != null && model.getValue("layerURI") != null) {
+                try {
+                    ResultSet rset = DAS.select(
+                            connId, 
+                            "SELECT VERSION FROM RDX_DDSVERSION WHERE LAYERURI = ?",
+                            new PropertyHolder("layer", new Str((String) model.getValue("layerURI")), false)
+                    );
+                    if (rset.next()) {
+                        return rset.getString(1);
+                    }
+                } catch (SQLException e) {}
+            }
+            return null;
         },
-        "instanceId", "layerURI");
+        "layerURI");
         model.addUserProp("userNote", new Str(null), false, null);
         
         addCommand(new CheckDatabase());
-        addCommand(new TestParams());
+//        addCommand(new EditSAPPorts());
         
-        Supplier<Integer> connectionSupplier = () -> {
-            if (IComplexType.notNull(
-                    model.getUnsavedValue("dbUrl"), 
-                    model.getUnsavedValue("dbSchema"), 
-                    model.getUnsavedValue("dbPass")
-                )
-            ) {
-                String dbUrl = (String) model.getUnsavedValue("dbUrl");
-                if (!CheckDatabase.checkUrlPort(dbUrl)) {
-                    MessageBox.show(MessageType.ERROR, MessageFormat.format(
-                            Language.get(Database.class.getSimpleName(), "error@unavailable"),
-                            dbUrl.substring(0, dbUrl.indexOf("/"))
-                    ));
-                    return null;
-                }
-                try {
-                    return ((IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class)).registerConnection(
-                            "jdbc:oracle:thin:@//"+dbUrl, 
-                            (String) model.getUnsavedValue("dbSchema"), 
-                            (String) model.getUnsavedValue("dbPass")
-                    );
-                } catch (SQLException e) {
-                    MessageBox.show(MessageType.ERROR, e.getMessage());
-                }
-            }
-            return null;
-        };
         model.getEditor("instanceId").addCommand(new ValueProvider(new RowSelector(
                 connectionSupplier,
                 "SELECT ID, TITLE FROM RDX_INSTANCE ORDER BY ID"
@@ -90,28 +113,8 @@ public class Database extends Entity {
         )));
     }
     
-    public class TestParams extends EntityCommand {
-
-        public TestParams() {
-            super(
-                    "test_params", "Test command parameters",
-                    ImageUtils.resize(ImageUtils.getByPath("/images/development.png"), 28, 28), 
-                    "Test command parameters",
-                    (entity) -> true
-            );
-            setParameters(
-                    new PropertyHolder("PARAM_ENUM", new codex.type.Enum(Level.Debug), true),
-                    new PropertyHolder("PARAM_STR", new Str(null), true),
-                    new PropertyHolder("PARAM_REF", new EntityRef(Database.class), true)
-            );
-        }
-
-        @Override
-        public void execute(Entity context, Map<String, IComplexType> params) {
-            params.forEach((name, value) -> {
-                java.lang.System.err.println(name+": "+value);
-            });
-        }
+    public Integer getConnectionID() {
+        return connectionGetter.apply(false);
     }
     
 }
