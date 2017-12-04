@@ -35,6 +35,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
 import javax.swing.RowFilter;
 import javax.swing.SwingConstants;
 import javax.swing.border.CompoundBorder;
@@ -119,6 +120,7 @@ public class RowSelector implements IDataSupplier<String> {
                             }
                         };
                         table = new SelectorTable(tableModel);
+                        table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
                         table.setDefaultRenderer(String.class, new GeneralRenderer());
                         table.getTableHeader().setDefaultRenderer(new HeaderRenderer());
 
