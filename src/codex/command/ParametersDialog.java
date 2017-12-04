@@ -2,7 +2,6 @@ package codex.command;
 
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
-import codex.model.Entity;
 import codex.model.ParamModel;
 import codex.presentation.EditorPage;
 import codex.property.PropertyHolder;
@@ -36,7 +35,7 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
      * @param command Ссылка на команду.
      * @param paramProps Поставщик, подготавливающий массив свойств для редактора.
      */
-    public ParametersDialog(ICommand<Entity> command, Supplier<PropertyHolder[]> paramProps) {
+    public ParametersDialog(EntityCommand command, Supplier<PropertyHolder[]> paramProps) {
         dialog = new Dialog(
                 SwingUtilities.getWindowAncestor((JComponent)command.getButton()), 
                 ImageUtils.getByPath("/images/param.png"), 
@@ -67,6 +66,7 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
                     for (PropertyHolder propHolder : propHolders) {
                         paramModel.addProperty(propHolder);
                     }
+                    command.preprocessParameters(command.getContext()[0], paramModel);
                     dialog.setContent(new EditorPage(paramModel));
                     dialog.setPreferredSize(new Dimension(550, dialog.getPreferredSize().height));
                     super.setVisible(visible);

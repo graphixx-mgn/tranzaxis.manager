@@ -6,6 +6,7 @@ import codex.log.Logger;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.model.IModelListener;
+import codex.model.ParamModel;
 import codex.presentation.CommitEntity;
 import codex.presentation.RollbackEntity;
 import codex.property.PropertyHolder;
@@ -139,6 +140,16 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
             });
         }
         activate();
+    }
+    
+    /**
+     * Предобработка модели параметров команды. Может использоваться для более
+     * гибкой настройки редакторов параметров и их взаимосвязей.
+     * @param contextItem Сущность контекста команды.
+     * @param paramModel Модель набора параметров.
+     */
+    public void preprocessParameters(Entity contextItem, ParamModel paramModel) {
+        // Do nothing
     }
     
     /**
