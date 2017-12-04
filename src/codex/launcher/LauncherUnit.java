@@ -46,18 +46,26 @@ public final class LauncherUnit extends AbstractUnit {
             } else {
                 final Entity entity  = EAS.getEntity(entityRef.getClass(), entityRef.model.getID());
                 final String cmdName = (String) shortcut.model.getValue("command");
-                CommandLauncher launcher = new CommandLauncher(
-                        (Entity) shortcut.model.getValue("entity"), 
-                        entity.getCommand(cmdName),
-                        PID
-                );
-                commandPanel.add(launcher);
-                entity.model.addModelListener(new IModelListener() {
-                    @Override
-                    public void modelDeleted(EntityModel model) {
-                        launcher.setInvalid(true);
-                    }
-                });
+                
+                if (entity.getCommands().stream().anyMatch((command) -> {
+                    return command.getName().equals(cmdName);
+                })) {
+                    CommandLauncher launcher = new CommandLauncher(
+                            (Entity) shortcut.model.getValue("entity"), 
+                            entity.getCommand(cmdName),
+                            PID
+                    );
+                    commandPanel.add(launcher);
+                    entity.model.addModelListener(new IModelListener() {
+                        @Override
+                        public void modelDeleted(EntityModel model) {
+                            launcher.setInvalid(true);
+                        }
+                    });
+                } else {
+                    CommandLauncher launcher = new CommandLauncher(null, null, PID);
+                    commandPanel.add(launcher);
+                }
             }
         });
         commandPanel.add(new CreateLauncher());
