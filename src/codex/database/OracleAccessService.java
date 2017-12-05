@@ -21,7 +21,6 @@ import oracle.ucp.jdbc.PoolDataSourceFactory;
  */
 public class OracleAccessService implements IDatabaseAccessService {
     
-    private final static AtomicInteger       SEQ = new AtomicInteger(0);
     private final static OracleAccessService INSTANCE = new OracleAccessService();
     
     public static OracleAccessService getInstance() {
@@ -30,33 +29,36 @@ public class OracleAccessService implements IDatabaseAccessService {
     
     private OracleAccessService() {}
     
+    private final AtomicInteger SEQ = new AtomicInteger(0);
     private final Map<String, Integer>     urlToIdMap = new HashMap<>();
     private final Map<Integer, DataSource> idToPoolMap = new HashMap<>();
     
     @Override
     public Integer registerConnection(String url, String user, String password) throws SQLException {
-        String PID = url+"~"+user+"~"+password;
-        if (!urlToIdMap.containsKey(PID)) {
-            try {
-                PoolDataSource pds = PoolDataSourceFactory.getPoolDataSource();
-                pds.setConnectionFactoryClassName("oracle.jdbc.pool.OracleDataSource");
+        synchronized (urlToIdMap) {
+            String PID = url+"~"+user+"~"+password;
+            if (!urlToIdMap.containsKey(PID)) {
+                try {
+                    PoolDataSource pds = PoolDataSourceFactory.getPoolDataSource();
+                    pds.setConnectionFactoryClassName("oracle.jdbc.pool.OracleDataSource");
 
-                pds.setURL(url);
-                pds.setUser(user);
-                pds.setPassword(password);
+                    pds.setURL(url);
+                    pds.setUser(user);
+                    pds.setPassword(password);
 
-                pds.setInitialPoolSize(1);
-                pds.setMinPoolSize(1);
-                pds.setMaxPoolSize(5);
-                
-                urlToIdMap.put(PID, SEQ.incrementAndGet());
-                idToPoolMap.put(SEQ.get(), pds);
-                return SEQ.get();
-            } catch (SQLException e) {
-                throw new SQLException(getCause(e).getMessage().trim());
+                    pds.setInitialPoolSize(1);
+                    pds.setMinPoolSize(1);
+                    pds.setMaxPoolSize(5);
+
+                    urlToIdMap.put(PID, SEQ.incrementAndGet());
+                    idToPoolMap.put(SEQ.get(), pds);
+                    return SEQ.get();
+                } catch (SQLException e) {
+                    throw new SQLException(getCause(e).getMessage().trim());
+                }
+            } else {
+                return urlToIdMap.get(PID);
             }
-        } else {
-            return urlToIdMap.get(PID);
         }
     }
     
