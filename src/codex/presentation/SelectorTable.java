@@ -6,7 +6,6 @@ import java.awt.event.HierarchyEvent;
 import javax.swing.JComponent;
 import javax.swing.JTable;
 import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
 import javax.swing.table.TableModel;
 
 
@@ -29,9 +28,8 @@ public final class SelectorTable extends JTable {
         TableColumnAdjuster adjuster = new TableColumnAdjuster(this);
         
         addHierarchyListener((HierarchyEvent e) -> {
-            SwingUtilities.invokeLater(() -> {
-                adjuster.adjustColumns();
-            });
+            adjuster.adjustColumns();
+            getParent().repaint();
         });
     }
 
