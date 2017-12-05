@@ -16,6 +16,7 @@ import codex.type.Enum;
 import codex.type.IComplexType;
 import codex.type.Int;
 import codex.type.Str;
+import codex.type.StringList;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.BorderLayout;
@@ -52,10 +53,11 @@ import javax.swing.event.ListSelectionListener;
  * редактирования дочерних сущностей, так и обеспечивает работу команд по созданию
  * новых сущностей.
  */
-public final class SelectorPresentation extends JPanel implements /*IModelListener,*/ ListSelectionListener {
+public final class SelectorPresentation extends JPanel implements ListSelectionListener {
     
     private final CommandPanel        commandPanel = new CommandPanel();
     private final List<EntityCommand> commands = new LinkedList<>();
+    private final Class               entityClass;
     private final SelectorTableModel  tableModel;
     private final JTable              table;
     
@@ -70,10 +72,13 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                     new LineBorder(Color.GRAY, 1)
             ));
         }
-        Entity prototype = Entity.newInstance(entity.getChildClass(), null);
+        entityClass = entity.getChildClass();
+        Entity prototype = Entity.newInstance(entityClass, null);
         
         commands.add(new EditEntity());
-        commands.add(new CreateEntity(entity, entity.getChildClass()));
+        commands.add(new CreateEntity() {
+            
+        });
         commands.add(new CloneEntity());
         commands.add(new DeleteEntity());
         commandPanel.addCommands(commands.toArray(new EntityCommand[]{}));
@@ -83,7 +88,11 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
         commandPanel.addCommands(prototype.getCommands().toArray(new EntityCommand[]{}));
         
         commands.forEach((command) -> {
-            command.setContext();
+            if (command instanceof CreateEntity) {
+                command.setContext(entity);
+            } else {
+                command.getButton().setEnabled(false);
+            }
         });
         
         add(commandPanel, BorderLayout.NORTH);
@@ -95,7 +104,8 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
         table.setDefaultRenderer(Int.class,  new GeneralRenderer());
         table.setDefaultRenderer(Bool.class, new GeneralRenderer());
         table.setDefaultRenderer(Enum.class, new GeneralRenderer());
-        table.setDefaultRenderer(EntityRef.class, new GeneralRenderer());
+        table.setDefaultRenderer(StringList.class, new GeneralRenderer());
+        table.setDefaultRenderer(EntityRef.class,  new GeneralRenderer());
         table.getTableHeader().setDefaultRenderer(new GeneralRenderer());
         
         final JScrollPane scrollPane = new JScrollPane();
@@ -136,16 +146,15 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                 .toArray(new Entity[]{});
         
         commands.forEach((command) -> {
-            command.setContext(entities);
+            if (!(command instanceof CreateEntity)) {
+                command.setContext(entities);
+            }
         });
     }
 
-    public class CreateEntity extends EntityCommand {
+    class CreateEntity extends EntityCommand {
     
-        private final Entity parent;
-        private final Class  entityClass;
-
-        public CreateEntity(Entity parent, Class entityClass) {
+        CreateEntity() {
             super(
                     "create", null,
                     ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 28, 28), 
@@ -154,17 +163,6 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                     KeyStroke.getKeyStroke(KeyEvent.VK_ADD, InputEvent.CTRL_MASK)
             );
             activator = (entities) -> {};
-            this.entityClass = entityClass;
-            this.parent = parent;
-        }
-
-        @Override
-        public void actionPerformed(ActionEvent event) {
-            SwingUtilities.invokeLater(() -> {
-                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), parent.toString());
-                execute(null, null);
-                activate();
-            });
         }
 
         @Override
@@ -207,7 +205,7 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
                                 }
                             });
 
-                            parent.insert(newEntity);
+                            context.insert(newEntity);
                             table.getSelectionModel().setSelectionInterval(
                                     tableModel.getRowCount() - 1, 
                                     tableModel.getRowCount() - 1
@@ -239,9 +237,9 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
 
     }
     
-    public class CloneEntity extends EntityCommand {
-
-        public CloneEntity() {
+    class CloneEntity extends EntityCommand {
+        
+        CloneEntity() {
             super(
                     "clone", null,
                     ImageUtils.resize(ImageUtils.getByPath("/images/clone.png"), 28, 28), 
@@ -331,9 +329,9 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
 
     }
     
-    public class EditEntity extends EntityCommand {
+    class EditEntity extends EntityCommand {
     
-        public EditEntity() {
+        EditEntity() {
             super(
                     "edit", null,
                     ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 28, 28), 
@@ -389,9 +387,9 @@ public final class SelectorPresentation extends JPanel implements /*IModelListen
 
     }
     
-    public class DeleteEntity extends EntityCommand {
+    class DeleteEntity extends EntityCommand {
     
-        public DeleteEntity() {
+        DeleteEntity() {
             super(
                     "delete", null,
                     ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28), 

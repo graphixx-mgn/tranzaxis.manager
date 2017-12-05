@@ -14,6 +14,9 @@ import javax.swing.JPanel;
  * редактора, так и обеспечивает работу команд сущностей.
  */
 public final class EditorPresentation extends JPanel {
+    
+    private final static EntityCommand CMD_COMMIT   = new CommitEntity();
+    private final static EntityCommand CMD_ROLLBACK = new RollbackEntity();
  
     private final CommandPanel        commandPanel = new CommandPanel();
     private final List<EntityCommand> commands = new LinkedList<>();
@@ -25,8 +28,8 @@ public final class EditorPresentation extends JPanel {
     public EditorPresentation(Entity entity) {
         super(new BorderLayout());
         if (!entity.model.getProperties(Access.Edit).isEmpty()) {
-            commands.add(new CommitEntity());
-            commands.add(new RollbackEntity());
+            commands.add(CMD_COMMIT);
+            commands.add(CMD_ROLLBACK);
             commandPanel.addCommands(commands.toArray(new EntityCommand[]{}));
         }
         List<EntityCommand> entityCommands = entity.getCommands();
