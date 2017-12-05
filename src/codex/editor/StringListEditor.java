@@ -56,6 +56,10 @@ public class StringListEditor extends AbstractEditor {
         textField.setEditable(false);
         textField.setHighlighter(null);
         
+        PlaceHolder placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.ALWAYS);
+        placeHolder.setBorder(textField.getBorder());
+        placeHolder.changeAlpha(100);
+        
         listEditor = new StringListEditor.ListEditor();
         addCommand(listEditor);
         
@@ -76,14 +80,17 @@ public class StringListEditor extends AbstractEditor {
     
     @Override
     public void setEditable(boolean editable) {
-        super.setEditable(editable);
-        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_INACTIVE : COLOR_DISABLED);
-        listEditor.getButton().setIcon(editable && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON);
+        if (editable != isEditable()) {
+            super.setEditable(editable);
+            textField.setForeground(editable && !propHolder.isInherited() ? COLOR_INACTIVE : COLOR_DISABLED);
+            listEditor.getButton().setIcon(editable && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON);
+        }
     }
 
     @Override
     public void setValue(Object value) {
-        textField.setText(String.join(", ", ((List<String>) value)));
+        textField.setText(IComplexType.coalesce(value, "").toString());
+        //String.join(", ", ((List<String>) value))
     }
     
     private class ListEditor extends EditorCommand {
@@ -94,7 +101,8 @@ public class StringListEditor extends AbstractEditor {
 
         @Override
         public void execute(PropertyHolder contex) {
-            List<String> values = new ArrayList<>(((IComplexType<List>) contex.getPropValue()).getValue());
+            List<String> propVal = ((IComplexType<List>) contex.getPropValue()).getValue();
+            List<String> values = propVal == null ? new ArrayList() : new ArrayList(propVal);
             EditableList list = new EditableList(values);
             list.setBorder(new EmptyBorder(5, 5, 5, 5));
             list.setEditable(StringListEditor.this.isEditable() && !propHolder.isInherited());
@@ -147,7 +155,11 @@ public class StringListEditor extends AbstractEditor {
                     Language.get("title"), 
                     content,
                     (event) -> {
-                        if (event.getID() == Dialog.OK && !values.equals(contex.getPropValue().getValue())) {
+                        if (event.getID() == Dialog.OK && (
+                                (propVal == null && !values.isEmpty()) ||
+                                (!values.equals(propVal))
+                            )
+                        ) {
                             list.stopEditing();
                             propHolder.setValue(new StringList(values));
                         }

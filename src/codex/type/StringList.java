@@ -25,7 +25,10 @@ public class StringList implements IComplexType<List<String>> {
      * @param values Список параметров-строк (vararg) произвольной длины или массив.
      */
     public StringList(String... values) {
-        this(Arrays.asList(IComplexType.coalesce(values, new String[]{})));
+        this(values != null && values.length > 0 ? 
+                Arrays.asList(values) :
+                null
+        );
     }
     
     /**
@@ -33,8 +36,7 @@ public class StringList implements IComplexType<List<String>> {
      * @param value Список строк.
      */
     public StringList(List<String> value) {
-        // Может быть передан immutable List (Arrays.asList(...)) 
-        this.value = new ArrayList<>(IComplexType.coalesce(value, new ArrayList<String>()));
+        setValue(value);
     }
 
     @Override
@@ -44,12 +46,22 @@ public class StringList implements IComplexType<List<String>> {
 
     @Override
     public void setValue(List<String> value) {
-        this.value = new ArrayList<>(IComplexType.coalesce(value, new ArrayList<String>()));
+        if (value != null && !value.isEmpty()) {
+            // Может быть передан immutable List (Arrays.asList(...)) 
+            this.value = new ArrayList(value) {
+                @Override
+                public String toString() {
+                    return String.join(", ", this);
+                }
+            };
+        } else {
+            this.value = null;
+        }
     }
     
     @Override
     public boolean isEmpty() {
-        return getValue().isEmpty();
+        return value == null || value.isEmpty();
     }
     
     @Override
@@ -59,17 +71,18 @@ public class StringList implements IComplexType<List<String>> {
     
     @Override
     public String toString() {
-        return value.toString();
+        return value == null ? "" : value.toString();
     }
     
     @Override
     public void valueOf(String value) {
         setValue(
-                new LinkedList<>(Arrays.asList(value.substring(1, value.length()-1).split(", ", -1)))
+                new LinkedList<>(Arrays.asList(value.split(", ", -1)))
                         .stream()
                         .filter((string) -> {
                             return !string.isEmpty();
-                        }).collect(Collectors.toList())
+                        })
+                        .collect(Collectors.toList())
         );
     }
     
