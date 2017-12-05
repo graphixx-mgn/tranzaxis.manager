@@ -7,6 +7,7 @@ import codex.config.IConfigStoreService;
 import codex.editor.IEditor;
 import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
+import codex.mask.IMask;
 import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
@@ -193,7 +194,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public final Object getUnsavedValue(String name) {
         if (undoRegistry.exists(name)) {
             Object value = undoRegistry.current(name);
-            if (getProperty(name).getPropValue().getMask().verify(value)) {
+            IMask mask = getProperty(name).getPropValue().getMask();
+            if ((value == null && !mask.notNull()) || mask.verify(value)) {
                 return value;
             } else {
                 return super.getValue(name);

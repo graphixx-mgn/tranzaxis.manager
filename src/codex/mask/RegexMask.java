@@ -31,7 +31,11 @@ public class RegexMask implements IMask<String> {
 
     @Override
     public boolean verify(String value) {
-        return this.pattern.matcher(value).matches();
+        if (value == null) {
+            return true;
+        } else {
+            return this.pattern.matcher(value).matches();
+        }
     }
     
     @Override
