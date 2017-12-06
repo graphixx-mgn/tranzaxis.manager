@@ -32,7 +32,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     private boolean      editable = true;
     
     protected final PropertyHolder propHolder;
-    private final List<ICommand<PropertyHolder>> commands = new LinkedList<>();
+    protected final List<ICommand<PropertyHolder>> commands = new LinkedList<>();
 
     /**
      * Конструктор редактора.
