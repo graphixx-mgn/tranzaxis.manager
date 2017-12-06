@@ -12,6 +12,7 @@ import java.util.List;
 import javax.swing.JLabel;
 import javax.swing.JTree;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.tree.DefaultTreeModel;
@@ -39,32 +40,36 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
         setRowHeight((int) (getRowHeight()*1.5));
         setBorder(new EmptyBorder(5, 10, 5, 2));
         addTreeSelectionListener((TreeSelectionEvent event) -> {
-            final INode node = (INode) getLastSelectedPathComponent();
-            if (node == null) return;
-            
-            if ((node.getMode() & INode.MODE_SELECTABLE) != INode.MODE_SELECTABLE) {
-                clearSelection();
-                getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
-                return;
-            }
-            if (event.getOldLeadSelectionPath() != null) {
-                Entity previous = (Entity) event.getOldLeadSelectionPath().getLastPathComponent();
-                if (!previous.close()) {
+            SwingUtilities.invokeLater(() -> {
+                final INode node = (INode) getLastSelectedPathComponent();
+                if (node == null) return;
+
+                if ((node.getMode() & INode.MODE_SELECTABLE) != INode.MODE_SELECTABLE) {
                     clearSelection();
                     getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
                     return;
                 }
-                previous.model.removeModelListener(this);
-            }
-            if (path != getSelectionModel().getSelectionPath()) {
-                path = getSelectionModel().getSelectionPath();
-                Logger.getLogger().debug("Selected path: {0}", node.getPathString());
-                new LinkedList<>(listeners).stream().forEach((listener) -> {
-                    listener.nodeChanged(path);
-                });
-                Entity current = (Entity) path.getLastPathComponent();
-                current.model.addModelListener(this);
-            }
+                if (event.getOldLeadSelectionPath() != null) {
+                    Entity previous = (Entity) event.getOldLeadSelectionPath().getLastPathComponent();
+                    if (!previous.close()) {
+                        clearSelection();
+                        getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
+                        return;
+                    }
+                    previous.model.removeModelListener(this);
+                }
+                if (path != getSelectionModel().getSelectionPath()) {
+                    path = getSelectionModel().getSelectionPath();
+                    Logger.getLogger().debug("Selected path: {0}", node.getPathString());
+                    new LinkedList<>(listeners).stream().forEach((listener) -> {
+                        SwingUtilities.invokeLater(() -> {
+                            listener.nodeChanged(path);
+                        });
+                    });
+                    Entity current = (Entity) path.getLastPathComponent();
+                    current.model.addModelListener(this);
+                }
+            });
         });
         getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         setCellRenderer(new GeneralRenderer());
