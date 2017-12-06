@@ -16,7 +16,7 @@ import codex.type.Enum;
 import codex.type.IComplexType;
 import codex.type.Int;
 import codex.type.Str;
-import codex.type.StringList;
+import codex.type.ArrStr;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.BorderLayout;
@@ -104,7 +104,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         table.setDefaultRenderer(Int.class,  new GeneralRenderer());
         table.setDefaultRenderer(Bool.class, new GeneralRenderer());
         table.setDefaultRenderer(Enum.class, new GeneralRenderer());
-        table.setDefaultRenderer(StringList.class, new GeneralRenderer());
+        table.setDefaultRenderer(ArrStr.class, new GeneralRenderer());
         table.setDefaultRenderer(EntityRef.class,  new GeneralRenderer());
         table.getTableHeader().setDefaultRenderer(new GeneralRenderer());
         

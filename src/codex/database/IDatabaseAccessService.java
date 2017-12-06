@@ -1,6 +1,5 @@
 package codex.database;
 
-import codex.property.PropertyHolder;
 import codex.service.IService;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,7 +28,7 @@ public interface IDatabaseAccessService extends IService {
      * @param params Список значений параметров запроса, не указывать если 
      * параметров нет.
      */
-    default ResultSet select(Integer connectionID, String query, PropertyHolder... params) throws SQLException {
+    default ResultSet select(Integer connectionID, String query, Object... params) throws SQLException {
         return null;
     }
     

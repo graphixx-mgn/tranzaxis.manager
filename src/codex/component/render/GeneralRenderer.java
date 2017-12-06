@@ -8,7 +8,7 @@ import codex.model.Entity;
 import codex.type.Bool;
 import codex.type.Enum;
 import codex.type.Iconified;
-import codex.type.StringList;
+import codex.type.ArrStr;
 import codex.utils.ImageUtils;
 import java.awt.Color;
 import java.awt.Component;
@@ -41,7 +41,7 @@ public final class GeneralRenderer extends JLabel implements ListCellRenderer, T
     /**
      * Метод задает внешний вид ячеек списка. Вызывается для каждой ячейки при 
      * перерисовке виджета.Используется в реализации редакторов типа {@link Enum} 
-     * и {@link StringList}.
+     * и {@link ArrStr}.
      * @param list Виджет-список.
      * @param value Значение ячейки.
      * @param index Индекс ячейки в списке.

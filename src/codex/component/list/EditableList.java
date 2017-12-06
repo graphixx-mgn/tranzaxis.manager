@@ -2,7 +2,7 @@ package codex.component.list;
 
 import codex.component.render.GeneralRenderer;
 import codex.editor.IEditor;
-import codex.editor.StringListEditor;
+import codex.editor.ArrStrEditor;
 import codex.type.IComplexType;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -32,7 +32,7 @@ import javax.swing.table.DefaultTableModel;
 
 /**
  * Редактируемый список строк, используется в качестве элемента редактора
- * {@link StringListEditor}.
+ * {@link ArrStrEditor}.
  */
 public final class EditableList extends JPanel {
     

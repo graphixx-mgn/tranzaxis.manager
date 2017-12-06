@@ -1,6 +1,5 @@
 package codex.database;
 
-import codex.property.PropertyHolder;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -63,15 +62,15 @@ public class OracleAccessService implements IDatabaseAccessService {
     }
     
     @Override
-    public ResultSet select(Integer connectionID, String query, PropertyHolder... params) throws SQLException {
+    public ResultSet select(Integer connectionID, String query, Object... params) throws SQLException {
         try {
             final RowSet rowSet = prepareSet(connectionID);
             rowSet.setCommand(query);
             if (params != null) {
                 int paramIdx = 0;
-                for (PropertyHolder param : params) {
+                for (Object param : params) {
                     paramIdx++;
-                    rowSet.setObject(paramIdx, param.getPropValue().getValue());
+                    rowSet.setObject(paramIdx, param);
                 }
             }
             rowSet.execute();
