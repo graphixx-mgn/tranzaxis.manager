@@ -3,20 +3,21 @@ package codex.command;
 import codex.component.button.CommandButton;
 import codex.component.button.IButton;
 import codex.property.PropertyHolder;
+import codex.type.ArrStr;
 import codex.type.FilePath;
-import codex.type.StringList;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import javax.swing.ImageIcon;
+import javax.swing.JComponent;
 
 /**
  * Абстрактная реализация команд редактора свойств {@link PropertyHolder}.
  * Используется для возможности производить различные действия над свойством.
  * В частности, таким образом реализуется запуск редакторов таких типов как
- * {@link FilePath} и {@link StringList}.
+ * {@link FilePath} и {@link ArrStr}.
  */
 public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionListener {
     
@@ -80,6 +81,7 @@ public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionL
     public void actionPerformed(ActionEvent event) {
         for (PropertyHolder propHolder : context) {
             execute(propHolder);
+            ((JComponent) button).getParent().getComponent(0).requestFocusInWindow();
         }
     }
 
