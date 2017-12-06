@@ -5,9 +5,7 @@ import codex.component.dialog.Dialog;
 import codex.component.render.GeneralRenderer;
 import codex.model.Entity;
 import codex.presentation.SelectorTable;
-import codex.property.PropertyHolder;
 import codex.type.IComplexType;
-import codex.type.Int;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.BorderLayout;
@@ -16,14 +14,13 @@ import java.awt.Dimension;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import javax.swing.FocusManager;
-import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.KeyStroke;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
@@ -52,9 +49,7 @@ public class EditSAPPorts extends EntityCommand {
                 getIcon(), 
                 toString(),
                 new JPanel(),
-                (event) -> {
-                
-                },
+                (event) -> {},
                 Dialog.Default.BTN_OK,
                 Dialog.Default.BTN_CANCEL
         );
@@ -68,7 +63,7 @@ public class EditSAPPorts extends EntityCommand {
                 ResultSet rset = DAS.select(
                     connId, 
                     "SELECT U.ID, U.TITLE, S.ADDRESS FROM RDX_UNIT U JOIN RDX_SAP S ON S.SYSTEMUNITID = U.ID WHERE U.INSTANCEID = ?",
-                    new PropertyHolder("instance", new Int((Integer) entity.model.getValue("instanceId")), false)
+                    ((List<String>) entity.model.getUnsavedValue("instanceId")).get(0)
                 );
                 ResultSetMetaData meta = rset.getMetaData();
                 int colomnCount = meta.getColumnCount();
@@ -92,9 +87,6 @@ public class EditSAPPorts extends EntityCommand {
 
                 table.setDefaultRenderer(String.class, new GeneralRenderer());
                 table.getTableHeader().setDefaultRenderer(new GeneralRenderer());
-                table.getInputMap(
-                        JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
-                ).put(KeyStroke.getKeyStroke("ENTER"), "none");
 
                 final JScrollPane scrollPane = new JScrollPane();
                 scrollPane.getViewport().setBackground(Color.WHITE);

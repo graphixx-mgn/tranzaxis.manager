@@ -1,29 +1,34 @@
 package manager.nodes;
 
-import codex.command.ValueProvider;
+import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.database.IDatabaseAccessService;
 import codex.database.OracleAccessService;
 import codex.database.RowSelector;
+import codex.mask.DataSetMask;
 import codex.mask.RegexMask;
 import codex.model.Access;
 import codex.model.Entity;
-import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
+import codex.supplier.IDataSupplier;
+import codex.type.ArrStr;
 import codex.type.IComplexType;
-import codex.type.Int;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import manager.commands.CheckDatabase;
 import manager.commands.EditSAPPorts;
 
 public class Database extends Entity {
+    
+    private static final EntityCommand CHECK = new CheckDatabase();
+    private static final EntityCommand REMAP = new EditSAPPorts();
     
     public static IDatabaseAccessService DAS;
     static {
@@ -41,7 +46,7 @@ public class Database extends Entity {
             String dbUrl = (String) model.getUnsavedValue("dbUrl");
             if (!CheckDatabase.checkUrlPort(dbUrl)) {
                 if (showError) {
-                    MessageBox.show(MessageType.ERROR, MessageFormat.format(
+                    MessageBox.show(MessageType.WARNING, MessageFormat.format(
                             Language.get(Database.class.getSimpleName(), "error@unavailable"),
                             dbUrl.substring(0, dbUrl.indexOf("/"))
                     ));
@@ -55,17 +60,42 @@ public class Database extends Entity {
                         (String) model.getUnsavedValue("dbPass")
                 );
             } catch (SQLException e) {
-                e.printStackTrace();
                 if (showError) {
                     MessageBox.show(MessageType.ERROR, e.getMessage());
                 }
+            }
+        } else {
+            if (showError) {
+                MessageBox.show(
+                        MessageType.WARNING, 
+                        Language.get(Database.class.getSimpleName(), "error@notready")
+                );
             }
         }
         return null;
     };
     
-    private Supplier<Integer> connectionSupplier = () -> {
+    private final Supplier<Integer> connectionSupplier = () -> {
         return connectionGetter.apply(true);
+    };
+    
+    private final IDataSupplier<String> instanceSupplier = new RowSelector(
+            RowSelector.Mode.Row, connectionSupplier, 
+            "SELECT ID, TITLE FROM RDX_INSTANCE ORDER BY ID"
+    );
+    
+    private final IDataSupplier<String> layerSupplier = new RowSelector(
+            RowSelector.Mode.Row, connectionSupplier, 
+            "SELECT LAYERURI, VERSION, UPGRADEDATE FROM RDX_DDSVERSION"
+    );
+    
+    private final IDataSupplier<String> versionSupplier = () -> {
+        List<String> layerUri = (List<String>) model.getUnsavedValue("layerURI");
+        return new RowSelector(
+                RowSelector.Mode.Row, connectionSupplier, 
+                "SELECT VERSION FROM RDX_DDSVERSION WHERE LAYERURI = ?",        
+                layerUri == null ? null : layerUri.get(0)
+        ).call();
     };
 
     public Database(String title) {
@@ -81,48 +111,19 @@ public class Database extends Entity {
         true, Access.Select);
         model.addUserProp("dbSchema",   new Str(null), true, null);
         model.addUserProp("dbPass",     new Str(null), true, Access.Select);
-        model.addUserProp("instanceId", new Int(null), true, Access.Select);
-        model.addUserProp("layerURI",   new Str(null), true, Access.Select);
-        model.addUserProp("version",    new Str(null), true, null);
-        
-//        model.addDynamicProp("version", new Str(null), null, () -> {
-//            Integer connId = getConnectionID();
-//            if (connId != null && model.getValue("layerURI") != null) {
-//                try {
-//                    ResultSet rset = DAS.select(
-//                            connId, 
-//                            "SELECT VERSION FROM RDX_DDSVERSION WHERE LAYERURI = ?",
-//                            new PropertyHolder("layer", new Str((String) model.getValue("layerURI")), false)
-//                    );
-//                    if (rset.next()) {
-//                        return rset.getString(1);
-//                    }
-//                } catch (SQLException e) {}
-//            }
-//            return null;
-//        },
-//        "layerURI");
-
+        model.addUserProp("instanceId", new ArrStr().setMask(new DataSetMask(
+                "{0} - {1}", instanceSupplier
+        )), true, Access.Select);
+        model.addUserProp("layerURI", new ArrStr().setMask(new DataSetMask(
+                "{0}", layerSupplier
+        )),  true, Access.Select);
+        model.addUserProp("version", new ArrStr().setMask(new DataSetMask(
+                "{0}", versionSupplier
+        )), true, null);
         model.addUserProp("userNote", new Str(null), false, null);
         
-        addCommand(new CheckDatabase());
-        addCommand(new EditSAPPorts());
-        
-        model.getEditor("instanceId").addCommand(new ValueProvider(new RowSelector(
-                connectionSupplier,
-                "SELECT ID, TITLE FROM RDX_INSTANCE ORDER BY ID"
-        )));
-        model.getEditor("layerURI").addCommand(new ValueProvider(new RowSelector(
-                connectionSupplier,
-                "SELECT LAYERURI, VERSION, UPGRADEDATE FROM RDX_DDSVERSION"
-        )));
-        model.getEditor("version").addCommand(new ValueProvider(() -> {
-            return new RowSelector(
-                    connectionSupplier,
-                    "SELECT VERSION, UPGRADEDATE FROM RDX_DDSVERSION WHERE LAYERURI = ?",
-                    new PropertyHolder("layer", new Str((String) model.getUnsavedValue("layerURI")), false)
-            ).call();
-        }));
+        addCommand(CHECK);
+        addCommand(REMAP);
     }
     
     public Integer getConnectionID() {
