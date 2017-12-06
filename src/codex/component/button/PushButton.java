@@ -100,7 +100,7 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     }
 
     @Override
-    public final void setHint(String text) {
+    public void setHint(String text) {
         if (text != null) {
             BalloonTip tooltipBalloon = new BalloonTip(
                     (JComponent) this.button, 
@@ -119,7 +119,7 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     }
     
     @Override
-    public final void setText(String text) {
+    public void setText(String text) {
         button.setText(text);
     }
     
@@ -129,12 +129,12 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     }
     
     @Override
-    public final void setEnabled(boolean enabled) {
+    public void setEnabled(boolean enabled) {
         button.setEnabled(enabled);
     }
     
     @Override
-    public final boolean isEnabled() {
+    public boolean isEnabled() {
         return button.isEnabled();
     }
     
