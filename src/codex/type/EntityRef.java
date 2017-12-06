@@ -4,6 +4,7 @@ import codex.editor.EntityRefEditor;
 import codex.editor.IEditorFactory;
 import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
+import codex.mask.IMask;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
@@ -12,7 +13,7 @@ import java.util.function.Predicate;
 /**
  * Тип-ссылка на сущность {@link Entity}.
  */
-public class EntityRef implements IComplexType<Entity> {
+public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
 
     private Class             entityClass;
     private Integer           entityID;

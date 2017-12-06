@@ -2,12 +2,13 @@ package codex.type;
 
 import codex.editor.IEditorFactory;
 import codex.editor.IntEditor;
+import codex.mask.IMask;
 import codex.property.PropertyHolder;
 
 /**
  * Тип-обертка {@link IComplexType} для класса Integer.
  */
-public class Int implements IComplexType<Integer> {
+public class Int implements IComplexType<Integer, IMask<Integer>> {
     
     private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
         return new IntEditor(propHolder);

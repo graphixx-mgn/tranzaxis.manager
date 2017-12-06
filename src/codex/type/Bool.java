@@ -2,12 +2,13 @@ package codex.type;
 
 import codex.editor.BoolEditor;
 import codex.editor.IEditorFactory;
+import codex.mask.IMask;
 import codex.property.PropertyHolder;
 
 /**
  * Тип-обертка {@link IComplexType} для класса Boolean.
  */
-public class Bool implements IComplexType<Boolean> {
+public class Bool implements IComplexType<Boolean, IMask<Boolean>> {
 
     private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
         return new BoolEditor(propHolder);

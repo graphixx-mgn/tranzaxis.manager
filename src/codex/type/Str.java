@@ -8,7 +8,7 @@ import codex.property.PropertyHolder;
 /**
  * Тип-обертка {@link IComplexType} для класса String.
  */
-public class Str implements IComplexType<String> {
+public class Str implements IComplexType<String, IMask<String>> {
     
     private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
         return new StrEditor(propHolder);

@@ -2,13 +2,14 @@ package codex.type;
 
 import codex.editor.EnumEditor;
 import codex.editor.IEditorFactory;
+import codex.mask.IMask;
 import codex.property.PropertyHolder;
 import java.text.MessageFormat;
 
 /**
  * Тип-обертка {@link IComplexType} для перечислений Enum.
  */
-public class Enum implements IComplexType<java.lang.Enum> {
+public class Enum implements IComplexType<java.lang.Enum, IMask<java.lang.Enum>> {
     
     private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
         return new EnumEditor(propHolder);
