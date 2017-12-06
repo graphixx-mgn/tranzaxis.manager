@@ -61,7 +61,7 @@ public final class MessageBox extends Dialog {
     
         public MessagePanel(MessageType type, String text) {
             setLayout(new BorderLayout(0, 10));
-            setBorder(new EmptyBorder(20, 20, 20, 20));
+            setBorder(new EmptyBorder(10, 20, 10, 20));
 
             final JLabel iconLabel = new JLabel(type.getIcon());
             iconLabel.setVerticalAlignment(JLabel.TOP);
