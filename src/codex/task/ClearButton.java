@@ -37,4 +37,9 @@ public final class ClearButton extends JButton implements IButton  {
         return false;
     }
 
+    @Override
+    public void click() {
+        doClick();
+    }
+
 }

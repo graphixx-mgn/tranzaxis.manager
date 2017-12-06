@@ -51,4 +51,9 @@ final class CancelButton extends JButton implements IButton {
         return false;
     }
 
+    @Override
+    public void click() {
+        doClick();
+    }
+
 }
