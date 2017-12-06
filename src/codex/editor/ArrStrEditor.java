@@ -1,51 +1,76 @@
 package codex.editor;
 
 import codex.command.EditorCommand;
+import codex.component.button.CommandButton;
 import codex.component.button.DialogButton;
 import codex.component.button.PushButton;
 import codex.component.dialog.Dialog;
 import codex.component.list.EditableList;
+import codex.mask.IArrMask;
 import codex.property.PropertyHolder;
+import codex.type.ArrStr;
 import codex.type.IComplexType;
-import codex.type.StringList;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
 /**
- * Редактор свойств типа {@link StringList}, представляет собой нередактируемое 
+ * Редактор свойств типа {@link ArrStr}, представляет собой нередактируемое 
  * поле ввода содержащее строковое представление списка. Редактирование осуществляется 
  * в вызываемом командой диалоге со списком строк, которые можно редактировать, 
  * добавлять и удалять.
  */
-public class StringListEditor extends AbstractEditor {
+public class ArrStrEditor extends AbstractEditor {
     
     private static final ImageIcon EDIT_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 18, 18);
     private static final ImageIcon VIEW_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/view.png"), 18, 18);
     private static final Dimension SIZE = new Dimension(350, 400);
     
     protected JTextField textField;
-    private ListEditor   listEditor;    
+    private final JLabel signDelete;
 
     /**
      * Конструктор редактора.
      * @param propHolder Редактируемое свойство.
      */
-    public StringListEditor(PropertyHolder propHolder) {
+    public ArrStrEditor(PropertyHolder propHolder) {
         super(propHolder);
+        
+        signDelete = new JLabel(ImageUtils.resize(
+                ImageUtils.getByPath("/images/clearval.png"), 
+                textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
+        ));
+        signDelete.setBorder(new EmptyBorder(0, 3, 0, 0));
+        signDelete.setCursor(Cursor.getDefaultCursor());
+        
+        signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
+        textField.add(signDelete, BorderLayout.EAST);
+        
+        signDelete.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                propHolder.setValue(null);
+            }
+        });
     }
 
     @Override
@@ -54,23 +79,19 @@ public class StringListEditor extends AbstractEditor {
         textField.setFont(FONT_VALUE);
         textField.setBorder(new EmptyBorder(0, 3, 0, 3));
         textField.setEditable(false);
-        textField.setHighlighter(null);
+        textField.setBackground(Color.WHITE);
+        textField.addFocusListener(this);
         
         PlaceHolder placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.ALWAYS);
         placeHolder.setBorder(textField.getBorder());
         placeHolder.changeAlpha(100);
         
-        listEditor = new StringListEditor.ListEditor();
-        addCommand(listEditor);
-        
-        textField.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent event) {
-                if (event.getClickCount() == 2) {
-                    listEditor.execute(propHolder);
-                }
-            }
-        });
+        IArrMask mask = (IArrMask) propHolder.getPropValue().getMask();
+        if (mask != null) {
+            addCommand(mask);
+        } else {
+            addCommand(new ArrStrEditor.ListEditor());
+        }
 
         Box container = new Box(BoxLayout.X_AXIS);
         container.setBackground(textField.getBackground());
@@ -83,32 +104,70 @@ public class StringListEditor extends AbstractEditor {
         if (editable != isEditable()) {
             super.setEditable(editable);
             textField.setForeground(editable && !propHolder.isInherited() ? COLOR_INACTIVE : COLOR_DISABLED);
-            listEditor.getButton().setIcon(editable && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON);
+            textField.setOpaque(editable && !propHolder.isInherited());
         }
     }
 
     @Override
     public void setValue(Object value) {
-        textField.setText(IComplexType.coalesce(value, "").toString());
-        //String.join(", ", ((List<String>) value))
+        IArrMask mask = (IArrMask) propHolder.getPropValue().getMask();
+        if (mask != null && mask.getFormat() != null && value != null) {
+            textField.setText(
+                    MessageFormat.format(
+                        mask.getFormat(), 
+                        ((List) value).toArray()
+                    ).replaceAll("\\{\\d+\\}", "")
+            );
+        } else {
+            textField.setText(IComplexType.coalesce(value, "").toString());
+        }
+        if (signDelete!= null) {
+            signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
+        }
     }
+    
+    @Override
+    public void focusGained(FocusEvent event) {
+        super.focusGained(event);
+        signDelete.setVisible(!propHolder.isEmpty() && isEditable());
+    }
+    
+    @Override
+    public void focusLost(FocusEvent event) {
+        super.focusLost(event);
+        signDelete.setVisible(false);
+    }
+
+    @Override
+    public Component getFocusTarget() {
+        return textField;
+    }
+
     
     private class ListEditor extends EditorCommand {
 
         public ListEditor() {
             super(EDIT_ICON, Language.get("title"));
+            this.button = new CommandButton(EDIT_ICON) {
+                @Override
+                public void setEnabled(boolean enabled) {
+                    setIcon(enabled ? EDIT_ICON : VIEW_ICON);
+                }
+            };
+            this.button.addActionListener(this);
+            this.button.setHint(Language.get("title"));
         }
 
         @Override
         public void execute(PropertyHolder contex) {
-            List<String> propVal = ((IComplexType<List>) contex.getPropValue()).getValue();
+            List<String> propVal = ((ArrStr) contex.getPropValue()).getValue();
             List<String> values = propVal == null ? new ArrayList() : new ArrayList(propVal);
             EditableList list = new EditableList(values);
             list.setBorder(new EmptyBorder(5, 5, 5, 5));
-            list.setEditable(StringListEditor.this.isEditable() && !propHolder.isInherited());
+            list.setEditable(ArrStrEditor.this.isEditable() && !propHolder.isInherited());
             
             PushButton clean  = new PushButton(ImageUtils.resize(ImageUtils.getByPath("/images/remove.png"), 26, 26), null);
-            clean.setEnabled(StringListEditor.this.isEditable() && !propHolder.isInherited());
+            clean.setEnabled(ArrStrEditor.this.isEditable() && !propHolder.isInherited() && values.size() > 0);
             clean.addActionListener((event) -> {
                 while (values.size() > 0) {
                     list.deleteItem(0);
@@ -117,7 +176,7 @@ public class StringListEditor extends AbstractEditor {
             });
             
             PushButton insert = new PushButton(ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 26, 26), null);
-            insert.setEnabled(StringListEditor.this.isEditable() && !propHolder.isInherited());
+            insert.setEnabled(ArrStrEditor.this.isEditable() && !propHolder.isInherited());
             insert.addActionListener((event) -> {
                 list.insertItem(null);
                 clean.setEnabled(values.size() > 0);
@@ -130,7 +189,7 @@ public class StringListEditor extends AbstractEditor {
                 clean.setEnabled(values.size() > 0);
             });
             list.addSelectionListener((event) -> {
-                delete.setEnabled(event.getFirstIndex() != -1 && StringListEditor.this.isEditable() && !propHolder.isInherited());
+                delete.setEnabled(event.getFirstIndex() != -1 && ArrStrEditor.this.isEditable() && !propHolder.isInherited());
             });
             
             Box controls = new Box(BoxLayout.Y_AXIS);
@@ -151,17 +210,17 @@ public class StringListEditor extends AbstractEditor {
 
             Dialog dialog = new Dialog(
                     SwingUtilities.getWindowAncestor(editor), 
-                    StringListEditor.this.isEditable() && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON, 
+                    ArrStrEditor.this.isEditable() && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON, 
                     Language.get("title"), 
                     content,
                     (event) -> {
                         if (event.getID() == Dialog.OK && (
                                 (propVal == null && !values.isEmpty()) ||
-                                (!values.equals(propVal))
+                                (propVal != null && !values.equals(propVal))
                             )
                         ) {
                             list.stopEditing();
-                            propHolder.setValue(new StringList(values));
+                            propHolder.setValue(new ArrStr(values).setMask((IArrMask)contex.getPropValue().getMask()));
                         }
                     },
                     confirmBtn,
@@ -171,11 +230,6 @@ public class StringListEditor extends AbstractEditor {
             dialog.setMinimumSize(SIZE);
             dialog.setPreferredSize(SIZE);
             dialog.setVisible(true);
-        }
-        
-        @Override
-        public boolean disableWithContext() {
-            return false;
         }
     
     }
