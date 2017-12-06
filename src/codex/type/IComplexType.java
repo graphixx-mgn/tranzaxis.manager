@@ -18,7 +18,7 @@ import javax.swing.JTextField;
  * @param <T> Базовый Java класс или интерфейс на базе которого строится реализация 
  * интерфейса.
  */
-public interface IComplexType<T> extends Serializable {
+public interface IComplexType<T, M extends IMask<T>> extends Serializable {
     
     /**
      * Получить экземпляр базового Java класса или интерфейса 
@@ -43,14 +43,14 @@ public interface IComplexType<T> extends Serializable {
     /**
      * Установить маску значения.
      */
-    default public IComplexType setMask(IMask<T> mask) {
+    default public IComplexType setMask(M mask) {
         return this;
     };
     
     /**
      * Возвращает маску значения.
      */
-    default public IMask<T> getMask() {
+    default public M getMask() {
         return null;
     };
     
