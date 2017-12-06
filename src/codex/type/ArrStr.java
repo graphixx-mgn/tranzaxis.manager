@@ -1,0 +1,183 @@
+package codex.type;
+
+import codex.editor.ArrStrEditor;
+import codex.editor.IEditorFactory;
+import codex.mask.IArrMask;
+import codex.property.PropertyHolder;
+import java.text.MessageFormat;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Тип-обертка {@link IComplexType} для интерфейса {@literal List<String>}.
+ */
+public class ArrStr implements IComplexType<List<String>, IArrMask> {
+    
+    private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
+        return new ArrStrEditor(propHolder);
+    };
+    
+    private List<String> value = null;
+    private IArrMask    mask;
+    
+    /**
+     * Конструктор типа.
+     * @param values Список параметров-строк (vararg) произвольной длины или массив.
+     */
+    public ArrStr(String... values) {
+        this(values != null && values.length > 0 ? 
+                Arrays.asList(values) :
+                null
+        );
+    }
+    
+    /**
+     * Конструктор типа.
+     * @param value Список строк.
+     */
+    public ArrStr(List<String> value) {
+        setValue(value);
+    }
+
+    @Override
+    public List<String> getValue() {
+        return value;
+    }
+
+    @Override
+    public void setValue(List<String> value) {
+        if (value != null && !value.isEmpty()) {
+            // Может быть передан immutable List (Arrays.asList(...)) 
+            this.value = new LinkedList(value) {
+                @Override
+                public String toString() {
+                    if (value != null && mask != null && mask.getFormat() != null) {
+                        return MessageFormat.format(
+                            mask.getFormat(), 
+                            ((List) value).toArray()
+                        ).replaceAll("\\{\\d+\\}", "");
+                    } else {
+                        return String.join(", ", this);
+                    }
+                }
+            };
+        } else {
+            this.value = null;
+        }
+    }
+    
+    @Override
+    public boolean isEmpty() {
+        return value == null || value.isEmpty();
+    }
+    
+    @Override
+    public IEditorFactory editorFactory() {
+        return EDITOR_FACTORY;
+    }
+    
+    @Override
+    public IComplexType setMask(IArrMask mask) {
+        this.mask = mask;
+        return this;
+    }
+    
+    @Override
+    public IArrMask getMask() {
+        return mask;
+    }
+    
+    @Override
+    public String toString() {
+        return merge(value);
+    }
+    
+    @Override
+    public void valueOf(String value) {
+        setValue(
+            new LinkedList<>(parse(value))
+                .stream()
+                .filter((string) -> {
+                    return !string.isEmpty();
+                })
+                .collect(Collectors.toList())
+        );
+    }
+    
+    public static String merge(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return "";
+        } else {
+            StringBuilder builder = new StringBuilder();
+            builder.append(values.size());
+            values.forEach((value) -> {
+                builder.append("[").append(value.length()).append("]").append(value);
+            });
+            return builder.toString();
+        }
+    }
+    
+    public static List<String> parse(String asStr) throws IllegalStateException {
+        List<String> values = new LinkedList();
+        int size;
+        if (asStr.length() > 0 && !asStr.isEmpty()) {
+            int pos1 = asStr.indexOf('[');
+            if (pos1 < 0) {
+                pos1 = asStr.length();
+            }
+            try {
+                size = Integer.parseInt(asStr.substring(0, pos1));
+            } catch (NumberFormatException e) {
+                throw new IllegalStateException("Wrong format of array string presentation. Wrong array size format.", e);
+            }
+            int     pos2 = asStr.indexOf(']', pos1);
+            String  lenStr;
+            int     len;
+            boolean isNull;
+            String  itemAsStr;
+            while (pos2 != -1) {
+                if (pos2 - pos1 < 1) {
+                    throw new IllegalStateException("Wrong format of array string presentation");
+                }
+                try {
+                    lenStr = asStr.substring(pos1 + 1, pos2);
+                    isNull = (lenStr.length() == 0);
+                    if (!isNull) {
+                        len = Integer.parseInt(lenStr);
+                    } else {
+                        len = 0;
+                    }
+                } catch (NumberFormatException e) {
+                    throw new IllegalStateException("Wrong format of array string presentation. Can't parse item length");
+                }
+                if (!isNull) {
+                    if (len == 0) {
+                        itemAsStr = "";
+                    } else {
+                        if (pos2 + len >= asStr.length()) {
+                            throw new IllegalStateException("Wrong format of array string presentation. Wrong item length.", null);
+                        }
+                        itemAsStr = asStr.substring(pos2 + 1, pos2 + 1 + len);
+                    }
+                    values.add(itemAsStr);
+                } else {
+                    values.add("");
+                }
+                pos1 = pos2 + len + 1;
+                if (pos1 >= asStr.length()) {
+                    break;
+                }
+                pos2 = asStr.indexOf(']', pos1);
+            }
+            if (values.size() != size) {
+                throw new IllegalStateException("Wrong format of array string presentation. Wrong array item count.", null);
+            }
+        } else {
+            values.clear();
+        }
+        return values;
+    }
+    
+}
