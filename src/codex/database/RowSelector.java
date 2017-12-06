@@ -13,6 +13,7 @@ import codex.presentation.SelectorTable;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.supplier.IDataSupplier;
+import codex.type.ArrStr;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -25,6 +26,8 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Vector;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -41,6 +44,7 @@ import javax.swing.SwingConstants;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
+import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.TableModelEvent;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
@@ -54,11 +58,31 @@ import javax.swing.table.TableRowSorter;
  */
 public class RowSelector implements IDataSupplier<String> {
     
+    public enum Mode {
+        Value, 
+        Row 
+    }
+    
+    private Mode    mode = Mode.Value;
     private JTable  table;
     private Dialog  dialog;
     private String  data;
     private IEditor lookupEditor;
     private TableRowSorter<TableModel> sorter;
+    private final DialogButton btnConfirm, btnCancel;
+    
+    /**
+     * Конструктор поставщика.
+     * @param mode Режим возврата значения.
+     * @param connectionID Поставщик идентификатора подключения.
+     * @param query Запрос, при необходимости включающий в себя параметры.
+     * @param params Список значений параметров запроса, не указывать если 
+     * параметров нет.
+     */
+    public RowSelector(Mode mode, Supplier<Integer> connectionID, String query, Supplier<Object[]> parameters) {
+        this(connectionID, query, parameters);
+        this.mode = mode;
+    }
     
     /**
      * Конструктор поставщика.
@@ -67,7 +91,11 @@ public class RowSelector implements IDataSupplier<String> {
      * @param params Список значений параметров запроса, не указывать если 
      * параметров нет.
      */
-    public RowSelector(Supplier<Integer> connectionID, String query, PropertyHolder... params) {
+    public RowSelector(Supplier<Integer> connectionID, String query, Supplier<Object[]> parameters) {
+        btnConfirm = Dialog.Default.BTN_OK.newInstance();
+        btnCancel  = Dialog.Default.BTN_CANCEL.newInstance();
+        btnConfirm.setEnabled(false);
+        
         dialog = new Dialog(
                 FocusManager.getCurrentManager().getActiveWindow(),
                 ImageUtils.getByPath("/images/selector.png"), 
@@ -76,12 +104,19 @@ public class RowSelector implements IDataSupplier<String> {
                 (event) -> {
                     if (event.getID() == Dialog.OK) {
                         if (table.getSelectedRow() != TableModelEvent.HEADER_ROW) {
-                            data = (String) table.getValueAt(table.getSelectedRow(), 0);
+                            if (mode == Mode.Value) {
+                                data = (String) table.getValueAt(table.getSelectedRow(), 0);
+                            } else {
+                                List<String> values = new LinkedList();
+                                for (int column = 0; column < table.getColumnCount(); column++) {
+                                    values.add((String) table.getValueAt(table.getSelectedRow(), column));
+                                }
+                                data = ArrStr.merge(values);
+                            }
                         }
                     }
                 },
-                Dialog.Default.BTN_OK,
-                Dialog.Default.BTN_CANCEL
+                btnConfirm, btnCancel
         ) {{
             // Перекрытие обработчика кнопок
             Function<DialogButton, ActionListener> defaultHandler = handler;
@@ -100,7 +135,7 @@ public class RowSelector implements IDataSupplier<String> {
                 try {
                     Integer connID = connectionID.get();
                     if (connID != null) {
-                        ResultSet rset = DAS.select(connID, query, params);
+                        ResultSet rset = DAS.select(connID, query, parameters.get());
                         ResultSetMetaData meta = rset.getMetaData();
                         int colomnCount = meta.getColumnCount();
                         Vector<String> columns = new Vector<>();
@@ -123,6 +158,10 @@ public class RowSelector implements IDataSupplier<String> {
                         table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
                         table.setDefaultRenderer(String.class, new GeneralRenderer());
                         table.getTableHeader().setDefaultRenderer(new HeaderRenderer());
+                        table.getSelectionModel().addListSelectionListener((ListSelectionEvent event) -> {
+                            if (event.getValueIsAdjusting()) return;
+                            btnConfirm.setEnabled(true);
+                        });
 
                         sorter = new TableRowSorter<>(table.getModel());
                         table.setRowSorter(sorter);
@@ -154,30 +193,36 @@ public class RowSelector implements IDataSupplier<String> {
                                 new MatteBorder(1, 1, 1, 1, Color.GRAY)
                         ));
                         content.add(scrollPane, BorderLayout.CENTER);
+                        int rowCount = 0;
                         while (rset.next()) {
+                            rowCount++;
                             Vector<String> row = new Vector<>();
                             for (int colIdx = 1; colIdx <= colomnCount; colIdx++) {
                                 row.add(rset.getString(colIdx));
                             }
                             tableModel.addRow(row);
                         }
+                        if (table.getRowSorter().getViewRowCount() == 1) {
+                            table.getSelectionModel().setSelectionInterval(0, 0);
+                        }
+                        
                         dialog.setContent(content);
                         dialog.setMinimumSize(new Dimension(
-                                table.getColumnCount() * 150,
+                                Math.max(table.getColumnCount() * 100, 300),
                                 200
                         ));
                         dialog.setPreferredSize(new Dimension(
-                                table.getColumnCount() * 200, 
-                                400
+                                Math.max(table.getColumnCount() * 200, 300),
+                                rowCount < 10 ? 300 : 400
                         ));
                         super.setVisible(visible);
                     }
                 } catch (SQLException e) {
-                    String template = MessageFormat.format(
+                    String command = MessageFormat.format(
                             query.replaceAll("\\?", "{0}"),
-                            params
+                            parameters.get()
                     );
-                    Logger.getLogger().error(e.getMessage()+" ["+template+"]");
+                    Logger.getLogger().error(e.getMessage()+"\nQuery: "+command);
                     MessageBox.show(MessageType.ERROR, e.getMessage());
                 }
             }
@@ -204,10 +249,12 @@ public class RowSelector implements IDataSupplier<String> {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             setText((String) value);
-            setIcon(column == 0 ? 
-                    ImageUtils.resize(ImageUtils.getByPath("/images/target.png"), 18, 18) : 
-                    null
-            );
+            if (mode == Mode.Value) {
+                setIcon(column == 0 ? 
+                        ImageUtils.resize(ImageUtils.getByPath("/images/target.png"), 18, 18) : 
+                        null
+                );
+            }
             setBorder(new CompoundBorder(
                     new MatteBorder(0, column == 0 ? 0 : 1, 1, 0, Color.GRAY),
                     new EmptyBorder(1, 6, 0, 0)
