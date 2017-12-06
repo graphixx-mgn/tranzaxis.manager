@@ -1,5 +1,6 @@
 package codex.property;
 
+import codex.mask.IMask;
 import codex.model.AbstractModel;
 import codex.type.IComplexType;
 import codex.utils.Language;
@@ -13,13 +14,13 @@ import java.util.stream.Collectors;
  * Класс реализует модель свойства сущности {@link AbstractModel}.
  * Хранит объект, реализующий интерфейс {@link IComplexType}.
  */
-public class PropertyHolder<T extends IComplexType<V>, V> {
+public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     
-    private final String      name;
-    private final String      title;
-    private final String      desc;
-    private final boolean     require;
-    private IComplexType<V>   value;
+    private final String  name;
+    private final String  title;
+    private final String  desc;
+    private final boolean require;
+    private IComplexType<V, ?>   value;
     private PropertyHolder<T, V> inherit;
     private final List<IPropertyChangeListener> listeners = new LinkedList<>();
     
@@ -31,11 +32,11 @@ public class PropertyHolder<T extends IComplexType<V>, V> {
      * @param value Экземпляр {@link IComplexType}. NULL-значение не допустимо.
      * @param require Свойство обязательно должно иметь значение.
      */
-    public PropertyHolder(String name, IComplexType<V> value, boolean require) {
+    public PropertyHolder(String name, IComplexType<V, ?> value, boolean require) {
         this(getOwners(), name, value, require);
     }
     
-    private PropertyHolder(List<String> callers, String name, IComplexType<V> value, boolean require) {
+    private PropertyHolder(List<String> callers, String name, IComplexType<V, ?> value, boolean require) {
         this(name, Language.lookup(callers, name+".title"), Language.lookup(callers, name+".desc"), value, require);
     }
     
@@ -49,7 +50,7 @@ public class PropertyHolder<T extends IComplexType<V>, V> {
      * @param value Экземпляр {@link IComplexType}. NULL-значение не допустимо.
      * @param require Свойство обязательно должно иметь значение.
      */
-    public PropertyHolder(String name, String title, String desc, IComplexType<V> value, boolean require) {
+    public PropertyHolder(String name, String title, String desc, IComplexType<V, ?> value, boolean require) {
         if (value == null) {
             throw new IllegalStateException("Invalid value: NULL value is not supported");
         }
@@ -84,7 +85,7 @@ public class PropertyHolder<T extends IComplexType<V>, V> {
     /**
      * Получить экземпляр хранимого объекта {@link IComplexType}
      */
-    public IComplexType<? extends V> getPropValue() {
+    public IComplexType<? extends V, ?> getPropValue() {
         return inherit == null ? value : inherit.getPropValue();
     }
     
@@ -99,7 +100,7 @@ public class PropertyHolder<T extends IComplexType<V>, V> {
         } else {
             if (IComplexType.class.isAssignableFrom(value.getClass())) {
                 if (value.getClass().equals(this.value.getClass())) {
-                    this.value = (IComplexType<V>) value;
+                    this.value = (IComplexType<V, ?>) value;
                     fireChangeEvent(prevValue, getPropValue());
                 } else {
                     throw new IllegalStateException(
