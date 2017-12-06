@@ -22,6 +22,8 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -79,7 +81,7 @@ public class RowSelector implements IDataSupplier<String> {
      * @param params Список значений параметров запроса, не указывать если 
      * параметров нет.
      */
-    public RowSelector(Mode mode, Supplier<Integer> connectionID, String query, Supplier<Object[]> parameters) {
+    public RowSelector(Mode mode, Supplier<Integer> connectionID, String query, Object... parameters) {
         this(connectionID, query, parameters);
         this.mode = mode;
     }
@@ -91,7 +93,7 @@ public class RowSelector implements IDataSupplier<String> {
      * @param params Список значений параметров запроса, не указывать если 
      * параметров нет.
      */
-    public RowSelector(Supplier<Integer> connectionID, String query, Supplier<Object[]> parameters) {
+    public RowSelector(Supplier<Integer> connectionID, String query, Object... parameters) {
         btnConfirm = Dialog.Default.BTN_OK.newInstance();
         btnCancel  = Dialog.Default.BTN_CANCEL.newInstance();
         btnConfirm.setEnabled(false);
@@ -135,7 +137,7 @@ public class RowSelector implements IDataSupplier<String> {
                 try {
                     Integer connID = connectionID.get();
                     if (connID != null) {
-                        ResultSet rset = DAS.select(connID, query, parameters.get());
+                        ResultSet rset = DAS.select(connID, query, parameters);
                         ResultSetMetaData meta = rset.getMetaData();
                         int colomnCount = meta.getColumnCount();
                         Vector<String> columns = new Vector<>();
@@ -161,6 +163,14 @@ public class RowSelector implements IDataSupplier<String> {
                         table.getSelectionModel().addListSelectionListener((ListSelectionEvent event) -> {
                             if (event.getValueIsAdjusting()) return;
                             btnConfirm.setEnabled(true);
+                        });
+                        table.addMouseListener(new MouseAdapter() {
+                            @Override
+                            public void mouseClicked(MouseEvent event) {
+                                if (event.getClickCount() == 2) {
+                                    btnConfirm.click();
+                                }
+                            }
                         });
 
                         sorter = new TableRowSorter<>(table.getModel());
@@ -220,7 +230,7 @@ public class RowSelector implements IDataSupplier<String> {
                 } catch (SQLException e) {
                     String command = MessageFormat.format(
                             query.replaceAll("\\?", "{0}"),
-                            parameters.get()
+                            parameters
                     );
                     Logger.getLogger().error(e.getMessage()+"\nQuery: "+command);
                     MessageBox.show(MessageType.ERROR, e.getMessage());
