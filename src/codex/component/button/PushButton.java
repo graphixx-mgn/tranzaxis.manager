@@ -148,5 +148,10 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     public boolean isInactive() {
         return !button.isFocusable();
     }
-    
+
+    @Override
+    public void click() {
+        button.doClick();
+    }
+
 }

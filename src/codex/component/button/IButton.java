@@ -1,6 +1,6 @@
 package codex.component.button;
 
-import codex.editor.StringListEditor;
+import codex.editor.ArrStrEditor;
 import java.awt.Color;
 import java.awt.event.ActionListener;
 import javax.swing.Icon;
@@ -48,7 +48,7 @@ public interface IButton {
      * Динамическая смена иконки кнопки. Следует использовать в случае когда в
      * зависимости от каких-либо условий изображение должно изменяться и необходимо
      * визуально сообщить пользователю о возможном смене поведения кнопки.
-     * @see StringListEditor
+     * @see ArrStrEditor
      * @param icon Новая иконка кнопки.
      */
     public void setIcon(Icon icon);
@@ -61,7 +61,7 @@ public interface IButton {
     /**
      * Динамическая смена текста подсказки для кнопки. Следует использовать в случае 
      * когда в зависимости от каких-либо условий текст следует изменить.
-     * @see StringListEditor
+     * @see ArrStrEditor
      * @param text Новый текст подсказки.
      */
     public void setHint(String text);
@@ -98,5 +98,7 @@ public interface IButton {
      * Возвращает признак отключения обработчиков.
      */
     public boolean isInactive();
+    
+    public void click();
     
 }
