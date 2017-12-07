@@ -3,12 +3,12 @@ package codex.type;
 import codex.editor.ArrStrEditor;
 import codex.editor.IEditorFactory;
 import codex.mask.IArrMask;
+import codex.mask.StrSetMask;
 import codex.property.PropertyHolder;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Тип-обертка {@link IComplexType} для интерфейса {@literal List<String>}.
@@ -70,7 +70,12 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
     
     @Override
     public boolean isEmpty() {
-        return value == null || value.isEmpty();
+        return 
+            value == null || 
+            value.isEmpty() || (
+                (mask instanceof StrSetMask) && 
+                IComplexType.coalesce(value.get(0), "").isEmpty()
+            );
     }
     
     @Override
@@ -96,14 +101,7 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
     
     @Override
     public void valueOf(String value) {
-        setValue(
-            new LinkedList<>(parse(value))
-                .stream()
-                .filter((string) -> {
-                    return !string.isEmpty();
-                })
-                .collect(Collectors.toList())
-        );
+        setValue(parse(value));
     }
     
     public static String merge(List<String> values) {

@@ -68,7 +68,12 @@ public class ArrStrEditor extends AbstractEditor {
         signDelete.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                propHolder.setValue(null);
+                IArrMask mask = (IArrMask) propHolder.getPropValue().getMask();
+                if (mask != null) {
+                    propHolder.setValue(mask.getCleanValue());
+                } else {
+                    propHolder.setValue(null);
+                }
             }
         });
     }
@@ -115,7 +120,9 @@ public class ArrStrEditor extends AbstractEditor {
             textField.setText(
                     MessageFormat.format(
                         mask.getFormat(), 
-                        ((List) value).toArray()
+                        ((List) value).stream().map((item) -> {
+                            return item == null ? "" : item;
+                        }).toArray()
                     ).replaceAll("\\{\\d+\\}", "")
             );
         } else {
