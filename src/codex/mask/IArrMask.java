@@ -22,4 +22,12 @@ public interface IArrMask extends IMask<List<String>>, ICommand<PropertyHolder> 
         return null;
     }
     
+    /**
+     * Возвращает пустое значение с точки зрения маски. Поскольку маска {@link ArrStr}
+     * является и редактором, пустое значени может интерпретироваться по-разному.
+     */
+    default List<String> getCleanValue() {
+        return null;
+    }
+    
 }
