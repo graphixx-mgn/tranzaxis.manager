@@ -39,7 +39,7 @@ public class ExplorerAccessService implements IExplorerAccessService {
             if (entityClass.equals(node.getChildClass())) {
                 return (Entity) node.childrenList().stream().filter((child) -> {
                     return ((Entity) child).model.getID().equals(ID);
-                }).findFirst().get();
+                }).findFirst().orElse(null);
             }
             if (entityClass.isAssignableFrom(node.getClass()) && ((Entity) node).model.getID().equals(ID)) {
                 return (Entity) node;
