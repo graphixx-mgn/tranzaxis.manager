@@ -7,7 +7,6 @@ import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
 import codex.model.Entity;
 import codex.model.EntityModel;
-import codex.model.IModelListener;
 import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
 import java.awt.FlowLayout;
@@ -56,12 +55,6 @@ public final class LauncherUnit extends AbstractUnit {
                             PID
                     );
                     commandPanel.add(launcher);
-                    entity.model.addModelListener(new IModelListener() {
-                        @Override
-                        public void modelDeleted(EntityModel model) {
-                            launcher.setInvalid(true);
-                        }
-                    });
                 } else {
                     CommandLauncher launcher = new CommandLauncher(null, null, PID);
                     commandPanel.add(launcher);

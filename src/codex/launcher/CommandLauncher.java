@@ -1,12 +1,14 @@
 package codex.launcher;
 
 import codex.command.EntityCommand;
-import static codex.launcher.LaunchButton.ERROR_BORDER;
 import codex.log.Logger;
 import codex.model.Entity;
+import codex.model.EntityModel;
+import codex.model.IModelListener;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import java.awt.AlphaComposite;
+import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -14,6 +16,7 @@ import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.List;
 import java.util.Map;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -22,12 +25,22 @@ import javax.swing.event.ChangeEvent;
 /**
  * Ярлык запуска команды с панели быстрого доступа {@link LauncherUnit}.
  */
-final class CommandLauncher extends LaunchButton {
+final class CommandLauncher extends LaunchButton implements IModelListener {
     
-    private final ImageIcon TILE = ImageUtils.getByPath("/images/strips_red.png");
+    public enum Status {
+        ACTIVE, INACTIVE, INCORRECT;
+    }
     
-    private final JLabel signDelete;
-    private boolean invalid;
+    private final static ImageIcon WARN = ImageUtils.getByPath("/images/warn.png");
+    private final static ImageIcon TILE = ImageUtils.getByPath("/images/strips_red.png");
+    
+    private EntityCommand   command;
+    private Entity          entity;
+    private final ImageIcon icon;
+    private final String    title;
+    
+    private final JLabel    signDelete;
+    private       Status    status;
     
     /**
      * Конструктор ярлыка.
@@ -35,18 +48,16 @@ final class CommandLauncher extends LaunchButton {
      * @param command Ссылка на команду, доступную для класса сущности.
      */
     CommandLauncher(Entity entity, EntityCommand command, String title) {
-        super(
-                title, 
-                command == null ? 
-                    ImageUtils.getByPath("/images/warn.png") : 
-                    command.getButton().getIcon()
-        );
+        super(title, null);
+        this.command = command;
+        this.entity  = entity;
+        this.title   = title;
+        this.icon    = command == null ? ImageUtils.getByPath("/images/warn.png") : command.getIcon();
         setLayout(null);
         
         signDelete = new JLabel(ImageUtils.resize(ImageUtils.getByPath("/images/clearval.png"), 18, 18));
         signDelete.setVisible(false);
         add(signDelete);
-        
         
         Insets insets = signDelete.getInsets();
         Dimension size = signDelete.getPreferredSize();
@@ -56,9 +67,10 @@ final class CommandLauncher extends LaunchButton {
                 size.width, 
                 size.height
         );
-        setInvalid(entity == null);
+        updateStatus();
+        
         addActionListener((event) -> {
-            if (!invalid) {
+            if (status == Status.ACTIVE) {
                 Map<String, IComplexType> params = command.getParameters();
                 if (params != null) {
                     Logger.getLogger().debug("Perform command [{0}]. Context: {1}", command.getName(), entity);
@@ -66,7 +78,9 @@ final class CommandLauncher extends LaunchButton {
                 }
             }
         });
-        
+        if (entity != null) {
+            entity.model.addModelListener(this);
+        }
         signDelete.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -85,28 +99,65 @@ final class CommandLauncher extends LaunchButton {
         });
     }
     
-    public final void setInvalid(boolean invalid) {
-        this.invalid = invalid;
-        setBorder(invalid ? ERROR_BORDER : NORMAL_BORDER);
-        repaint();
-    }
-    
-    public final boolean isInvalid() {
-        return this.invalid;
+    private void updateStatus() {
+        Status newStatus;
+        if (command == null) {
+            newStatus = Status.INCORRECT;
+        } else {
+            Entity[] prevContext = command.getContext();
+            try {
+                command.setContext(entity);
+                newStatus = command.getButton().isEnabled() ? Status.ACTIVE : Status.INACTIVE;
+            } finally {
+                command.setContext(prevContext);
+            }
+        }
+        if (status != newStatus) {
+            Logger.getLogger().debug("Shortcut ''{0}'' state changed: {1} -> {2}", title, status, newStatus);
+            status = newStatus;
+            switch (status) {
+                case ACTIVE:
+                    setIcon(icon);
+                    setBorder(NORMAL_BORDER);
+                    setForeground(Color.BLACK);
+                    break;
+                case INACTIVE:
+                    setIcon(ImageUtils.grayscale(icon));
+                    setForeground(Color.GRAY);
+                    break;
+                case INCORRECT:
+                    setIcon(WARN);
+                    setBorder(ERROR_BORDER);
+                    setForeground(Color.decode("#DE5347"));
+            }
+            repaint();
+        }
     }
     
     @Override
     public final void stateChanged(ChangeEvent event) {
-        if (!invalid) {
+        if (status == Status.ACTIVE) {
             super.stateChanged(event);
         }
         signDelete.setVisible(getModel().isRollover());
     }
     
     @Override
+    public void modelSaved(EntityModel model, List<String> changes) {
+        updateStatus();
+    }
+
+    @Override
+    public void modelDeleted(EntityModel model) {
+        CommandLauncher.this.entity  = null;
+        CommandLauncher.this.command = null;
+        updateStatus();
+    }
+    
+    @Override
     public final void paint(Graphics g) {
         super.paint(g);
-        if (invalid) {
+        if (status == Status.INCORRECT) {
             Graphics2D g2d = (Graphics2D) g.create();
             g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.1f));
             int tileWidth = TILE.getIconWidth();
@@ -120,5 +171,5 @@ final class CommandLauncher extends LaunchButton {
             g2d.dispose();
         }
     }
-    
+
 }

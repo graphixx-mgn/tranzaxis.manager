@@ -5,6 +5,7 @@ import codex.editor.IEditor;
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.text.MessageFormat;
@@ -21,9 +22,10 @@ import javax.swing.event.ChangeListener;
  */
 abstract class LaunchButton extends JButton implements ChangeListener {
     
-    public static final Border NORMAL_BORDER = new RoundedBorder(new LineBorder(Color.decode("#CCCCCC"), 1), 18);
-    public static final Border HOVER_BORDER  = new RoundedBorder((LineBorder) IEditor.BORDER_ACTIVE, 18);
-    public static final Border ERROR_BORDER  = new RoundedBorder((LineBorder) IEditor.BORDER_ERROR,  18);
+    public static final Border NORMAL_BORDER   = new RoundedBorder(new LineBorder(Color.decode("#CCCCCC"), 1), 18);
+    public static final Border HOVER_BORDER    = new RoundedBorder((LineBorder) IEditor.BORDER_ACTIVE, 18);
+    public static final Border ERROR_BORDER    = new RoundedBorder((LineBorder) IEditor.BORDER_ERROR,  18);
+    public static final Border INACTIVE_BORDER = new RoundedBorder(new LineBorder(Color.decode("#999999"), 2), 18);
     
     private float opacity = 1;
     
@@ -33,8 +35,9 @@ abstract class LaunchButton extends JButton implements ChangeListener {
     
     LaunchButton(String text, Icon icon) {
         super(MessageFormat.format("<html><center>{0}</center></html>", text), icon);
+        setFont(new Font(IEditor.FONT_VALUE.getName(), Font.PLAIN, 10));
         setVerticalAlignment(text != null && !text.isEmpty() ? JLabel.TOP : JLabel.CENTER);
-        setPreferredSize(new Dimension(95, 100));
+        setPreferredSize(new Dimension(100, 110));
         setHorizontalTextPosition(JLabel.CENTER);
         setVerticalTextPosition(JLabel.BOTTOM);
         setContentAreaFilled(false);
