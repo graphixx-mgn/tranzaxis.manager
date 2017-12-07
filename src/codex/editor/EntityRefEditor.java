@@ -18,11 +18,15 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.plaf.BorderUIResource;
+import javax.swing.plaf.ColorUIResource;
+import javax.swing.plaf.basic.BasicComboBoxUI;
 import javax.swing.plaf.basic.BasicComboPopup;
 
 /**
@@ -94,8 +98,16 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
         UIManager.put("ComboBox.border", new BorderUIResource(
                 new LineBorder(UIManager.getColor ("Panel.background"), 1))
         );
+        UIManager.put("ComboBox.selectionBackground", new ColorUIResource(Color.WHITE));
+        UIManager.put("ComboBox.selectionForeground", new ColorUIResource(Color.BLACK));
         SwingUtilities.updateComponentTreeUI(comboBox);
         
+        comboBox.setUI(new BasicComboBoxUI());
+        JButton button = (JButton) comboBox.getComponent(0);
+        button.setOpaque(true);
+        button.setBackground(Color.WHITE);
+        button.setBorder(new EmptyBorder(5, 8, 5, 8));
+
         comboBox.setFont(FONT_VALUE);
         comboBox.setRenderer(new GeneralRenderer());
         comboBox.addFocusListener(this);
