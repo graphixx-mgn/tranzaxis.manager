@@ -113,7 +113,8 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
             StringBuilder builder = new StringBuilder();
             builder.append(values.size());
             values.forEach((value) -> {
-                builder.append("[").append(value.length()).append("]").append(value);
+                String valStr = IComplexType.coalesce(value, "");
+                builder.append("[").append(valStr.length()).append("]").append(valStr);
             });
             return builder.toString();
         }
