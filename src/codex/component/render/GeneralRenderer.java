@@ -55,11 +55,11 @@ public final class GeneralRenderer extends JLabel implements ListCellRenderer, T
         setFont(new Font(IEditor.FONT_VALUE.getName(), Font.PLAIN, (int) (IEditor.FONT_VALUE.getSize()*1.2)));
         setBackground(isSelected ? IButton.PRESS_COLOR : list.getBackground());
         if (Iconified.class.isAssignableFrom(value.getClass())) {
-            setBorder(new EmptyBorder(1, 4, 1, 2));
             setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 17, 17));
         } else {
             setIcon(null);
         }
+        setBorder(new EmptyBorder(1, 4, 1, 2));
         setForeground(value instanceof AbstractEditor.NullValue ? Color.GRAY : IEditor.COLOR_NORMAL);
         return this;
     }
