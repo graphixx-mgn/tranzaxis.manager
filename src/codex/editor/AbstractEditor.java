@@ -111,7 +111,6 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         commands.stream().filter((command) -> {
             return command.disableWithContext();
         }).forEach((command) -> {
-            command.getButton().setEnabled(editable);
             if (editable) {
                 command.activate();
             }
@@ -163,7 +162,6 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         public String toString() {
             return NOT_DEFINED;
         }
-    
     }
 
 }
