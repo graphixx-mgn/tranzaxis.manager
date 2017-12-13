@@ -29,7 +29,9 @@ public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionL
                 holders != null && holders.length > 0 && 
                 !(holders.length > 1 && !multiContextAllowed()) && (
                         available == null || Arrays.asList(holders).stream().allMatch(available)
-                )
+                ) && Arrays.asList(holders).stream().allMatch((holder) -> {
+                    return !holder.isInherited();
+                })
         );
     };
     
