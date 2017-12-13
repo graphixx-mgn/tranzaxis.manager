@@ -109,6 +109,9 @@ public final class ConfigStoreService implements IConfigStoreService {
                         "TEXT"
                 );
             } else {
+                if (!storeStructure.containsKey(refClazz.getSimpleName().toUpperCase())) {
+                    createClassCatalog(refClazz);
+                }
                 alterSQL = MessageFormat.format("ALTER TABLE {0} ADD COLUMN {1} {2} REFERENCES {3}(ID)",
                         className,
                         propName,
