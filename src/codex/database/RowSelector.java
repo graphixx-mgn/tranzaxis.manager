@@ -176,7 +176,11 @@ public class RowSelector implements IDataSupplier<String> {
                         sorter = new TableRowSorter<>(table.getModel());
                         table.setRowSorter(sorter);
 
-                        PropertyHolder lookupHolder = new PropertyHolder("filter", new Str(null), false);
+                        PropertyHolder lookupHolder = new PropertyHolder(
+                                "filter", null, 
+                                Language.get(RowSelector.class.getSimpleName(), "filter"), 
+                                new Str(null), false
+                        );
                         lookupEditor = new StrEditor(lookupHolder);
                         EditorCommand search = new ApplyFilter();
                         lookupEditor.addCommand(search);
