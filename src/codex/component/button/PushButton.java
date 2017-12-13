@@ -90,8 +90,10 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
 
     @Override
     public final void setIcon(Icon icon) {
-        button.setIcon(icon);
-        button.setDisabledIcon(ImageUtils.grayscale((ImageIcon) icon));
+        if (!icon.equals(button.getIcon())) {
+            button.setIcon(icon);
+            button.setDisabledIcon(ImageUtils.grayscale((ImageIcon) icon));
+        }
     }
     
     @Override
