@@ -10,13 +10,13 @@ import codex.log.Logger;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.model.EntityModel;
+import codex.type.ArrStr;
 import codex.type.Bool;
 import codex.type.EntityRef;
 import codex.type.Enum;
 import codex.type.IComplexType;
 import codex.type.Int;
 import codex.type.Str;
-import codex.type.ArrStr;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.BorderLayout;
@@ -100,13 +100,15 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         tableModel = new SelectorTableModel(entity, prototype);
         table = new SelectorTable(tableModel);
         
-        table.setDefaultRenderer(Str.class,  new GeneralRenderer());
-        table.setDefaultRenderer(Int.class,  new GeneralRenderer());
-        table.setDefaultRenderer(Bool.class, new GeneralRenderer());
-        table.setDefaultRenderer(Enum.class, new GeneralRenderer());
-        table.setDefaultRenderer(ArrStr.class, new GeneralRenderer());
-        table.setDefaultRenderer(EntityRef.class,  new GeneralRenderer());
-        table.getTableHeader().setDefaultRenderer(new GeneralRenderer());
+        GeneralRenderer renderer = new GeneralRenderer();
+        
+        table.setDefaultRenderer(Str.class,  renderer);
+        table.setDefaultRenderer(Int.class,  renderer);
+        table.setDefaultRenderer(Bool.class, renderer);
+        table.setDefaultRenderer(Enum.class, renderer);
+        table.setDefaultRenderer(ArrStr.class,    renderer);
+        table.setDefaultRenderer(EntityRef.class, renderer);
+        table.getTableHeader().setDefaultRenderer(renderer);
         
         final JScrollPane scrollPane = new JScrollPane();
         scrollPane.getViewport().setBackground(Color.WHITE);
