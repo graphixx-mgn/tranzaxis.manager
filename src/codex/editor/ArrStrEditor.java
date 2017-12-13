@@ -62,7 +62,7 @@ public class ArrStrEditor extends AbstractEditor {
         signDelete.setBorder(new EmptyBorder(0, 3, 0, 0));
         signDelete.setCursor(Cursor.getDefaultCursor());
         
-        signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
+        signDelete.setVisible(!propHolder.isEmpty() && !propHolder.isInherited() && isEditable() && textField.isFocusOwner());
         textField.add(signDelete, BorderLayout.EAST);
         
         signDelete.addMouseListener(new MouseAdapter() {
@@ -106,11 +106,9 @@ public class ArrStrEditor extends AbstractEditor {
     
     @Override
     public void setEditable(boolean editable) {
-        if (editable != isEditable()) {
-            super.setEditable(editable);
-            textField.setForeground(editable && !propHolder.isInherited() ? COLOR_INACTIVE : COLOR_DISABLED);
-            textField.setOpaque(editable && !propHolder.isInherited());
-        }
+        super.setEditable(editable);
+        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
+        textField.setOpaque(editable && !propHolder.isInherited());
     }
 
     @Override
@@ -129,14 +127,14 @@ public class ArrStrEditor extends AbstractEditor {
             textField.setText(IComplexType.coalesce(value, "").toString());
         }
         if (signDelete!= null) {
-            signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
+            signDelete.setVisible(!propHolder.isEmpty() && !propHolder.isInherited() && isEditable() && textField.isFocusOwner());
         }
     }
     
     @Override
     public void focusGained(FocusEvent event) {
         super.focusGained(event);
-        signDelete.setVisible(!propHolder.isEmpty() && isEditable());
+        signDelete.setVisible(!propHolder.isEmpty() && !propHolder.isInherited() && isEditable());
     }
     
     @Override
@@ -238,7 +236,6 @@ public class ArrStrEditor extends AbstractEditor {
             dialog.setPreferredSize(SIZE);
             dialog.setVisible(true);
         }
-    
     }
     
 }
