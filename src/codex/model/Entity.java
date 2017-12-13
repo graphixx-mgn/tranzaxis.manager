@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
+import javax.swing.SwingUtilities;
 
 /**
  * Абстракная сущность, базовый родитель прикладных сущностей приложения.
@@ -62,27 +63,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         }
         this.icon  = icon;
         this.hint  = hint;
-        this.model = new EntityModel(this.getClass(), PID) {
-            
-//            @Override
-//            public IEditor getEditor(String name) {
-//                IEditor propEditor = super.getEditor(name);
-//                if (Entity.this.getParent() != null && ((Entity) Entity.this.getParent()).model.hasProperty(name)) {
-//                    EntityModel parent = ((Entity) Entity.this.getParent()).model;
-//                    //TODO: При каждом открытии редактора создаются новые кнопки
-//                    propEditor.addCommand(new SwitchInheritance(
-//                            getProperty(name), parent.getProperty(name)
-//                    ));
-//                    parent.getProperty(name).addChangeListener((n, oldValue, newValue) -> {
-//                        if (getProperty(name).isInherited()) {
-//                            propEditor.getEditor().updateUI();
-//                        }
-//                    });
-//                }
-//                return propEditor;
-//            }
-            
-        };
+        this.model = new EntityModel(this.getClass(), PID);
         this.model.addChangeListener(this);
         this.model.addModelListener(new IModelListener() {
             @Override
@@ -130,25 +111,28 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     @Override
     public void insert(INode child) {
         super.insert(child);
-//        if (child instanceof Entity) {
-//            Entity entity = (Entity) child;
-//            
-//            SwingUtilities.invokeLater(() -> {
-//                List<String> inheritance = entity.model.getProperties(Access.Edit)
-//                    .stream()
-//                    .filter(propName -> this.model.hasProperty(propName))
-//                    .collect(Collectors.toList());
-//                if (!inheritance.isEmpty()) {
-//                    Logger.getLogger().debug(
-//                            "Properties ''{0}/@{1}'' has possibility of inheritance", 
-//                            child, inheritance
-//                    );
-//                    inheritance.forEach((propName) -> {
-//                        entity.model.getProperty(propName).setInherited(this.model.getProperty(propName));
-//                    });
-//                }
-//            });
-//        }
+        if (child instanceof Entity) {
+            Entity childEntity = (Entity) child;
+            SwingUtilities.invokeLater(() -> {
+                List<String> inheritance = childEntity.model.getProperties(Access.Edit)
+                    .stream()
+                    .filter(propName -> this.model.hasProperty(propName) && !EntityModel.SYSPROPS.contains(propName))
+                    .collect(Collectors.toList());
+                if (!inheritance.isEmpty()) {
+                    Logger.getLogger().debug(
+                            "Properties ''{0}/@{1}'' has possibility of inheritance", 
+                            child, inheritance
+                    );
+                    inheritance.forEach((propName) -> {
+                        childEntity.model.getEditor(propName).addCommand(new SwitchInheritance(
+                                childEntity,
+                                childEntity.model.getProperty(propName), 
+                                this.model.getProperty(propName)
+                        ));
+                    });
+                }
+            });
+        }
     }
     
     /**
@@ -193,7 +177,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     public final void propertyChange(String name, Object oldValue, Object newValue) {
         Logger.getLogger().debug(
                 "Property ''{0}@{1}'' has been changed: ''{2}'' -> ''{3}''", 
-                this, name, oldValue, newValue
+                this, name, oldValue, (newValue instanceof IComplexType) ? 
+                        ((IComplexType) newValue).getValue() : newValue
         );
     }
     

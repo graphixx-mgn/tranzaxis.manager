@@ -11,12 +11,14 @@ import codex.mask.IMask;
 import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
+import codex.type.ArrStr;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Int;
 import codex.type.Str;
 import codex.utils.Language;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -34,6 +36,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public  final static String ID  = "ID";
     public  final static String SEQ = "SEQ";
     public  final static String PID = "PID";
+    public  final static String OVR = "OVR";
+    public  final static List<String> SYSPROPS = Arrays.asList(new String[] {ID, SEQ, PID, OVR});
     
     private final static IConfigStoreService    CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
@@ -52,6 +56,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         addUserProp(EntityModel.PID,   new Str(PID),  true, 
                 Catalog.class.isAssignableFrom(entityClass) ? Access.Any : null
         );
+        addUserProp(EntityModel.OVR,   new ArrStr(new LinkedList<>()),  false, Access.Any);
         addModelListener(dynamicResolver);
         init();
     }
@@ -62,8 +67,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             if (newID != null) {
                 setValue(ID, newID);
             }
-            getProperty(EntityModel.SEQ).getPropValue().valueOf(CAS.readClassProperty(entityClass, getID(), EntityModel.SEQ)
-            );
+            getProperty(EntityModel.SEQ).getPropValue().valueOf(CAS.readClassProperty(entityClass, getID(), EntityModel.SEQ));
         }
         ((Str) getProperty(EntityModel.PID).getPropValue()).setMask(new PIDMask(entityClass, getID()));
     }
@@ -320,7 +324,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 }
             });
         }
-        editor.setEditable(!dynamicProps.contains(name) && editor.isEditable());
+        if (dynamicProps.contains(name)) {
+            editor.setEditable(false);
+        }
         return editor;
     }
 
@@ -384,6 +390,5 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                         propertyHolders.get(dynamicProp).setValue(dynValue);
                     });
         }
-
     }
 }
