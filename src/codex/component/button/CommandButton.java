@@ -30,6 +30,7 @@ public class CommandButton extends PushButton implements IButton {
     public CommandButton(ImageIcon icon) {
         super(icon, null);
         button.setBorder(new EmptyBorder(2, 2, 2, 2));
+        setBackground(null);
         setBorder(NORMAL_BORDER);
     }
     
