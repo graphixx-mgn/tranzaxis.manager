@@ -4,9 +4,7 @@ import codex.log.Logger;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.RenderingHints;
-import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
-import java.awt.image.ColorConvertOp;
 import java.awt.image.ImageObserver;
 import javax.swing.ImageIcon;
 
@@ -35,17 +33,38 @@ public class ImageUtils {
     } 
     
     public static ImageIcon grayscale(ImageIcon icon) {
+        // https://www.dyclassroom.com/image-processing-project/how-to-convert-a-color-image-into-grayscale-image-in-java
         ImageObserver observer = icon.getImageObserver();
         Image srcImage = icon.getImage();
-        int width   = srcImage.getHeight(observer);
-        int height  = srcImage.getHeight(observer);
+        int width  = srcImage.getWidth(observer);
+        int height = srcImage.getHeight(observer);
         
-        BufferedImage destImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        destImage.createGraphics().drawImage(srcImage, 0, 0, width, height, null);
+        final BufferedImage destImage = new BufferedImage( 
+                width, 
+                height, 
+                BufferedImage.TYPE_INT_ARGB
+        );
+        Graphics2D gr = destImage.createGraphics();
+        gr.drawImage(srcImage, 0, 0, null);
+       
+        //convert to grayscale
+        for(int y = 0; y < height; y++){
+            for(int x = 0; x < width; x++){
+                int p = destImage.getRGB(x,y);
 
-        ColorSpace grayColorSpace = ColorSpace.getInstance(ColorSpace.CS_GRAY);
-        ColorConvertOp op = new ColorConvertOp(grayColorSpace, destImage.getColorModel().getColorSpace(), null);
-        op.filter(destImage, destImage);
+                int a = (p>>24)&0xff;
+                int r = (p>>16)&0xff;
+                int g = (p>>8)&0xff;
+                int b = p&0xff;
+
+                //calculate average
+                int avg = (r+g+b)/3;
+
+                //replace RGB value with avg
+                p = (a<<24) | (avg<<16) | (avg<<8) | avg;
+                destImage.setRGB(x, y, p);
+            }
+        }
         return new ImageIcon(destImage);
     }
     
