@@ -23,7 +23,7 @@ class BoolCellRenderer extends CellRenderer<Boolean> {
         return INSTANCE;
     }
         
-    private final JCheckBox checkBox = new JCheckBox();
+    final JCheckBox checkBox = new JCheckBox();
 
     private BoolCellRenderer() {
         super(BoxLayout.PAGE_AXIS);

@@ -5,6 +5,7 @@ import codex.editor.AbstractEditor;
 import codex.editor.IEditor;
 import codex.explorer.tree.INode;
 import codex.model.Entity;
+import codex.presentation.SelectorTableModel;
 import codex.type.Bool;
 import codex.type.Enum;
 import codex.type.Iconified;
@@ -95,7 +96,38 @@ public final class GeneralRenderer extends JLabel implements ListCellRenderer, T
                 cellBox = ComplexCellRenderer.getInstance();
             }
             cellBox.setValue(value);
-            cellBox.setBackground(isSelected ? IButton.PRESS_COLOR : table.getBackground());
+            
+            boolean isInvalid = 
+                    (table.getModel() instanceof SelectorTableModel) && 
+                    !((SelectorTableModel) table.getModel()).getEntityAt(row).model.isValid();
+            
+            if (isSelected) {
+                if (value == null) {
+                    cellBox.setForeground(IEditor.COLOR_INACTIVE);
+                } else {
+                    cellBox.setForeground(Color.WHITE);
+                }
+                cellBox.setBackground(Color.decode("#55AAFF"));
+            } else {
+                if (isInvalid) {
+                    cellBox.setBackground(Color.decode("#FFDDDD"));
+                } else {
+                    cellBox.setBackground(table.getBackground());
+                }
+                if (isInvalid && value != null) {
+                    cellBox.setForeground(Color.RED);
+                } else if (value == null) {
+                    cellBox.setForeground(IEditor.COLOR_DISABLED);
+                } else {
+                    cellBox.setForeground(IEditor.COLOR_NORMAL);
+                }
+            }
+            if (column == 0 && isInvalid) {
+                int iconSize = table.getRowHeight() - 4;
+                ((ComplexCellRenderer) cellBox).label.setIcon(
+                    ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), iconSize, iconSize)
+                );
+            }
             cellBox.setBorder(new CompoundBorder(
                     new MatteBorder(0, column == 0 ? 0 : 1, 1, 0, Color.LIGHT_GRAY), 
                     new EmptyBorder(1, 6, 0, 6)

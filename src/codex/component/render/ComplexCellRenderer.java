@@ -5,6 +5,7 @@ import codex.presentation.SelectorTableModel;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
+import java.awt.Color;
 import java.awt.Dimension;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
@@ -22,7 +23,7 @@ class ComplexCellRenderer extends CellRenderer<Object> {
         return INSTANCE;
     }
         
-    private final JLabel label = new JLabel();
+    final JLabel label = new JLabel();
 
     private ComplexCellRenderer() {
         super(BoxLayout.X_AXIS);
@@ -38,7 +39,6 @@ class ComplexCellRenderer extends CellRenderer<Object> {
             label.setIcon(null);
         }
         label.setText(value != null ? value.toString() : IEditor.NOT_DEFINED);
-        label.setForeground(value != null ? IEditor.COLOR_NORMAL : IEditor.COLOR_DISABLED);
     }
 
     @Override
@@ -46,4 +46,9 @@ class ComplexCellRenderer extends CellRenderer<Object> {
         return label.getPreferredSize();
     }
 
+    @Override
+    public void setForeground(Color color) {
+        label.setForeground(color);
+    }
+    
 }
