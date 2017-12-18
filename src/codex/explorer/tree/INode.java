@@ -45,6 +45,8 @@ public interface INode extends TreeNode {
      */
     void insert(INode child);
     
+    void move(INode child, int position);
+    
     /**
      * Удалить дочерний узел.
      */

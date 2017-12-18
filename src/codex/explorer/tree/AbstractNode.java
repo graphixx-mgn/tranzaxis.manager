@@ -78,6 +78,17 @@ public abstract class AbstractNode implements INode {
             listener.childInserted(this, child);
         });
     }
+    
+    @Override
+    public void move(INode child, int position) {
+        if (position >= 0 && position < children.size() && getIndex(child) != position) {
+            children.remove(child);
+            children.add(position, child);
+            new LinkedList<>(nodeListeners).forEach((listener) -> {
+                listener.childMoved(this, child);
+            });
+        }
+    }
 
     @Override
     public void delete(INode child) {
