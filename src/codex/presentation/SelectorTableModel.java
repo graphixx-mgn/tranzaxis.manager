@@ -8,9 +8,10 @@ import codex.type.IComplexType;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
+import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 
-public class SelectorTableModel extends DefaultTableModel implements /*Reorderable*/ IModelListener {
+public class SelectorTableModel extends DefaultTableModel implements IModelListener {
     
     private final List<Class<? extends IComplexType>> columnClasses = new LinkedList<>();
     private final Entity entity;
@@ -46,6 +47,18 @@ public class SelectorTableModel extends DefaultTableModel implements /*Reorderab
     
     public final Entity getEntityAt(int row) {
         return (Entity) entity.childrenList().get(row);
+    }
+
+    @Override
+    public void moveRow(int start, int end, int to) {
+        super.moveRow(start, end, to);
+        entity.move(getEntityAt(start), to);
+        SwingUtilities.invokeLater(() -> {
+            entity.childrenList().forEach((node) -> {
+                ((Entity) node).model.setValue(EntityModel.SEQ, (entity.childrenList().indexOf(node)+1));
+                ((Entity) node).model.saveValue(EntityModel.SEQ);
+            });
+        });
     }
     
     @Override

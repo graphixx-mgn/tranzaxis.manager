@@ -28,6 +28,7 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -35,11 +36,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.swing.DropMode;
+import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.KeyStroke;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
+import javax.swing.TransferHandler;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -99,9 +104,9 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         
         tableModel = new SelectorTableModel(entity, prototype);
         table = new SelectorTable(tableModel);
+        table.getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         
         GeneralRenderer renderer = new GeneralRenderer();
-        
         table.setDefaultRenderer(Str.class,  renderer);
         table.setDefaultRenderer(Int.class,  renderer);
         table.setDefaultRenderer(Bool.class, renderer);
@@ -109,6 +114,10 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         table.setDefaultRenderer(ArrStr.class,    renderer);
         table.setDefaultRenderer(EntityRef.class, renderer);
         table.getTableHeader().setDefaultRenderer(renderer);
+        
+        table.setDragEnabled(true);
+        table.setDropMode(DropMode.INSERT_ROWS);
+        table.setTransferHandler(new TableTransferHandler(table));
         
         final JScrollPane scrollPane = new JScrollPane();
         scrollPane.getViewport().setBackground(Color.WHITE);
@@ -128,6 +137,15 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                         commands.get(0).execute(context, null);
                     }
                 }
+            }
+        });
+        table.addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                e.consume();
+                JComponent c = (JComponent) e.getSource();
+                TransferHandler handler = c.getTransferHandler();
+                handler.exportAsDrag(c, e, TransferHandler.MOVE);
             }
         });
     }
