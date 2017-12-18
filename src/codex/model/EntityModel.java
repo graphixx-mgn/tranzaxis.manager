@@ -304,6 +304,27 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             listener.modelRestored(this, changes);
         });
     }
+    
+    /**
+     * Сохранение значения единичного свойства.
+     * @param propName 
+     */
+    public final void saveValue(String propName) {
+        Map<String, String> values = new LinkedHashMap();
+        values.put(propName, getProperty(propName).getPropValue().toString());
+        int result = CAS.updateClassInstance(entityClass, getID(), values);
+        if (result != IConfigStoreService.RC_SUCCESS) {
+            MessageBox.show(MessageType.ERROR, Language.get(EntityModel.class.getSimpleName(), "error@notsaved"));
+        } else {
+            if (undoRegistry.exists(propName)) {
+                undoRegistry.put(
+                        propName, 
+                        undoRegistry.previous(propName),
+                        undoRegistry.previous(propName)
+                );
+            }
+        }
+    }
 
     @Override
     public IEditor getEditor(String name) {
