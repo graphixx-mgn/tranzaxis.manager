@@ -147,5 +147,10 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
                 new Object[] {childNode}
         );
     }
+    
+    @Override
+    public void childMoved(INode parentNode, INode childNode) {
+        ((DefaultTreeModel) getModel()).nodeStructureChanged(parentNode);
+    }
 
 }
