@@ -2,6 +2,7 @@ package codex.task;
 
 import codex.component.ui.StripedProgressBarUI;
 import codex.utils.Language;
+import com.sun.javafx.PlatformUtil;
 import java.awt.AWTEvent;
 import java.awt.BorderLayout;
 import java.awt.Toolkit;
@@ -15,7 +16,12 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
+import org.bridj.Pointer;
+import org.bridj.cpp.com.COMRuntime;
+import org.bridj.cpp.com.shell.ITaskbarList3;
+import org.bridj.jawt.JAWTUtils;
 
 /**
  * Виджет модуля {@link TaskManager}, представляет собой панель задач с информацией о 
@@ -111,6 +117,16 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
             progress.setValue(0);
             monitor.clearRegistry();
             queue.clear();
+            if (PlatformUtil.isWin7OrLater()) {
+                try {
+                    ITaskbarList3 taskBarIcon = COMRuntime.newInstance(ITaskbarList3.class);
+                    long hwndVal = JAWTUtils.getNativePeerHandle(SwingUtilities.getWindowAncestor(this));
+                    Pointer<?> HWND = Pointer.pointerToAddress(hwndVal);
+                    taskBarIcon.SetProgressState((Pointer) HWND, ITaskbarList3.TbpFlag.TBPF_NOPROGRESS);
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }
             return;
         }
         
@@ -119,6 +135,20 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
         if (task != null) {
             progressChanged(task, task.getProgress(), task.getDescription());
         }
+        
+        if (PlatformUtil.isWin7OrLater()) {
+            try {
+                ITaskbarList3 taskBarIcon = COMRuntime.newInstance(ITaskbarList3.class);
+                long hwndVal = JAWTUtils.getNativePeerHandle(SwingUtilities.getWindowAncestor(this));
+                Pointer<?> HWND = Pointer.pointerToAddress(hwndVal);
+                taskBarIcon.SetProgressState(
+                        (Pointer) HWND, 
+                        failed > 0 ? ITaskbarList3.TbpFlag.TBPF_ERROR : ITaskbarList3.TbpFlag.TBPF_NORMAL
+                );
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
@@ -126,6 +156,17 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
         progress.setValue(queue.stream().mapToInt(
                 queued -> queued.getStatus() == Status.PENDING || queued.getStatus() == Status.STARTED ? queued.getProgress() : 100
         ).sum() / queue.size());
+        
+        if (PlatformUtil.isWin7OrLater()) {
+            try {
+                ITaskbarList3 taskBarIcon = COMRuntime.newInstance(ITaskbarList3.class);
+                long hwndVal = JAWTUtils.getNativePeerHandle(SwingUtilities.getWindowAncestor(this));
+                Pointer<?> HWND = Pointer.pointerToAddress(hwndVal);
+                taskBarIcon.SetProgressValue((Pointer) HWND, progress.getValue(), 100);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
     }
     
 }
