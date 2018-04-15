@@ -5,6 +5,7 @@ import codex.utils.Language;
 import com.sun.javafx.PlatformUtil;
 import java.awt.AWTEvent;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -18,6 +19,7 @@ import javax.swing.JProgressBar;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import org.bridj.Pointer;
 import org.bridj.cpp.com.COMRuntime;
 import org.bridj.cpp.com.shell.ITaskbarList3;
@@ -45,7 +47,7 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
      */
     TaskStatusBar(List<ExecutorService> threadPool) {
         super(new BorderLayout());
-        setBorder(new EmptyBorder(2, 2, 2, 2));
+        setBorder(new EmptyBorder(1, 2, 1, 2));
         
         monitor = new TaskMonitor(this, threadPool, (task) -> {
             queue.remove(task);
@@ -61,7 +63,7 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
         progress.setVisible(false);
         progress.setStringPainted(true);
         progress.setUI(new StripedProgressBarUI(true));
-        progress.setBorder(new EmptyBorder(0, 0, 0, 0));
+        progress.setBorder(new LineBorder(Color.LIGHT_GRAY, 1));
         
         clear = new ClearButton();
         clear.setVisible(false);
@@ -117,7 +119,7 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
             progress.setValue(0);
             monitor.clearRegistry();
             queue.clear();
-            if (PlatformUtil.isWin7OrLater()) {
+            if (PlatformUtil.isWin7OrLater() && SwingUtilities.getWindowAncestor(this) != null) {
                 try {
                     ITaskbarList3 taskBarIcon = COMRuntime.newInstance(ITaskbarList3.class);
                     long hwndVal = JAWTUtils.getNativePeerHandle(SwingUtilities.getWindowAncestor(this));
@@ -136,7 +138,7 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
             progressChanged(task, task.getProgress(), task.getDescription());
         }
         
-        if (PlatformUtil.isWin7OrLater()) {
+        if (PlatformUtil.isWin7OrLater() && SwingUtilities.getWindowAncestor(this) != null) {
             try {
                 ITaskbarList3 taskBarIcon = COMRuntime.newInstance(ITaskbarList3.class);
                 long hwndVal = JAWTUtils.getNativePeerHandle(SwingUtilities.getWindowAncestor(this));
@@ -157,7 +159,7 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
                 queued -> queued.getStatus() == Status.PENDING || queued.getStatus() == Status.STARTED ? queued.getProgress() : 100
         ).sum() / queue.size());
         
-        if (PlatformUtil.isWin7OrLater()) {
+        if (PlatformUtil.isWin7OrLater() && SwingUtilities.getWindowAncestor(this) != null) {
             try {
                 ITaskbarList3 taskBarIcon = COMRuntime.newInstance(ITaskbarList3.class);
                 long hwndVal = JAWTUtils.getNativePeerHandle(SwingUtilities.getWindowAncestor(this));
