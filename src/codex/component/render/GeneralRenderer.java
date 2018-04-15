@@ -6,10 +6,10 @@ import codex.editor.IEditor;
 import codex.explorer.tree.INode;
 import codex.model.Entity;
 import codex.presentation.SelectorTableModel;
+import codex.type.ArrStr;
 import codex.type.Bool;
 import codex.type.Enum;
 import codex.type.Iconified;
-import codex.type.ArrStr;
 import codex.utils.ImageUtils;
 import java.awt.Color;
 import java.awt.Component;
@@ -32,6 +32,21 @@ import javax.swing.tree.TreeCellRenderer;
  * Стандартный рендерер ячеек списка, таблицы и элементов дерева.
  */
 public final class GeneralRenderer extends JLabel implements ListCellRenderer, TableCellRenderer, TreeCellRenderer {
+    
+    private static final ImageIcon ICON_INVALID = ImageUtils.getByPath("/images/warn.png");
+    
+    private static Color blend(Color c0, Color c1) {
+        double totalAlpha = c0.getAlpha() + c1.getAlpha();
+        double weight0 = c0.getAlpha() / totalAlpha;
+        double weight1 = c1.getAlpha() / totalAlpha;
+
+        double r = weight0 * c0.getRed() + weight1 * c1.getRed();
+        double g = weight0 * c0.getGreen() + weight1 * c1.getGreen();
+        double b = weight0 * c0.getBlue() + weight1 * c1.getBlue();
+        double a = Math.max(c0.getAlpha(), c1.getAlpha());
+
+        return new Color((int) r, (int) g, (int) b, (int) a);
+    }
     
     public GeneralRenderer() {
         setOpaque(true);
@@ -101,31 +116,29 @@ public final class GeneralRenderer extends JLabel implements ListCellRenderer, T
                     (table.getModel() instanceof SelectorTableModel) && 
                     !((SelectorTableModel) table.getModel()).getEntityAt(row).model.isValid();
             
-            if (isSelected) {
-                if (value == null) {
-                    cellBox.setForeground(IEditor.COLOR_INACTIVE);
-                } else {
-                    cellBox.setForeground(Color.WHITE);
-                }
-                cellBox.setBackground(Color.decode("#55AAFF"));
+            if (isInvalid) {
+                cellBox.setBackground(Color.decode("#FFDDDD"));
             } else {
-                if (isInvalid) {
-                    cellBox.setBackground(Color.decode("#FFDDDD"));
-                } else {
+                if (row % 2 == 1) {
                     cellBox.setBackground(table.getBackground());
-                }
-                if (isInvalid && value != null) {
-                    cellBox.setForeground(Color.RED);
-                } else if (value == null) {
-                    cellBox.setForeground(IEditor.COLOR_DISABLED);
                 } else {
-                    cellBox.setForeground(IEditor.COLOR_NORMAL);
+                    cellBox.setBackground(Color.decode("#F5F5F5"));
                 }
             }
+            if (isSelected) {
+                cellBox.setBackground(blend(Color.decode("#BBD8FF"), cellBox.getBackground()));
+            }
+            if (isInvalid && value != null) {
+                cellBox.setForeground(Color.RED);
+            } else if (value == null) {
+                cellBox.setForeground(IEditor.COLOR_DISABLED);
+            } else {
+                cellBox.setForeground(IEditor.COLOR_NORMAL);
+            }
             if (column == 0 && isInvalid) {
-                int iconSize = table.getRowHeight() - 4;
+                int iconSize = table.getRowHeight() - 6;
                 ((ComplexCellRenderer) cellBox).label.setIcon(
-                    ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), iconSize, iconSize)
+                    ImageUtils.resize(ICON_INVALID, iconSize, iconSize)
                 );
             }
             cellBox.setBorder(new CompoundBorder(
