@@ -2,7 +2,6 @@ package codex.presentation;
 
 import codex.editor.IEditor;
 import java.awt.Dimension;
-import java.awt.event.HierarchyEvent;
 import javax.swing.JComponent;
 import javax.swing.JTable;
 import javax.swing.KeyStroke;
@@ -19,18 +18,9 @@ public final class SelectorTable extends JTable {
         setRowHeight((int) (IEditor.FONT_VALUE.getSize() * 2));
         setShowVerticalLines(false);
         setIntercellSpacing(new Dimension(0,0));
-        setPreferredScrollableViewportSize(getPreferredSize());
         
         getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)
                 .put(KeyStroke.getKeyStroke("ENTER"), "none");
-        
-        setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
-        TableColumnAdjuster adjuster = new TableColumnAdjuster(this);
-        
-        addHierarchyListener((HierarchyEvent e) -> {
-            adjuster.adjustColumns();
-            getParent().repaint();
-        });
     }
 
 }
