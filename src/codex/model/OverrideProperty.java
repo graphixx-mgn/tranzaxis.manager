@@ -25,7 +25,7 @@ import javax.swing.JComponent;
  * Команда переключения наследования значения свойства от одноименного свойства 
  * родительской сущности.
  */
-public class SwitchInheritance extends EditorCommand {
+public class OverrideProperty extends EditorCommand {
     
     private static final ImageIcon           OVERRIDE = ImageUtils.resize(ImageUtils.getByPath("/images/override.png"), 18, 18);
     private static final ImageIcon           INHERIT  = ImageUtils.resize(ImageUtils.getByPath("/images/inherit.png"), 18, 18);
@@ -40,7 +40,7 @@ public class SwitchInheritance extends EditorCommand {
      * @param childHolder Свойство которое наследует значение.
      * @param parentHolder Одноименное свойство родительской сущности.
      */
-    public SwitchInheritance(Entity entity, PropertyHolder propHolder, PropertyHolder parentHolder) {
+    public OverrideProperty(Entity entity, PropertyHolder propHolder, PropertyHolder parentHolder) {
         super(propHolder.isInherited() ? OVERRIDE : INHERIT, Language.get("title"));
         
         activator = (holders) -> {
@@ -87,9 +87,10 @@ public class SwitchInheritance extends EditorCommand {
             } else {
                 overrideProps.add(propHolder.getName());
             }
+            
             // Установка значения без вызова событий
             entity.model.getProperty(EntityModel.OVR).getPropValue().valueOf(ArrStr.merge(overrideProps));
-            Map<String, String> values = new LinkedHashMap();
+            Map<String, String> values = new LinkedHashMap<>();
             values.put(EntityModel.OVR, entity.model.getProperty(EntityModel.OVR).getPropValue().toString());
             int result = CAS.updateClassInstance(entity.getClass(), entity.model.getID(), values);
             if (result != IConfigStoreService.RC_SUCCESS) {
@@ -97,7 +98,7 @@ public class SwitchInheritance extends EditorCommand {
             }
         };
         
-        if (entity.model.getValue(EntityModel.OVR) != null) {
+        if (entity.model.getValue(EntityModel.OVR) != null) {            
             List<String> overrideProps = (List<String>) entity.model.getValue(EntityModel.OVR);
             if (!overrideProps.contains(propHolder.getName())) {
                 updater.accept(propHolder);
