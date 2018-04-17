@@ -63,6 +63,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     private final CommandPanel        commandPanel = new CommandPanel();
     private final List<EntityCommand> commands = new LinkedList<>();
     private final Class               entityClass;
+    private final Entity              entity;
     private final SelectorTableModel  tableModel;
     private final JTable              table;
     
@@ -78,16 +79,19 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             ));
         }
         entityClass = entity.getChildClass();
-        Entity prototype = Entity.newInstance(entityClass, null);
+        this.entity = entity;
+        Entity prototype = Entity.newInstance(entityClass, null, null);
         
         commands.add(new EditEntity());
-        commands.add(new CreateEntity() {
-            
-        });
-        commands.add(new CloneEntity());
-        commands.add(new DeleteEntity());
+        if (entity.allowModifyChild()) {
+            commands.add(new CreateEntity());
+            commands.add(new CloneEntity());
+            commands.add(new DeleteEntity());
+        }
         commandPanel.addCommands(commands.toArray(new EntityCommand[]{}));
-        commandPanel.addSeparator();
+        if (!prototype.getCommands().isEmpty()) {
+            commandPanel.addSeparator();
+        }
         
         commands.addAll(prototype.getCommands());
         commandPanel.addCommands(prototype.getCommands().toArray(new EntityCommand[]{}));
@@ -115,9 +119,11 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         table.setDefaultRenderer(EntityRef.class, renderer);
         table.getTableHeader().setDefaultRenderer(renderer);
         
-        table.setDragEnabled(true);
-        table.setDropMode(DropMode.INSERT_ROWS);
-        table.setTransferHandler(new TableTransferHandler(table));
+        if (entity.allowModifyChild()) {
+            table.setDragEnabled(true);
+            table.setDropMode(DropMode.INSERT_ROWS);
+            table.setTransferHandler(new TableTransferHandler(table));
+        }
         
         final JScrollPane scrollPane = new JScrollPane();
         scrollPane.getViewport().setBackground(Color.WHITE);
@@ -153,7 +159,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     @Override
     public void valueChanged(ListSelectionEvent event) {
         if (event.getValueIsAdjusting()) return;
-
+        
         Entity[] entities = Arrays
                 .stream(table.getSelectedRows())
                 .boxed()
@@ -187,7 +193,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            Entity newEntity = Entity.newInstance(entityClass, null);
+            Entity newEntity = Entity.newInstance(entityClass, /*SelectorPresentation.this.entity*/null, null);
  
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
@@ -271,7 +277,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            Entity newEntity = Entity.newInstance(context.getParent().getChildClass(), null);
+            Entity newEntity = Entity.newInstance(context.getParent().getChildClass(), /*SelectorPresentation.this.entity*/null, null);
             
             context.model.getProperties(Access.Edit).forEach((propName) -> {
                 if (EntityModel.PID.equals(propName)) {

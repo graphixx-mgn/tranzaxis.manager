@@ -128,6 +128,17 @@ public interface INode extends TreeNode {
         return null;
     };
     
+    /**
+     * Разрешено ли редактирование списка дочерних сущностей (
+     *  * добавление
+     *  * удаление
+     *  * изменение порядка
+     * ).
+     */
+    default boolean allowModifyChild() {
+        return true;
+    };
+    
     void addNodeListener(INodeListener listener);
 
 }
