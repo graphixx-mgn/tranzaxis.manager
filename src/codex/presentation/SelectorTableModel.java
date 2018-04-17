@@ -24,8 +24,9 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
             childModel.addChangeListener((name, oldValue, newValue) -> {
                 if (childModel.isPropertyDynamic(name)) {
                     final int entityIdx = entity.getIndex(node);
-                    int propIdx = childModel.getProperties(Access.Select).indexOf(name);
-                    setValueAt(newValue, entityIdx, propIdx);
+                    if (childModel.getProperties(Access.Select).contains(name)) {
+                        setValueAt(newValue, entityIdx, childModel.getProperties(Access.Select).indexOf(name));
+                    }
                 }
             });
         });
@@ -51,12 +52,14 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
 
     @Override
     public void moveRow(int start, int end, int to) {
+//        throw new IllegalStateException("Not supported yet");
         super.moveRow(start, end, to);
         entity.move(getEntityAt(start), to);
         SwingUtilities.invokeLater(() -> {
             entity.childrenList().forEach((node) -> {
                 ((Entity) node).model.setValue(EntityModel.SEQ, (entity.childrenList().indexOf(node)+1));
-                ((Entity) node).model.saveValue(EntityModel.SEQ);
+                //((Entity) node).model.saveValue(EntityModel.SEQ);
+                ((Entity) node).model.commit();
             });
         });
     }
