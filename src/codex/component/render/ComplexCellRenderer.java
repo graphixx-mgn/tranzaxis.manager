@@ -1,6 +1,7 @@
 package codex.component.render;
 
 import codex.editor.IEditor;
+import codex.model.Entity;
 import codex.presentation.SelectorTableModel;
 import codex.type.IComplexType;
 import codex.type.Iconified;
@@ -34,7 +35,14 @@ class ComplexCellRenderer extends CellRenderer<Object> {
     @Override
     public void setValue(Object value) {
         if (value != null && Iconified.class.isAssignableFrom(value.getClass())) {
-            label.setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 18, 18));
+            if (value instanceof Entity && !((Entity) value).model.isValid()) {
+                label.setIcon(ImageUtils.resize(ImageUtils.combine(
+                    ((Entity) value).getIcon(),
+                    ImageUtils.getByPath("/images/warn.png")    
+                ), 18, 18));
+            } else {
+                label.setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 18, 18));
+            }
         } else {
             label.setIcon(null);
         }
