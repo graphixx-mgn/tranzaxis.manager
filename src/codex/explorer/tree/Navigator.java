@@ -163,5 +163,12 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
     public void childChanged(INode node) {
         ((DefaultTreeModel) getModel()).nodeChanged(node);
     }
+
+    @Override
+    protected void setExpandedState(TreePath path, boolean state) {
+        if ((((INode) path.getLastPathComponent()).getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED) {
+            super.setExpandedState(path, state);
+        }
+    }
     
 }
