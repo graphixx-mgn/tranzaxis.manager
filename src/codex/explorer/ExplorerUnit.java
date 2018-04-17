@@ -17,7 +17,7 @@ import javax.swing.tree.TreePath;
 
 public final class ExplorerUnit extends AbstractUnit {
     
-    private JScrollPane browsePanel;
+    private JPanel      browsePanel;
     private JScrollPane navigatePanel;
     
     private final NodeTreeModel treeModel;
@@ -54,7 +54,7 @@ public final class ExplorerUnit extends AbstractUnit {
 
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.setMinimumSize(new Dimension(500, 0));
-        browsePanel = new JScrollPane();
+        browsePanel = new JPanel(new BorderLayout());
         browsePanel.setBorder(null);
         rightPanel.add(browsePanel, BorderLayout.CENTER);
         splitPanel.setRightComponent(rightPanel);
@@ -65,7 +65,7 @@ public final class ExplorerUnit extends AbstractUnit {
     public void viewportBound() {
         navigator.setModel(treeModel);
         navigatePanel.setViewportView(navigator);
-        browsePanel.setViewportView(browser);
+        browsePanel.add(browser, BorderLayout.CENTER);
     }
     
 }
