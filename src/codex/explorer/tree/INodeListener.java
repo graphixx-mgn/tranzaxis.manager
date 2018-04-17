@@ -25,4 +25,10 @@ public interface INodeListener {
      * @param childNode  Добавленный узел.
      */
     default void childMoved(INode parentNode, INode childNode)  {};
+    
+    /**
+     * Дочерний узел изменен.
+     * @param node  узел.
+     */
+    default void childChanged(INode node)  {};
 }

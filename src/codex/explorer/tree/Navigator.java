@@ -7,6 +7,7 @@ import codex.model.EntityModel;
 import codex.model.IModelListener;
 import codex.utils.ImageUtils;
 import java.awt.Color;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import javax.swing.JLabel;
@@ -86,16 +87,20 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
     public void setModel(TreeModel model) {
         super.setModel(model);
         if (model instanceof NodeTreeModel) {
-            for (int rowIdx = 0; rowIdx < getRowCount(); rowIdx++) {
-                final TreePath path = getPathForRow(rowIdx);
-                final INode    node = (INode) path.getLastPathComponent();
-                setToolTip(path, node);
+            final Iterator<INode> it = ((NodeTreeModel) model).iterator();
+            INode node;
+            while (it.hasNext()) {
+                node = it.next();
+                setToolTip(new TreePath(((NodeTreeModel) model).getPathToRoot(node)), node);
                 node.addNodeListener(this);
             }
         }
     }
     
     private void setToolTip(TreePath path, INode node) {
+        if (((Entity) node).getHint() == null) {
+            return;
+        }
         TreeNodeBalloonTip tip = new TreeNodeBalloonTip(
                     this, 
                     new JLabel(
@@ -134,6 +139,7 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
                 parentNode, 
                 new int[] {parentNode.getIndex(childNode)}
         );
+        childNode.addNodeListener(this);
     }
 
     @Override
@@ -153,4 +159,9 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
         ((DefaultTreeModel) getModel()).nodeStructureChanged(parentNode);
     }
 
+    @Override
+    public void childChanged(INode node) {
+        ((DefaultTreeModel) getModel()).nodeChanged(node);
+    }
+    
 }

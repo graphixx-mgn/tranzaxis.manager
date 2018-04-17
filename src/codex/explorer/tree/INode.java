@@ -55,7 +55,7 @@ public interface INode extends TreeNode {
     /**
      * Возвращает список имен узлов от корневого до текущего.
      */
-    List<String> getPath();
+    List<INode> getPath();
     
     /**
      * Возвращает путь до текущего узла.

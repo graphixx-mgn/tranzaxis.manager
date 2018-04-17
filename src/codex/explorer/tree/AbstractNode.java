@@ -41,12 +41,15 @@ public abstract class AbstractNode implements INode {
     @Override
     public final void setMode(int mode) {
         this.mode = mode;
+        new LinkedList<>(nodeListeners).forEach((listener) -> {
+            listener.childChanged(this);
+        });
     };
     
     @Override
-    public final List<String> getPath() {
-        List<String> path = getParent() != null ? getParent().getPath() : new LinkedList<>();
-        path.add(toString());
+    public final List<INode> getPath() {
+        List<INode> path = getParent() != null ? getParent().getPath() : new LinkedList<>();
+        path.add(this);
         return path;
     }
     
@@ -56,6 +59,9 @@ public abstract class AbstractNode implements INode {
                 .getPath()
                 .stream()
                 .skip(1)
+                .map((node) -> {
+                    return node.toString();
+                })
                 .collect(Collectors.toList())
         );
     }
@@ -97,5 +103,5 @@ public abstract class AbstractNode implements INode {
         });
         children.remove(child);
     };
-
+    
 }
