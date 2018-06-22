@@ -84,7 +84,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public final boolean isValid() {
         boolean isValid = true;
         for (String propName : getProperties(Access.Any)) {
-            isValid = isValid & !(getValue(propName) == null && getProperty(propName).isRequired());
+            isValid = isValid & getProperty(propName).isValid();
         }
         return isValid;
     };
@@ -112,6 +112,19 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         addProperty(name, value, require, restriction);
         if (databaseValues != null && databaseValues.containsKey(name)) {
             getProperty(name).getPropValue().valueOf(databaseValues.get(name));
+        }
+    }
+    
+    /**
+     * Добавление хранимого свойства в сущность.
+     * @param propHolder Ссылка на свойство.
+     * @param restriction  Ограничение видимости свойства в редакторе и/или 
+     * селекторе.
+     */
+    public final void addUserProp(PropertyHolder propHolder, Access restriction) {
+        addProperty(propHolder, restriction);
+        if (databaseValues != null && databaseValues.containsKey(propHolder.getName())) {
+            getProperty(propHolder.getName()).getPropValue().valueOf(databaseValues.get(propHolder.getName()));
         }
     }
     
