@@ -156,7 +156,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
      * Возвращает флаг корректности значения свойства.
      */
     public boolean isValid() {
-        if (value instanceof EntityRef) {
+        if (value instanceof EntityRef && ((EntityRef) value).getValue() != null) {
             return ((EntityRef) value).getValue().model.isValid();
         } else {
             return !(isRequired() && isEmpty());
