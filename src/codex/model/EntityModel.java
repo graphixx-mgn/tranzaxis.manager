@@ -1,5 +1,6 @@
 package codex.model;
 
+import codex.command.EditorCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.config.ConfigStoreService;
@@ -12,7 +13,6 @@ import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.ArrStr;
-import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Int;
 import codex.type.Str;
@@ -42,6 +42,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     private final static IConfigStoreService    CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
     
+    private final Map<String, String> databaseValues;
+    
     private final Class           entityClass;
     private final DynamicResolver dynamicResolver = new DynamicResolver();
     private final List<String>    dynamicProps = new LinkedList<>();
@@ -51,25 +53,23 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     
     EntityModel(Class entityClass, String PID) {
         this.entityClass = entityClass;
-        addDynamicProp(EntityModel.ID, new Int(null), Access.Any, null);
-        addUserProp(EntityModel.SEQ,   new Int(null), true, Access.Any);
-        addUserProp(EntityModel.PID,   new Str(PID),  true, 
+        this.databaseValues = CAS.readClassInstance(entityClass, PID);
+        addDynamicProp(
+                EntityModel.ID, 
+                new Int(databaseValues.containsKey(ID) ? Integer.valueOf(databaseValues.get(ID)) : null), 
+                Access.Any, null
+        );
+        
+        addUserProp(EntityModel.SEQ, new Int(null), 
+                !Catalog.class.isAssignableFrom(entityClass), 
+                Access.Any
+        );
+        addUserProp(EntityModel.PID, new Str(PID),  
+                true, 
                 Catalog.class.isAssignableFrom(entityClass) ? Access.Any : null
         );
-        addUserProp(EntityModel.OVR,   new ArrStr(new LinkedList<>()),  false, Access.Any);
+        addUserProp(EntityModel.OVR, new ArrStr(new LinkedList<>()), false, Access.Any);
         addModelListener(dynamicResolver);
-        init();
-    }
-    
-    public final void init() {
-        if (getPID() != null) {
-            Integer newID = CAS.initClassInstance(entityClass, getPID());
-            if (newID != null) {
-                setValue(ID, newID);
-            }
-            getProperty(EntityModel.SEQ).getPropValue().valueOf(CAS.readClassProperty(entityClass, getID(), EntityModel.SEQ));
-        }
-        ((Str) getProperty(EntityModel.PID).getPropValue()).setMask(new PIDMask(entityClass, getID()));
     }
     
     public final Integer getID() {
@@ -109,17 +109,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * селекторе.
      */
     public final void addUserProp(String name, IComplexType value, boolean require, Access restriction) {
-        if (value instanceof EntityRef) {
-            CAS.addClassProperty(entityClass, name, ((EntityRef) value).getEntityClass());
-        } else {
-            CAS.addClassProperty(entityClass, name, null);
-        }
         addProperty(name, value, require, restriction);
-        if (getID() != null) {
-            String val = CAS.readClassProperty(entityClass, getID(), name);
-            if (val != null) {
-                getProperty(name).getPropValue().valueOf(val);
-            }
+        if (databaseValues != null && databaseValues.containsKey(name)) {
+            getProperty(name).getPropValue().valueOf(databaseValues.get(name));
         }
     }
     
@@ -280,11 +272,32 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             changes.forEach((propName) -> {
                 values.put(propName, getProperty(propName).getPropValue().toString());
             });
+            if (getID() == null) {
+                Map<String, IComplexType> propDefinitions = new LinkedHashMap<>();
+                
+                getProperties(Access.Any)
+                    .stream()
+                    .filter((propName) -> {
+                        return !dynamicProps.contains(propName) && !SYSPROPS.contains(propName);
+                    })
+                    .forEach((propName) -> {
+                        propDefinitions.put(propName, getProperty(propName).getPropValue());
+                    });
+                
+                Map<String, Integer> keys = CAS.initClassInstance(entityClass, getPID(), propDefinitions);
+                setValue(ID, keys.get(ID));
+                setValue(SEQ, keys.get(SEQ));
+            }
             int result = CAS.updateClassInstance(entityClass, getID(), values);
             if (result == IConfigStoreService.RC_SUCCESS) {
                 undoRegistry.clear();
                 new LinkedList<>(modelListeners).forEach((listener) -> {
                     listener.modelSaved(this, changes);
+                });
+                values.keySet().forEach((propName) -> {
+                    ((List<EditorCommand>) getEditor(propName).getCommands()).forEach((command) -> {
+                        command.activate();
+                    });
                 });
             } else {
                 MessageBox.show(MessageType.ERROR, Language.get("error@notsaved"));
@@ -309,22 +322,22 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * Сохранение значения единичного свойства.
      * @param propName 
      */
-    public final void saveValue(String propName) {
-        Map<String, String> values = new LinkedHashMap();
-        values.put(propName, getProperty(propName).getPropValue().toString());
-        int result = CAS.updateClassInstance(entityClass, getID(), values);
-        if (result != IConfigStoreService.RC_SUCCESS) {
-            MessageBox.show(MessageType.ERROR, Language.get(EntityModel.class.getSimpleName(), "error@notsaved"));
-        } else {
-            if (undoRegistry.exists(propName)) {
-                undoRegistry.put(
-                        propName, 
-                        undoRegistry.previous(propName),
-                        undoRegistry.previous(propName)
-                );
-            }
-        }
-    }
+//    public final void saveValue(String propName) {
+//        Map<String, String> values = new LinkedHashMap();
+//        values.put(propName, getProperty(propName).getPropValue().toString());
+//        int result = CAS.updateClassInstance(entityClass, getID(), values);
+//        if (result != IConfigStoreService.RC_SUCCESS) {
+//            MessageBox.show(MessageType.ERROR, Language.get(EntityModel.class.getSimpleName(), "error@notsaved"));
+//        } else {
+//            if (undoRegistry.exists(propName)) {
+//                undoRegistry.put(
+//                        propName, 
+//                        undoRegistry.previous(propName),
+//                        undoRegistry.previous(propName)
+//                );
+//            }
+//        }
+//    }
 
     @Override
     public IEditor getEditor(String name) {
