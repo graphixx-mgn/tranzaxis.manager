@@ -2,6 +2,7 @@ package codex.property;
 
 import codex.mask.IMask;
 import codex.model.AbstractModel;
+import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.utils.Language;
 import java.text.MessageFormat;
@@ -155,7 +156,11 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
      * Возвращает флаг корректности значения свойства.
      */
     public boolean isValid() {
-        return !(isRequired() && isEmpty());
+        if (value instanceof EntityRef) {
+            return ((EntityRef) value).getValue().model.isValid();
+        } else {
+            return !(isRequired() && isEmpty());
+        }
     }
     
     /**
