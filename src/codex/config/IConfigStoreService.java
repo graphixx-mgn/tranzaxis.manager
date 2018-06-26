@@ -2,6 +2,7 @@ package codex.config;
 
 import codex.model.EntityModel;
 import codex.service.IService;
+import codex.type.IComplexType;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,22 +15,9 @@ import java.util.Map;
  */
 public interface IConfigStoreService extends IService {
     
-    public static int RC_SUCCESS = 0;
-    public static int RC_ERROR   = 10;
+    public static int RC_SUCCESS        = 0;
+    public static int RC_ERROR          = 10;
     public static int RC_DEL_CONSTRAINT = 11;
-    
-    /**
-     * Создать каталог для сохранения моделей сущностей указанного класса. 
-     * @param clazz Класс сущности.
-     */
-    default void createClassCatalog(Class clazz) {};
-    
-    /**
-     * Добавить в каталог новое хранимое свойство сущности.
-     * @param clazz Класс сущности.
-     * @param propName Имя свойства.
-     */
-    default void addClassProperty(Class clazz, String propName, Class refClazz) {};
     
     /**
      * Создать пустую запись в каталоге для модели сушности по её уникальному ключу.
@@ -37,7 +25,7 @@ public interface IConfigStoreService extends IService {
      * @param PID Наименование сущности.
      * @return ID созданной сущности.
      */
-    default Integer initClassInstance(Class clazz, String PID) {
+    default Map<String, Integer> initClassInstance(Class clazz, String PID, Map<String, IComplexType> propDefinition) {
         return null;
     };
     
@@ -52,6 +40,22 @@ public interface IConfigStoreService extends IService {
         return RC_SUCCESS;
     };
     
+    /**Получить список значений свойств сущности.
+     * @param clazz Класс сущности.
+     * @param ID Уникальный числовой идентификатор сущности.
+     */
+    default Map<String, String> readClassInstance(Class clazz, String PID) {
+        return new HashMap<>();
+    };
+    
+    /**
+     * Получить список значений всех записей каталога.
+     * @param clazz Класс сущности.
+     */
+    default List<String> readCatalogEntries(Class clazz) {
+        return new LinkedList<>();
+    };
+    
     /**
      * Удалить запись в каталоге по её уникальному ключу.
      * @param clazz Класс сущности.
@@ -61,33 +65,7 @@ public interface IConfigStoreService extends IService {
     default int removeClassInstance(Class clazz, Integer ID) {
         return RC_SUCCESS;
     };
-    
-    /**
-     * Считать их каталога значение свойства сущности.
-     * @param clazz Класс сущности.
-     * @param ID Уникальный числовой идентификатор сущности.
-     * @param propName Имя свойства.
-     */
-    default String readClassProperty(Class clazz, Integer ID, String propName) {
-        return null;
-    };
-    
-    /**
-     * Получить список значений всех записей каталога.
-     * @param clazz Класс сущности.
-     */
-    default List<Map<String, String>> readCatalogEntries(Class clazz) {
-        return new LinkedList<>();
-    };
-    
-    /**Получить список значений свойств сущности.
-     * @param clazz Класс сущности.
-     * @param ID Уникальный числовой идентификатор сущности.
-     */
-    default Map<String, String> readClassInstance(Class clazz, Integer ID) {
-        return new HashMap<>();
-    };
-    
+
     default List<ForeignLink> findReferencedEntries(Class clazz, Integer ID) {
         return new ArrayList<>();
     }
