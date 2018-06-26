@@ -449,7 +449,15 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
 
         @Override
         public boolean verify(String value) {
-            return !(CAS.readCatalogEntries(entityClass).contains(getPID()) || EntityModel.this.getProperty(PID).isEmpty());
+            Map<Integer, String> entries = CAS.readCatalogEntries(entityClass);
+            if (getID() == null) {
+                return !(EntityModel.this.getProperty(PID).isEmpty() || entries.values().contains(getPID()));
+            } else {
+                
+                return !(EntityModel.this.getProperty(PID).isEmpty() || entries.entrySet().stream().anyMatch((entry) -> {
+                    return !entry.getKey().equals(getID()) && entry.getValue().equals(getPID());
+                }));
+            }
         }
 
         @Override
