@@ -9,6 +9,7 @@ import codex.editor.IEditor;
 import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
 import codex.mask.IMask;
+import codex.presentation.SelectorPresentation;
 import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
@@ -64,7 +65,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 !Catalog.class.isAssignableFrom(entityClass), 
                 Access.Any
         );
-        addUserProp(EntityModel.PID, new Str(PID),  
+        addUserProp(EntityModel.PID, new Str(PID).setMask(new UniqueMask()),  
                 true, 
                 Catalog.class.isAssignableFrom(entityClass) ? Access.Any : null
         );
@@ -437,5 +438,29 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                         propertyHolders.get(dynamicProp).setValue(dynValue);
                     });
         }
+    }
+    
+    private final class UniqueMask implements IMask<String> {
+        
+        private final String ERROR = Language.get(
+                SelectorPresentation.class.getSimpleName(), 
+                "creator@pid.hint"
+        );
+
+        @Override
+        public boolean verify(String value) {
+            return !(CAS.readCatalogEntries(entityClass).contains(getPID()) || EntityModel.this.getProperty(PID).isEmpty());
+        }
+
+        @Override
+        public String getErrorHint() {
+            return ERROR;
+        }
+
+        @Override
+        public boolean notNull() {
+            return true;
+        }
+
     }
 }
