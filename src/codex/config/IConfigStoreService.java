@@ -6,7 +6,7 @@ import codex.type.IComplexType;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -49,11 +49,11 @@ public interface IConfigStoreService extends IService {
     };
     
     /**
-     * Получить список значений всех записей каталога.
+     * Получить список (ID, PID) всех записей каталога.
      * @param clazz Класс сущности.
      */
-    default List<String> readCatalogEntries(Class clazz) {
-        return new LinkedList<>();
+    default Map<Integer, String> readCatalogEntries(Class clazz) {
+        return new LinkedHashMap<>();
     };
     
     /**

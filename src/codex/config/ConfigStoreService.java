@@ -16,6 +16,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -292,16 +293,16 @@ public final class ConfigStoreService implements IConfigStoreService {
     }
     
     @Override
-    public List<String> readCatalogEntries(Class clazz) {
-        List rows = new LinkedList();
+    public Map<Integer, String> readCatalogEntries(Class clazz) {
+        Map rows = new LinkedHashMap();
         final String className = clazz.getSimpleName().toUpperCase();
         if (storeStructure.containsKey(className)) {
-            final String selectSQL = MessageFormat.format("SELECT PID FROM {0} ORDER BY SEQ", className);
+            final String selectSQL = MessageFormat.format("SELECT ID, PID FROM {0} ORDER BY SEQ", className);
             try (Statement select = connection.createStatement()) {
                 select.setFetchSize(10);
                 try (ResultSet selectRS = select.executeQuery(selectSQL)) {
                     while (selectRS.next()) {
-                        rows.add(selectRS.getString(1));
+                        rows.put(selectRS.getInt(1), selectRS.getString(2));
                     }
                 } catch (SQLException e) {
                     Logger.getLogger().error("Unable to read catalog", e);
