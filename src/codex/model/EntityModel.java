@@ -14,6 +14,7 @@ import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.ArrStr;
+import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Int;
 import codex.type.Str;
@@ -405,6 +406,16 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     resolveOrder.add(basePropName);
                 }
                 resolveMap.put(basePropName, name);
+                
+                if (getPropertyType(basePropName) == EntityRef.class) {
+                    ((EntityRef) getProperty(basePropName).getPropValue()).getValue().model.addModelListener(new IModelListener() {
+                        @Override
+                        public void modelSaved(EntityModel model, List<String> changes) {
+                            Object dynValue = valueProvides.get(name).get();
+                            propertyHolders.get(name).setValue(dynValue);
+                        }                    
+                    });
+                }
             }
             valueProvides.put(name, valueProvider);
             
@@ -419,7 +430,6 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 }
             });
             propertyHolders.get(name).addChangeListener(this);
-            
             return propertyHolders.get(name);
         };
 
