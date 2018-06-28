@@ -65,10 +65,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 !Catalog.class.isAssignableFrom(entityClass), 
                 Access.Any
         );
-        addUserProp(EntityModel.PID, new Str(PID).setMask(new UniqueMask()),  
+        addUserProp(EntityModel.PID, new Str(PID)/*.setMask(new UniqueMask())*/,  
                 true, 
                 Catalog.class.isAssignableFrom(entityClass) ? Access.Any : null
         );
+        setPropUnique(EntityModel.PID);
         addUserProp(EntityModel.OVR, new ArrStr(new LinkedList<>()), false, Access.Any);
         addModelListener(dynamicResolver);
     }
@@ -148,6 +149,14 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             addProperty(name, value, false, restriction);
         }
         dynamicProps.add(name);
+    }
+    
+    /**
+     * Значение свойства должно быть уникальным среди сушностей у одного родителя
+     * @param name Идентификатор свойства.
+     */
+    public final void setPropUnique(String name) {
+        getProperty(name).getPropValue().setMask(new UniqueMask(name));
     }
     
     /**
@@ -446,18 +455,23 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 SelectorPresentation.class.getSimpleName(), 
                 "creator@pid.hint"
         );
+        private final String propName;
+        
+        public UniqueMask(String propName) {
+            this.propName = propName;
+        }
 
         @Override
         public boolean verify(String value) {
-            Map<Integer, String> entries = CAS.readCatalogEntries(entityClass);
-            if (getID() == null) {
-                return !(EntityModel.this.getProperty(PID).isEmpty() || entries.values().contains(getPID()));
-            } else {
-                
-                return !(EntityModel.this.getProperty(PID).isEmpty() || entries.entrySet().stream().anyMatch((entry) -> {
-                    return !entry.getKey().equals(getID()) && entry.getValue().equals(getPID());
-                }));
-            }
+            List<Entity> children = EAS.getEntitiesByClass(entityClass)
+                    .stream()
+                    .filter((entity) -> {
+                        return !entity.model.getID().equals(getID());
+                    })
+                    .collect(Collectors.toList());
+            return !children.stream().anyMatch((child) -> {
+                return child.model.getProperty(propName).getPropValue().toString().equals(value);
+            });
         }
 
         @Override
