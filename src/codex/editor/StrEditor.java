@@ -187,9 +187,6 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         textField.setForeground(inputOk ? COLOR_NORMAL : COLOR_INVALID);
         if (signInvalid != null) {
             signInvalid.setVisible(!inputOk);
-            if (mask.getErrorHint() != null) {
-                TimingUtils.showTimedBalloon(getErrorTip(), 3000);
-            }
         }
         return inputOk;
     }
