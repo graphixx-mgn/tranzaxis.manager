@@ -15,14 +15,12 @@ import codex.type.Iconified;
 import codex.utils.Language;
 import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
-import javax.swing.SwingUtilities;
 
 /**
  * Абстракная сущность, базовый родитель прикладных сущностей приложения.
@@ -30,9 +28,9 @@ import javax.swing.SwingUtilities;
  */
 public abstract class Entity extends AbstractNode implements IPropertyChangeListener, Iconified {
    
-    private       String    title;
-    private final ImageIcon icon;
-    private final String    hint;
+    private       String        title;
+    private final ImageIcon     icon;
+    private final String        hint;
     
     private SelectorPresentation selectorPresentation;
     private final Map<String, EntityCommand> commands = new LinkedHashMap<>();
@@ -42,6 +40,13 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      */
     public final EntityModel model;
     
+    public Entity(INode parent, ImageIcon icon, String title, String hint) {
+        this(icon, title, hint);
+        if (parent != null) {
+            parent.insert(this);
+        }
+    }
+    
     /**
      * Конструктор сущности.
      * @param icon Иконка для отображения в дереве проводника.
@@ -49,17 +54,13 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      * @param hint Описание сущности.
      */
     public Entity(ImageIcon icon, String title, String hint) {
-        String PID;
-        String localTitle = Language.lookup(Arrays.asList(new String[]{this.getClass().getSimpleName()}), title);        
-        if (!localTitle.equals(Language.NOT_FOUND)) {
-            this.title = localTitle;
-        } else {
-            this.title = title;
-        }
-        if (this instanceof Catalog) {
-            PID = this.getClass().getCanonicalName();
-        } else {
-            PID = this.title;
+        String PID = null;
+        if (title != null) {
+            String name = Language.get(this.getClass().getSimpleName(), title, new java.util.Locale("en", "US"));
+            PID  = name.equals(Language.NOT_FOUND) ? title : name;
+        
+            String localTitle = Language.get(this.getClass().getSimpleName(), title);
+            this.title = localTitle.equals(Language.NOT_FOUND) ? title : localTitle;
         }
         this.icon  = icon;
         this.hint  = hint;
@@ -108,33 +109,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return new LinkedList<>(commands.values());
     }
     
-    @Override
-    public void insert(INode child) {
-        super.insert(child);
-        if (child instanceof Entity) {
-            Entity childEntity = (Entity) child;
-            SwingUtilities.invokeLater(() -> {
-                List<String> inheritance = childEntity.model.getProperties(Access.Edit)
-                    .stream()
-                    .filter(propName -> this.model.hasProperty(propName) && !EntityModel.SYSPROPS.contains(propName))
-                    .collect(Collectors.toList());
-                if (!inheritance.isEmpty()) {
-                    Logger.getLogger().debug(
-                            "Properties ''{0}/@{1}'' has possibility of inheritance", 
-                            child, inheritance
-                    );
-                    inheritance.forEach((propName) -> {
-                        childEntity.model.getEditor(propName).addCommand(new SwitchInheritance(
-                                childEntity,
-                                childEntity.model.getProperty(propName), 
-                                this.model.getProperty(propName)
-                        ));
-                    });
-                }
-            });
-        }
-    }
-    
     /**
      * Возвращает иконку сущности.
      */
@@ -161,6 +135,26 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
 
     @Override
     public final EditorPresentation getEditorPresentation() {
+        if (getParent() != null) {
+            Entity parent = (Entity) getParent();
+            List<String> overrideProps = parent.model.getProperties(Access.Edit)
+                    .stream()
+                    .filter(propName -> this.model.hasProperty(propName) && !EntityModel.SYSPROPS.contains(propName))
+                    .collect(Collectors.toList());
+            if (!overrideProps.isEmpty()) {
+                overrideProps.forEach((propName) -> {
+                    if (!this.model.getEditor(propName).getCommands().stream().anyMatch((command) -> {
+                        return command instanceof OverrideProperty;
+                    })) {
+                        this.model.getEditor(propName).addCommand(new OverrideProperty(
+                                this,
+                                this.model.getProperty(propName), 
+                                parent.model.getProperty(propName)
+                        ));
+                    }
+                });
+            }
+        }
         return new EditorPresentation(this);
     };
     
@@ -238,16 +232,16 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return IComplexType.coalesce(title, "<new "+getClass().getSimpleName()+">");
     }
     
-    public static Entity newInstance(Class entityClass, String title) {
+    public static Entity newInstance(Class entityClass, INode parent, String title) {
         try {
-            return (Entity) entityClass.getConstructor(String.class).newInstance((Object) title);
+            return (Entity) entityClass.getConstructor(INode.class, String.class).newInstance(parent, (Object) title);
         } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
             Logger.getLogger().error(
                     MessageFormat.format("Unable instantiate entity ''{0}''", entityClass.getCanonicalName()), e
             );
             return null;
         } catch (NoSuchMethodException e) {
-            Logger.getLogger().error("Entity ''{0}'' does not have universal constructor (String)", entityClass.getCanonicalName());
+            Logger.getLogger().error("Entity ''{0}'' does not have universal constructor (INode, String)", entityClass.getCanonicalName());
             return null;
         }
     }
