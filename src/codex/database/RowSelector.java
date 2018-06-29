@@ -270,7 +270,7 @@ public class RowSelector implements IDataSupplier<String> {
                 );
             }
             setBorder(new CompoundBorder(
-                    new MatteBorder(0, column == 0 ? 0 : 1, 1, 0, Color.GRAY),
+                    new MatteBorder(0, 0, 1, column == table.getColumnCount()-1 ? 0 : 1, Color.GRAY),
                     new EmptyBorder(1, 6, 0, 0)
             ));
             return this;
