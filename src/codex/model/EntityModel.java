@@ -56,6 +56,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     EntityModel(Class entityClass, String PID) {
         this.entityClass = entityClass;
         this.databaseValues = CAS.readClassInstance(entityClass, PID);
+        
         addDynamicProp(
                 EntityModel.ID, 
                 new Int(databaseValues.containsKey(ID) ? Integer.valueOf(databaseValues.get(ID)) : null), 
@@ -66,7 +67,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 !Catalog.class.isAssignableFrom(entityClass), 
                 Access.Any
         );
-        addUserProp(EntityModel.PID, new Str(PID)/*.setMask(new UniqueMask())*/,  
+        addUserProp(EntityModel.PID, new Str(PID),  
                 true, 
                 Catalog.class.isAssignableFrom(entityClass) ? Access.Any : null
         );
@@ -395,6 +396,24 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         private final Map<String, String> resolveMap = new HashMap<>();
         private final Map<String, Supplier> valueProvides = new HashMap<>();
         private final Map<String, PropertyHolder> propertyHolders = new HashMap<>();
+        
+        private final IModelListener referenceListener = new IModelListener() {
+            
+            @Override
+            public void modelSaved(EntityModel model, List<String> changes) {
+                DynamicResolver.this.modelSaved(
+                        EntityModel.this, 
+                        resolveOrder.stream()
+                            .filter((propName) -> {
+                                return 
+                                        getPropertyType(propName) == EntityRef.class &&
+                                        ((Entity) getValue(propName)).model.equals(model);
+                            })
+                            .collect(Collectors.toList())
+                );
+            }                    
+
+        };
 
         PropertyHolder newProperty(String name, IComplexType value, Supplier valueProvider, String... baseProps) {
             
@@ -408,13 +427,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 resolveMap.put(basePropName, name);
                 
                 if (getPropertyType(basePropName) == EntityRef.class) {
-                    ((EntityRef) getProperty(basePropName).getPropValue()).getValue().model.addModelListener(new IModelListener() {
-                        @Override
-                        public void modelSaved(EntityModel model, List<String> changes) {
-                            Object dynValue = valueProvides.get(name).get();
-                            propertyHolders.get(name).setValue(dynValue);
-                        }                    
-                    });
+                    properties.get(basePropName).addChangeListener(this);
+                    if (((EntityRef) getProperty(basePropName).getPropValue()).getValue() != null) {
+                        ((EntityRef) getProperty(basePropName).getPropValue()).getValue().model.addModelListener(referenceListener);
+                    }
                 }
             }
             valueProvides.put(name, valueProvider);
@@ -435,6 +451,14 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
 
         @Override
         public void propertyChange(String name, Object oldValue, Object newValue) {
+            if (getPropertyType(name) == EntityRef.class) {
+                if (oldValue != null) {
+                    ((Entity) oldValue).model.removeModelListener(referenceListener);
+                }
+                if (newValue != null) {
+                    ((Entity) newValue).model.addModelListener(referenceListener);
+                }
+            }
             if (resolveOrder.contains(name) && EntityModel.this.isPropertyDynamic(name)) {
                 String dynamicProp = resolveMap.get(name);
                 Object dynValue = valueProvides.get(dynamicProp).get();
@@ -445,14 +469,14 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         @Override
         public void modelSaved(EntityModel model, List<String> changes) {
             resolveOrder.stream()
-                    .filter((changedProp) -> {
-                        return changes.contains(changedProp);
+                    .filter((propName) -> {
+                        return changes.contains(propName);
                     })
                     .map((baseProp) -> {
                         return resolveMap.get(baseProp);
                     })
                     .distinct()
-                    .forEach((dynamicProp) -> {
+                    .forEach((dynamicProp) -> {                        
                         Object dynValue = valueProvides.get(dynamicProp).get();
                         propertyHolders.get(dynamicProp).setValue(dynValue);
                     });
