@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.swing.DropMode;
+import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -59,6 +60,11 @@ import javax.swing.event.ListSelectionListener;
  * новых сущностей.
  */
 public final class SelectorPresentation extends JPanel implements ListSelectionListener {
+    
+    private final static ImageIcon IMAGE_EDIT   = ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 28, 28);
+    private final static ImageIcon IMAGE_CREATE = ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 28, 28);
+    private final static ImageIcon IMAGE_CLONE  = ImageUtils.resize(ImageUtils.getByPath("/images/clone.png"), 28, 28);
+    private final static ImageIcon IMAGE_REMOVE = ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28);
     
     private final CommandPanel        commandPanel = new CommandPanel();
     private final List<EntityCommand> commands = new LinkedList<>();
@@ -183,7 +189,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         CreateEntity() {
             super(
                     "create", null,
-                    ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 28, 28), 
+                    IMAGE_CREATE, 
                     Language.get(SelectorPresentation.class.getSimpleName(), "command@create"),
                     null,
                     KeyStroke.getKeyStroke(KeyEvent.VK_ADD, InputEvent.CTRL_MASK)
@@ -193,7 +199,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            Entity newEntity = Entity.newInstance(entityClass, /*SelectorPresentation.this.entity*/null, null);
+            Entity newEntity = Entity.newInstance(entityClass, null, null);
  
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
@@ -214,7 +220,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     (event) -> {
                         if (event.getID() == Dialog.OK) {
                             newEntity.setTitle(newEntity.model.getPID());
-                            newEntity.model.init();
                             newEntity.model.commit();
 
                             tableModel.addRow(
@@ -268,7 +273,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         CloneEntity() {
             super(
                     "clone", null,
-                    ImageUtils.resize(ImageUtils.getByPath("/images/clone.png"), 28, 28), 
+                    IMAGE_CLONE, 
                     Language.get(SelectorPresentation.class.getSimpleName(), "command@clone"),
                     (entity) -> true,
                     KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_MASK)
@@ -306,7 +311,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     (event) -> {
                         if (event.getID() == Dialog.OK) {
                             newEntity.setTitle(newEntity.model.getPID());
-                            newEntity.model.init();
                             newEntity.model.commit();
 
                             tableModel.addRow(
@@ -360,7 +364,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         EditEntity() {
             super(
                     "edit", null,
-                    ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 28, 28), 
+                    IMAGE_EDIT, 
                     Language.get(SelectorPresentation.class.getSimpleName(), "command@edit"),
                     (entity) -> true
             );
@@ -418,7 +422,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         DeleteEntity() {
             super(
                     "delete", null,
-                    ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28), 
+                    IMAGE_REMOVE, 
                     Language.get(SelectorPresentation.class.getSimpleName(), "command@delete"),
                     (entity) -> true,
                     KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0)
