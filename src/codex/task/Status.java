@@ -52,6 +52,13 @@ public enum Status implements Iconified {
         return desc;
     }
 
+    /**
+     * Признак что состояние финальное (задача завершилась)
+     */
+    public final boolean isFinal() {
+        return this.equals(FINISHED) || this.equals(FAILED) || this.equals(CANCELLED);
+    } 
+    
     @Override
     public String toString() {
         return title;
