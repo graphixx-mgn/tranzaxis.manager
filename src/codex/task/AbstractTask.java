@@ -139,7 +139,9 @@ public abstract class AbstractTask<T> implements ITask<T> {
      * @param state Константа типа {@link Status}
      */
     void setStatus(Status state) {
-        Logger.getLogger().debug("Task ''{0}'' state changed: {1} -> {2}", getTitle(), this.status, state);
+        if (!this.status.equals(state)) {
+            Logger.getLogger().debug("Task ''{0}'' state changed: {1} -> {2}", getTitle(), this.status, state);
+        }
         this.status = state;
         new LinkedList<>(listeners).forEach((listener) -> {
             listener.statusChanged(this, status);

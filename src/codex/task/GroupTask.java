@@ -48,9 +48,6 @@ public final class GroupTask<T> extends AbstractTask<T> {
                 }
             }
         }
-        if (!aborted) {
-            setStatus(Status.FINISHED);
-        }
         return null;
     }
 

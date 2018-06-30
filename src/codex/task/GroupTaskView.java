@@ -157,8 +157,11 @@ final class GroupTaskView extends AbstractTaskView {
         );
         statuses.get(task).setText(task.getDescription());
         
-        int totalProgress = progresses.keySet().stream().mapToInt(queued -> queued.getProgress()).sum() / progresses.keySet().size();
-        
+        int totalProgress = progresses.keySet()
+                .stream()
+                .mapToInt((subTask) -> {
+                    return subTask.getStatus() == Status.FINISHED ? 100 : subTask.getProgress();
+                }).sum() / progresses.keySet().size();
         mainProgress.setValue(totalProgress);
         ((AbstractTask) mainTask).setProgress(totalProgress, null);
     }
