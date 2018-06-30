@@ -216,7 +216,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         if (undoRegistry.exists(name)) {
             Object value = undoRegistry.current(name);
             IMask mask = getProperty(name).getPropValue().getMask();
-            if ((value == null && !mask.notNull()) || mask.verify(value)) {
+            if (
+                    (value == null && (mask == null || !mask.notNull())) || 
+                    (mask == null || mask.verify(value))
+            ) {
                 return value;
             } else {
                 return super.getValue(name);
