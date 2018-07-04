@@ -44,7 +44,7 @@ public interface IConfigStoreService extends IService {
      * @param clazz Класс сущности.
      * @param ID Уникальный числовой идентификатор сущности.
      */
-    default Map<String, String> readClassInstance(Class clazz, String PID) {
+    default Map<String, String> readClassInstance(Class clazz, String PID, Integer ownerId) {
         return new HashMap<>();
     };
     
@@ -52,7 +52,7 @@ public interface IConfigStoreService extends IService {
      * Получить список (ID, PID) всех записей каталога.
      * @param clazz Класс сущности.
      */
-    default Map<Integer, String> readCatalogEntries(Class clazz) {
+    default Map<Integer, String> readCatalogEntries(Integer ownerId, Class clazz) {
         return new LinkedHashMap<>();
     };
     

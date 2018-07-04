@@ -94,8 +94,8 @@ public final class ConfigStoreService implements IConfigStoreService {
         
         propDefinition.forEach((propName, propVal) -> {
             if (!storeStructure.containsKey(className) || !storeStructure.get(className).contains(propName)) {
-                if (propVal instanceof EntityRef) {
-                    Class refClazz = ((EntityRef) propVal).getEntityClass();
+                Class refClazz;
+                if (propVal instanceof EntityRef && (refClazz = ((EntityRef) propVal).getEntityClass()) != null) {
                     if (!storeStructure.containsKey(refClazz.getSimpleName().toUpperCase())) {
                         buildClassCatalog(refClazz, new HashMap<>());
                     }
@@ -112,7 +112,7 @@ public final class ConfigStoreService implements IConfigStoreService {
         
         if (!storeStructure.containsKey(className)) {
             String createSQL = MessageFormat.format(
-                    "CREATE TABLE IF NOT EXISTS {0} ({1}, CONSTRAINT UNIQUE_PID UNIQUE (PID));",
+                    "CREATE TABLE IF NOT EXISTS {0} ({1}, CONSTRAINT UNIQUE_PID UNIQUE (PID, OWN));",
                     className,
                     String.join(", ", columns)
             );
@@ -263,14 +263,21 @@ public final class ConfigStoreService implements IConfigStoreService {
     }
     
     @Override
-    public Map<String, String> readClassInstance(Class clazz, String PID) {
+    public Map<String, String> readClassInstance(Class clazz, String PID, Integer ownerId) {
         Map<String, String> rowData = new HashMap<>();
         final String className = clazz.getSimpleName().toUpperCase();
-        
         if (storeStructure.containsKey(className)) {
-            final String selectSQL = MessageFormat.format("SELECT * FROM {0} WHERE PID = ?", className);
+            final String selectSQL;
+            if (ownerId != null) {
+                selectSQL = MessageFormat.format("SELECT * FROM {0} WHERE PID = ? AND OWN = ?", className);
+            } else {
+                selectSQL = MessageFormat.format("SELECT * FROM {0} WHERE PID = ?", className);
+            }
             try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
                 select.setString(1, PID);
+                if (ownerId != null) {
+                    select.setInt(2, ownerId);
+                }
                 try (ResultSet selectRS = select.executeQuery()) {
                     ResultSetMetaData meta = selectRS.getMetaData();
                     if (selectRS.next()) {
@@ -293,14 +300,22 @@ public final class ConfigStoreService implements IConfigStoreService {
     }
     
     @Override
-    public Map<Integer, String> readCatalogEntries(Class clazz) {
+    public Map<Integer, String> readCatalogEntries(Integer ownerId, Class clazz) {
         Map rows = new LinkedHashMap();
         final String className = clazz.getSimpleName().toUpperCase();
         if (storeStructure.containsKey(className)) {
-            final String selectSQL = MessageFormat.format("SELECT ID, PID FROM {0} ORDER BY SEQ", className);
-            try (Statement select = connection.createStatement()) {
+            final String selectSQL;
+            if (ownerId != null) {
+                selectSQL = MessageFormat.format("SELECT ID, PID FROM {0} WHERE (OWN = ?) ORDER BY SEQ", className);
+            } else {
+                selectSQL = MessageFormat.format("SELECT ID, PID FROM {0} ORDER BY SEQ", className);
+            }
+            try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
                 select.setFetchSize(10);
-                try (ResultSet selectRS = select.executeQuery(selectSQL)) {
+                if (ownerId != null) {
+                    select.setInt(1, ownerId);
+                }
+                try (ResultSet selectRS = select.executeQuery()) {
                     while (selectRS.next()) {
                         rows.put(selectRS.getInt(1), selectRS.getString(2));
                     }
