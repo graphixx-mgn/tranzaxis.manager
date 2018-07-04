@@ -220,6 +220,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     (event) -> {
                         if (event.getID() == Dialog.OK) {
                             newEntity.setTitle(newEntity.model.getPID());
+                            context.insert(newEntity);
                             newEntity.model.commit();
 
                             tableModel.addRow(
@@ -236,7 +237,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                                 }
                             });
 
-                            context.insert(newEntity);
                             table.getSelectionModel().setSelectionInterval(
                                     tableModel.getRowCount() - 1, 
                                     tableModel.getRowCount() - 1
@@ -311,6 +311,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     (event) -> {
                         if (event.getID() == Dialog.OK) {
                             newEntity.setTitle(newEntity.model.getPID());
+                            context.getParent().insert(newEntity);
                             newEntity.model.commit();
 
                             tableModel.addRow(
@@ -327,7 +328,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                                 }
                             });
 
-                            context.getParent().insert(newEntity);
                             table.getSelectionModel().setSelectionInterval(
                                     tableModel.getRowCount() - 1, 
                                     tableModel.getRowCount() - 1
