@@ -1,11 +1,11 @@
 package manager.nodes;
 
-import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.database.IDatabaseAccessService;
 import codex.database.OracleAccessService;
 import codex.database.RowSelector;
+import codex.explorer.tree.INode;
 import codex.mask.DataSetMask;
 import codex.mask.RegexMask;
 import codex.model.Access;
@@ -19,16 +19,11 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.sql.SQLException;
 import java.text.MessageFormat;
-import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import manager.commands.CheckDatabase;
-import manager.commands.EditSAPPorts;
 
 public class Database extends Entity {
-    
-    private static final EntityCommand CHECK = new CheckDatabase();
-    private static final EntityCommand REMAP = new EditSAPPorts();
     
     public static IDatabaseAccessService DAS;
     static {
@@ -79,27 +74,13 @@ public class Database extends Entity {
         return connectionGetter.apply(true);
     };
     
-    private final IDataSupplier<String> instanceSupplier = new RowSelector(
-            RowSelector.Mode.Row, connectionSupplier, 
-            "SELECT ID, TITLE FROM RDX_INSTANCE ORDER BY ID"
-    );
-    
     private final IDataSupplier<String> layerSupplier = new RowSelector(
             RowSelector.Mode.Row, connectionSupplier, 
             "SELECT LAYERURI, VERSION, UPGRADEDATE FROM RDX_DDSVERSION"
     );
-    
-    private final IDataSupplier<String> versionSupplier = () -> {
-        List<String> layerUri = (List<String>) model.getUnsavedValue("layerURI");
-        return new RowSelector(
-                RowSelector.Mode.Row, connectionSupplier, 
-                "SELECT VERSION FROM RDX_DDSVERSION WHERE LAYERURI = ?",        
-                layerUri == null ? null : layerUri.get(0)
-        ).call();
-    };
 
-    public Database(String title) {
-        super(ImageUtils.getByPath("/images/database.png"), title, null);
+    public Database(INode parent, String title) {
+        super(parent, ImageUtils.getByPath("/images/database.png"), title, null);
         
         model.addUserProp("dbUrl", 
                 new Str(null).setMask(new RegexMask(
@@ -111,19 +92,12 @@ public class Database extends Entity {
         true, Access.Select);
         model.addUserProp("dbSchema",   new Str(null), true, null);
         model.addUserProp("dbPass",     new Str(null), true, Access.Select);
-        model.addUserProp("instanceId", new ArrStr().setMask(new DataSetMask(
-                "{0} - {1}", instanceSupplier
-        )), true, Access.Select);
-        model.addUserProp("layerURI", new ArrStr().setMask(new DataSetMask(
+        model.addUserProp("layerURI",   new ArrStr().setMask(new DataSetMask(
                 "{0}", layerSupplier
         )),  true, Access.Select);
-        model.addUserProp("version", new ArrStr().setMask(new DataSetMask(
-                "{0}", versionSupplier
-        )), true, null);
         model.addUserProp("userNote", new Str(null), false, null);
         
-        addCommand(CHECK);
-        addCommand(REMAP);
+        addCommand(new CheckDatabase());
     }
     
     public Integer getConnectionID() {
