@@ -87,13 +87,15 @@ public class CheckDatabase extends EntityCommand {
     }
     
     private void startService(Entity context,  String url, String user, String password) {
-        try {
-            Database.DAS.registerConnection(url, user, password);
-        } catch (SQLException e) {
-            Logger.getLogger().warn(
-                    "Unable to connect to database ''{0}'': {1}",
-                    context, e.getMessage()
-            );
+        if (!IComplexType.coalesce(user, password, "").isEmpty()) {
+            try {
+                Database.DAS.registerConnection(url, user, password);
+            } catch (SQLException e) {
+                Logger.getLogger().warn(
+                        "Unable to connect to database ''{0}'': {1}",
+                        context, e.getMessage()
+                );
+            }
         }
     }
     
