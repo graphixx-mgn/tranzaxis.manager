@@ -1,15 +1,16 @@
 package manager.nodes;
 
+import codex.explorer.tree.INode;
 import codex.model.Access;
 import codex.model.Catalog;
 import codex.type.ArrStr;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 
-public class SystemRoot extends Catalog {
+public class EnvironmentRoot extends Catalog {
     
-    public SystemRoot() {
-        super(ImageUtils.getByPath("/images/system.png"), Language.get("desc"));
+    public EnvironmentRoot(INode parent) {
+        super(parent, ImageUtils.getByPath("/images/system.png"), "title", Language.get("desc"));
         
         model.addUserProp("jvmServer",    new ArrStr("-Xmx2G"), false, Access.Select);
         model.addUserProp("jvmExplorer",  new ArrStr("-Xmx1G"), false, Access.Select);
@@ -18,7 +19,7 @@ public class SystemRoot extends Catalog {
 
     @Override
     public Class getChildClass() {
-        return System.class;
+        return Environment.class;
     }
     
 }
