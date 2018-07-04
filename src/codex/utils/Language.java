@@ -42,6 +42,16 @@ public class Language {
         return bundle.containsKey(key) ? bundle.getString(key) : NOT_FOUND;
     }
     
+    public static String get(String className, String key, Locale locale) {
+        ResourceBundle bundle;
+        if (LOADER.getResource("resource/locale/"+className+"_"+(locale == null ? getLocale(): locale).toString()+".properties") != null) {
+            bundle = ResourceBundle.getBundle("resource/locale/"+className, locale == null ? getLocale(): locale);
+        } else {
+            return NOT_FOUND;
+        }
+        return bundle.containsKey(key) ? bundle.getString(key) : NOT_FOUND;
+    }
+    
     /**
      * Поиск строки в списке классов. Используется для загрузки названий и описаний
      * свойств {@link PropertyHolder}.
