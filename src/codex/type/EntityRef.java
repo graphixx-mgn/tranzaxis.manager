@@ -65,7 +65,7 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
 
     @Override
     public Entity getValue() {
-        return entityID == null ? null : entityInstance != null ? entityInstance : findEntity();
+        return entityInstance != null ? entityInstance : entityID != null ? findEntity() : null;
     }
     
     private Entity findEntity() {
