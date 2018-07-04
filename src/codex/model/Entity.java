@@ -40,21 +40,14 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      */
     public final EntityModel model;
     
-    public Entity(INode parent, ImageIcon icon, String title, String hint) {
-        this(icon, title, hint);
-        if (parent != null) {
-            parent.insert(this);
-        }
-    }
-    
     /**
      * Конструктор сущности.
      * @param icon Иконка для отображения в дереве проводника.
      * @param title Название сущности, уникальный ключ.
      * @param hint Описание сущности.
      */
-    public Entity(ImageIcon icon, String title, String hint) {
-        String PID = null;
+    public Entity(INode parent, ImageIcon icon, String title, String hint) {
+        String PID   = null;
         if (title != null) {
             String name = Language.get(this.getClass().getSimpleName(), title, new java.util.Locale("en", "US"));
             PID  = name.equals(Language.NOT_FOUND) ? title : name;
@@ -64,7 +57,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         }
         this.icon  = icon;
         this.hint  = hint;
-        this.model = new EntityModel(this.getClass(), PID);
+        this.model = new EntityModel(getOwner(parent), this.getClass(), PID);
         this.model.addChangeListener(this);
         this.model.addModelListener(new IModelListener() {
             @Override
@@ -74,6 +67,22 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 }
             }
         });
+        if (parent != null) {
+            parent.insert(this);
+        }
+    }
+
+    @Override
+    public void insert(INode child) {
+        super.insert(child);
+        if (!((Entity) child).model.getProperty(EntityModel.OWN).isEmpty()) {
+            return;
+        }
+
+        Entity owner = getOwner(((Entity) child).getParent());
+        if (owner != null) {
+            ((Entity) child).model.setOwner(owner);
+        }
     }
     
     /**
@@ -244,6 +253,14 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             Logger.getLogger().error("Entity ''{0}'' does not have universal constructor (INode, String)", entityClass.getCanonicalName());
             return null;
         }
+    }
+    
+    public static Entity getOwner(INode parent) {
+        Entity owner = (Entity) parent;
+        while (owner != null && Catalog.class.isAssignableFrom(owner.getClass())) {
+            owner = (Entity) owner.getParent();
+        }
+        return owner;
     }
     
 }
