@@ -14,6 +14,9 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.swing.Box;
@@ -34,6 +37,11 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
     private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
     
     private JComboBox comboBox;
+    
+    public static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
+        Set<Object> seen = ConcurrentHashMap.newKeySet();
+        return t -> seen.add(keyExtractor.apply(t));
+    }
 
     /**
      * Конструктор редактора.
@@ -59,6 +67,9 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
         return entityClass != null ? EAS.getEntitiesByClass(entityClass)
                     .stream()
                     .filter(entityFilter)
+                    .filter(distinctByKey((entity) -> {
+                        return entity.model.getPID();
+                    }))
                     .collect(Collectors.toList())
                     .toArray()
             : new Object[]{};
