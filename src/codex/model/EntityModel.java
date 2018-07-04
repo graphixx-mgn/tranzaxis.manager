@@ -36,10 +36,11 @@ import java.util.stream.Collectors;
 public class EntityModel extends AbstractModel implements IPropertyChangeListener {
     
     public  final static String ID  = "ID";
+    public  final static String OWN = "OWN";
     public  final static String SEQ = "SEQ";
     public  final static String PID = "PID";
     public  final static String OVR = "OVR";
-    public  final static List<String> SYSPROPS = Arrays.asList(new String[] {ID, SEQ, PID, OVR});
+    public  final static List<String> SYSPROPS = Arrays.asList(new String[] {ID, OWN, SEQ, PID, OVR});
     
     private final static IConfigStoreService    CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
@@ -53,9 +54,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
     private final List<IModelListener>          modelListeners = new LinkedList<>();
     
-    EntityModel(Class entityClass, String PID) {
+    EntityModel(Entity owner, Class entityClass, String PID) {
         this.entityClass = entityClass;
-        this.databaseValues = CAS.readClassInstance(entityClass, PID);
+        this.databaseValues = CAS.readClassInstance(entityClass, PID, owner == null ? null : owner.model.getID());
         
         addDynamicProp(
                 EntityModel.ID, 
@@ -63,6 +64,15 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 Access.Any, null
         );
         
+        EntityRef ownerRef = new EntityRef(owner == null ? null : owner.getClass());
+        if (owner != null) {
+            ownerRef.setValue(owner);
+        }
+        addDynamicProp(
+                EntityModel.OWN, 
+                ownerRef, 
+                Access.Any, null
+        );
         addUserProp(EntityModel.SEQ, new Int(null), 
                 !Catalog.class.isAssignableFrom(entityClass), 
                 Access.Any
@@ -92,6 +102,12 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
         return isValid;
     };
+    
+    protected final void setOwner(Entity owner) {
+        EntityRef ownerRef = new EntityRef(owner.getClass());
+        ownerRef.setValue(owner);
+        setValue(OWN, ownerRef);
+    }
     
     @Override
     final void addProperty(String name, IComplexType value, boolean require, Access restriction) {
@@ -303,6 +319,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             if (getID() == null) {
                 Map<String, IComplexType> propDefinitions = new LinkedHashMap<>();
                 
+                propDefinitions.put(EntityModel.OWN, getProperty(EntityModel.OWN).getPropValue());
+                values.put(EntityModel.OWN, getProperty(EntityModel.OWN).getPropValue().toString());
+                
                 getProperties(Access.Any)
                     .stream()
                     .filter((propName) -> {
@@ -505,7 +524,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 !EAS.getEntitiesByClass(entityClass)
                     .stream()
                     .filter((entity) -> {
-                        return !entity.model.getID().equals(getID());
+                        return entity.model != EntityModel.this;
                     })
                     .anyMatch((entity) -> {
                         return entity.model.getProperty(propName).getPropValue().toString().equals(value);
