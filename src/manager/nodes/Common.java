@@ -3,6 +3,7 @@ package manager.nodes;
 
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
+import codex.explorer.tree.INode;
 import codex.log.ILogMgmtService;
 import codex.log.Level;
 import codex.log.LogUnit;
@@ -36,12 +37,12 @@ public class Common extends Catalog {
     );
 
     public Common() {
-        super(ImageUtils.getByPath("/images/settings.png"), Language.get("desc"));
+        super(null, ImageUtils.getByPath("/images/settings.png"), "title", Language.get("desc"));
         model.addUserProp("workDir",  new FilePath(null).setMask(new DirMask()), true, Access.Select);
         model.addUserProp("logLevel", new Enum(Level.Debug), false, Access.Select);
         model.addUserProp("guiLang",  new Enum(Locale.valueOf(locale)), false, Access.Select);
         model.addUserProp("useTray",  new Bool(false), false, Access.Select);
-        
+
         model.getEditor("useTray").setEditable(SystemTray.isSupported());
 
         model.addModelListener(new IModelListener() {
@@ -49,6 +50,11 @@ public class Common extends Catalog {
             public void modelSaved(EntityModel model, List<String> changes) {
                 changes.forEach((propName) -> {
                     switch (propName) {
+                        case "workDir":
+                            childrenList().forEach((child) -> {
+                                enableChildNode(child, true);
+                            });
+                            break;
                         case "guiLang":
                             prefs.put(propName, ((Locale) model.getValue(propName)).name());
                             SwingUtilities.invokeLater(() -> {
@@ -78,9 +84,19 @@ public class Common extends Catalog {
     }
 
     @Override
+    public void insert(INode child) {
+        super.insert(child);
+        enableChildNode(child, model.getValue("workDir") != null);
+    }
+    
+    @Override
     public Class getChildClass() {
         // Нет селектора
         return null;
+    }
+    
+    private void enableChildNode(INode node, boolean enabled) {
+        node.setMode(enabled ? MODE_ENABLED + MODE_SELECTABLE : MODE_NONE);
     }
     
 }
