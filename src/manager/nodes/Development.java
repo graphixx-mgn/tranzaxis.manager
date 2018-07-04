@@ -1,13 +1,23 @@
 package manager.nodes;
 
-import codex.model.Entity;
+import codex.explorer.tree.INode;
+import codex.model.Catalog;
 import codex.utils.ImageUtils;
-import codex.utils.Language;
 
-public class Development extends Entity {
+public class Development extends Catalog {
     
-    public Development() {
-        super(ImageUtils.getByPath("/images/development.png"), "title", Language.get("desc"));
+    public Development(INode parent) {
+        super(parent, ImageUtils.getByPath("/images/development.png"), "title", null);
     }
+    
+    @Override
+    public Class getChildClass() {
+        return Offshoot.class;
+    }
+    
+    @Override
+    public boolean allowModifyChild() {
+        return false;
+    };
     
 }

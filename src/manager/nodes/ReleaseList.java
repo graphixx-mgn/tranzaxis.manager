@@ -1,13 +1,23 @@
 package manager.nodes;
 
-import codex.model.Entity;
+import codex.explorer.tree.INode;
+import codex.model.Catalog;
 import codex.utils.ImageUtils;
-import codex.utils.Language;
 
-public class ReleaseList extends Entity {
-    
-    public ReleaseList() {
-        super(ImageUtils.getByPath("/images/releases.png"), "title", Language.get("desc"));
+public class ReleaseList extends Catalog {
+
+    public ReleaseList(INode parent) {
+        super(parent, ImageUtils.getByPath("/images/releases.png"), "title", null);
     }
+
+    @Override
+    public Class getChildClass() {
+        return Release.class;
+    }
+    
+    @Override
+    public boolean allowModifyChild() {
+        return false;
+    };
     
 }
