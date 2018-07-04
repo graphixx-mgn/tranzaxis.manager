@@ -25,7 +25,7 @@ public abstract class Catalog extends Entity {
     }
     
     public Catalog(ImageIcon icon, String title, String hint) {
-        super(icon, title, hint);
+        super(null, icon, title, hint);
     }
     
     public Catalog(INode parent, ImageIcon icon, String title, String hint) {
@@ -40,7 +40,8 @@ public abstract class Catalog extends Entity {
     
     private void loadChildEntities() {
         if (getChildClass() != null) {
-            Map<Integer, String> rowsData = STORE.readCatalogEntries(getChildClass());
+            Entity owner = Entity.getOwner(getParent());
+            Map<Integer, String> rowsData = STORE.readCatalogEntries(owner == null ? null : owner.model.getID(), getChildClass());
             rowsData.forEach((ID, PID) -> {
                 Entity entity = Entity.newInstance(getChildClass(), this, PID);
             });
