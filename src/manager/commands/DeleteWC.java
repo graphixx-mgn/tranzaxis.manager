@@ -4,6 +4,8 @@ import codex.command.EntityCommand;
 import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
+import codex.config.ConfigStoreService;
+import codex.config.IConfigStoreService;
 import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
 import codex.explorer.tree.INode;
@@ -141,6 +143,9 @@ public class DeleteWC extends EntityCommand {
         public void finished(Void t) {
             WCStatus status = offshoot.getStatus();
             offshoot.model.setValue("wcStatus", status);
+            ((IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class)).removeClassInstance(
+                    offshoot.getClass(), offshoot.model.getID()
+            );
             offshoot.setMode(INode.MODE_SELECTABLE + (status.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
         }
     
