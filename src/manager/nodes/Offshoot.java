@@ -5,12 +5,16 @@ import codex.explorer.IExplorerAccessService;
 import codex.explorer.tree.INode;
 import codex.model.Access;
 import codex.model.Entity;
+import codex.model.EntityModel;
 import codex.service.ServiceRegistry;
+import codex.type.Bool;
 import codex.type.Enum;
 import codex.type.Int;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.StringJoiner;
 import manager.commands.DeleteWC;
 import manager.commands.UpdateWC;
@@ -22,6 +26,8 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 
 public class Offshoot extends BinarySource {
+    
+    private final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy hh:mm");
 
     public Offshoot(INode parent, String title) {
         super(parent, ImageUtils.getByPath("/images/branch.png"), title);
@@ -29,7 +35,20 @@ public class Offshoot extends BinarySource {
         model.addDynamicProp("version", new Str(null), null, () -> {
             return model.getPID();
         });
-        model.addDynamicProp("wcStatus", new Enum(WCStatus.Absent), Access.Edit, null);
+        model.addDynamicProp("wcStatus", new Enum(WCStatus.Absent), Access.Edit, () -> {
+            if (model.getValue(EntityModel.OWN) != null) {
+                return getStatus();
+            } else {
+                return WCStatus.Absent;
+            }
+        });
+        model.addDynamicProp("localRev", new Str(null), null, () -> {
+            if (((WCStatus) model.getValue("wcStatus")).equals(WCStatus.Succesfull)) {
+                return getRevision().getNumber()+" / "+DATE_FORMAT.format(getRevisionDate());
+            }
+            return null;
+        }, "wcStatus");
+        model.addUserProp("loaded",      new Bool(false), true, Access.Any);
         model.addUserProp("builtRev",    new Int(null), false, null);
         
         model.getEditor("builtRev").setEditable(false);
@@ -78,6 +97,18 @@ public class Offshoot extends BinarySource {
                 return WCStatus.Succesfull;
             }
         }
+    }
+    
+    public final SVNRevision getRevision() {
+        String wcPath = getWCPath();
+        SVNInfo info = SVN.info(wcPath, false, null, null);
+        return info.getCommittedRevision();
+    }
+    
+    public final Date getRevisionDate() {
+        String wcPath = getWCPath();
+        SVNInfo info = SVN.info(wcPath, false, null, null);
+        return info.getCommittedDate();
     }
     
 }
