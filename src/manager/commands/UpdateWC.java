@@ -145,6 +145,8 @@ public class UpdateWC extends EntityCommand {
         public void finished(Void res) {
             WCStatus status = offshoot.getStatus();
             offshoot.model.setValue("wcStatus", status);
+            offshoot.model.setValue("loaded",  !status.equals(WCStatus.Absent));
+            offshoot.model.commit();
             offshoot.setMode(INode.MODE_SELECTABLE + (status.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
         }
     
