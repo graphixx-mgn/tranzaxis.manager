@@ -6,7 +6,6 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Window;
 import java.awt.event.ActionListener;
 import java.util.HashMap;
@@ -32,7 +31,6 @@ class TaskDialog extends Dialog implements ITaskListener {
      * Код выхода при нажатии кнопки отмены всех задач.
      */
     public static  final int          CANCEL     = 1;
-    private static final int          DLG_WIDTH  = 550;
     
     private static final DialogButton BTN_QUEUE  = new DialogButton(
             ImageUtils.resize(ImageUtils.getByPath("/images/enqueue.png"), 22, 22), Language.get("enqueue@title"), -1, ENQUEUE
@@ -104,12 +102,6 @@ class TaskDialog extends Dialog implements ITaskListener {
         pack();
         setMinimumSize(getPreferredSize());
         super.setVisible(visible);
-    }
-    
-    @Override
-    public Dimension getPreferredSize() {
-        Dimension superPref = super.getPreferredSize();
-        return new Dimension(DLG_WIDTH, superPref.height);
     }
 
     @Override
