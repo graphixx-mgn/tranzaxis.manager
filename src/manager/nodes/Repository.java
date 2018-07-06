@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
 import javax.swing.SwingUtilities;
 import manager.svn.SVN;
+import manager.type.WCStatus;
 import org.tmatesoft.svn.core.SVNDirEntry;
 
 public class Repository extends Entity {
@@ -258,11 +259,11 @@ public class Repository extends Entity {
         @Override
         public Void execute() throws Exception {
             
-            String rootUrl = (String) Repository.this.model.getValue("repoUrl");
+            String repoUrl = (String) Repository.this.model.getValue("repoUrl");
             String svnUser = (String) Repository.this.model.getValue("svnUser");
             String svnPass = (String) Repository.this.model.getValue("svnPass");
             
-            List<SVNDirEntry> dirItems = SVN.list(rootUrl+"/dev", svnUser, svnPass);
+            List<SVNDirEntry> dirItems = SVN.list(repoUrl+"/dev", svnUser, svnPass);
             
             if (!dirItems.isEmpty()) {
                 final AtomicInteger index = new AtomicInteger(0);
@@ -286,8 +287,10 @@ public class Repository extends Entity {
                         } else {
                             offshoot = new Offshoot(development, dirItem.getName());
                         }
-                        offshoot.setMode(INode.MODE_SELECTABLE);
-                        offshoot.model.setValue("wcPath", rootUrl+"/dev/"+dirItem.getName());
+                        
+                        WCStatus status = offshoot.getStatus();
+                        offshoot.model.setValue("wcStatus", status);
+                        offshoot.setMode(INode.MODE_SELECTABLE + (status.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
                         
                         setProgress(
                                 index.get()*100/dirItems.size(),
@@ -296,7 +299,6 @@ public class Repository extends Entity {
                     }
                 });
             }
-            
             return null;
         }
 
