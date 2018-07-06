@@ -53,6 +53,7 @@ final class TaskView extends AbstractTaskView {
         
         JPanel controls = new JPanel(new BorderLayout());
         controls.setOpaque(false);
+        controls.setBorder(new EmptyBorder(0, 5, 0, 0));
         controls.add(progress, BorderLayout.CENTER);
         controls.add((JButton) cancel, BorderLayout.EAST);
         
