@@ -9,6 +9,7 @@ import javax.swing.ImageIcon;
 public enum WCStatus implements Iconified {
 
     Absent(Language.get("none"), ImageUtils.getByPath("/images/svn_none.png")),
+    Invalid(Language.get("invalid"), ImageUtils.getByPath("/images/svn_invalid.png")),
     Interrupted(Language.get("interrupted"), ImageUtils.getByPath("/images/svn_interrupted.png")),
     Erroneous(Language.get("erroneous"), ImageUtils.getByPath("/images/svn_erroneous.png")),
     Succesfull(Language.get("successful"), ImageUtils.getByPath("/images/svn_successful.png"));
