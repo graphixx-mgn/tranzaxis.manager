@@ -76,13 +76,14 @@ public class DeleteWC extends EntityCommand {
                         getContext()[0]
                 );
             } else {
-                StringBuilder msgBuilder = new StringBuilder(
-                        Language.get("confirm@clean.range")
-                );
+                StringBuilder entityList = new StringBuilder();
                 Arrays.asList(getContext()).forEach((entity) -> {
-                    msgBuilder.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(entity.toString());
+                    entityList.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(entity.toString());
                 });
-                message = msgBuilder.toString();
+                message = MessageFormat.format(
+                        Language.get("confirm@clean.range"), 
+                        entityList.toString()
+                );
             }
             MessageBox.show(
                     MessageType.CONFIRMATION, null, message,
@@ -129,8 +130,11 @@ public class DeleteWC extends EntityCommand {
                     processed.addAndGet(1);
                     String fileName = path.toString().replace(wcPath+File.separator, "");
                     setProgress(
-                            (int) (processed.get() * 100 / totalFiles), 
-                            Language.get(DeleteWC.class.getSimpleName(), "command@progress")+fileName
+                            (int) (processed.get() * 100 / totalFiles),
+                            MessageFormat.format(
+                                    Language.get(DeleteWC.class.getSimpleName(), "command@progress"),
+                                    fileName
+                            )
                     );
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
