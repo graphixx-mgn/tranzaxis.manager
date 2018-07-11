@@ -5,12 +5,17 @@ import codex.component.ui.StripedProgressBarUI;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.function.Consumer;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingConstants;
+import javax.swing.Timer;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -23,7 +28,10 @@ final class TaskView extends AbstractTaskView {
     
     private final JLabel title;
     private final JLabel status;
+    private final Timer  updater;
     private final JProgressBar progress;
+    
+    private LocalDateTime startTime;
     
     /**
      * Конструктор виджета.
@@ -57,12 +65,21 @@ final class TaskView extends AbstractTaskView {
         controls.add(progress, BorderLayout.CENTER);
         controls.add((JButton) cancel, BorderLayout.EAST);
         
-        add(title, BorderLayout.CENTER);
+        add(title,    BorderLayout.CENTER);
         add(controls, BorderLayout.EAST);
-        add(status, BorderLayout.AFTER_LAST_LINE);
+        add(status,   BorderLayout.AFTER_LAST_LINE);
         
         task.addListener(this);
         statusChanged(task, task.getStatus());
+        
+        updater = new Timer(1000, (ActionEvent event) -> {
+            LocalDateTime curTime = LocalDateTime.now();
+            long duration = java.time.Duration.between(startTime, curTime).toMillis();
+        
+            SimpleDateFormat format = new SimpleDateFormat("mm:ss", java.util.Locale.getDefault());
+            progress.setString(format.format(new Date(duration)));
+        });
+        updater.setInitialDelay(0);
     }
     
     @Override
@@ -80,7 +97,17 @@ final class TaskView extends AbstractTaskView {
     @Override
     public void progressChanged(ITask task, int percent, String description) {
         progress.setValue(task.getStatus() == Status.FINISHED ? 100 : task.getProgress());
+        
+        if (!progress.isIndeterminate() && task.getStatus() == Status.STARTED && task.getProgress() == 0) {
+            startTime = LocalDateTime.now();
+            updater.start();
+        }
+        if (progress.isIndeterminate() && !(task.getStatus() == Status.STARTED && task.getProgress() == 0)) {
+            updater.stop();
+            progress.setString(null);
+        }
         progress.setIndeterminate(task.getStatus() == Status.STARTED && task.getProgress() == 0);
+
         progress.setForeground(
             progress.isIndeterminate() ? PROGRESS_INFINITE : 
                 task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
