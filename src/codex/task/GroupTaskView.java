@@ -33,9 +33,7 @@ final class GroupTaskView extends AbstractTaskView {
     private final JLabel       mainTitle;
     private final JProgressBar mainProgress;
     
-    private final Map<ITask, JLabel>       titles = new HashMap<>();
-    private final Map<ITask, JLabel>       statuses = new HashMap<>();
-    private final Map<ITask, JProgressBar> progresses = new HashMap<>();
+    private final Map<ITask, AbstractTaskView> views = new HashMap<>();
     
     /**
      * Конструктор виджета.
@@ -76,31 +74,13 @@ final class GroupTaskView extends AbstractTaskView {
         subTasks.setBorder(new TitledBorder(Language.get("border@title")));
         subTasks.setBackground(Color.WHITE);
         
-        for (ITask subTask : new LinkedList<>(children)) {
-            JPanel childPanel = new JPanel(new BorderLayout());
-            childPanel.setBackground(Color.WHITE);
-            
-            JLabel childTitle = new JLabel(subTask.getTitle(), null, SwingConstants.LEFT);
-            titles.put(subTask, childTitle);
-            
-            JLabel childStatus = new JLabel();
-            statuses.put(subTask, childStatus);
-            
-            JProgressBar childProgress = new JProgressBar();
-            childProgress.setMaximum(100);
-            childProgress.setUI(new StripedProgressBarUI(true));
-            childProgress.setBorder(new LineBorder(Color.LIGHT_GRAY, 1));
-            childProgress.setStringPainted(true);
-            progresses.put(subTask, childProgress);
-            
-            childPanel.add(childTitle, BorderLayout.CENTER);
-            childPanel.add(childProgress, BorderLayout.EAST);
-            childPanel.add(childStatus, BorderLayout.AFTER_LAST_LINE);
-            subTasks.add(childPanel);
-            
+        new LinkedList<>(children).forEach((subTask) -> {
+            AbstractTaskView view = subTask.createView(null);
+            subTasks.add(view);
+            views.put(subTask, view);
             subTask.addListener(this);
             statusChanged(subTask, subTask.getStatus());
-        }
+        });
         
         add(mainTitle, BorderLayout.CENTER);
         add(controls, BorderLayout.EAST);
@@ -123,7 +103,7 @@ final class GroupTaskView extends AbstractTaskView {
 
     @Override
     public void statusChanged(ITask task, Status status) {
-        ((JPanel) titles.get(task).getParent()).setBorder(new CompoundBorder(
+        views.get(task).setBorder(new CompoundBorder(
                 new EmptyBorder(new Insets(2, 5, 0, 0)), 
                 new CompoundBorder(
                     new MatteBorder(0, 3, 0, 0, 
@@ -135,33 +115,16 @@ final class GroupTaskView extends AbstractTaskView {
                     new EmptyBorder(new Insets(0, 5, 0, 5))
                 )
         ));
-        statuses.get(task).setText(task.getDescription());
-        statuses.get(task).setForeground(
-                task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
-                    task.getStatus() == Status.FAILED ? PROGRESS_ABORTED :
-                        Color.GRAY
-        );
         progressChanged(task, task.getProgress(), task.getDescription());
     }
 
     @Override
-    public void progressChanged(ITask task, int percent, String description) {
-        progresses.get(task).setValue(task.getStatus() == Status.FINISHED ? 100 : task.getProgress());
-        progresses.get(task).setIndeterminate(task.getStatus() == Status.STARTED && task.getProgress() == 0);
-        progresses.get(task).setForeground(
-            progresses.get(task).isIndeterminate() ? PROGRESS_INFINITE : 
-                task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
-                    task.getStatus() == Status.FAILED ? PROGRESS_ABORTED :
-                        task.getStatus() == Status.CANCELLED ? PROGRESS_CANCELED :
-                            PROGRESS_NORMAL
-        );
-        statuses.get(task).setText(task.getDescription());
-        
-        int totalProgress = progresses.keySet()
+    public void progressChanged(ITask task, int percent, String description) { 
+        int totalProgress = views.keySet()
                 .stream()
                 .mapToInt((subTask) -> {
                     return subTask.getStatus() == Status.FINISHED ? 100 : subTask.getProgress();
-                }).sum() / progresses.keySet().size();
+                }).sum() / views.keySet().size();
         mainProgress.setValue(totalProgress);
         ((AbstractTask) mainTask).setProgress(totalProgress, null);
     }

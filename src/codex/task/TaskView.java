@@ -54,23 +54,25 @@ final class TaskView extends AbstractTaskView {
         progress.setUI(new StripedProgressBarUI(true));
         progress.setBorder(new LineBorder(Color.LIGHT_GRAY, 1));
         progress.setStringPainted(true);
-        IButton cancel = new CancelButton();
-        cancel.addActionListener((event) -> {
-            cancelAction.accept(task);
-        });
         
         JPanel controls = new JPanel(new BorderLayout());
         controls.setOpaque(false);
         controls.setBorder(new EmptyBorder(0, 5, 0, 0));
         controls.add(progress, BorderLayout.CENTER);
-        controls.add((JButton) cancel, BorderLayout.EAST);
+        
+        if (cancelAction != null) {
+            IButton cancel = new CancelButton();
+            cancel.addActionListener((event) -> {
+                cancelAction.accept(task);
+            });
+            controls.add((JButton) cancel, BorderLayout.EAST);
+        }
         
         add(title,    BorderLayout.CENTER);
         add(controls, BorderLayout.EAST);
         add(status,   BorderLayout.AFTER_LAST_LINE);
         
         task.addListener(this);
-        statusChanged(task, task.getStatus());
         
         updater = new Timer(1000, (ActionEvent event) -> {
             LocalDateTime curTime = LocalDateTime.now();
@@ -80,6 +82,7 @@ final class TaskView extends AbstractTaskView {
             progress.setString(format.format(new Date(duration)));
         });
         updater.setInitialDelay(0);
+        statusChanged(task, task.getStatus());
     }
     
     @Override
