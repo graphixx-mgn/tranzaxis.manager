@@ -155,11 +155,12 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
 
     @Override
     public void progressChanged(ITask task, int percent, String description) {
+        int prevProgress = progress.getValue();
         progress.setValue(queue.stream().mapToInt(
                 queued -> queued.getStatus() == Status.PENDING || queued.getStatus() == Status.STARTED ? queued.getProgress() : 100
         ).sum() / queue.size());
-        
-        if (PlatformUtil.isWin7OrLater() && SwingUtilities.getWindowAncestor(this) != null) {
+      
+        if (prevProgress != progress.getValue() && PlatformUtil.isWin7OrLater() && SwingUtilities.getWindowAncestor(this) != null) {
             try {
                 ITaskbarList3 taskBarIcon = COMRuntime.newInstance(ITaskbarList3.class);
                 long hwndVal = JAWTUtils.getNativePeerHandle(SwingUtilities.getWindowAncestor(this));
