@@ -1,8 +1,6 @@
 package manager.commands;
 
 import codex.command.EntityCommand;
-import codex.explorer.ExplorerAccessService;
-import codex.explorer.IExplorerAccessService;
 import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.model.Entity;
@@ -14,9 +12,9 @@ import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.io.File;
+import java.text.MessageFormat;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.swing.SwingUtilities;
 import manager.nodes.Offshoot;
 import manager.svn.SVN;
 import manager.type.WCStatus;
@@ -30,8 +28,6 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
 
 
 public class UpdateWC extends EntityCommand {
-    
-    private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
 
     public UpdateWC() {
         super(
@@ -52,7 +48,7 @@ public class UpdateWC extends EntityCommand {
 
     @Override
     public void execute(Entity entity, Map<String, IComplexType> map) {
-        ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).executeTask(
+        ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).enqueueTask(
                 new UpdateTask((Offshoot) entity)
         );
     }
@@ -68,7 +64,7 @@ public class UpdateWC extends EntityCommand {
 
         @Override
         public Void execute() throws Exception {
-            String wcPath = offshoot.getWCPath();
+            String wcPath  = offshoot.getWCPath();
             String repoUrl = Entity.getOwner(offshoot).model.getValue("repoUrl")+"/dev/"+offshoot.model.getPID();
             
             setProgress(0, Language.get(UpdateWC.class.getSimpleName(), "command@calc"));
@@ -91,16 +87,16 @@ public class UpdateWC extends EntityCommand {
                         @Override
                         public void handleEvent(SVNEvent event, double d) throws SVNException {
                             if (event.getAction() != SVNEventAction.UPDATE_STARTED && event.getAction() != SVNEventAction.UPDATE_COMPLETED) {
-                                // Условие ниже требуется для обновления с R1 до R2 и checkout
                                 if (event.getNodeKind() != SVNNodeKind.DIR) {
                                     loaded.addAndGet(1);
                                     int percent = (int) (loaded.get() * 100 / changes);
-                                    SwingUtilities.invokeLater(() -> {
-                                        setProgress(
-                                                percent > 100 ? 100 : percent, 
-                                                Language.get(UpdateWC.class.getSimpleName(), "command@progress")+event.getFile().getPath().replace(wcPath+File.separator, "")
-                                        );
-                                    });
+                                    setProgress(
+                                            percent > 100 ? 100 : percent, 
+                                            MessageFormat.format(
+                                                    Language.get(UpdateWC.class.getSimpleName(), "command@progress"), 
+                                                    event.getFile().getPath().replace(wcPath+File.separator, "")
+                                            )
+                                    );
                                     SVNEventAction action = event.getAction();
                                     if (action == SVNEventAction.UPDATE_ADD) {
                                         added.addAndGet(1);
