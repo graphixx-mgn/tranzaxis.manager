@@ -40,6 +40,9 @@ public final class GroupTask<T> extends AbstractTask<T> {
                 } catch (InterruptedException e) {
                     setStatus(current, Status.CANCELLED);
                     aborted = true;
+                } catch (StopException e) {
+                    setStatus(Status.CANCELLED);
+                    aborted = true;
                 } catch (Throwable e) {
                     current.setProgress(task.getProgress(), MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
                     setStatus(current, Status.FAILED);
@@ -56,7 +59,14 @@ public final class GroupTask<T> extends AbstractTask<T> {
 
     @Override
     public AbstractTaskView createView(Consumer<ITask> cancelAction) {
-        return new GroupTaskView(getTitle(), this, sequence, cancelAction);
+        return new GroupTaskView(getTitle(), this, sequence, (task) -> {
+            sequence.forEach((subTask) -> {
+                if (subTask.getStatus().equals(Status.STARTED)) {
+                    subTask.cancel(true);
+                }
+            });
+            cancelAction.accept(task);
+        });
     }
     
     /**
