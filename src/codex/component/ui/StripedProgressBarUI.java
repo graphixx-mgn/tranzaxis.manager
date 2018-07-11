@@ -1,5 +1,6 @@
 package codex.component.ui;
 
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Insets;
@@ -85,7 +86,17 @@ public class StripedProgressBarUI extends BasicProgressBarUI {
                     g2.fill(AffineTransform.getTranslateInstance(i, 0).createTransformedShape(p));
                 }
             }
+            if (progressBar.isStringPainted()) {
+                int amountFull = getAmountFull(b, barRectWidth, barRectHeight);
+                paintString(g2, b.left, b.top, barRectWidth, barRectHeight, amountFull, b);
+            }
             g2.dispose();
-        }
+        }        
     }
+
+    @Override
+    protected Color getSelectionForeground() {
+        return progressBar.isIndeterminate() ? Color.decode("#3C6586"): super.getSelectionForeground();
+    }
+    
 }
