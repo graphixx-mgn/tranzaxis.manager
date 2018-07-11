@@ -46,7 +46,7 @@ public class DeleteWC extends EntityCommand {
         super(
                 "clean", 
                 "title", 
-                ImageUtils.resize(ImageUtils.getByPath("/images/clean.png"), 28, 28), 
+                ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28), 
                 Language.get("desc"), 
                 (entity) -> {
                     return !entity.model.getValue("wcStatus").equals(WCStatus.Absent);
@@ -143,9 +143,11 @@ public class DeleteWC extends EntityCommand {
         public void finished(Void t) {
             WCStatus status = offshoot.getStatus();
             offshoot.model.setValue("wcStatus", status);
-            ((IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class)).removeClassInstance(
-                    offshoot.getClass(), offshoot.model.getID()
-            );
+            if (offshoot.model.getID() != null) {
+                ((IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class)).removeClassInstance(
+                        offshoot.getClass(), offshoot.model.getID()
+                );
+            }
             offshoot.setMode(INode.MODE_SELECTABLE + (status.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
         }
     
