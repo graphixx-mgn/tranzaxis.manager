@@ -25,7 +25,7 @@ public interface IConfigStoreService extends IService {
      * @param PID Наименование сущности.
      * @return ID созданной сущности.
      */
-    default Map<String, Integer> initClassInstance(Class clazz, String PID, Map<String, IComplexType> propDefinition) {
+    default Map<String, Integer> initClassInstance(Class clazz, String PID, Map<String, IComplexType> propDefinition, Integer ownerId) {
         return null;
     };
     

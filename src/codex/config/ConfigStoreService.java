@@ -168,20 +168,28 @@ public final class ConfigStoreService implements IConfigStoreService {
     }
 
     @Override
-    public Map<String, Integer> initClassInstance(Class clazz, String PID, Map<String, IComplexType> propDefinition) {
+    public Map<String, Integer> initClassInstance(Class clazz, String PID, Map<String, IComplexType> propDefinition, Integer ownerId) {
         final String className = clazz.getSimpleName().toUpperCase();
         if (!storeStructure.containsKey(className) || !storeStructure.get(className).containsAll(propDefinition.keySet())) {
             buildClassCatalog(clazz, propDefinition);
         }
-        
-        final String selectSQL = MessageFormat.format(
-                "SELECT ID, SEQ FROM {0} WHERE PID = ?", className
-        );
+        final String selectSQL;
+        if (ownerId != null) {
+            selectSQL = MessageFormat.format("SELECT ID, SEQ FROM {0} WHERE PID = ? AND OWN = ?", className);
+        } else {
+            selectSQL = MessageFormat.format("SELECT ID, SEQ FROM {0} WHERE PID = ?", className);
+        }
+//        final String selectSQL = MessageFormat.format(
+//                "SELECT ID, SEQ FROM {0} WHERE PID = ?", className
+//        );
         final String insertSQL = MessageFormat.format(
                 "INSERT INTO {0} (SEQ, PID) VALUES ((SELECT IFNULL(MAX(SEQ), 0)+1 FROM {0}), ?)", className
         );
         try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
             select.setString(1, PID);
+            if (ownerId != null) {
+                select.setInt(2, ownerId);
+            }
             
             try (ResultSet selectRS = select.executeQuery()) {
                 if (selectRS.next()) {
