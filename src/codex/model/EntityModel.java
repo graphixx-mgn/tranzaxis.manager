@@ -169,6 +169,15 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         dynamicProps.add(name);
     }
     
+    public final void updateDynamicProp(String... names) {
+        for (String name : names) {
+            if (dynamicProps.contains(name)) {
+                Object dynValue = dynamicResolver.valueProviders.get(name).get();
+                dynamicResolver.propertyHolders.get(name).setValue(dynValue);
+            }
+        }
+    }
+    
     /**
      * Значение свойства должно быть уникальным среди сушностей у одного родителя
      * @param name Идентификатор свойства.
@@ -412,12 +421,12 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
 
     
-    private final class DynamicResolver implements IPropertyChangeListener, IModelListener {
+    final class DynamicResolver implements IPropertyChangeListener, IModelListener {
 
-        private final List<String> resolveOrder = new LinkedList<>();
-        private final Map<String, String> resolveMap = new HashMap<>();
-        private final Map<String, Supplier> valueProvides = new HashMap<>();
-        private final Map<String, PropertyHolder> propertyHolders = new HashMap<>();
+        final List<String> resolveOrder = new LinkedList<>();
+        final Map<String, String> resolveMap = new HashMap<>();
+        final Map<String, Supplier> valueProviders = new HashMap<>();
+        final Map<String, PropertyHolder> propertyHolders = new HashMap<>();
         
         private final IModelListener referenceListener = new IModelListener() {
             
@@ -455,7 +464,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     }
                 }
             }
-            valueProvides.put(name, valueProvider);
+            valueProviders.put(name, valueProvider);
             
             AtomicBoolean propInitiated = new AtomicBoolean(false);
             propertyHolders.put(name, new PropertyHolder(name, value, false) {
@@ -483,7 +492,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             }
             if (resolveOrder.contains(name) && EntityModel.this.isPropertyDynamic(name)) {
                 String dynamicProp = resolveMap.get(name);
-                Object dynValue = valueProvides.get(dynamicProp).get();
+                Object dynValue = valueProviders.get(dynamicProp).get();
                 propertyHolders.get(dynamicProp).setValue(dynValue);
             }
         }
@@ -499,7 +508,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     })
                     .distinct()
                     .forEach((dynamicProp) -> {                        
-                        Object dynValue = valueProvides.get(dynamicProp).get();
+                        Object dynValue = valueProviders.get(dynamicProp).get();
                         propertyHolders.get(dynamicProp).setValue(dynValue);
                     });
         }
