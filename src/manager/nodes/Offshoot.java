@@ -16,6 +16,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.StringJoiner;
+import manager.commands.BuildWC;
 import manager.commands.DeleteWC;
 import manager.commands.UpdateWC;
 import manager.svn.SVN;
@@ -27,7 +28,7 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 public class Offshoot extends BinarySource {
     
-    private final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy hh:mm");
+    private final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm");
 
     public Offshoot(INode parent, String title) {
         super(parent, ImageUtils.getByPath("/images/branch.png"), title);
@@ -55,6 +56,7 @@ public class Offshoot extends BinarySource {
         
         addCommand(new DeleteWC());
         addCommand(new UpdateWC());
+        addCommand(new BuildWC());
     }
 
     @Override
