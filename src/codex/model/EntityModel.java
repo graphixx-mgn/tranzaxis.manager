@@ -340,7 +340,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                         propDefinitions.put(propName, getProperty(propName).getPropValue());
                     });
                 
-                Map<String, Integer> keys = CAS.initClassInstance(entityClass, getPID(), propDefinitions);
+                Integer ownerId = ((EntityRef) getProperty(EntityModel.OWN).getPropValue()).getValue().model.getID();
+                Map<String, Integer> keys = CAS.initClassInstance(entityClass, getPID(), propDefinitions, ownerId);
                 setValue(ID, keys.get(ID));
                 setValue(SEQ, keys.get(SEQ));
             }
