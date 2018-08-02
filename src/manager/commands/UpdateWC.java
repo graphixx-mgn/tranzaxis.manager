@@ -70,7 +70,6 @@ public class UpdateWC extends EntityCommand {
             setProgress(0, Language.get(UpdateWC.class.getSimpleName(), "command@calc"));
             Long changes = SVN.diff(wcPath, repoUrl, SVNRevision.HEAD, null, null);
             if (changes > 0) {
-                Logger.getLogger().info("Total number of changes of working copy ''{0}'': {1}", new Object[] {wcPath, changes});
                 Logger.getLogger().info(
                         "Start update working copy\n"+
                         "                     * Remote URL: ''{0}''\n"+
@@ -143,6 +142,7 @@ public class UpdateWC extends EntityCommand {
             offshoot.model.setValue("wcStatus", status);
             offshoot.model.setValue("loaded",  !status.equals(WCStatus.Absent));
             offshoot.model.commit();
+            offshoot.model.updateDynamicProp("localRev");
             offshoot.setMode(INode.MODE_SELECTABLE + (status.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
         }
     
