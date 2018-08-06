@@ -36,13 +36,10 @@ public class ExplorerAccessService implements IExplorerAccessService {
     @Override
     public Entity getEntity(Class entityClass, Integer ID) {
         for (INode node : model) {
-            if (entityClass.equals(node.getChildClass())) {
-                return (Entity) node.childrenList().stream().filter((child) -> {
-                    return ((Entity) child).model.getID() == ID;
-                }).findFirst().orElse(null);
-            }
-            if (entityClass.isAssignableFrom(node.getClass()) && ((Entity) node).model.getID().equals(ID)) {
-                return (Entity) node;
+            if (entityClass.equals(node.getChildClass()) || entityClass.isAssignableFrom(node.getClass())) {
+                if (((Entity) node).model.getID() == ID) {
+                    return (Entity) node;
+                }
             }
         }
         return null;
