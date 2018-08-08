@@ -56,8 +56,8 @@ import javax.swing.table.DefaultTableModel;
 final class TaskMonitor extends JPopupMenu implements ITaskListener {
     
     private final static String  POOL_USAGE   = Language.get("thread@usage");
-    private final static Matcher THREAD_NAME  = Pattern.compile("(^.*): .*").matcher("");
-    private final static Matcher THREAD_STATE = Pattern.compile(".*: (.*$)").matcher("");
+    private final static Matcher THREAD_NAME  = Pattern.compile("([^:]*): .*").matcher("");
+    private final static Matcher THREAD_STATE = Pattern.compile("[^:]*: (.*)").matcher("");
     
     private final Map<ITask, AbstractTaskView> taskRegistry = new HashMap<>();
     private final List<ExecutorService>        threadPool;
@@ -270,7 +270,6 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
         poolUsage.setMaximum(total);
         poolUsage.setValue(active);
         threadCount.setText(MessageFormat.format(POOL_USAGE, active, total));
-        
         
         Thread[] threadGroup = new Thread[256];
         Thread.enumerate(threadGroup);
