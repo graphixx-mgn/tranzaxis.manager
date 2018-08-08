@@ -20,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
 import org.sqlite.JDBC;
 import org.sqlite.core.Codes;
 
@@ -32,6 +33,8 @@ public final class ConfigStoreService implements IConfigStoreService {
     private final File configFile;
     private Connection connection;
     private final Map<String, List<String>> storeStructure = new HashMap<>();
+    
+    Semaphore semaphore = new Semaphore(1, true);
 
     /**
      * Конструктор сервиса.
@@ -179,9 +182,6 @@ public final class ConfigStoreService implements IConfigStoreService {
         } else {
             selectSQL = MessageFormat.format("SELECT ID, SEQ FROM {0} WHERE PID = ?", className);
         }
-//        final String selectSQL = MessageFormat.format(
-//                "SELECT ID, SEQ FROM {0} WHERE PID = ?", className
-//        );
         final String insertSQL = MessageFormat.format(
                 "INSERT INTO {0} (SEQ, PID) VALUES ((SELECT IFNULL(MAX(SEQ), 0)+1 FROM {0}), ?)", className
         );
@@ -198,39 +198,47 @@ public final class ConfigStoreService implements IConfigStoreService {
                     keys.put("SEQ", selectRS.getInt(2));
                     return keys;
                 } else {
-                    try (PreparedStatement insert = connection.prepareStatement(insertSQL, new String[] {"ID"})) {
-                        insert.setString(1, PID);
-                        int affectedRows = insert.executeUpdate();
-                        if (affectedRows == 0) {
-                            throw new SQLException("No rows affected.");
-                        }
-                        connection.commit();
-                        try (ResultSet updateRS = insert.getGeneratedKeys()) {                        
-                            if (updateRS.next()) {
-                                Logger.getLogger().debug(MessageFormat.format(
-                                        "CAS: New catalog {0} entry: #{1} '{'PID={2}'}'", className, updateRS.getInt(1), PID
-                                ));
-                                Map<String, Integer> keys = new HashMap<>();
-                                keys.put("ID",  updateRS.getInt(1));
-                                
-                                final String readSQL = MessageFormat.format(
-                                        "SELECT SEQ FROM {0} WHERE ID = ?", className
-                                );
-                                try (PreparedStatement read = connection.prepareStatement(readSQL)) {
-                                    read.setInt(1, updateRS.getInt(1));
-                                    try (ResultSet readRS = read.executeQuery()) {
-                                        if (readRS.next()) {
-                                            keys.put("SEQ", readRS.getInt(1));
-                                        }
-                                    } catch (SQLException e) {
-                                        Logger.getLogger().error("Unable to init instance", e);
-                                    }
-                                }
-                                return keys;
+                    try {
+                        semaphore.acquire();
+                        
+                        try (PreparedStatement insert = connection.prepareStatement(insertSQL, new String[] {"ID"})) {
+                            insert.setString(1, PID);
+                            int affectedRows = insert.executeUpdate();
+                            if (affectedRows == 0) {
+                                throw new SQLException("No rows affected.");
                             }
+                            connection.commit();
+                            try (ResultSet updateRS = insert.getGeneratedKeys()) {                        
+                                if (updateRS.next()) {
+                                    Logger.getLogger().debug(MessageFormat.format(
+                                            "CAS: New catalog {0} entry: #{1} '{'PID={2}'}'", className, updateRS.getInt(1), PID
+                                    ));
+                                    Map<String, Integer> keys = new HashMap<>();
+                                    keys.put("ID",  updateRS.getInt(1));
+
+                                    final String readSQL = MessageFormat.format(
+                                            "SELECT SEQ FROM {0} WHERE ID = ?", className
+                                    );
+                                    try (PreparedStatement read = connection.prepareStatement(readSQL)) {
+                                        read.setInt(1, updateRS.getInt(1));
+                                        try (ResultSet readRS = read.executeQuery()) {
+                                            if (readRS.next()) {
+                                                keys.put("SEQ", readRS.getInt(1));
+                                            }
+                                        } catch (SQLException e) {
+                                            Logger.getLogger().error("Unable to init instance", e);
+                                        }
+                                    }
+                                    return keys;
+                                }
+                            }
+                        } catch (SQLException e) {
+                            Logger.getLogger().error("Unable to init instance", e);
                         }
-                    } catch (SQLException e) {
-                        Logger.getLogger().error("Unable to init instance", e);
+                    } catch (InterruptedException e) {
+                        return null;
+                    } finally {
+                        semaphore.release();
                     }
                 }
             }
@@ -246,25 +254,33 @@ public final class ConfigStoreService implements IConfigStoreService {
             final String className = clazz.getSimpleName().toUpperCase();
             final String[] parts   = properties.keySet().toArray(new String[]{});
             final String updateSQL = "UPDATE "+className+" SET "+String.join(" = ?, ", parts)+" = ? WHERE ID = ?";
-            try (PreparedStatement update = connection.prepareStatement(updateSQL)) {
-                List keys = new ArrayList(properties.keySet());
-                properties.forEach((key, value) -> {
-                    try {
-                        update.setString(keys.indexOf(key)+1, value.isEmpty() ? null : value);
-                    } catch (SQLException e) {
-                        Logger.getLogger().error("Unable to update instance", e);
-                    }
-                });
-                update.setInt(properties.size()+1, ID);
-                update.executeUpdate();
-                connection.commit();
-                Logger.getLogger().debug(MessageFormat.format(
-                        "CAS: Altered catalog {0} entry: #{1} {2}", className, ID, properties
-                ));
+            try {
+                semaphore.acquire();
+            
+                try (PreparedStatement update = connection.prepareStatement(updateSQL)) {
+                    List keys = new ArrayList(properties.keySet());
+                    properties.forEach((key, value) -> {
+                        try {
+                            update.setString(keys.indexOf(key)+1, value.isEmpty() ? null : value);
+                        } catch (SQLException e) {
+                            Logger.getLogger().error("Unable to update instance", e);
+                        }
+                    });
+                    update.setInt(properties.size()+1, ID);
+                    update.executeUpdate();
+                    connection.commit();
+                    Logger.getLogger().debug(MessageFormat.format(
+                            "CAS: Altered catalog {0} entry: #{1} {2}", className, ID, properties
+                    ));
+                    return RC_SUCCESS;
+                } catch (SQLException e) {
+                    Logger.getLogger().error("Unable to update instance", e);
+                    return RC_ERROR;
+                }
+            } catch (InterruptedException e) {
                 return RC_SUCCESS;
-            } catch (SQLException e) {
-                Logger.getLogger().error("Unable to update instance", e);
-                return RC_ERROR;
+            } finally {
+                semaphore.release();
             }
         }
         return RC_ERROR;
@@ -341,22 +357,30 @@ public final class ConfigStoreService implements IConfigStoreService {
     public int removeClassInstance(Class clazz, Integer ID) {
         final String className = clazz.getSimpleName().toUpperCase();
         final String deleteSQL = MessageFormat.format("DELETE FROM {0} WHERE ID = ?", className);
-
-        try (PreparedStatement delete = connection.prepareStatement(deleteSQL)) {
-            delete.setInt(1, ID);
-            delete.executeUpdate();
-            connection.commit();
-            Logger.getLogger().debug(MessageFormat.format(
-                    "CAS: Deleted catalog {0} entry: {1}", className, ID
-            ));
-            return RC_SUCCESS;
-        } catch (SQLException e) {
-            if (e.getErrorCode() == Codes.SQLITE_CONSTRAINT) {
-                return RC_DEL_CONSTRAINT;
-            } else {
-                Logger.getLogger().error("Unable to delete instance", e);
-                return RC_ERROR;
+        
+        try {
+            semaphore.acquire();
+            
+            try (PreparedStatement delete = connection.prepareStatement(deleteSQL)) {
+                delete.setInt(1, ID);
+                delete.executeUpdate();
+                connection.commit();
+                Logger.getLogger().debug(MessageFormat.format(
+                        "CAS: Deleted catalog {0} entry: {1}", className, ID
+                ));
+                return RC_SUCCESS;
+            } catch (SQLException e) {
+                if (e.getErrorCode() == Codes.SQLITE_CONSTRAINT) {
+                    return RC_DEL_CONSTRAINT;
+                } else {
+                    Logger.getLogger().error("Unable to delete instance", e);
+                    return RC_ERROR;
+                }
             }
+        } catch (InterruptedException e) {
+            return RC_SUCCESS;
+        } finally {
+            semaphore.release();
         }
     }
     
