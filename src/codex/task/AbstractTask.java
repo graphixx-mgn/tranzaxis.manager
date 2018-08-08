@@ -120,6 +120,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
      * @param percent Процент готовности (0-100).
      * @param description Описание состояния задачи на данный момент.
      */
+    @Override
     public final void setProgress(int percent, String description) {
         if (percent < 0 || percent > 100) {
             throw new IllegalArgumentException("Progress value should be from 0 to 100");

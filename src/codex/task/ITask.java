@@ -22,6 +22,14 @@ public interface ITask<T> extends RunnableFuture<T> {
      * Возвращает прогресс исполнения задачи в процентах.
      */
     Integer getProgress();
+    
+    /**
+     * Установить состояние прогресса исполнения
+     * @param percent Процент, от 0 до 100
+     * @param description Описание к текущему состоянию
+     */
+    void setProgress(int percent, String description);
+    
     /**
      * Возвращает расчитанное на основе состояния описание задачи.
      */
