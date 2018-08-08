@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
  */
 class TaskExecutor extends ThreadPoolExecutor {
     
-    private final static int QUEUE_SIZE  = 5;
+    private final static int QUEUE_SIZE  = 10;
     private final static int DEMAND_SIZE = 25;
     
     public TaskExecutor(ThreadPoolKind kind) {
