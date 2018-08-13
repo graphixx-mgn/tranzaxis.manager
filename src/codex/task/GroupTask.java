@@ -43,6 +43,11 @@ public final class GroupTask<T> extends AbstractTask<T> {
                 } catch (CanceException e) {
                     setStatus(Status.CANCELLED);
                     aborted = true;
+                 } catch (ExecuteException e) {
+                    current.setProgress(task.getProgress(), MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
+                    setStatus(current, Status.FAILED);
+                    Logger.getLogger().error(e.getDescription());
+                    aborted = true;
                 } catch (Throwable e) {
                     current.setProgress(task.getProgress(), MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
                     setStatus(current, Status.FAILED);

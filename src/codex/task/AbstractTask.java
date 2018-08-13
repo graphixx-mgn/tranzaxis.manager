@@ -37,6 +37,11 @@ public abstract class AbstractTask<T> implements ITask<T> {
                 finished(execute());
             } catch (CanceException e) {
                 setStatus(Status.CANCELLED);
+            } catch (ExecuteException e) {
+                setProgress(percent, MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
+                setStatus(Status.FAILED);
+                Logger.getLogger().error(e.getDescription());
+                throw e;
             } catch (InterruptedException e) {
             } catch (Throwable e) {
                 setProgress(percent, MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
