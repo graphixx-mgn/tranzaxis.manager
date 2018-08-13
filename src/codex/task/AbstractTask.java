@@ -35,7 +35,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
             setStatus(Status.STARTED);
             try {
                 finished(execute());
-            } catch (StopException e) {
+            } catch (CanceException e) {
                 setStatus(Status.CANCELLED);
             } catch (InterruptedException e) {
             } catch (Throwable e) {

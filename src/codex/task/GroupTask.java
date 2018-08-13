@@ -40,7 +40,7 @@ public final class GroupTask<T> extends AbstractTask<T> {
                 } catch (InterruptedException e) {
                     setStatus(current, Status.CANCELLED);
                     aborted = true;
-                } catch (StopException e) {
+                } catch (CanceException e) {
                     setStatus(Status.CANCELLED);
                     aborted = true;
                 } catch (Throwable e) {
