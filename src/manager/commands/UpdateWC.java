@@ -64,6 +64,9 @@ public class UpdateWC extends EntityCommand {
 
         @Override
         public Void execute() throws Exception {
+            offshoot.model.setValue("loaded", false);
+            offshoot.model.commit();
+            
             String wcPath  = offshoot.getWCPath();
             String repoUrl = Entity.getOwner(offshoot).model.getValue("repoUrl")+"/dev/"+offshoot.model.getPID();
             
