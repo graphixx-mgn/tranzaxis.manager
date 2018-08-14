@@ -35,7 +35,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
             setStatus(Status.STARTED);
             try {
                 finished(execute());
-            } catch (CanceException e) {
+            } catch (CancelException e) {
                 setStatus(Status.CANCELLED);
             } catch (ExecuteException e) {
                 setProgress(percent, MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
@@ -149,6 +149,9 @@ public abstract class AbstractTask<T> implements ITask<T> {
     void setStatus(Status state) {
         if (!this.status.equals(state)) {
             Logger.getLogger().debug("Task ''{0}'' state changed: {1} -> {2}", getTitle(), this.status, state);
+            if (this.status == Status.CANCELLED && state == Status.FINISHED) {
+                System.err.println("Incorrect state change");
+            }
         }
         this.status = state;
         new LinkedList<>(listeners).forEach((listener) -> {

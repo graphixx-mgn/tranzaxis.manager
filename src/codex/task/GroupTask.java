@@ -36,11 +36,15 @@ public final class GroupTask<T> extends AbstractTask<T> {
                 try {
                     setStatus(current, Status.STARTED);
                     current.finished(current.execute());
-                    current.setStatus(Status.FINISHED);
+                    if (current.getStatus() != Status.CANCELLED) {
+                        current.setStatus(Status.FINISHED);
+                    } else {
+                        throw new CancelException();
+                    }
                 } catch (InterruptedException e) {
                     setStatus(current, Status.CANCELLED);
                     aborted = true;
-                } catch (CanceException e) {
+                } catch (CancelException e) {
                     setStatus(Status.CANCELLED);
                     aborted = true;
                  } catch (ExecuteException e) {
@@ -67,6 +71,7 @@ public final class GroupTask<T> extends AbstractTask<T> {
         return new GroupTaskView(getTitle(), this, sequence, (task) -> {
             sequence.forEach((subTask) -> {
                 if (subTask.getStatus().equals(Status.STARTED)) {
+                    System.err.println("Stop task: "+subTask.getTitle());
                     subTask.cancel(true);
                 }
             });
