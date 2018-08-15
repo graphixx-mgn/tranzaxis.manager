@@ -12,6 +12,7 @@ import codex.presentation.RollbackEntity;
 import codex.property.PropertyHolder;
 import codex.type.IComplexType;
 import codex.type.Iconified;
+import codex.utils.Language;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -44,6 +45,7 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     private String    title;
     private Entity[]  context;
     private IButton   button; 
+    private String    groupId;
     private final List<ICommandListener<Entity>> listeners = new LinkedList<>();
     private Supplier<PropertyHolder[]> provider = () -> { return new PropertyHolder[] {}; };
     
@@ -84,8 +86,12 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         }
         this.key       = key;
         this.name      = name;
-        this.title     = title;
         this.available = available;
+        
+        if (title != null) {
+            String localTitle = Language.get(this.getClass().getSimpleName(), title);
+            this.title = localTitle.equals(Language.NOT_FOUND) ? title : localTitle;
+        }
         
         this.button = new PushButton(icon, null);
         this.button.addActionListener(this);
@@ -162,7 +168,36 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         }
         return this;
     }
-
+    
+    /**
+     * Получение вызов диалога заполнения параметров и возврат значений.
+     */
+    public final Map<String, IComplexType> getParameters() {
+        ParametersDialog paramDialog = new ParametersDialog(this, provider);
+        try {
+            return paramDialog.call();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+    /**
+     * Установка имени группы для команды. Команды одной группы объединяются в меню.
+     */
+    public final EntityCommand setGroupId(String groupId) {
+        if (groupId != null) {
+            this.groupId = groupId;
+        }
+        return this;
+    }
+    
+    /**
+     * Получение имени группы команды.
+     */
+    public final String getGroupId() {
+        return groupId;
+    }
     
     @Override
     public void actionPerformed(ActionEvent event) {
@@ -175,16 +210,6 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
                 }
                 activate();
             });
-        }
-    }
-    
-    public final Map<String, IComplexType> getParameters() {
-        ParametersDialog paramDialog = new ParametersDialog(this, provider);
-        try {
-            return paramDialog.call();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
         }
     }
     
