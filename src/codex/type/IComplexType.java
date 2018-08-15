@@ -11,6 +11,7 @@ import java.text.MessageFormat;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JTextField;
+import javax.swing.border.EmptyBorder;
 
 /**
  * Интерфеqс пользовательского типа данных для хранения в свойствах {@link PropertyHolder}
@@ -68,6 +69,7 @@ public interface IComplexType<T, M extends IMask<T>> extends Serializable {
                         Language.get("IComplexType", "error@noeditor"), 
                         propHolder.getPropValue().getClass().getCanonicalName()
                 ));
+                textField.setBorder(new EmptyBorder(0, 3, 0, 3));
                 textField.setHorizontalAlignment(JTextField.CENTER);
                 textField.setEditable(false);
                 textField.setForeground(Color.RED);
