@@ -12,12 +12,18 @@ import javax.swing.BoxLayout;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
+import net.java.balloontip.BalloonTip;
+import net.java.balloontip.styles.EdgedBalloonStyle;
+import net.java.balloontip.utils.ToolTipUtils;
 
 /**
  * Кнопка главной (первой) команды в группе.
@@ -102,7 +108,21 @@ public final class GroupButton extends JPanel implements IButton, MouseListener,
 
     @Override
     public void setHint(String text) {
-        
+        if (text != null) {
+            BalloonTip tooltipBalloon = new BalloonTip(
+                    (JComponent) this.button, 
+                    new JLabel(
+                            text,
+                            ImageUtils.resize(
+                                ImageUtils.getByPath("/images/event.png"), 
+                                16, 16
+                            ), 
+                            SwingConstants.LEADING), 
+                    new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
+                    false
+            );
+            ToolTipUtils.balloonToToolTip(tooltipBalloon, 2000, 3000);
+        }
     }
 
     @Override

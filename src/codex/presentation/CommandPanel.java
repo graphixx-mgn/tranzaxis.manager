@@ -47,6 +47,7 @@ public final class CommandPanel extends Box {
             if (command.getGroupId() != null) {
                 if (!groupButtons.containsKey(command.getGroupId())) {
                     GroupButton groupButton = new GroupButton(command.getIcon());
+                    groupButton.setHint(command.toString());
                     groupButton.addActionListener(command);
                     try {
                         Field button = EntityCommand.class.getDeclaredField("button");
