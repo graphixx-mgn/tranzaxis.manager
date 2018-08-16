@@ -92,6 +92,9 @@ public final class ConfigStoreService implements IConfigStoreService {
             columns.add("ID  INTEGER PRIMARY KEY AUTOINCREMENT");
             columns.add("PID TEXT NOT NULL");
             columns.add("SEQ INTEGER NOT NULL");
+            if (propDefinition.isEmpty()) {
+                columns.add("OWN TEXT");
+            }
             columns.add("OVR TEXT");
         }
         
@@ -308,9 +311,7 @@ public final class ConfigStoreService implements IConfigStoreService {
                         String val;
                         for (int colIdx = 1; colIdx <= meta.getColumnCount(); colIdx++) {
                             val = selectRS.getString(colIdx);
-                            if (val != null) {
-                                rowData.put(meta.getColumnName(colIdx), selectRS.getString(colIdx));
-                            }
+                            rowData.put(meta.getColumnName(colIdx), selectRS.getString(colIdx));
                         }
                     }
                 } catch (SQLException e) {

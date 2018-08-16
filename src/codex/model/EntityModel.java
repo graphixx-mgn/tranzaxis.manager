@@ -60,7 +60,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         
         addDynamicProp(
                 EntityModel.ID, 
-                new Int(databaseValues.containsKey(ID) ? Integer.valueOf(databaseValues.get(ID)) : null), 
+                new Int(databaseValues.get(ID) != null ? Integer.valueOf(databaseValues.get(ID)) : null), 
                 Access.Any, null
         );
         
@@ -130,7 +130,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void addUserProp(String name, IComplexType value, boolean require, Access restriction) {
         addProperty(name, value, require, restriction);
-        if (databaseValues != null && databaseValues.containsKey(name)) {
+        if (databaseValues != null && databaseValues.get(name) != null) {
             getProperty(name).getPropValue().valueOf(databaseValues.get(name));
         }
     }
@@ -143,7 +143,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void addUserProp(PropertyHolder propHolder, Access restriction) {
         addProperty(propHolder, restriction);
-        if (databaseValues != null && databaseValues.containsKey(propHolder.getName())) {
+        if (databaseValues != null && databaseValues.get(propHolder.getName()) != null) {
             getProperty(propHolder.getName()).getPropValue().valueOf(databaseValues.get(propHolder.getName()));
         }
     }
@@ -325,7 +325,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             changes.forEach((propName) -> {
                 values.put(propName, getProperty(propName).getPropValue().toString());
             });
-            if (getID() == null) {
+            if (getID() == null || !databaseValues.keySet().containsAll(changes)) {
                 Map<String, IComplexType> propDefinitions = new LinkedHashMap<>();
                 
                 propDefinitions.put(EntityModel.OWN, getProperty(EntityModel.OWN).getPropValue());
