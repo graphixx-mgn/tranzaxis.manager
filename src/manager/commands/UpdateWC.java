@@ -172,7 +172,7 @@ public class UpdateWC extends EntityCommand {
                 offshoot.model.setValue("wcStatus", status);
                 offshoot.model.setValue("loaded",  !status.equals(WCStatus.Absent));
                 offshoot.model.commit();
-                offshoot.model.updateDynamicProp("localRev");
+                offshoot.model.updateDynamicProp("wcRev");
                 offshoot.setMode(INode.MODE_SELECTABLE + (status.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
             });
         }
