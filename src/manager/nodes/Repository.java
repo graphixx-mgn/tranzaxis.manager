@@ -35,6 +35,8 @@ import javax.swing.SwingUtilities;
 import manager.svn.SVN;
 import manager.type.WCStatus;
 import org.tmatesoft.svn.core.SVNDirEntry;
+import org.tmatesoft.svn.core.SVNErrorCode;
+import org.tmatesoft.svn.core.SVNException;
 
 public class Repository extends Entity {
     
@@ -76,7 +78,7 @@ public class Repository extends Entity {
         {
             @Override
             public boolean isValid() {
-                return (Boolean) Repository.this.model.getValue("lockStatus");
+                return (Boolean) Repository.this.model.getValue("locked");
             }
         };
         List<String> authTypes = Arrays.asList(new String[] {"", AUTH_PASS, AUTH_KEY});
@@ -89,13 +91,13 @@ public class Repository extends Entity {
         ), true, Access.Select);
         model.addUserProp("svnPass", new Str(null), false, Access.Select);
         model.addUserProp("svnKeyFile", new FilePath(null).setMask(new FileMask()), false, Access.Select);
-        model.addUserProp("lockStatus", new Bool(false), false, Access.Any);
+        model.addUserProp("locked", new Bool(false), false, Access.Any);
         
         String authType = ((List<String>) model.getValue("svnAuthType")).get(0);
         LockStructure lockCommand = new LockStructure();
         
         model.getEditor("repoUrl").addCommand(lockCommand);
-        model.getEditor("repoUrl").setEditable(!(Boolean) model.getValue("lockStatus"));
+        model.getEditor("repoUrl").setEditable(!(Boolean) model.getValue("locked"));
         model.getEditor("svnPass").setEditable(AUTH_PASS.equals(authType));
         model.getEditor("svnKeyFile").setEditable(AUTH_KEY.equals(authType));
         
@@ -108,7 +110,7 @@ public class Repository extends Entity {
             }
         });
         
-        if ((Boolean) model.getValue("lockStatus")) {
+        if ((Boolean) model.getValue("locked")) {
             lockCommand.load(true);
         }
     }
@@ -117,7 +119,7 @@ public class Repository extends Entity {
         
         public LockStructure() {
             super(
-                    !(Boolean) Repository.this.model.getValue("lockStatus") ? UNLOCKED : LOCKED, 
+                    !(Boolean) Repository.this.model.getValue("locked") ? UNLOCKED : LOCKED, 
                     Language.get(Repository.class.getSimpleName(), "command@lock"),
                     (holder) -> {
                         return !holder.isEmpty();
@@ -127,7 +129,7 @@ public class Repository extends Entity {
 
         @Override
         public void execute(PropertyHolder propHolder) {
-            boolean locked = (Boolean) Repository.this.model.getValue("lockStatus");
+            boolean locked = (Boolean) Repository.this.model.getValue("locked");
             if (!locked) {
                 load(false);
             } else {
@@ -143,7 +145,7 @@ public class Repository extends Entity {
         private void switchLock(boolean locked) {
             Repository.this.model.getEditor("repoUrl").setEditable(locked);
             getButton().setIcon(locked ? UNLOCKED : LOCKED);
-            Repository.this.model.setValue("lockStatus", !locked);
+            Repository.this.model.setValue("locked", !locked);
             Repository.this.model.commit();
             ((AbstractEditor) Repository.this.model.getEditor("repoUrl")).updateUI();
         }
@@ -152,7 +154,7 @@ public class Repository extends Entity {
             ITask reload = new GroupTask<>(
                 "Reload repository: "+Repository.this, 
                 new Check(),
-                new LoadReleases(),
+                //new LoadReleases(),
                 new LoadSources()
             );
             reload.addListener(new ITaskListener() {
@@ -195,13 +197,19 @@ public class Repository extends Entity {
             String svnUser = (String) Repository.this.model.getValue("svnUser");
             String svnPass = (String) Repository.this.model.getValue("svnPass");
             
-            List<String> required = Arrays.asList(new String[] {"releases", "dev"});
+            try {
+                List<String> required = Arrays.asList(new String[] {"releases", "dev"});
             
-            boolean valid = SVN.list(rootUrl, svnUser, svnPass).stream().map((entry) -> {
-                return entry.getName();
-            }).collect(Collectors.toList()).containsAll(required);
-            if (!valid) {
-                throw new UnsupportedOperationException(Language.get(Repository.class.getSimpleName(), "error@invalid"));
+                boolean valid = SVN.list(rootUrl, svnUser, svnPass).stream().map((entry) -> {
+                    return entry.getName();
+                }).collect(Collectors.toList()).containsAll(required);
+                if (!valid) {
+                    throw new UnsupportedOperationException(Language.get(Repository.class.getSimpleName(), "error@invalid"));
+                }
+            } catch (SVNException e) {
+                if (e.getErrorMessage().getErrorCode().getCode() != SVNErrorCode.RA_SVN_MALFORMED_DATA.getCode()) {
+                    throw new UnsupportedOperationException(Language.get(Repository.class.getSimpleName(), "error@svnerr"));
+                }
             }
             return null;
         }
@@ -223,25 +231,31 @@ public class Repository extends Entity {
             String svnUser = (String) Repository.this.model.getValue("svnUser");
             String svnPass = (String) Repository.this.model.getValue("svnPass");
             
-            List<SVNDirEntry> dirItems = SVN.list(rootUrl+"/releases", svnUser, svnPass);
-            
-            if (!dirItems.isEmpty()) {
-                final AtomicInteger index = new AtomicInteger(0);
-                ReleaseList releaseRoot = new ReleaseList(Repository.this);
-                dirItems.sort(VERSION_SORTER.reversed());
-                
-                dirItems.forEach((dirItem) -> {
-                    index.incrementAndGet();
-                    if (!dirItem.getName().isEmpty()) {
-                        Release release = new Release(releaseRoot, dirItem.getName());
-                        setProgress(
-                                index.get()*100/dirItems.size(), 
-                                dirItem.getName()
-                        );
-                    }
-                });
+            try {
+                List<SVNDirEntry> dirItems = SVN.list(rootUrl+"/releases", svnUser, svnPass);
+                if (!dirItems.isEmpty()) {
+                    final AtomicInteger index = new AtomicInteger(0);
+                    ReleaseList releaseRoot = new ReleaseList(Repository.this);
+                    dirItems.sort(VERSION_SORTER.reversed());
+
+                    dirItems.forEach((dirItem) -> {
+                        index.incrementAndGet();
+                        if (!dirItem.getName().isEmpty()) {
+                            Release release = new Release(releaseRoot, dirItem.getName());
+                            setProgress(
+                                    index.get()*100/dirItems.size(), 
+                                    dirItem.getName()
+                            );
+                        }
+                    });
+                }
+            } catch (SVNException e) {
+                if (e.getErrorMessage().getErrorCode().getCode() != SVNErrorCode.RA_SVN_MALFORMED_DATA.getCode()) {
+                    throw new UnsupportedOperationException(Language.get(Repository.class.getSimpleName(), "error@svnerr"));
+                } else {
+                    System.err.println("Offline mode: releases. Not supported yet");
+                }
             }
-            
             return null;
         }
 
@@ -263,41 +277,47 @@ public class Repository extends Entity {
             String svnUser = (String) Repository.this.model.getValue("svnUser");
             String svnPass = (String) Repository.this.model.getValue("svnPass");
             
-            List<SVNDirEntry> dirItems = SVN.list(repoUrl+"/dev", svnUser, svnPass);
-            
-            if (!dirItems.isEmpty()) {
-                final AtomicInteger index = new AtomicInteger(0);
-                Development development = new Development(Repository.this);
-                Collections.reverse(dirItems);
-                
-                List<String> existing = development.childrenList().stream().map((child) -> {
-                    return ((Entity) child).model.getPID();
-                }).collect(Collectors.toList());
+            try {
+                List<SVNDirEntry> dirItems = SVN.list(repoUrl+"/dev", svnUser, svnPass);
 
-                dirItems.forEach((dirItem) -> {
-                    index.incrementAndGet();
-                    if (!dirItem.getName().isEmpty()) {
-                        Offshoot offshoot;
-                        if (existing.contains(dirItem.getName())) {
-                            offshoot = (Offshoot) development.childrenList().stream().filter((child) -> {
-                                return ((Entity) child).model.getPID().equals(dirItem.getName());
-                            }).findFirst().get();
-                            development.delete(offshoot);
-                            development.insert(offshoot);
-                        } else {
-                            offshoot = new Offshoot(development, dirItem.getName());
+                if (!dirItems.isEmpty()) {
+                    final AtomicInteger index = new AtomicInteger(0);
+                    Development development = new Development(Repository.this);
+                    Collections.reverse(dirItems);
+
+                    List<String> existing = development.childrenList().stream().map((child) -> {
+                        return ((Entity) child).model.getPID();
+                    }).collect(Collectors.toList());
+
+                    dirItems.forEach((dirItem) -> {
+                        index.incrementAndGet();
+                        if (!dirItem.getName().isEmpty()) {
+                            Offshoot offshoot;
+                            if (existing.contains(dirItem.getName())) {
+                                offshoot = (Offshoot) development.childrenList().stream().filter((child) -> {
+                                    return ((Entity) child).model.getPID().equals(dirItem.getName());
+                                }).findFirst().get();
+                                development.delete(offshoot);
+                                development.insert(offshoot);
+                            } else {
+                                offshoot = new Offshoot(development, dirItem.getName());
+                            }
+                            WCStatus status = offshoot.getStatus();
+                            offshoot.setMode(INode.MODE_SELECTABLE + (status.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
+
+                            setProgress(
+                                    index.get()*100/dirItems.size(),
+                                    dirItem.getName()
+                            );
                         }
-                        
-                        WCStatus status = offshoot.getStatus();
-                        offshoot.model.setValue("wcStatus", status);
-                        offshoot.setMode(INode.MODE_SELECTABLE + (status.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
-                        
-                        setProgress(
-                                index.get()*100/dirItems.size(),
-                                dirItem.getName()
-                        );
-                    }
-                });
+                    });
+                }
+            } catch (SVNException e) {
+                if (e.getErrorMessage().getErrorCode().getCode() != SVNErrorCode.RA_SVN_MALFORMED_DATA.getCode()) {
+                    throw new UnsupportedOperationException(Language.get(Repository.class.getSimpleName(), "error@svnerr"));
+                } else {
+                    Development development = new Development(Repository.this);
+                }
             }
             return null;
         }
