@@ -26,6 +26,7 @@ import org.tmatesoft.svn.core.wc.SVNInfo;
 import org.tmatesoft.svn.core.wc.SVNLogClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNStatus;
+import org.tmatesoft.svn.core.wc.SVNStatusClient;
 import org.tmatesoft.svn.core.wc.SVNStatusType;
 import org.tmatesoft.svn.core.wc.SVNUpdateClient;
 import org.tmatesoft.svn.core.wc.SVNWCClient;
@@ -59,7 +60,7 @@ public class SVN {
         return info;
     }
     
-    public static List<SVNDirEntry> list(String url, String user, String pass) {
+    public static List<SVNDirEntry> list(String url, String user, String pass) throws SVNException {
         final List<SVNDirEntry> entries = new LinkedList<>();
         
         final SVNAuthentication auth = new SVNPasswordAuthentication(user, pass, false);
@@ -74,13 +75,14 @@ public class SVN {
             });
         } catch (SVNException e) {
             Logger.getLogger().warn("SVN operation ''list'' error: {0}", e.getErrorMessage());
+            throw e;
         } finally {
             clientMgr.dispose();
         }
         return entries;
     }
     
-    public static Long diff(String path, String url, SVNRevision revision, String user, String pass) {
+    public static Long diff(String path, String url, SVNRevision revision, String user, String pass, ISVNEventHandler handler) throws SVNException {
         AtomicLong changes = new AtomicLong(0);
         
         final SVNAuthentication auth = new SVNPasswordAuthentication(user, pass, false);
@@ -93,9 +95,11 @@ public class SVN {
             if (!SVNWCUtil.isVersionedDirectory(localDir)) {
                 // Checkout
                 SVNURL svnUrl = SVNURL.parseURIEncoded(url);
-                SVNLogClient client = clientMgr.getLogClient();
-                
-                client.doList(svnUrl, revision, revision, true, SVNDepth.INFINITY, 1, new ISVNDirEntryHandler() {
+                SVNLogClient logClient = clientMgr.getLogClient();
+                if (handler != null) {
+                    logClient.setEventHandler(handler);
+                }
+                logClient.doList(svnUrl, revision, revision, true, SVNDepth.INFINITY, 1, new ISVNDirEntryHandler() {
                     @Override
                     public void handleDirEntry(SVNDirEntry entry) throws SVNException {
                         if (entry.getKind() != SVNNodeKind.DIR) {
@@ -105,8 +109,12 @@ public class SVN {
                 });
             } else {
                 AtomicBoolean incomplete = new AtomicBoolean(false);
-                try {
-                    clientMgr.getStatusClient().doStatus(localDir, SVNRevision.WORKING, SVNDepth.INFINITY, true, true, false, false, new ISVNStatusHandler() {
+                SVNStatusClient statusClient = clientMgr.getStatusClient();
+                if (handler != null) {
+                    statusClient.setEventHandler(handler);
+                }
+                try {    
+                    statusClient.doStatus(localDir, SVNRevision.WORKING, SVNDepth.INFINITY, true, true, false, false, new ISVNStatusHandler() {
                         @Override
                         public void handleStatus(SVNStatus status) throws SVNException {
                             incomplete.set(status.getNodeStatus() == SVNStatusType.STATUS_INCOMPLETE);
@@ -118,7 +126,7 @@ public class SVN {
                 } catch (SVNCancelException e) {}
                 
                 if (incomplete.get()) {
-                    clientMgr.getStatusClient().doStatus(localDir, SVNRevision.WORKING, SVNDepth.INFINITY, true, true, false, false, new ISVNStatusHandler() {
+                    statusClient.doStatus(localDir, SVNRevision.WORKING, SVNDepth.INFINITY, true, true, false, false, new ISVNStatusHandler() {
                         @Override
                         public void handleStatus(SVNStatus status) throws SVNException {
                                 if (
@@ -135,8 +143,7 @@ public class SVN {
                     }, null);
                 } else {
                     // Update from Rx to Ry
-                    SVNRevision current = clientMgr.getStatusClient().doStatus(localDir, false).getRevision();
-   
+                    SVNRevision current = statusClient.doStatus(localDir, false).getRevision();
                     final SvnDiffSummarize diff = new SvnOperationFactory().createDiffSummarize();
                     diff.setSources(
                             SvnTarget.fromFile(localDir, current),
@@ -144,20 +151,23 @@ public class SVN {
                     );
                     diff.setRecurseIntoDeletedDirectories(true);
                     diff.setReceiver((target, status) -> {
+                        if (handler != null) {
+                            handler.checkCancelled();
+                        }
                         changes.addAndGet(1);
                     });
                     diff.run();
                 }
             }
-        } catch (SVNException e) {
-            Logger.getLogger().warn("SVN operation ''diff'' error: {0}", e.getErrorMessage());
+        //} catch (SVNException e) {
+        //    Logger.getLogger().warn("SVN operation ''diff'' error: {0}", e.getErrorMessage());
         } finally {
             clientMgr.dispose();
         }
         return changes.get();
     }
     
-    public static long update(String url, String path, SVNRevision revision, String user, String pass, ISVNEventHandler handler) {
+    public static void update(String url, String path, SVNRevision revision, String user, String pass, ISVNEventHandler handler) {
         final SVNAuthentication auth = new SVNPasswordAuthentication(user, pass, false);
         final ISVNAuthenticationManager authMgr = new BasicAuthenticationManager(new SVNAuthentication[] { auth });
         final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
@@ -168,32 +178,40 @@ public class SVN {
             updateClient.setEventHandler(handler);
         }
         final File localDir = new File(path);
-        
         try {
             if (!SVNWCUtil.isVersionedDirectory(localDir)) {
-                SVNURL svnUrl = SVNURL.parseURIEncoded(url);
-                updateClient.doCheckout(svnUrl, localDir, SVNRevision.UNDEFINED, revision, SVNDepth.INFINITY, false);
-            } else {
                 try {
-                    updateClient.doUpdate(localDir, revision, SVNDepth.INFINITY, false, false);
+                    SVNURL svnUrl = SVNURL.parseURIEncoded(url);
+                    updateClient.doCheckout(svnUrl, localDir, SVNRevision.UNDEFINED, revision, SVNDepth.INFINITY, false);
                 } catch (SVNException e) {
-                    if (e.getErrorMessage().getErrorCode().getCode() == SVNErrorCode.WC_LOCKED.getCode()) {
-                        Logger.getLogger().warn("Perform cleanup due to error: {0}", e.getErrorMessage());
-                        SVNWCClient client = clientMgr.getWCClient();
-                        client.doCleanup(localDir, true, true, true, false, false, true);
-                        Logger.getLogger().info("Continue update after recovery");
-                        updateClient.doUpdate(localDir, revision, SVNDepth.INFINITY, false, false);
-                    } else {
-                        Logger.getLogger().warn("SVN operation ''update'' error: {0}", e.getErrorMessage());
-                    }
+                    Logger.getLogger().warn("SVN operation ''checkout'' error: {0}", e.getErrorMessage());
                 }
+            } else {
+                boolean needCleanup = false;
+                do {
+                    try {
+                        if (needCleanup) {
+                            SVNWCClient client = clientMgr.getWCClient();
+                            client.doCleanup(localDir, true, true, true, false, false, true);
+                            Logger.getLogger().info("Continue update after recovery");
+                        }
+                        updateClient.doUpdate(localDir, revision, SVNDepth.INFINITY, false, true);
+                    } catch (SVNException e) {
+                        if (e.getErrorMessage().getErrorCode().getCode() == SVNErrorCode.WC_LOCKED.getCode()) {
+                            Logger.getLogger().warn("Perform cleanup");
+                            needCleanup = true;
+                            continue;
+                        } else {
+                            Logger.getLogger().warn("SVN operation ''update'' error: {0}", e.getErrorMessage());
+                            break;
+                        }
+                    }
+                    break;
+                } while (true);
             }
-        } catch (SVNException e) {
-            Logger.getLogger().warn("SVN operation ''update'' error: {0}", e.getErrorMessage());
         } finally {
             clientMgr.dispose();
         }
-        return -1;
     }
     
 }
