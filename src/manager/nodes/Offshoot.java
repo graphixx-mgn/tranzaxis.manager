@@ -9,7 +9,6 @@ import codex.model.EntityModel;
 import codex.service.ServiceRegistry;
 import codex.type.Bool;
 import codex.type.Enum;
-import codex.type.Int;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import java.io.File;
@@ -18,8 +17,11 @@ import java.util.Date;
 import java.util.StringJoiner;
 import manager.commands.BuildWC;
 import manager.commands.DeleteWC;
+import manager.commands.RefreshWC;
+import manager.commands.RunDesigner;
 import manager.commands.UpdateWC;
 import manager.svn.SVN;
+import manager.type.BuildStatus;
 import manager.type.WCStatus;
 import org.tmatesoft.svn.core.wc.SVNInfo;
 import org.tmatesoft.svn.core.wc.SVNRevision;
@@ -28,7 +30,7 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 public class Offshoot extends BinarySource {
     
-    private final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm");
+    public final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm");
 
     public Offshoot(INode parent, String title) {
         super(parent, ImageUtils.getByPath("/images/branch.png"), title);
@@ -43,25 +45,32 @@ public class Offshoot extends BinarySource {
                 return WCStatus.Absent;
             }
         });
-        model.addDynamicProp("localRev", new Str(null), null, () -> {
+        model.addDynamicProp("wcRev", new Str(null), null, () -> {
             if (((WCStatus) model.getValue("wcStatus")).equals(WCStatus.Succesfull)) {
-                return getRevision().getNumber()+" / "+DATE_FORMAT.format(getRevisionDate());
+                return getRevision(false).getNumber()+" / "+DATE_FORMAT.format(getRevisionDate(false));
             }
             return null;
         }, "wcStatus");
-        model.addUserProp("loaded",      new Bool(false), true, Access.Any);
-        model.addUserProp("builtRev",    new Int(null), false, null);
-        
-        model.getEditor("builtRev").setEditable(false);
+        model.addUserProp("loaded", new Bool(null), false, Access.Any);
+        model.addUserProp("built", new BuildStatus(), false, null);
         
         addCommand(new DeleteWC());
+        addCommand(new RefreshWC());
         addCommand(new UpdateWC());
         addCommand(new BuildWC());
+        addCommand(new RunDesigner());
     }
 
     @Override
     public Class getChildClass() {
         return null;
+    }
+    
+    public final String getUrlPath() {
+       return new StringJoiner("/")
+            .add((String) Entity.getOwner(this).model.getValue("repoUrl"))
+            .add("dev")
+            .add(model.getPID()).toString();
     }
     
     public final String getWCPath() {
@@ -101,15 +110,15 @@ public class Offshoot extends BinarySource {
         }
     }
     
-    public final SVNRevision getRevision() {
-        String wcPath = getWCPath();
-        SVNInfo info = SVN.info(wcPath, false, null, null);
+    public final SVNRevision getRevision(boolean remote) {
+        String wcPath = remote ? getUrlPath() : getWCPath();
+        SVNInfo info = SVN.info(wcPath, remote, null, null);
         return info.getCommittedRevision();
     }
     
-    public final Date getRevisionDate() {
-        String wcPath = getWCPath();
-        SVNInfo info = SVN.info(wcPath, false, null, null);
+    public final Date getRevisionDate(boolean remote) {
+        String wcPath = remote ? getUrlPath() : getWCPath();
+        SVNInfo info = SVN.info(wcPath, remote, null, null);
         return info.getCommittedDate();
     }
     
