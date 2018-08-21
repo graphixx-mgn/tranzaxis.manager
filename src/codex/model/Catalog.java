@@ -4,7 +4,11 @@ import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
 import codex.service.ServiceRegistry;
-import java.util.Map;
+import codex.task.AbstractTask;
+import codex.task.ITaskExecutorService;
+import codex.task.TaskManager;
+import java.text.MessageFormat;
+import java.util.Collection;
 import javax.swing.ImageIcon;
 
 /**
@@ -13,7 +17,8 @@ import javax.swing.ImageIcon;
  */
 public abstract class Catalog extends Entity {
     
-    private final static IConfigStoreService STORE = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private final static IConfigStoreService  CSS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private final static ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class);
     
     /**
      * Конструктор каталога
@@ -35,20 +40,46 @@ public abstract class Catalog extends Entity {
     @Override
     public void setParent(INode parent) {
         super.setParent(parent);
-        loadChildEntities();
-    }
-    
-    private void loadChildEntities() {
         if (getChildClass() != null) {
-            Entity owner = Entity.getOwner(getParent());
-            Map<Integer, String> rowsData = STORE.readCatalogEntries(owner == null ? null : owner.model.getID(), getChildClass());
-            rowsData.forEach((ID, PID) -> {
-                Entity entity = Entity.newInstance(getChildClass(), this, PID);
-            });
+            try {
+                getLock().acquire();
+                TES.enqueueTask(new LoadChildren());
+            } catch (InterruptedException e) {}
         }
     }
     
     @Override
     public abstract Class getChildClass();
+    
+    protected Collection<String> getChildrenPIDs() {
+        Entity owner = Entity.getOwner(getParent());
+        return CSS.readCatalogEntries(owner == null ? null : owner.model.getID(), getChildClass()).values();
+    }
+    
+    private class LoadChildren extends AbstractTask<Void> {
+
+        public LoadChildren() {
+            super(MessageFormat.format(
+                    "Load children: {0}",
+                    Catalog.this.getPathString()
+            ));
+        }
+
+        @Override
+        public Void execute() throws Exception {
+            setMode(INode.MODE_NONE);
+            getChildrenPIDs().forEach((PID) -> {
+                Entity.newInstance(getChildClass(), Catalog.this, PID);
+            });
+            return null;
+        }
+
+        @Override
+        public void finished(Void result) {
+            setMode(INode.MODE_ENABLED + INode.MODE_SELECTABLE);
+            getLock().release();
+        }
+    
+    }
 
 }
