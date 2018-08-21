@@ -1,10 +1,9 @@
 package codex.explorer;
 
-import codex.explorer.tree.INode;
 import codex.explorer.tree.NodeTreeModel;
 import codex.model.Entity;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.swing.tree.TreeModel;
 
 /**
@@ -20,29 +19,37 @@ public class ExplorerAccessService implements IExplorerAccessService {
      */
     ExplorerAccessService(TreeModel model) {
         this.model = (NodeTreeModel) model;
-    } 
+    }
+    
+    @Override
+    public Entity getRoot() {
+        return (Entity) model.getRoot();
+    }
 
     @Override
     public List<Entity> getEntitiesByClass(Class entityClass) {
-        List<Entity> found = new LinkedList<>();
-        for (INode node : model) {
-            if (entityClass.isAssignableFrom(node.getClass())) {
-                found.add((Entity) node);
-            }
-        }
-        return found;
+        return getRoot()
+                .flattened()
+                .filter((node) -> {
+                    return entityClass.isAssignableFrom(node.getClass());
+                })
+                .map((node) -> {
+                    return (Entity) node;
+                })
+                .collect(Collectors.toList());
     }
     
     @Override
     public Entity getEntity(Class entityClass, Integer ID) {
-        for (INode node : model) {
-            if (entityClass.equals(node.getChildClass()) || entityClass.isAssignableFrom(node.getClass())) {
-                if (((Entity) node).model.getID() == ID) {
+        return getRoot()
+                .flattened()
+                .filter((node) -> {
+                    return entityClass.isAssignableFrom(node.getClass()) && ((Entity) node).model.getID() == ID;
+                })
+                .map((node) -> {
                     return (Entity) node;
-                }
-            }
-        }
-        return null;
+                })
+                .findFirst().get();
     }
     
 }

@@ -10,6 +10,13 @@ import java.util.List;
 public interface IExplorerAccessService extends IService {
     
     /**
+     * Возвращает корень дерева.
+     */
+    default Entity getRoot() {
+        return null;
+    }
+    
+    /**
      * Возвращает список сущностей с заданным классом.
      */
     default List<Entity> getEntitiesByClass(Class entityClass) {
