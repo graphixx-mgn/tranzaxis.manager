@@ -97,7 +97,10 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
     
     @Override
     public String toString() {
-        return isEmpty() ? "" : entityID.toString();
+        return entityID != null ? 
+                entityID.toString() : (
+                    entityInstance != null ? entityInstance.model.getID().toString() : ""
+                );
     }
 
     @Override
