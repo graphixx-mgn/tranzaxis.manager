@@ -411,7 +411,12 @@ public final class ConfigStoreService implements IConfigStoreService {
                                 "CAS: Found existing reference: {0}/{1}-{2}",
                                 selectRS.getString(1), selectRS.getInt(2), selectRS.getString(3)
                             ));
-                            links.add(new ForeignLink(selectRS.getString(1), selectRS.getInt(2)));
+                            links.add(new ForeignLink(
+                                    selectRS.getString(1), 
+                                    selectRS.getInt(2), 
+                                    selectRS.getString(3),
+                                    !fkColumnName.toUpperCase().equals("OWN"))
+                            );
                         }
                     }
                 }

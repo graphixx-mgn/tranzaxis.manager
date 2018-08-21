@@ -78,10 +78,14 @@ public interface IConfigStoreService extends IService {
     public class ForeignLink { 
         public final String  entryClass;
         public final Integer entryID;
+        public final String  entryPID;
+        public final Boolean isIncoming;
         
-        public ForeignLink(String  entryClass, Integer entryID) {
+        public ForeignLink(String  entryClass, Integer entryID, String entryPID, boolean incoming) {
             this.entryClass = entryClass;
-            this.entryID = entryID;
+            this.entryID    = entryID;
+            this.entryPID   = entryPID;
+            this.isIncoming = incoming;
         }
         
         @Override

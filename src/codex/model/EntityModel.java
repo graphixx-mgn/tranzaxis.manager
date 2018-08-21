@@ -291,28 +291,46 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 .collect(Collectors.toList());
     }
     
-    public final boolean remove() {
-        int result = CAS.removeClassInstance(entityClass, getID());
-        if (result == IConfigStoreService.RC_SUCCESS) {
-            new LinkedList<>(modelListeners).forEach((listener) -> {
-                listener.modelDeleted(this);
-            });
+    public final boolean existReferencies() {
+        List<IConfigStoreService.ForeignLink> links = CAS.findReferencedEntries(entityClass, getID());
+        if (links.isEmpty()) {
+            return false;
         } else {
             StringBuilder msgBuilder = new StringBuilder(
                     MessageFormat.format(Language.get("error@notdeleted"), getPID())
             );
-            List<IConfigStoreService.ForeignLink> links = CAS.findReferencedEntries(entityClass, getID());
             links.forEach((link) -> {
                 try {
-                    Entity referenced = EAS.getEntity(Class.forName(link.entryClass), link.entryID);
-                    if (referenced != null) {
-                        msgBuilder.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(referenced.getPathString());
+                    if (link.isIncoming) {
+                        Entity referenced = EAS.getEntity(Class.forName(link.entryClass), link.entryID);
+                        msgBuilder
+                                .append(Language.get("link@incoming"))
+                                .append(referenced.getPathString());
+                    } else {
+                        msgBuilder
+                                .append(Language.get("link@outgoing"))
+                                .append(link.entryPID)
+                                ;
                     }
                 } catch (ClassNotFoundException e) {}
             });
             MessageBox.show(MessageType.ERROR, msgBuilder.toString());
+            return true;
         }
-        return result == IConfigStoreService.RC_SUCCESS;
+    }
+    
+    public final boolean remove() {
+        if (existReferencies()) {
+            return false;
+        } else {
+            int result = CAS.removeClassInstance(entityClass, getID());
+            if (result == IConfigStoreService.RC_SUCCESS) {
+                new LinkedList<>(modelListeners).forEach((listener) -> {
+                    listener.modelDeleted(this);
+                });
+            }
+            return result == IConfigStoreService.RC_SUCCESS;
+        }
     }
     
     /**
