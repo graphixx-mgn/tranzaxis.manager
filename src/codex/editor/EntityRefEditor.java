@@ -4,7 +4,6 @@ import codex.component.button.IButton;
 import codex.component.render.GeneralRenderer;
 import static codex.editor.IEditor.FONT_VALUE;
 import codex.explorer.ExplorerAccessService;
-import codex.explorer.IExplorerAccessService;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
@@ -34,7 +33,7 @@ import javax.swing.plaf.basic.BasicComboPopup;
  */
 public class EntityRefEditor extends AbstractEditor implements ActionListener {
     
-    private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+    private final static ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
     
     private JComboBox comboBox;
     
@@ -81,6 +80,7 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
         comboBox.removeAllItems();
         
         Object[] values = getValues();
+        comboBox.addItem(new NullValue());
         for (Object item : values) {
             if (propHolder.getPropValue().getValue() != null && 
                 ((Entity) item).model.getPID().equals(((Entity) propHolder.getPropValue().getValue()).model.getPID())) 
@@ -90,7 +90,6 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
                 comboBox.addItem(item);
             }
         }
-        comboBox.addItem(new NullValue());
         
         setValue(propHolder.getPropValue().getValue());
         comboBox.addActionListener(this);
@@ -124,7 +123,7 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
     @Override
     public void setValue(Object value) {
         if (value == null) {
-            comboBox.setSelectedItem(comboBox.getItemAt(comboBox.getItemCount()-1));
+            comboBox.setSelectedItem(comboBox.getItemAt(0));
         } else {
             if (!comboBox.getSelectedItem().equals(value)) {
                 comboBox.setSelectedItem(value);
@@ -141,7 +140,7 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (comboBox.getSelectedIndex() == comboBox.getItemCount()-1) {
+        if (comboBox.getSelectedIndex() == 0) {
             propHolder.setValue(null);
         } else {
             if (!comboBox.getSelectedItem().equals(propHolder.getPropValue().getValue())) {
