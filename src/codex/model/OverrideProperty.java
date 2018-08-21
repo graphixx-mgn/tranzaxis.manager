@@ -90,8 +90,8 @@ public class OverrideProperty extends EditorCommand {
             
             // Установка значения без вызова событий
             entity.model.getProperty(EntityModel.OVR).getPropValue().valueOf(ArrStr.merge(overrideProps));
-            Map<String, String> values = new LinkedHashMap<>();
-            values.put(EntityModel.OVR, entity.model.getProperty(EntityModel.OVR).getPropValue().toString());
+            Map<String, IComplexType> values = new LinkedHashMap<>();
+            values.put(EntityModel.OVR, entity.model.getProperty(EntityModel.OVR).getPropValue());
             int result = CAS.updateClassInstance(entity.getClass(), entity.model.getID(), values);
             if (result != IConfigStoreService.RC_SUCCESS) {
                 MessageBox.show(MessageType.ERROR, Language.get(EntityModel.class.getSimpleName(), "error@notsaved"));
