@@ -321,15 +321,15 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public final void commit() {
         List<String> changes = getChanges();
         if (!changes.isEmpty()) {
-            Map<String, String> values = new LinkedHashMap<>();
+            Map<String, IComplexType> values = new LinkedHashMap<>();
             changes.forEach((propName) -> {
-                values.put(propName, getProperty(propName).getPropValue().toString());
+                values.put(propName, getProperty(propName).getPropValue());
             });
             if (getID() == null || !databaseValues.keySet().containsAll(changes)) {
                 Map<String, IComplexType> propDefinitions = new LinkedHashMap<>();
                 
                 propDefinitions.put(EntityModel.OWN, getProperty(EntityModel.OWN).getPropValue());
-                values.put(EntityModel.OWN, getProperty(EntityModel.OWN).getPropValue().toString());
+                values.put(EntityModel.OWN, getProperty(EntityModel.OWN).getPropValue());
                 
                 getProperties(Access.Any)
                     .stream()
@@ -466,14 +466,19 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     }
                 }
             }
-            valueProviders.put(name, valueProvider);
+            valueProviders.put(name, new Supplier<Object>() {
+                @Override
+                public Object get() {
+                    return valueProvider.get();
+                }
+            });
             
             AtomicBoolean propInitiated = new AtomicBoolean(false);
             propertyHolders.put(name, new PropertyHolder(name, value, false) {
                 @Override
                 public IComplexType getPropValue() {
                     if (!propInitiated.getAndSet(true)) {
-                        value.setValue(valueProvider.get());
+                        value.setValue(valueProviders.get(name).get());
                     }
                     return value;
                 }
@@ -530,16 +535,17 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
 
         @Override
         public boolean verify(String value) {
-            return 
-                value != null && 
-                !EAS.getEntitiesByClass(entityClass)
-                    .stream()
-                    .filter((entity) -> {
-                        return entity.model != EntityModel.this;
-                    })
-                    .anyMatch((entity) -> {
-                        return entity.model.getProperty(propName).getPropValue().toString().equals(value);
-                    });
+            return true;
+            // TODO: Закоментировано из-за проблем с синхронной загрузкой 
+//                value != null && 
+//                !EAS.getEntitiesByClass(entityClass)
+//                    .stream()
+//                    .filter((entity) -> {
+//                        return entity.model != EntityModel.this;
+//                    })
+//                    .anyMatch((entity) -> {
+//                        return entity.model.getProperty(propName).getPropValue().toString().equals(value);
+//                    });
         }
 
         @Override

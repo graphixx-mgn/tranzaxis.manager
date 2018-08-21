@@ -252,36 +252,32 @@ public final class ConfigStoreService implements IConfigStoreService {
     }
     
     @Override
-    public int updateClassInstance(Class clazz, Integer ID, Map<String, String> properties) {
+    public int updateClassInstance(Class clazz, Integer ID, Map<String, IComplexType> properties) {
         if (!properties.isEmpty()) {
             final String className = clazz.getSimpleName().toUpperCase();
             final String[] parts   = properties.keySet().toArray(new String[]{});
             final String updateSQL = "UPDATE "+className+" SET "+String.join(" = ?, ", parts)+" = ? WHERE ID = ?";
-            try {
+                
+            try (PreparedStatement update = connection.prepareStatement(updateSQL)) {
+                List keys = new ArrayList(properties.keySet());
+                properties.forEach((key, value) -> {
+                    try {
+                        update.setString(keys.indexOf(key)+1, value.toString().isEmpty() ? null : value.toString());
+                    } catch (SQLException e) {
+                        Logger.getLogger().error("Unable to update instance", e);
+                    }
+                });
+                update.setInt(properties.size()+1, ID);
                 semaphore.acquire();
-            
-                try (PreparedStatement update = connection.prepareStatement(updateSQL)) {
-                    List keys = new ArrayList(properties.keySet());
-                    properties.forEach((key, value) -> {
-                        try {
-                            update.setString(keys.indexOf(key)+1, value.isEmpty() ? null : value);
-                        } catch (SQLException e) {
-                            Logger.getLogger().error("Unable to update instance", e);
-                        }
-                    });
-                    update.setInt(properties.size()+1, ID);
-                    update.executeUpdate();
-                    connection.commit();
-                    Logger.getLogger().debug(MessageFormat.format(
-                            "CAS: Altered catalog {0} entry: #{1} {2}", className, ID, properties
-                    ));
-                    return RC_SUCCESS;
-                } catch (SQLException e) {
-                    Logger.getLogger().error("Unable to update instance", e);
-                    return RC_ERROR;
-                }
-            } catch (InterruptedException e) {
+                update.executeUpdate();
+                connection.commit();
+                Logger.getLogger().debug(MessageFormat.format(
+                        "CAS: Altered catalog {0} entry: #{1} {2}", className, ID, properties
+                ));
                 return RC_SUCCESS;
+            } catch (SQLException | InterruptedException e) {
+                Logger.getLogger().error("Unable to update instance", e);
+                return RC_ERROR;
             } finally {
                 semaphore.release();
             }

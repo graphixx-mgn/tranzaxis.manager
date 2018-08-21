@@ -36,7 +36,7 @@ public interface IConfigStoreService extends IService {
      * @param properties Список имен свойств, которые требуется сохранить.
      * @return Код результата исполнения.
      */
-    default int updateClassInstance(Class clazz, Integer ID, Map<String, String> properties) {
+    default int updateClassInstance(Class clazz, Integer ID, Map<String, IComplexType> properties) {
         return RC_SUCCESS;
     };
     
