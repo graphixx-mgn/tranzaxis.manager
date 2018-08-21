@@ -17,7 +17,7 @@ public interface INodeListener {
      * @param parentNode Родительский узел.
      * @param childNode  Добавленный узел.
      */
-    default void childDeleted(INode parentNode, INode childNode)  {};
+    default void childDeleted(INode parentNode, INode childNode, int index)  {};
     
     /**
      * Дочерний узел перемещен.

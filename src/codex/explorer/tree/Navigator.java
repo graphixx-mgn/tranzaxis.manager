@@ -135,21 +135,19 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
     
     @Override
     public void childInserted(INode parentNode, INode childNode) {
+        childNode.addNodeListener(this);
         ((DefaultTreeModel) getModel()).nodesWereInserted(
                 parentNode, 
                 new int[] {parentNode.getIndex(childNode)}
         );
-        childNode.addNodeListener(this);
     }
 
     @Override
-    public void childDeleted(INode parentNode, INode childNode) {
-        if (parentNode.getChildCount() == 1) {
-            ((DefaultTreeModel) getModel()).nodeStructureChanged(parentNode);
-        }
+    public void childDeleted(INode parentNode, INode childNode, int index) {
+        childNode.removeNodeListener(this);
         ((DefaultTreeModel) getModel()).nodesWereRemoved(
                 parentNode, 
-                new int[] {parentNode.getIndex(childNode)}, 
+                new int[] {index}, 
                 new Object[] {childNode}
         );
     }
