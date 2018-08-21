@@ -5,7 +5,9 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Абстрактный узел дерева проводника.
@@ -77,6 +79,11 @@ public abstract class AbstractNode implements INode {
     };
     
     @Override
+    public final void removeNodeListener(INodeListener listener) {
+        nodeListeners.remove(listener);
+    };
+    
+    @Override
     public void insert(INode child) {
         child.setParent(this);
         children.add(child);
@@ -98,10 +105,33 @@ public abstract class AbstractNode implements INode {
 
     @Override
     public void delete(INode child) {
-        new LinkedList<>(nodeListeners).forEach((listener) -> {
-            listener.childDeleted(this, child);
-        });
+        int index = children.indexOf(child);
         children.remove(child);
+        new LinkedList<>(nodeListeners).forEach((listener) -> {
+            listener.childDeleted(this, child, index);
+        });
     };
+    
+    private Semaphore lock;
+    public final Semaphore getLock() {
+        if (lock == null) {
+            lock = new Semaphore(1, true);
+        }
+        return lock;
+    }
+    
+    @Override
+    public Stream<INode> flattened() {
+        try {
+            getLock().acquire();
+        } catch (InterruptedException e) {
+        } finally {
+            getLock().release();
+            return Stream.concat(
+                    Stream.of(this),
+                    childrenList().stream().flatMap(INode::flattened)
+            );
+        }
+    }
     
 }

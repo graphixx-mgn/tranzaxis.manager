@@ -4,6 +4,7 @@ import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 import javax.swing.tree.TreeNode;
 
 /**
@@ -139,6 +140,13 @@ public interface INode extends TreeNode {
         return true;
     };
     
+    /**
+     * Получение списка всех дочерних элементов рекурсивно. В начале списка 
+     * стоит этот узел.
+     */
+    public Stream<INode> flattened();
+    
     void addNodeListener(INodeListener listener);
-
+    void removeNodeListener(INodeListener listener);
+    
 }
