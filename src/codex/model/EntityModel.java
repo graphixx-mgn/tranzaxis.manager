@@ -54,9 +54,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
     private final List<IModelListener>          modelListeners = new LinkedList<>();
     
-    EntityModel(Entity owner, Class entityClass, String PID) {
+    EntityModel(EntityRef owner, Class entityClass, String PID) {
         this.entityClass = entityClass;
-        this.databaseValues = CAS.readClassInstance(entityClass, PID, owner == null ? null : owner.model.getID());
+        this.databaseValues = CAS.readClassInstance(entityClass, PID, owner.getId());
         
         addDynamicProp(
                 EntityModel.ID, 
@@ -64,13 +64,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 Access.Any, null
         );
         
-        EntityRef ownerRef = new EntityRef(owner == null ? null : owner.getClass());
-        if (owner != null) {
-            ownerRef.setValue(owner);
-        }
         addDynamicProp(
                 EntityModel.OWN, 
-                ownerRef, 
+                owner, 
                 Access.Any, null
         );
         addUserProp(EntityModel.SEQ, new Int(null), 
@@ -107,6 +103,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         EntityRef ownerRef = new EntityRef(owner.getClass());
         ownerRef.setValue(owner);
         setValue(OWN, ownerRef);
+    }
+    
+    public final Entity getOwner() {
+        return (Entity) getValue(OWN);
     }
     
     @Override
@@ -484,11 +484,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     }
                 }
             }
-            valueProviders.put(name, new Supplier<Object>() {
-                @Override
-                public Object get() {
-                    return valueProvider.get();
-                }
+            valueProviders.put(name, (Supplier<Object>) () -> {
+                return valueProvider.get();
             });
             
             AtomicBoolean propInitiated = new AtomicBoolean(false);
