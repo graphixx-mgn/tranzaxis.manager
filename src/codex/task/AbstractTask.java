@@ -48,6 +48,8 @@ public abstract class AbstractTask<T> implements ITask<T> {
                 setStatus(Status.FAILED);
                 Logger.getLogger().error("Error on task execution", e);
                 throw e;
+            } finally {
+                System.gc();
             }
             return null;
         }) {       
