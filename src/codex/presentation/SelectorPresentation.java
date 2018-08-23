@@ -62,6 +62,7 @@ import javax.swing.event.ListSelectionListener;
 public final class SelectorPresentation extends JPanel implements ListSelectionListener {
     
     private final static ImageIcon IMAGE_EDIT   = ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 28, 28);
+    private final static ImageIcon IMAGE_VIEW   = ImageUtils.resize(ImageUtils.getByPath("/images/view.png"), 28, 28);
     private final static ImageIcon IMAGE_CREATE = ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 28, 28);
     private final static ImageIcon IMAGE_CLONE  = ImageUtils.resize(ImageUtils.getByPath("/images/clone.png"), 28, 28);
     private final static ImageIcon IMAGE_REMOVE = ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28);
@@ -368,6 +369,19 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     Language.get(SelectorPresentation.class.getSimpleName(), "command@edit"),
                     (entity) -> true
             );
+            activator = (entities) -> {
+                if (entities != null && entities.length > 0 && !(entities.length > 1 && !multiContextAllowed())) {
+                    boolean allDisabled = entities[0].model.getProperties(Access.Edit).parallelStream().allMatch((name) -> {
+                        return !entities[0].model.getEditor(name).isEditable();
+                    });
+                    getButton().setIcon(allDisabled || !entity.allowModifyChild() ? IMAGE_VIEW : IMAGE_EDIT);
+                    getButton().setEnabled(true);
+                } else {
+                    getButton().setIcon(entity.allowModifyChild() ? IMAGE_EDIT : IMAGE_VIEW);
+                    getButton().setEnabled(false);
+                }
+            };
+            activate();
         }
 
         @Override
@@ -383,8 +397,12 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             
             Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
-                    ImageUtils.getByPath("/images/edit.png"),
-                    Language.get(SelectorPresentation.class.getSimpleName(), "editor@title"), page,
+                    getIcon(),
+                    Language.get(
+                            SelectorPresentation.class.getSimpleName(), 
+                            getIcon().equals(IMAGE_EDIT) ? "editor@title" : "viewer@title"
+                    ), 
+                    page,
                     (event) -> {
                         if (event.getID() == Dialog.OK) {
                             //TODO: При изменении перекрытия свойств изменений нет - ошибка сохранения
