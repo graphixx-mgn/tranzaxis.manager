@@ -126,7 +126,7 @@ public final class BuildStatus extends ArrStr {
             textField.setBorder(new EmptyBorder(0, 3, 0, 3));
             textField.setEditable(false);
 
-            placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.ALWAYS);
+            placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.FOCUS_LOST);
             placeHolder.setBorder(textField.getBorder());
             placeHolder.changeAlpha(100);
 
@@ -156,7 +156,7 @@ public final class BuildStatus extends ArrStr {
 
         @Override
         public void setEditable(boolean editable) {
-            // Do nothing.
+            super.setEditable(false);
         }
 
     }
