@@ -10,7 +10,10 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.StringJoiner;
+import java.util.prefs.Preferences;
+import manager.Manager;
 import manager.commands.BuildWC;
+import manager.type.Locale;
 import manager.xml.FilelistDocument;
 import manager.xml.ProjectDocument;
 import manager.xml.PropertyDocument;
@@ -28,6 +31,13 @@ import org.radixware.kernel.common.repository.Layer;
 public class KernelBuilder {
     
     public static void main(String[] args) {
+        Preferences prefs = Preferences.userRoot().node(Manager.class.getSimpleName());
+        if (prefs.get("guiLang", null) != null) {
+            Locale localeEnum = Locale.valueOf(prefs.get("guiLang", null));
+            java.lang.System.setProperty("user.language", localeEnum.getLocale().getLanguage());
+            java.lang.System.setProperty("user.country",  localeEnum.getLocale().getCountry());
+        }
+        
         try {
             Registry reg = LocateRegistry.getRegistry(BuildWC.RMI_PORT);
             IBuildingNotifier notifier = (IBuildingNotifier) reg.lookup(BuildingNotifier.class.getCanonicalName());
