@@ -44,6 +44,14 @@ public interface IConfigStoreService extends IService {
      * @param clazz Класс сущности.
      * @param ID Уникальный числовой идентификатор сущности.
      */
+    default Map<String, String> readClassInstance(Class clazz, Integer ID) {
+        return new HashMap<>();
+    };
+    
+    /**Получить список значений свойств сущности.
+     * @param clazz Класс сущности.
+     * @param PID Наименование сущности.
+     */
     default Map<String, String> readClassInstance(Class clazz, String PID, Integer ownerId) {
         return new HashMap<>();
     };
@@ -66,8 +74,21 @@ public interface IConfigStoreService extends IService {
         return RC_SUCCESS;
     };
 
+    /**
+     * Поиск ссылок на сущность
+     * @param clazz Класс сущности
+     * @param ID Идентификатор сущности
+     */
     default List<ForeignLink> findReferencedEntries(Class clazz, Integer ID) {
         return new ArrayList<>();
+    }
+    
+    /**
+     * Получение класса владельца сущности
+     * @param clazz Класс сущности
+     */
+    default public Class getOwnerClass(Class clazz) {
+        return null;
     }
     
     @Override
@@ -90,7 +111,7 @@ public interface IConfigStoreService extends IService {
         
         @Override
         public String toString() {
-            return MessageFormat.format("[{0} #{1}]", entryClass, entryID);
+            return MessageFormat.format("[{0} {1}-{2}]", isIncoming ? "from" : "to", entryClass, entryID);
         }
     }
     

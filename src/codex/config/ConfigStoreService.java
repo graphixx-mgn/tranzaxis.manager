@@ -286,6 +286,31 @@ public final class ConfigStoreService implements IConfigStoreService {
     }
     
     @Override
+    public Map<String, String> readClassInstance(Class clazz, Integer ID) {
+        Map<String, String> rowData = new HashMap<>();
+        final String className = clazz.getSimpleName().toUpperCase();
+        if (storeStructure.containsKey(className)) {
+            final String selectSQL = MessageFormat.format("SELECT * FROM {0} WHERE ID = ?", className);
+            try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
+                select.setInt(1, ID);
+                try (ResultSet selectRS = select.executeQuery()) {
+                    ResultSetMetaData meta = selectRS.getMetaData();
+                    if (selectRS.next()) {
+                        for (int colIdx = 1; colIdx <= meta.getColumnCount(); colIdx++) {
+                            rowData.put(meta.getColumnName(colIdx), selectRS.getString(colIdx));
+                        }
+                    }
+                } catch (SQLException e) {
+                    Logger.getLogger().error("Unable to read instance", e);
+                }
+            } catch (SQLException e) {
+                Logger.getLogger().error("Unable to read instance", e);
+            }
+        }
+        return rowData;
+    }
+    
+    @Override
     public Map<String, String> readClassInstance(Class clazz, String PID, Integer ownerId) {
         Map<String, String> rowData = new HashMap<>();
         final String className = clazz.getSimpleName().toUpperCase();
@@ -304,9 +329,7 @@ public final class ConfigStoreService implements IConfigStoreService {
                 try (ResultSet selectRS = select.executeQuery()) {
                     ResultSetMetaData meta = selectRS.getMetaData();
                     if (selectRS.next()) {
-                        String val;
                         for (int colIdx = 1; colIdx <= meta.getColumnCount(); colIdx++) {
-                            val = selectRS.getString(colIdx);
                             rowData.put(meta.getColumnName(colIdx), selectRS.getString(colIdx));
                         }
                     }
@@ -423,6 +446,28 @@ public final class ConfigStoreService implements IConfigStoreService {
             }
         } catch (SQLException e) {}
         return links;
+    }
+    
+    @Override
+    public Class getOwnerClass(Class clazz) {
+        final String className = clazz.getSimpleName().toUpperCase();
+        try {
+            DatabaseMetaData metaData = connection.getMetaData();
+            ResultSet foreignKeys = metaData.getImportedKeys(null, null, className);
+            if (foreignKeys.next()) {
+                String pkTableName  = foreignKeys.getString("PKTABLE_NAME");
+                String selectSQL = "SELECT TABLE_CLASS FROM CLASSDEF WHERE TABLE_NAME = ?";
+                try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
+                    select.setString(1, pkTableName);
+                    try (ResultSet selectRS = select.executeQuery()) {
+                        if (selectRS.next()) {
+                            return Class.forName(selectRS.getString(1));
+                        }
+                    }
+                }
+            }
+        } catch (SQLException | ClassNotFoundException e) {}
+        return null;
     }
 
 }
