@@ -10,6 +10,7 @@ import codex.log.Logger;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.property.IPropertyChangeListener;
+import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.Language;
@@ -46,8 +47,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      * @param title Название сущности, уникальный ключ.
      * @param hint Описание сущности.
      */
-    public Entity(INode parent, ImageIcon icon, String title, String hint) {
-        String PID   = null;
+    public Entity(EntityRef parent, ImageIcon icon, String title, String hint) {
+        String PID = null;
         if (title != null) {
             String name = Language.get(this.getClass().getSimpleName(), title, new java.util.Locale("en", "US"));
             PID  = name.equals(Language.NOT_FOUND) ? title : name;
@@ -57,7 +58,24 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         }
         this.icon  = icon;
         this.hint  = hint;
-        this.model = new EntityModel(getOwner(parent), this.getClass(), PID);
+        
+        EntityRef ownerRef;
+        if (parent != null) {
+            if (parent.isLoaded()) {
+                Entity owner = getOwner(parent.getValue());
+                ownerRef = owner != null ? owner.toRef() : new EntityRef(null);
+            } else {
+                ownerRef = parent;
+            }
+        } else {
+            ownerRef = new EntityRef(null);
+        }
+        
+        this.model = new EntityModel(
+                ownerRef,
+                this.getClass(), 
+                PID
+        );
         this.model.addChangeListener(this);
         this.model.addModelListener(new IModelListener() {
             @Override
@@ -67,8 +85,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 }
             }
         });
-        if (parent != null) {
-            parent.insert(this);
+        if (parent != null && parent.isLoaded()) {
+            parent.getValue().insert(this);
         }
     }
 
@@ -241,22 +259,50 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return IComplexType.coalesce(title, "<new "+getClass().getSimpleName()+">");
     }
     
-    public static Entity newInstance(Class entityClass, INode parent, String title) {
+    public final EntityRef toRef() {
+        EntityRef ref = new EntityRef(this.getClass());
+        ref.setValue(this);
+        return ref;
+    }
+    
+    private static EnityCache CACHE = EnityCache.getInstance();
+    
+    public static Entity newInstance(Class entityClass, EntityRef parent, String title) {
         try {
-            return (Entity) entityClass.getConstructor(INode.class, String.class).newInstance(parent, (Object) title);
+            Entity found = CACHE.findEntity(
+                    entityClass, 
+                    parent == null ? null : (
+                        !parent.isLoaded() ? parent.getId() : (
+                                getOwner(parent.getValue()) != null ? getOwner(parent.getValue()).model.getID() : null
+                        )
+                    ),
+                    title
+            );
+            if (found != null) {
+                if (parent != null) {
+                    if (parent.isLoaded()) {
+                        parent.getValue().insert(found);
+                    }
+                }
+                return found;
+            } else {
+                Entity instance = (Entity) entityClass.getConstructor(EntityRef.class, String.class).newInstance(parent, (Object) title);
+                CACHE.addEntity(instance);
+                return instance;
+            }
         } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
             Logger.getLogger().error(
                     MessageFormat.format("Unable instantiate entity ''{0}''", entityClass.getCanonicalName()), e
             );
             return null;
         } catch (NoSuchMethodException e) {
-            Logger.getLogger().error("Entity ''{0}'' does not have universal constructor (INode, String)", entityClass.getCanonicalName());
+            Logger.getLogger().error("Entity ''{0}'' does not have universal constructor (EntityRef, String)", entityClass.getCanonicalName());
             return null;
         }
     }
     
-    public static Entity getOwner(INode parent) {
-        Entity owner = (Entity) parent;
+    static Entity getOwner(INode from) {
+        Entity owner = (Entity) from;
         while (owner != null && Catalog.class.isAssignableFrom(owner.getClass())) {
             owner = (Entity) owner.getParent();
         }
