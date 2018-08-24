@@ -165,7 +165,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                         if (!((Entity) child).model.getEditor(propName).getCommands().stream().anyMatch((command) -> {
                             return command instanceof OverrideProperty;
                         })) {
-                            this.model.getEditor(propName).addCommand(new OverrideProperty(
+                            ((Entity) child).model.getEditor(propName).addCommand(new OverrideProperty(
                                     ((Entity) child),
                                     ((Entity) child).model.getProperty(propName), 
                                     model.getProperty(propName)
