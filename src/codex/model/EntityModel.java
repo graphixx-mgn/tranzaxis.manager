@@ -550,17 +550,15 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
 
         @Override
         public boolean verify(String value) {
-            return true;
-            // TODO: Закоментировано из-за проблем с синхронной загрузкой 
-//                value != null && 
-//                !EAS.getEntitiesByClass(entityClass)
-//                    .stream()
-//                    .filter((entity) -> {
-//                        return entity.model != EntityModel.this;
-//                    })
-//                    .anyMatch((entity) -> {
-//                        return entity.model.getProperty(propName).getPropValue().toString().equals(value);
-//                    });
+            return value != null &&
+                !EAS.getEntitiesByClass(entityClass)
+                    .stream()
+                    .filter((entity) -> {
+                        return entity.model != EntityModel.this;
+                    })
+                    .anyMatch((entity) -> {
+                        return entity.model.getProperty(propName).getPropValue().toString().equals(value);
+                    });
         }
 
         @Override
