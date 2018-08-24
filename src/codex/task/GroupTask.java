@@ -71,7 +71,6 @@ public final class GroupTask<T> extends AbstractTask<T> {
         return new GroupTaskView(getTitle(), this, sequence, (task) -> {
             sequence.forEach((subTask) -> {
                 if (subTask.getStatus().equals(Status.STARTED)) {
-                    System.err.println("Stop task: "+subTask.getTitle());
                     subTask.cancel(true);
                 }
             });
