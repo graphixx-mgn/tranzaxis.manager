@@ -96,7 +96,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         if (!((Entity) child).model.getProperty(EntityModel.OWN).isEmpty()) {
             return;
         }
-
         Entity owner = getOwner(((Entity) child).getParent());
         if (owner != null) {
             ((Entity) child).model.setOwner(owner);
@@ -156,6 +155,25 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         if (getChildClass() == null) return null;
         if (selectorPresentation == null) {
             selectorPresentation = new SelectorPresentation(this);
+            childrenList().forEach((child) -> {
+                List<String> overrideProps = model.getProperties(Access.Edit)
+                    .stream()
+                    .filter(propName -> ((Entity) child).model.hasProperty(propName) && !EntityModel.SYSPROPS.contains(propName))
+                    .collect(Collectors.toList());
+                if (!overrideProps.isEmpty()) {
+                    overrideProps.forEach((propName) -> {
+                        if (!((Entity) child).model.getEditor(propName).getCommands().stream().anyMatch((command) -> {
+                            return command instanceof OverrideProperty;
+                        })) {
+                            this.model.getEditor(propName).addCommand(new OverrideProperty(
+                                    ((Entity) child),
+                                    ((Entity) child).model.getProperty(propName), 
+                                    model.getProperty(propName)
+                            ));
+                        }
+                    });
+                }
+            });
         }
         return selectorPresentation;
     };
