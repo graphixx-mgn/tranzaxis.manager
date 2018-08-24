@@ -7,6 +7,8 @@ import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.task.ITaskExecutorService;
 import codex.task.TaskManager;
+import codex.type.EntityRef;
+import codex.utils.Language;
 import java.text.MessageFormat;
 import java.util.Collection;
 import javax.swing.ImageIcon;
@@ -33,7 +35,7 @@ public abstract class Catalog extends Entity {
         super(null, icon, title, hint);
     }
     
-    public Catalog(INode parent, ImageIcon icon, String title, String hint) {
+    public Catalog(EntityRef parent, ImageIcon icon, String title, String hint) {
         super(parent, icon, title, hint);
     }
     
@@ -60,7 +62,7 @@ public abstract class Catalog extends Entity {
 
         public LoadChildren() {
             super(MessageFormat.format(
-                    "Load children: {0}",
+                    Language.get(Catalog.class.getSimpleName(), "task@load"),
                     Catalog.this.getPathString()
             ));
         }
@@ -69,7 +71,7 @@ public abstract class Catalog extends Entity {
         public Void execute() throws Exception {
             setMode(INode.MODE_NONE);
             getChildrenPIDs().forEach((PID) -> {
-                Entity.newInstance(getChildClass(), Catalog.this, PID);
+                Entity.newInstance(getChildClass(), Catalog.this.toRef(), PID);
             });
             return null;
         }
