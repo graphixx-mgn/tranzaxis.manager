@@ -13,6 +13,8 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -24,6 +26,8 @@ import javax.swing.JComboBox;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.LineBorder;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import javax.swing.plaf.BorderUIResource;
 import javax.swing.plaf.basic.BasicComboPopup;
 
@@ -51,16 +55,16 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
         propHolder.addChangeListener((String name, Object oldValue, Object newValue) -> {
             if (newValue instanceof IComplexType) {
                 comboBox.removeAllItems();
+                comboBox.addItem(new NullValue());
                 for (Object item : getValues()) {
                     comboBox.addItem(item);
                 }
-                comboBox.addItem(new NullValue());
-                comboBox.setSelectedItem(comboBox.getItemAt(comboBox.getItemCount()-1));
+                comboBox.setSelectedItem(comboBox.getItemAt(0));
             }
         });
     }
     
-    private Object[] getValues() {
+    private List<Object> getValues() {
         Class             entityClass  = ((EntityRef) propHolder.getPropValue()).getEntityClass();
         Predicate<Entity> entityFilter = ((EntityRef) propHolder.getPropValue()).getEntityFilter();
         return entityClass != null ? EAS.getEntitiesByClass(entityClass)
@@ -70,8 +74,7 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
                         return entity.model.getPID();
                     }))
                     .collect(Collectors.toList())
-                    .toArray()
-            : new Object[]{};
+            : new LinkedList<>();
     }
     
     @Override
@@ -79,19 +82,11 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
         comboBox.removeActionListener(this);
         comboBox.removeAllItems();
         
-        Object[] values = getValues();
         comboBox.addItem(new NullValue());
-        for (Object item : values) {
-            if (propHolder.getPropValue().getValue() != null && 
-                ((Entity) item).model.getPID().equals(((Entity) propHolder.getPropValue().getValue()).model.getPID())) 
-            {
-                comboBox.addItem(propHolder.getPropValue().getValue());
-            } else {
-                comboBox.addItem(item);
-            }
+        if (!propHolder.getPropValue().isEmpty()) {
+            comboBox.addItem(propHolder.getPropValue().getValue());
+            setValue(propHolder.getPropValue().getValue());
         }
-        
-        setValue(propHolder.getPropValue().getValue());
         comboBox.addActionListener(this);
         return super.getEditor();
     }
@@ -110,6 +105,39 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
         comboBox.setRenderer(new GeneralRenderer());
         comboBox.addFocusListener(this);
         comboBox.addActionListener(this);
+        comboBox.addPopupMenuListener(new PopupMenuListener() {
+            
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent event) {
+                comboBox.removeActionListener(EntityRefEditor.this);
+                comboBox.removeAllItems();
+                
+                List<Object> values = getValues();                
+                
+                comboBox.addItem(new NullValue());
+                for (Object item : values) {
+                    if (propHolder.getPropValue().getValue() != null && 
+                        ((Entity) item).model.getPID().equals(((Entity) propHolder.getPropValue().getValue()).model.getPID())) 
+                    {
+                        comboBox.addItem(propHolder.getPropValue().getValue());
+                        setValue(propHolder.getPropValue().getValue());
+                    } else {
+                        comboBox.addItem(item);
+                    }
+                }
+                if (propHolder.getPropValue().getValue() != null && !values.contains(propHolder.getPropValue().getValue())) {
+                    comboBox.addItem(propHolder.getPropValue().getValue());
+                    setValue(propHolder.getPropValue().getValue());
+                }
+                comboBox.addActionListener(EntityRefEditor.this);
+            }
+
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent event) {}
+
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent event) {}
+        });
         
         Object child = comboBox.getAccessibleContext().getAccessibleChild(0);
         BasicComboPopup popup = (BasicComboPopup)child;
