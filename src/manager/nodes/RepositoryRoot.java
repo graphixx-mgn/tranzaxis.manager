@@ -1,13 +1,13 @@
 package manager.nodes;
 
-import codex.explorer.tree.INode;
 import codex.model.Catalog;
+import codex.type.EntityRef;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 
 public class RepositoryRoot extends Catalog {
 
-    public RepositoryRoot(INode parent) {
+    public RepositoryRoot(EntityRef parent) {
         super(parent, ImageUtils.getByPath("/images/repositories.png"), "title", Language.get("desc"));
     }
 

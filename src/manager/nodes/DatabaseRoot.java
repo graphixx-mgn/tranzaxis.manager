@@ -1,13 +1,13 @@
 package manager.nodes;
 
-import codex.explorer.tree.INode;
 import codex.model.Catalog;
+import codex.type.EntityRef;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 
 public class DatabaseRoot extends Catalog {
 
-    public DatabaseRoot(INode parent) {
+    public DatabaseRoot(EntityRef parent) {
         super(parent, ImageUtils.getByPath("/images/databases.png"), "title", Language.get("desc"));
     }
 
