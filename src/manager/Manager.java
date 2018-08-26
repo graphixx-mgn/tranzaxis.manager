@@ -1,18 +1,15 @@
 package manager;
 
 
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
 import codex.config.ConfigStoreService;
 import codex.explorer.ExplorerUnit;
 import codex.explorer.tree.NodeTreeModel;
-import codex.launcher.LauncherUnit;
 import codex.log.ILogMgmtService;
 import codex.log.LogUnit;
 import codex.log.Logger;
 import codex.service.ServiceRegistry;
-import codex.task.AbstractTask;
-import codex.task.GroupTask;
-import codex.task.ITask;
-import codex.task.ITaskExecutorService;
 import codex.task.TaskManager;
 import codex.type.Enum;
 import codex.unit.AbstractUnit;
@@ -30,8 +27,8 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import manager.nodes.Common;
 import manager.nodes.DatabaseRoot;
+import manager.nodes.EnvironmentRoot;
 import manager.nodes.RepositoryRoot;
-import manager.nodes.SystemRoot;
 import manager.type.Locale;
 import manager.ui.Splash;
 import manager.ui.Window;
@@ -49,92 +46,63 @@ public class Manager {
         } catch (UnsupportedLookAndFeelException e) {}
     }
     
-    private final Window       window;
+    private final Window window;
     private final AbstractUnit 
             logUnit, updateUnit, explorerUnit, 
-            launchUnit, taskUnit;
-    
-    private class TaskImpl extends AbstractTask<Integer> {
-
-        private Integer val; 
-        
-        public TaskImpl(Integer initVal) {
-            super("Value incrementator starts from "+(initVal*5));
-            val = initVal*5;
-        }
-
-        @Override
-        public Integer execute() throws Exception {
-            if (val == 0) throw new Error("Some execution exception (for test)");
-            Thread.sleep(300);
-            for (int i = 0; i < 10; i++) {
-                Thread.sleep(500);
-                val = val + 1;
-                setProgress((i+1)*10, "Changed value to "+val);
-            }
-            return val;
-        }
-        
-        @Override
-        public void finished(Integer result) {
-            Logger.getLogger().info("Result: {0}", result);
-        }
-    
-    }
+            /*launchUnit, serviceUnit,*/ taskUnit;
     
     public Manager() {
+        window = new Window("TranzAxis Manager", ImageUtils.getByPath("/images/project.png"));
         Splash splash = new Splash();
         splash.setVisible(true);
-        
+
         logUnit = new LogUnit();
-        loadSystemProps();
-        
+                
         splash.setProgress(20, "Read configuration");
+        loadSystemProps();
         ServiceRegistry.getInstance().registerService(new ConfigStoreService(new File(CONFIG_PATH)));
         
         splash.setProgress(30, "Start task management system");
         taskUnit = new TaskManager();
 
         splash.setProgress(50, "Build data tree model");
-        Common          root = new Common();
-        RepositoryRoot repos = new RepositoryRoot();
-        DatabaseRoot   bases = new DatabaseRoot();
-        SystemRoot   systems = new SystemRoot();
-
-        root.insert(repos);
-        root.insert(bases);
-        root.insert(systems);
+        Common root = new Common();
         
         NodeTreeModel treeModel = new NodeTreeModel(root);
         explorerUnit = new ExplorerUnit(treeModel);
+        RepositoryRoot  repos = new RepositoryRoot(root.toRef());
+        DatabaseRoot    bases = new DatabaseRoot(root.toRef());
+        EnvironmentRoot envs  = new EnvironmentRoot(root.toRef());
         
-        splash.setProgress(80, "Start Launcher unit");
-        launchUnit = new LauncherUnit();
+//        splash.setProgress(70, "Start Launcher unit");
+//        launchUnit = new LauncherUnit();
+        
+//        splash.setProgress(80, "Start service management system");
+//        serviceUnit = new ServiceUnit();
         
         splash.setProgress(90, "Start upgrade management system");
         updateUnit = new UpdateUnit();
-        
+
         ((JButton) updateUnit.getViewport()).addActionListener((ActionEvent e) -> {
-            ITask task;
-            for (int cnt = 1; cnt < 4; cnt++) {
-                task = new TaskImpl(cnt);
-                ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).executeTask(task);
-            }
-            ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).enqueueTask(
-                    new GroupTask("Some compound task", new TaskImpl(150), new TaskImpl(200), new TaskImpl(0))
-            );
+            MessageBox.show(MessageType.INFORMATION, "[ NOT SUPPORTED YET]");
         });
 
         splash.setProgress(100, "Initialization user interface");
-        window = new Window("TranzAxis Manager", ImageUtils.getByPath("/images/project.png"));
         window.addUnit(logUnit,      window.loggingPanel);
         window.addUnit(updateUnit,   window.upgradePanel);
         window.addUnit(explorerUnit, window.explorePanel);
-        window.addUnit(launchUnit,   window.launchPanel);
+        //window.addUnit(launchUnit,   window.launchPanel);
+        //window.addUnit(serviceUnit,  window.servicePanel);
         window.addUnit(taskUnit,     window.taskmgrPanel);
         splash.setProgress(100);
-        splash.setVisible(false);
-        window.setVisible(true);   
+        splash.setVisible(false);        
+        window.setVisible(true);
+    }
+    
+    public void show() {
+        if (window != null) {
+            window.restoreState();
+        }
     }
     
     private void loadSystemProps() {
@@ -146,7 +114,7 @@ public class Manager {
             java.lang.System.setProperty("user.country",  localeEnum.getLocale().getCountry());
         }
         if (prefs.get("logLevel", null) != null) {
-            Enum minLevel = new codex.type.Enum(codex.log.Level.Debug);
+            Enum minLevel = new Enum(codex.log.Level.Debug);
             minLevel.valueOf(prefs.get("logLevel", null));
             
             ILogMgmtService logMgmt = (ILogMgmtService) ServiceRegistry
