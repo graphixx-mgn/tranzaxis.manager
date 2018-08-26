@@ -32,15 +32,17 @@ import manager.Manager;
 
 public final class Window extends JFrame implements WindowStateListener {
     
-    private final static ImageIcon LAUNCH  = ImageUtils.resize(ImageUtils.getByPath("/images/launch.png"), 20, 20);
+    //private final static ImageIcon LAUNCH  = ImageUtils.resize(ImageUtils.getByPath("/images/launch.png"), 20, 20);
     private final static ImageIcon VIEWER  = ImageUtils.resize(ImageUtils.getByPath("/images/viewer.png"), 20, 20);
+    //private final static ImageIcon SERVICE = ImageUtils.resize(ImageUtils.getByPath("/images/services.png"), 20, 20);
     
     private JTabbedPane tabbedPanel  = new JTabbedPane(JTabbedPane.LEFT);
     public final JPanel upgradePanel = new JPanel();
     public final JPanel taskmgrPanel = new JPanel();
     public final JPanel loggingPanel = new JPanel();
     public final JPanel explorePanel = new JPanel();
-    public final JPanel launchPanel  = new JPanel();
+    //public final JPanel launchPanel  = new JPanel();
+    //public final JPanel servicePanel = new JPanel();
     
     private final TrayIcon  trayIcon;
     private int             prevWindowState;
@@ -53,7 +55,7 @@ public final class Window extends JFrame implements WindowStateListener {
             setIconImage(icon.getImage());
         }
         
-        setPreferredSize(new Dimension(1100, 700));
+        setPreferredSize(new Dimension(1200, 800));
         setMinimumSize(new Dimension(700, 500));
         
         tabbedPanel.setFocusable(false);
@@ -61,8 +63,9 @@ public final class Window extends JFrame implements WindowStateListener {
         upgradePanel.setBorder(new MatteBorder(0, 0, 0, 1, Color.GRAY));
         loggingPanel.setBorder(new MatteBorder(0, 1, 0, 0, Color.GRAY));
         
-        tabbedPanel.addTab(null, VIEWER, explorePanel);
-        tabbedPanel.addTab(null, LAUNCH, launchPanel);
+        tabbedPanel.addTab(null, VIEWER,  explorePanel);
+//        tabbedPanel.addTab(null, LAUNCH,  launchPanel);
+//        tabbedPanel.addTab(null, SERVICE, servicePanel);
         
         GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -113,6 +116,17 @@ public final class Window extends JFrame implements WindowStateListener {
             trayIcon = null;
         }
         addWindowStateListener(this);
+    }
+    
+    public void restoreState() {
+        if (getState() == JFrame.ICONIFIED || getState() == 7 || !isActive()) {
+            setVisible(true);
+            setExtendedState(prevWindowState);
+            setAlwaysOnTop(true);
+            toFront();
+            requestFocus();
+            setAlwaysOnTop(false);
+        }
     }
     
     @Override
