@@ -159,8 +159,6 @@ public class SVN {
                     diff.run();
                 }
             }
-        //} catch (SVNException e) {
-        //    Logger.getLogger().warn("SVN operation ''diff'' error: {0}", e.getErrorMessage());
         } finally {
             clientMgr.dispose();
         }
