@@ -76,8 +76,10 @@ public final class TaskManager extends AbstractUnit {
      * Незамедлительное исполнение задачи и регистрация в модальном диалоге.
      * При закрытии диалога, все задачи перемещаются в очередь.
      */
-    void execute(ITask task) {
-        taskDialog.addTask(task);
+    void execute(ITask task, boolean quiet) {
+        if (!quiet) {
+            taskDialog.addTask(task);
+        }
         demandThreadPool.submit(() -> {
             final Thread thread = Thread.currentThread();
             final String name   = thread.getName();
@@ -88,9 +90,11 @@ public final class TaskManager extends AbstractUnit {
                 thread.setName(name);
             }
         });
-        SwingUtilities.invokeLater(() -> {
-            taskDialog.setVisible(true);
-        });
+        if (!quiet) {
+            SwingUtilities.invokeLater(() -> {
+                taskDialog.setVisible(true);
+            });
+        }
     }
     
     public class TaskExecutorService implements ITaskExecutorService {
@@ -104,8 +108,13 @@ public final class TaskManager extends AbstractUnit {
 
         @Override
         public void executeTask(ITask task) {
-            execute(task);
+            execute(task, false);
         }
+        
+        @Override
+        public void quietTask(ITask task) {
+            execute(task, true);
+        };
     }
 
 }
