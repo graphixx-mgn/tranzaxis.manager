@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.prefs.Preferences;
 import javax.swing.SwingUtilities;
 import manager.Manager;
+import manager.commands.DiskUsageReport;
 import manager.type.Locale;
 
 public class Common extends Catalog {
@@ -38,13 +39,17 @@ public class Common extends Catalog {
 
     public Common() {
         super(null, ImageUtils.getByPath("/images/settings.png"), "title", Language.get("desc"));
+        
+        // Properties
         model.addUserProp("workDir",  new FilePath(null).setMask(new DirMask()), true, Access.Select);
         model.addUserProp("logLevel", new Enum(Level.Debug), false, Access.Select);
         model.addUserProp("guiLang",  new Enum(Locale.valueOf(locale)), false, Access.Select);
         model.addUserProp("useTray",  new Bool(false), false, Access.Select);
 
+        // Editor settings
         model.getEditor("useTray").setEditable(SystemTray.isSupported());
 
+        // Handlers
         model.addModelListener(new IModelListener() {
             @Override
             public void modelSaved(EntityModel model, List<String> changes) {
@@ -81,6 +86,9 @@ public class Common extends Catalog {
                 
             }
         });
+        
+        // Commands
+        addCommand(new DiskUsageReport());
     }
 
     @Override
@@ -91,7 +99,6 @@ public class Common extends Catalog {
     
     @Override
     public Class getChildClass() {
-        // Нет селектора
         return null;
     }
     
