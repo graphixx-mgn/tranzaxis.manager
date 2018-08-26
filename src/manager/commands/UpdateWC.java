@@ -1,7 +1,6 @@
 package manager.commands;
 
 import codex.command.EntityCommand;
-import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
@@ -73,7 +72,7 @@ public class UpdateWC extends EntityCommand {
             offshoot.model.commit();
             
             String wcPath  = offshoot.getWCPath();
-            String repoUrl = Entity.getOwner(offshoot).model.getValue("repoUrl")+"/dev/"+offshoot.model.getPID();
+            String repoUrl = offshoot.model.getOwner().model.getValue("repoUrl")+"/dev/"+offshoot.model.getPID();
             
             setProgress(0, Language.get(UpdateWC.class.getSimpleName(), "command@calc"));
             try {
@@ -173,7 +172,6 @@ public class UpdateWC extends EntityCommand {
                 offshoot.model.setValue("loaded",  !status.equals(WCStatus.Absent));
                 offshoot.model.commit();
                 offshoot.model.updateDynamicProp("wcRev");
-                offshoot.setMode(INode.MODE_SELECTABLE + (status.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
             });
         }
     
