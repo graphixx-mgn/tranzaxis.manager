@@ -6,8 +6,6 @@ import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
-import codex.explorer.ExplorerAccessService;
-import codex.explorer.IExplorerAccessService;
 import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.model.Entity;
@@ -22,26 +20,24 @@ import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import javax.swing.SwingUtilities;
 import manager.nodes.Offshoot;
+import manager.type.BuildStatus;
 import manager.type.WCStatus;
 import org.apache.commons.io.FileDeleteStrategy;
 
 
 public class DeleteWC extends EntityCommand {
     
-    private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
-
     public DeleteWC() {
         super(
                 "clean", 
@@ -91,7 +87,9 @@ public class DeleteWC extends EntityCommand {
                         if (close.getID() == Dialog.OK) {
                             Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
                             for (Entity entity : getContext()) {
-                                execute(entity, null);
+                                if (!entity.model.existReferencies()) {
+                                    execute(entity, null);
+                                }
                             }
                             activate();
                         }
@@ -99,8 +97,6 @@ public class DeleteWC extends EntityCommand {
             );
         });
     }
-    
-    
     
     private class DeleteTask extends AbstractTask<Void> {
         
@@ -114,14 +110,13 @@ public class DeleteWC extends EntityCommand {
         @Override
         public Void execute() throws Exception {
             String wcPath = offshoot.getWCPath();
-            
+
             setProgress(0, Language.get(DeleteWC.class.getSimpleName(), "command@calc"));
-            List<Path> paths = Files.walk(Paths.get(wcPath)).collect(Collectors.toList());
-            long totalFiles = paths.size();
+            long totalFiles = Files.walk(Paths.get(wcPath)).count();
             Logger.getLogger().info("Total number of files/directories in working copy ''{0}'': {1}", new Object[] {wcPath, totalFiles});
-            
+
             AtomicInteger processed = new AtomicInteger(0);
-            Files.walk(Paths.get(wcPath)).sorted(Collections.reverseOrder()).collect(Collectors.toList()).forEach((path) -> {
+            Files.walk(Paths.get(wcPath)).sorted(Collections.reverseOrder()).forEach((path) -> {
                 if (isCancelled()) {
                     return;
                 }
@@ -140,6 +135,11 @@ public class DeleteWC extends EntityCommand {
                     throw new UncheckedIOException(e);
                 }
             });
+
+            DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(wcPath).getParent());
+            if (!dirStream.iterator().hasNext()) {
+                FileDeleteStrategy.NORMAL.delete(new File(wcPath).getParentFile());
+            }
             return null;
         }
 
@@ -147,6 +147,8 @@ public class DeleteWC extends EntityCommand {
         public void finished(Void t) {
             WCStatus status = offshoot.getStatus();
             offshoot.model.setValue("wcStatus", status);
+            offshoot.model.setValue("built", new BuildStatus());
+            offshoot.model.commit();
             if (offshoot.model.getID() != null) {
                 ((IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class)).removeClassInstance(
                         offshoot.getClass(), offshoot.model.getID()
