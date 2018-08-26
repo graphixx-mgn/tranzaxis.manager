@@ -59,6 +59,8 @@ public abstract class Catalog extends Entity {
     }
     
     private class LoadChildren extends AbstractTask<Void> {
+        
+        int previousMode;
 
         public LoadChildren() {
             super(MessageFormat.format(
@@ -69,7 +71,10 @@ public abstract class Catalog extends Entity {
 
         @Override
         public Void execute() throws Exception {
-            setMode(INode.MODE_NONE);
+            previousMode = getMode();
+            if (!getChildrenPIDs().isEmpty()) {
+                setMode(INode.MODE_NONE);
+            }
             getChildrenPIDs().forEach((PID) -> {
                 Entity.newInstance(getChildClass(), Catalog.this.toRef(), PID);
             });
@@ -78,7 +83,7 @@ public abstract class Catalog extends Entity {
 
         @Override
         public void finished(Void result) {
-            setMode(INode.MODE_ENABLED + INode.MODE_SELECTABLE);
+            setMode(previousMode);
             getLock().release();
         }
     
