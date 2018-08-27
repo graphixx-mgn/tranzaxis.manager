@@ -3,10 +3,7 @@ package manager.commands;
 import codex.command.EntityCommand;
 import codex.log.Logger;
 import codex.model.Entity;
-import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
-import codex.task.ITaskExecutorService;
-import codex.task.TaskManager;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -52,9 +49,7 @@ public class UpdateWC extends EntityCommand {
 
     @Override
     public void execute(Entity entity, Map<String, IComplexType> map) {
-        ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).enqueueTask(
-                new UpdateTask((Offshoot) entity)
-        );
+        executeTask(entity, new UpdateTask((Offshoot) entity), false);
     }
     
     public class UpdateTask extends AbstractTask<Void> {
@@ -62,15 +57,12 @@ public class UpdateWC extends EntityCommand {
         private final Offshoot offshoot;
 
         public UpdateTask(Offshoot offshoot) {
-            super(Language.get(UpdateWC.class.getSimpleName(), "title") + ": "+offshoot.getWCPath());
+            super(Language.get(UpdateWC.class.getSimpleName(), "title") + ": \""+offshoot.getWCPath()+"\"");
             this.offshoot = offshoot;
         }
 
         @Override
         public Void execute() throws Exception {
-            offshoot.model.setValue("loaded", false);
-            offshoot.model.commit();
-            
             String wcPath  = offshoot.getWCPath();
             String repoUrl = offshoot.model.getOwner().model.getValue("repoUrl")+"/dev/"+offshoot.model.getPID();
             
@@ -88,9 +80,12 @@ public class UpdateWC extends EntityCommand {
                     }
                 });
                 if (changes > 0) {
+                    offshoot.model.setValue("loaded", false);
+                    offshoot.model.commit();
+                    
                     Logger.getLogger().info(
                             "UPDATE [{0}] started", 
-                            new Object[]{wcPath}
+                            wcPath
                     );
                     AtomicInteger loaded   = new AtomicInteger(0);
                     AtomicInteger added    = new AtomicInteger(0);
@@ -144,7 +139,7 @@ public class UpdateWC extends EntityCommand {
                             (restored.get() == 0 ? "" : "                     * Restored: {3}\n")+
                             (changed.get()  == 0 ? "" : "                     * Changed:  {4}\n")+
                                                         "                     * Total:    {5}", 
-                            new Object[]{wcPath, added.get(), deleted.get(), restored.get(), changed.get(), loaded.get()}
+                            wcPath, added.get(), deleted.get(), restored.get(), changed.get(), loaded.get()
                     );
                 } else {
                     Logger.getLogger().info("No need to update working copy: {0}", wcPath);
@@ -158,6 +153,11 @@ public class UpdateWC extends EntityCommand {
                     Logger.getLogger().warn(
                             "UPDATE [{0}] canceled", 
                             new Object[]{wcPath}
+                    );
+                } else {
+                    Logger.getLogger().warn(
+                            "UPDATE [{0}] failed: {1}", 
+                            wcPath, e.getMessage()
                     );
                 }
             }
