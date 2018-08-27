@@ -44,7 +44,9 @@ import org.apache.tools.ant.util.DateUtils;
 
 public class BuildWC extends EntityCommand {
     
-    public  static Integer          RMI_PORT = 2099;  
+    private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
+    
+    public  static final Integer    RMI_PORT = 2099;  
     private static Registry         RMI_REGISTRY;
     private static BuildingNotifier BUILD_NOTIFIER;
     
@@ -58,6 +60,8 @@ public class BuildWC extends EntityCommand {
         }
     }
     
+    private final PropertyHolder[] params = new PropertyHolder[] { new PropertyHolder("clean", new Bool(Boolean.FALSE), true) };
+    
     public BuildWC() {
         super(
                 "build", 
@@ -68,11 +72,52 @@ public class BuildWC extends EntityCommand {
                     return entity.model.getValue("wcStatus").equals(WCStatus.Succesfull);
                 }
         );
-        setParameters(
-                new PropertyHolder("clean", new Bool(Boolean.FALSE), true)
-        );
+        setParameters(params);
         setGroupId("update");
     }
+    
+//    @Override
+//    public void actionPerformed(ActionEvent event) {
+//        if (getContext().length == 1) {
+//            super.actionPerformed(event);
+//        } else {
+//            ParametersDialog paramDialog = new ParametersDialog(this, () -> {
+//                return Stream.concat(
+//                        Arrays.stream(params), 
+//                        Arrays.stream(new PropertyHolder[] { new PropertyHolder("sequential", new Bool(Boolean.FALSE), true) })
+//                ).toArray(PropertyHolder[]::new);
+//            });
+//            try {
+//                Map<String, IComplexType> paramValues = paramDialog.call();
+//                if (paramValues.get("sequential").getValue() == Boolean.TRUE) {
+//                    final List<ITask> sequence = new LinkedList<>();
+//                    for (Entity entity : getContext()) {
+//                        sequence.add(
+//                                new GroupTask<>(
+//                                        Language.get("title") + ": "+((Offshoot) entity).getWCPath(),
+//                                        new BuildKernelTask((Offshoot) entity),
+//                                        new BuildSourceTask((Offshoot) entity, paramValues.get("clean").getValue() == Boolean.TRUE)
+//                                )
+//                        );
+//                    }
+//                    TES.enqueueTask(new GroupTask(
+//                            "[SEQUENTIAL]", 
+//                            sequence.toArray(new ITask[] {})
+//                    ));
+//                } else {
+//                    SwingUtilities.invokeLater(() -> {
+//                        Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
+//                        for (Entity entity : getContext()) {
+//                            execute(entity, paramValues);
+//                        }
+//                        activate();
+//                    });
+//                }
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }
+//    }
     
     @Override
     public boolean multiContextAllowed() {
@@ -81,12 +126,14 @@ public class BuildWC extends EntityCommand {
     
     @Override
     public void execute(Entity entity, Map<String, IComplexType> map) {
-        ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).enqueueTask(
+        executeTask(
+                entity,
                 new GroupTask<>(
-                        Language.get("title") + ": "+((Offshoot) entity).getWCPath(),
+                        Language.get("title") + ": \""+((Offshoot) entity).getWCPath()+"\"",
                         new BuildKernelTask((Offshoot) entity),
                         new BuildSourceTask((Offshoot) entity, map.get("clean").getValue() == Boolean.TRUE)
-                )
+                ),
+                false
         );
     }
     

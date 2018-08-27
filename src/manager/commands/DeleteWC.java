@@ -11,8 +11,6 @@ import codex.log.Logger;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
-import codex.task.ITaskExecutorService;
-import codex.task.TaskManager;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -57,9 +55,7 @@ public class DeleteWC extends EntityCommand {
 
     @Override
     public void execute(Entity entity, Map<String, IComplexType> map) {
-        ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).executeTask(
-                new DeleteTask((Offshoot) entity)
-        );
+        executeTask(entity, new DeleteTask((Offshoot) entity), true);
     }
 
     @Override

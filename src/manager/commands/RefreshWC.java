@@ -3,10 +3,7 @@ package manager.commands;
 import codex.command.EntityCommand;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
-import codex.service.ServiceRegistry;
 import codex.task.GroupTask;
-import codex.task.ITaskExecutorService;
-import codex.task.TaskManager;
 import codex.type.Bool;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
@@ -40,13 +37,15 @@ public class RefreshWC extends EntityCommand {
 
     @Override
     public void execute(Entity entity, Map<String, IComplexType> map) {
-        ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).enqueueTask(
+        executeTask(
+                entity, 
                 new GroupTask<>(
                         Language.get("title") + ": "+((Offshoot) entity).getWCPath(),
                         ((UpdateWC) entity.getCommand("update")).new UpdateTask((Offshoot) entity),
                         ((BuildWC)  entity.getCommand("build")).new BuildKernelTask((Offshoot) entity),
                         ((BuildWC)  entity.getCommand("build")).new BuildSourceTask((Offshoot) entity, map.get("clean").getValue() == Boolean.TRUE)
-                )
+                ), 
+                false
         );
     }
     
