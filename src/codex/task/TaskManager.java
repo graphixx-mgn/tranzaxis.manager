@@ -67,7 +67,6 @@ public final class TaskManager extends AbstractUnit {
                 task.run();
             } finally {
                 thread.setName(name);
-                ((AbstractTask) task).fireStatusChange();
             }
         });
     }
