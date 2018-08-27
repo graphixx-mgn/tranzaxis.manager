@@ -74,6 +74,10 @@ public class Manager {
         DatabaseRoot    bases = new DatabaseRoot(root.toRef());
         EnvironmentRoot envs  = new EnvironmentRoot(root.toRef());
         
+        root.insert(repos);
+        root.insert(bases);
+        root.insert(envs);
+        
 //        splash.setProgress(70, "Start Launcher unit");
 //        launchUnit = new LauncherUnit();
         
