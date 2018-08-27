@@ -34,7 +34,7 @@ public final class GroupTask<T> extends AbstractTask<T> {
             } else {
                 AbstractTask current = (AbstractTask) task;
                 try {
-                    setStatus(current, Status.STARTED);
+                    current.setStatus(Status.STARTED);
                     current.finished(current.execute());
                     if (current.getStatus() != Status.CANCELLED) {
                         current.setStatus(Status.FINISHED);
