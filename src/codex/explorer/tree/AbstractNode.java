@@ -115,23 +115,36 @@ public abstract class AbstractNode implements INode {
     private Semaphore lock;
     public final Semaphore getLock() {
         if (lock == null) {
-            lock = new Semaphore(1, true);
+            lock = new Semaphore(1, true) {
+                @Override
+                public void acquire() throws InterruptedException {
+                    super.acquire();
+                    new LinkedList<>(nodeListeners).forEach((listener) -> {
+                        listener.childChanged(AbstractNode.this);
+                    });
+                }
+                
+                @Override
+                public void release() {
+                    if (availablePermits() == 0) {
+                        // Avoid extra releases that increases permits counter
+                        super.release();
+                        new LinkedList<>(nodeListeners).forEach((listener) -> {
+                            listener.childChanged(AbstractNode.this);
+                        });
+                    }
+                }
+            };
         }
         return lock;
     }
     
     @Override
     public Stream<INode> flattened() {
-        try {
-            getLock().acquire();
-        } catch (InterruptedException e) {
-        } finally {
-            getLock().release();
-            return Stream.concat(
-                    Stream.of(this),
-                    childrenList().stream().flatMap(INode::flattened)
-            );
-        }
+        return Stream.concat(
+                Stream.of(this),
+                childrenList().stream().flatMap(INode::flattened)
+        );
     }
     
 }
