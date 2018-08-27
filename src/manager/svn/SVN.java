@@ -165,7 +165,7 @@ public class SVN {
         return changes.get();
     }
     
-    public static void update(String url, String path, SVNRevision revision, String user, String pass, ISVNEventHandler handler) {
+    public static void update(String url, String path, SVNRevision revision, String user, String pass, ISVNEventHandler handler) throws SVNException {
         final SVNAuthentication auth = new SVNPasswordAuthentication(user, pass, false);
         final ISVNAuthenticationManager authMgr = new BasicAuthenticationManager(new SVNAuthentication[] { auth });
         final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
@@ -178,12 +178,8 @@ public class SVN {
         final File localDir = new File(path);
         try {
             if (!SVNWCUtil.isVersionedDirectory(localDir)) {
-                try {
-                    SVNURL svnUrl = SVNURL.parseURIEncoded(url);
-                    updateClient.doCheckout(svnUrl, localDir, SVNRevision.UNDEFINED, revision, SVNDepth.INFINITY, false);
-                } catch (SVNException e) {
-                    Logger.getLogger().warn("SVN operation ''checkout'' error: {0}", e.getErrorMessage());
-                }
+                SVNURL svnUrl = SVNURL.parseURIEncoded(url);
+                updateClient.doCheckout(svnUrl, localDir, SVNRevision.UNDEFINED, revision, SVNDepth.INFINITY, false);
             } else {
                 boolean needCleanup = false;
                 do {
@@ -200,8 +196,7 @@ public class SVN {
                             needCleanup = true;
                             continue;
                         } else {
-                            Logger.getLogger().warn("SVN operation ''update'' error: {0}", e.getErrorMessage());
-                            break;
+                            throw e;
                         }
                     }
                     break;
