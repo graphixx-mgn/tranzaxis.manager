@@ -10,6 +10,7 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.util.Map;
 import manager.nodes.Offshoot;
+import manager.type.WCStatus;
 
 
 public class RefreshWC extends EntityCommand {
@@ -21,7 +22,7 @@ public class RefreshWC extends EntityCommand {
                 ImageUtils.resize(ImageUtils.getByPath("/images/rebuild.png"), 28, 28), 
                 Language.get("desc"), 
                 (entity) -> {
-                    return true;
+                    return !entity.model.getValue("wcStatus").equals(WCStatus.Invalid);
                 }
         );
         setParameters(
