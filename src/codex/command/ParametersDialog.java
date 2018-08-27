@@ -6,11 +6,13 @@ import codex.model.ParamModel;
 import codex.presentation.EditorPage;
 import codex.property.PropertyHolder;
 import codex.supplier.IDataSupplier;
+import codex.type.Bool;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.Dimension;
 import java.awt.event.ActionListener;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -68,7 +70,11 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
                     }
                     command.preprocessParameters(command.getContext()[0], paramModel);
                     dialog.setContent(new EditorPage(paramModel));
-                    dialog.setPreferredSize(new Dimension(550, dialog.getPreferredSize().height));
+                    if (Arrays.asList(paramProps.get()).stream().anyMatch((propHolder) -> {
+                        return !Bool.class.isAssignableFrom(propHolder.getPropValue().getClass());
+                    })) {
+                        dialog.setPreferredSize(new Dimension(550, dialog.getPreferredSize().height));
+                    }
                     super.setVisible(visible);
                 } else {
                     ParametersDialog.this.data = new LinkedHashMap<>();
