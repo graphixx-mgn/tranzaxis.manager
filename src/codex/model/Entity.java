@@ -85,9 +85,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 }
             }
         });
-        if (parent != null && parent.isLoaded()) {
-            parent.getValue().insert(this);
-        }
     }
 
     @Override
@@ -148,6 +145,10 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      */
     public final String getHint() {
         return hint;
+    }
+    
+    public final boolean islocked() {
+        return getLock().availablePermits() == 0;
     }
 
     @Override
