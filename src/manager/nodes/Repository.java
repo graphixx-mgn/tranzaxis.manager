@@ -1,6 +1,5 @@
 package manager.nodes;
 
-import codex.command.EntityCommand;
 import codex.explorer.tree.INode;
 import codex.mask.FileMask;
 import codex.mask.RegexMask;
@@ -54,13 +53,15 @@ public class Repository extends Entity {
         });
         
         // Commands
-        EntityCommand loadWC = new LoadWC();
-        if (getParent() != null) {
-            loadWC.execute(this, null);
-        }
-        addCommand(loadWC);
+        addCommand(new LoadWC());
         
         setMode(((Boolean) model.getValue("locked") ? INode.MODE_ENABLED : INode.MODE_NONE) + INode.MODE_SELECTABLE);
     }
 
+    @Override
+    public void setParent(INode parent) {
+        super.setParent(parent);
+        getCommand("load").execute(this, null);
+    }
+    
 }
