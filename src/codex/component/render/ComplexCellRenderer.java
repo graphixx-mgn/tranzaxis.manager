@@ -6,10 +6,14 @@ import codex.presentation.SelectorTableModel;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 
 /**
  * Реализация рендерера ячеек {@link SelectorTableModel} для типов 
@@ -19,36 +23,48 @@ import javax.swing.JLabel;
 class ComplexCellRenderer extends CellRenderer<Object> {
     
     private final static ComplexCellRenderer INSTANCE = new ComplexCellRenderer();
+    private final static ImageIcon ICON_INVALID = ImageUtils.getByPath("/images/warn.png");
     
     public final static ComplexCellRenderer getInstance() {
         return INSTANCE;
     }
         
     final JLabel label = new JLabel();
+    final JLabel state = new JLabel();
 
     private ComplexCellRenderer() {
         super(BoxLayout.X_AXIS);
-        add(label);
-        label.setFont(IEditor.FONT_VALUE); 
+        
+        label.setFont(IEditor.FONT_VALUE);
+        label.setHorizontalTextPosition(SwingConstants.RIGHT);
+        
+        state.setVerticalAlignment(SwingConstants.TOP);
+        state.setVerticalTextPosition(SwingConstants.TOP);
+        
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+        panel.add(state, BorderLayout.WEST);
+        panel.add(label, BorderLayout.CENTER);
+        add(panel);
     }
 
     @Override
     public void setValue(Object value) {
+        ImageIcon icon;
+        
         if (value != null && Iconified.class.isAssignableFrom(value.getClass())) {
             if (value instanceof Entity && !((Entity) value).model.isValid()) {
-                label.setIcon(ImageUtils.resize(ImageUtils.combine(
-                    ((Entity) value).getIcon(),
-                    ImageUtils.getByPath("/images/warn.png")    
-                ), 18, 18));
+                icon = ImageUtils.resize(ImageUtils.combine(((Entity) value).getIcon(),ICON_INVALID), 18, 18);
             } else {
-                label.setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 18, 18));
+                icon = ImageUtils.resize(((Iconified) value).getIcon(), 18, 18);
             }
         } else {
-            label.setIcon(null);
+            icon = null;
         }
+        label.setIcon(icon);
         label.setText(value != null ? value.toString() : IEditor.NOT_DEFINED);
     }
-
+    
     @Override
     public Dimension getPreferredSize() {
         return label.getPreferredSize();
@@ -57,6 +73,13 @@ class ComplexCellRenderer extends CellRenderer<Object> {
     @Override
     public void setForeground(Color color) {
         label.setForeground(color);
+    }
+    
+    @Override
+    public void setEnabled(boolean enabled) {
+        if (label.getIcon() != null && !enabled) {
+            label.setIcon(ImageUtils.grayscale((ImageIcon) label.getIcon()));
+        }
     }
     
 }

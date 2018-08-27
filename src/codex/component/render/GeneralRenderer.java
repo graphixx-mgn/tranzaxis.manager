@@ -4,8 +4,11 @@ import codex.component.button.IButton;
 import codex.editor.AbstractEditor;
 import codex.editor.IEditor;
 import codex.explorer.tree.INode;
+import codex.model.Access;
 import codex.model.Entity;
+import codex.model.EntityModel;
 import codex.presentation.SelectorTableModel;
+import codex.property.PropertyState;
 import codex.type.ArrStr;
 import codex.type.Bool;
 import codex.type.Enum;
@@ -34,6 +37,8 @@ import javax.swing.tree.TreeCellRenderer;
 public final class GeneralRenderer extends JLabel implements ListCellRenderer, TableCellRenderer, TreeCellRenderer {
     
     private static final ImageIcon ICON_INVALID = ImageUtils.getByPath("/images/warn.png");
+    private static final ImageIcon ICON_LOCKED  = ImageUtils.getByPath("/images/lock.png");
+    private static final ImageIcon ICON_ERROR   = ImageUtils.getByPath("/images/red.png");
     
     private static Color blend(Color c0, Color c1) {
         double totalAlpha = c0.getAlpha() + c1.getAlpha();
@@ -67,23 +72,25 @@ public final class GeneralRenderer extends JLabel implements ListCellRenderer, T
      */
     @Override
     public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean hasFocus) {
-        setText(value.toString());
-        setFont(new Font(IEditor.FONT_VALUE.getName(), Font.PLAIN, (int) (IEditor.FONT_VALUE.getSize()*1.2)));
-        setBackground(isSelected ? IButton.PRESS_COLOR : list.getBackground());
-        if (Iconified.class.isAssignableFrom(value.getClass())) {
-            if (value instanceof Entity && !((Entity) value).model.isValid()) {
-                setIcon(ImageUtils.resize(ImageUtils.combine(
-                    ((Entity) value).getIcon(),
-                    ImageUtils.getByPath("/images/warn.png")    
-                ), 17, 17));
+        if (value != null) {
+            setText(value.toString());
+            setFont(new Font(IEditor.FONT_VALUE.getName(), Font.PLAIN, (int) (IEditor.FONT_VALUE.getSize()*1.2)));
+            setBackground(isSelected ? IButton.PRESS_COLOR : list.getBackground());
+            if (Iconified.class.isAssignableFrom(value.getClass())) {
+                if (value instanceof Entity && !((Entity) value).model.isValid()) {
+                    setIcon(ImageUtils.resize(ImageUtils.combine(
+                        ((Entity) value).getIcon(),
+                        ICON_INVALID  
+                    ), 17, 17));
+                } else {
+                    setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 17, 17));
+                }
             } else {
-                setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 17, 17));
+                setIcon(null);
             }
-        } else {
-            setIcon(null);
+            setBorder(new EmptyBorder(1, 4, 1, 2));
+            setForeground(value instanceof AbstractEditor.NullValue ? Color.GRAY : IEditor.COLOR_NORMAL);
         }
-        setBorder(new EmptyBorder(1, 4, 1, 2));
-        setForeground(value instanceof AbstractEditor.NullValue ? Color.GRAY : IEditor.COLOR_NORMAL);
         return this;
     }
 
@@ -106,11 +113,10 @@ public final class GeneralRenderer extends JLabel implements ListCellRenderer, T
             TableHeaderRenderer cellHead = TableHeaderRenderer.getInstance();
             cellHead.setValue((String) value);
             cellHead.setBorder(new CompoundBorder(
-                    new MatteBorder(0, column == 0 ? 0 : 1, 1, 0, Color.GRAY),
+                    new MatteBorder(0, 0, 1, column == table.getColumnCount()-1 ? 0 : 1, Color.GRAY),
                     new EmptyBorder(1, 6, 0, 6)
             ));
             return cellHead;
-            
         } else {
             if (Bool.class.equals(columnClass)) {
                 cellBox = BoolCellRenderer.getInstance();
@@ -119,12 +125,31 @@ public final class GeneralRenderer extends JLabel implements ListCellRenderer, T
             }
             cellBox.setValue(value);
             
-            boolean isInvalid = 
-                    (table.getModel() instanceof SelectorTableModel) && 
-                    !((SelectorTableModel) table.getModel()).getEntityAt(row).model.isValid();
+            boolean isEntityInvalid = false;
+            boolean isEntityLocked  = false;
+            PropertyState propState = PropertyState.Good;
             
-            if (isInvalid) {
-                cellBox.setBackground(Color.decode("#FFDDDD"));
+            if (table.getModel() instanceof SelectorTableModel) {
+                EntityModel model = ((SelectorTableModel) table.getModel()).getEntityAt(row).model;
+                
+                isEntityInvalid = !((SelectorTableModel) table.getModel()).getEntityAt(row).model.isValid();
+                isEntityLocked  = ((SelectorTableModel) table.getModel()).getEntityAt(row).islocked();
+                propState = model.getPropState(model.getProperties(Access.Select).get(column));
+            }
+            cellBox.setEnabled(!isEntityLocked);
+            
+            switch (propState) {
+                case Error: 
+                    ((ComplexCellRenderer) cellBox).state.setIcon(ICON_ERROR);
+                    break;
+                default:
+                    ((ComplexCellRenderer) cellBox).state.setIcon(null);
+            }
+            
+            if (isEntityLocked) {
+                cellBox.setBackground(Color.decode("#E5E5E5"));
+            } else if (isEntityInvalid) {
+                cellBox.setBackground(Color.decode("#FFEEEE"));
             } else {
                 if (row % 2 == 1) {
                     cellBox.setBackground(table.getBackground());
@@ -132,25 +157,41 @@ public final class GeneralRenderer extends JLabel implements ListCellRenderer, T
                     cellBox.setBackground(Color.decode("#F5F5F5"));
                 }
             }
+            
             if (isSelected) {
                 cellBox.setBackground(blend(Color.decode("#BBD8FF"), cellBox.getBackground()));
             }
-            if (isInvalid && value != null) {
+            
+            if (isEntityLocked) {
+                cellBox.setForeground(IEditor.COLOR_DISABLED);
+            } else if (isEntityInvalid && value != null) {
                 cellBox.setForeground(Color.RED);
             } else if (value == null) {
                 cellBox.setForeground(IEditor.COLOR_DISABLED);
             } else {
                 cellBox.setForeground(IEditor.COLOR_NORMAL);
             }
-            if (column == 0 && isInvalid) {
+            
+            if (column == 0) {
                 int iconSize = table.getRowHeight() - 6;
-                ((ComplexCellRenderer) cellBox).label.setIcon(
-                    ImageUtils.resize(ICON_INVALID, iconSize, iconSize)
-                );
+                if (isEntityLocked) {
+                    ((ComplexCellRenderer) cellBox).label.setIcon(
+                        ImageUtils.resize(ICON_LOCKED, iconSize, iconSize)
+                    );
+                } else if (isEntityInvalid) {
+                    ((ComplexCellRenderer) cellBox).label.setIcon(
+                        ImageUtils.resize(ICON_INVALID, iconSize, iconSize)
+                    );
+                }
             }
-            cellBox.setBorder(new CompoundBorder(
-                    new MatteBorder(0, column == 0 ? 0 : 1, 1, 0, Color.LIGHT_GRAY), 
+            
+            ((ComplexCellRenderer) cellBox).label.setBorder(new CompoundBorder(
+                    new MatteBorder(0, 0, 1, column == table.getColumnCount()-1 ? 0 : 1, Color.LIGHT_GRAY), 
                     new EmptyBorder(1, 6, 0, 6)
+            ));
+            ((ComplexCellRenderer) cellBox).state.setBorder(new CompoundBorder(
+                    new MatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY), 
+                    new EmptyBorder(0, 0, 0, 0)
             ));
             return cellBox;
         }
@@ -172,23 +213,33 @@ public final class GeneralRenderer extends JLabel implements ListCellRenderer, T
         Entity entity = (Entity) value;
         int iconSize = tree.getRowHeight()-2;
         ImageIcon icon;
-        if (!entity.model.isValid()) {
+        if (entity.islocked()) {
             icon = ImageUtils.resize(ImageUtils.combine(
                 entity.getIcon(),
-                ImageUtils.getByPath("/images/warn.png")    
+                ICON_LOCKED
+            ), iconSize, iconSize);
+        } else if (!entity.model.isValid()) {
+            icon = ImageUtils.resize(ImageUtils.combine(
+                entity.getIcon(),
+                ICON_INVALID
             ), iconSize, iconSize);
         } else {
             icon = ImageUtils.resize(entity.getIcon(), iconSize, iconSize);
         }
-        setDisabledIcon(ImageUtils.grayscale(icon));
-        setIcon(icon);
-        setText(entity.toString());
-        
-        setForeground(selected ? Color.WHITE : IEditor.COLOR_NORMAL);
-        setBackground(selected ? Color.decode("#55AAFF") : Color.WHITE);
-        setBorder(new EmptyBorder(15, 2, 15, 7));
-        setEnabled((entity.getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED);
-        return this;
+        JLabel label = new JLabel(entity.toString()) {{
+            setOpaque(true);
+            setIconTextGap(6);
+            setVerticalAlignment(CENTER);
+            
+            setDisabledIcon(ImageUtils.grayscale(icon));
+            setIcon(icon);
+
+            setForeground(selected ? Color.WHITE : IEditor.COLOR_NORMAL);
+            setBackground(selected ? Color.decode("#55AAFF") : Color.WHITE);
+            setBorder(new EmptyBorder(15, 2, 15, 7));
+            setEnabled((entity.getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED); 
+        }};
+        return label;
     }
     
 }
