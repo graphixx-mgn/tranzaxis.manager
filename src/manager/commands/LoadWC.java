@@ -112,13 +112,13 @@ public class LoadWC extends EntityCommand {
                     throw new UnsupportedOperationException(Language.get(Repository.class.getSimpleName(), "error@invalid"));
                 } else {
                     //ReleaseList releaseRoot = new ReleaseList(repo.toRef());
-                    Development development = new Development(repo.toRef());
+                    repo.insert(new Development(repo.toRef()));
                 }
             } catch (SVNException e) {
                 if (e.getErrorMessage().getErrorCode().getCode() != SVNErrorCode.RA_SVN_MALFORMED_DATA.getCode()) {
                     throw new UnsupportedOperationException(Language.get(Repository.class.getSimpleName(), "error@svnerr"));
                 } else {
-                    Development development = new Development(repo.toRef());
+                    repo.insert(new Development(repo.toRef()));
                 }
             }
             return null;
