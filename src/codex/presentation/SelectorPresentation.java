@@ -6,6 +6,8 @@ import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.component.render.GeneralRenderer;
+import codex.explorer.tree.INode;
+import codex.explorer.tree.INodeListener;
 import codex.log.Logger;
 import codex.model.Access;
 import codex.model.Entity;
@@ -59,7 +61,7 @@ import javax.swing.event.ListSelectionListener;
  * редактирования дочерних сущностей, так и обеспечивает работу команд по созданию
  * новых сущностей.
  */
-public final class SelectorPresentation extends JPanel implements ListSelectionListener {
+public final class SelectorPresentation extends JPanel implements ListSelectionListener, INodeListener {
     
     private final static ImageIcon IMAGE_EDIT   = ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 28, 28);
     private final static ImageIcon IMAGE_VIEW   = ImageUtils.resize(ImageUtils.getByPath("/images/view.png"), 28, 28);
@@ -167,21 +169,31 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     public void valueChanged(ListSelectionEvent event) {
         if (event.getValueIsAdjusting()) return;
         
-        Entity[] entities = Arrays
+        List<Entity> context = Arrays
                 .stream(table.getSelectedRows())
                 .boxed()
-                .collect(Collectors.toList())
-                .stream()
                 .map((rowIdx) -> {
                     return tableModel.getEntityAt(rowIdx);
                 })
-                .collect(Collectors.toList())
-                .toArray(new Entity[]{});
+                .collect(Collectors.toList());
         
         commands.forEach((command) -> {
             if (!(command instanceof CreateEntity)) {
-                command.setContext(entities);
+                context.forEach((contextItem) -> {
+                    contextItem.removeNodeListener(this);
+                });
+                command.setContext(context.toArray(new Entity[]{}));
+                context.forEach((contextItem) -> {
+                    contextItem.addNodeListener(this);
+                });
             }
+        });
+    }
+    
+    @Override
+    public void childChanged(INode node) {
+        commands.forEach((command) -> {
+            command.activate();
         });
     }
 
@@ -374,7 +386,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     boolean allDisabled = entities[0].model.getProperties(Access.Edit).parallelStream().allMatch((name) -> {
                         return !entities[0].model.getEditor(name).isEditable();
                     });
-                    getButton().setIcon(allDisabled || !entity.allowModifyChild() ? IMAGE_VIEW : IMAGE_EDIT);
+                    getButton().setIcon(allDisabled || !entity.allowModifyChild() || entities[0].islocked() ? IMAGE_VIEW : IMAGE_EDIT);
                     getButton().setEnabled(true);
                 } else {
                     getButton().setIcon(entity.allowModifyChild() ? IMAGE_EDIT : IMAGE_VIEW);
