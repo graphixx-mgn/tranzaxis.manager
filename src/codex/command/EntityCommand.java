@@ -10,6 +10,12 @@ import codex.model.ParamModel;
 import codex.presentation.CommitEntity;
 import codex.presentation.RollbackEntity;
 import codex.property.PropertyHolder;
+import codex.service.ServiceRegistry;
+import codex.task.ITask;
+import codex.task.ITaskExecutorService;
+import codex.task.ITaskListener;
+import codex.task.Status;
+import codex.task.TaskManager;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.Language;
@@ -40,6 +46,8 @@ import javax.swing.SwingUtilities;
  */
 public abstract class EntityCommand implements ICommand<Entity>, ActionListener, IModelListener, ICommandListener<Entity>, Iconified {
     
+    private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
+    
     private KeyStroke key;
     private String    name;
     private String    title;
@@ -53,9 +61,11 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     protected Consumer<Entity[]> activator = (entities) -> {
         button.setEnabled(
                 entities != null && entities.length > 0 && 
-                !(entities.length > 1 && !multiContextAllowed()) && (
-                        available == null || Arrays.asList(entities).stream().allMatch(available)
-                )
+                !(entities.length > 1 && !multiContextAllowed()) && 
+                (available == null || Arrays.asList(entities).stream().allMatch(available)) && 
+                (Arrays.asList(entities).stream().allMatch((entity) -> {
+                    return !entity.islocked();
+                }))
         );
     };
     
@@ -218,6 +228,35 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     public final void execute(Entity context) {};
     
     public abstract void execute(Entity context, Map<String, IComplexType> params);
+    
+    /**
+     * Исполнение длительной задачи над сущностью с блокировкой.
+     * @param context Сущность.
+     * @param task Задача.
+     * @param foreground Исполнить в модальном диалоге.
+     */
+    public final void executeTask(Entity context, ITask task, boolean foreground) {
+        task.addListener(new ITaskListener() {
+            @Override
+            public void statusChanged(ITask task, Status status) {
+                if (!status.isFinal()) {
+                    try {
+                        context.getLock().acquire();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    context.getLock().release();
+                }
+                
+            }
+        });
+        if (foreground) {
+            TES.executeTask(task);
+        } else {
+            TES.enqueueTask(task);
+        }
+    };
 
     @Override
     public void modelChanged(EntityModel model, List<String> changes) {
