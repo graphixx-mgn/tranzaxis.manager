@@ -59,7 +59,7 @@ public abstract class Catalog extends Entity {
     }
     
     private class LoadChildren extends AbstractTask<Void> {
-        
+
         int previousMode;
 
         public LoadChildren() {
@@ -72,11 +72,12 @@ public abstract class Catalog extends Entity {
         @Override
         public Void execute() throws Exception {
             previousMode = getMode();
-            if (!getChildrenPIDs().isEmpty()) {
-                setMode(INode.MODE_NONE);
-            }
+            setMode(INode.MODE_NONE);
             getChildrenPIDs().forEach((PID) -> {
-                Entity.newInstance(getChildClass(), Catalog.this.toRef(), PID);
+                Entity instance = Entity.newInstance(getChildClass(), Catalog.this.toRef(), PID);
+                if (instance.getParent() == null) {
+                    insert(instance);
+                }
             });
             return null;
         }
