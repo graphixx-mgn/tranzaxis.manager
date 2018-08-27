@@ -141,16 +141,22 @@ public class DeleteWC extends EntityCommand {
 
         @Override
         public void finished(Void t) {
-            WCStatus status = offshoot.getStatus();
-            offshoot.model.setValue("wcStatus", status);
-            offshoot.model.setValue("built", new BuildStatus());
-            offshoot.model.commit();
-            if (offshoot.model.getID() != null) {
-                ((IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class)).removeClassInstance(
-                        offshoot.getClass(), offshoot.model.getID()
-                );
-            }
-            offshoot.setMode(INode.MODE_SELECTABLE + (status.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
+            SwingUtilities.invokeLater(() -> {
+                WCStatus status = offshoot.getStatus();
+                offshoot.model.setValue("wcStatus", status);
+                if (!isCancelled()) {
+                    offshoot.model.setValue("built", new BuildStatus());
+                }
+                offshoot.model.commit();
+                if (!isCancelled()) {
+                    if (offshoot.model.getID() != null) {
+                        ((IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class)).removeClassInstance(
+                                offshoot.getClass(), offshoot.model.getID()
+                        );
+                    }
+                }
+                offshoot.setMode(INode.MODE_SELECTABLE + (status.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
+            });
         }
     
     }
