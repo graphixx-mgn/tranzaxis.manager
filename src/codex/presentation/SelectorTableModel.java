@@ -1,5 +1,7 @@
 package codex.presentation;
 
+import codex.explorer.tree.INode;
+import codex.explorer.tree.INodeListener;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.model.EntityModel;
@@ -19,7 +21,21 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
     public SelectorTableModel(Entity entity, final Entity prototype) {
         super(generateData(entity), generateHeader(entity, prototype));
         entity.childrenList().forEach((node) -> {
-            EntityModel childModel = ((Entity) node).model;
+            Entity      childEntity = (Entity) node;
+            EntityModel childModel  = childEntity.model;
+            
+            childEntity.addNodeListener(new INodeListener() {
+                @Override
+                public void childChanged(INode node) {
+                    int rowCount = getRowCount();
+                    for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+                        if (getEntityAt(rowIdx).model.equals(childModel)) {
+                            fireTableRowsUpdated(rowIdx, rowIdx);
+                            break;
+                        }
+                    }
+                }
+            });
             childModel.addModelListener(this);
             childModel.addChangeListener((name, oldValue, newValue) -> {
                 if (childModel.isPropertyDynamic(name)) {
@@ -52,13 +68,11 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
 
     @Override
     public void moveRow(int start, int end, int to) {
-//        throw new IllegalStateException("Not supported yet");
         super.moveRow(start, end, to);
         entity.move(getEntityAt(start), to);
         SwingUtilities.invokeLater(() -> {
             entity.childrenList().forEach((node) -> {
                 ((Entity) node).model.setValue(EntityModel.SEQ, (entity.childrenList().indexOf(node)+1));
-                //((Entity) node).model.saveValue(EntityModel.SEQ);
                 ((Entity) node).model.commit();
             });
         });
