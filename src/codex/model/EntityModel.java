@@ -14,6 +14,7 @@ import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.ArrStr;
+import codex.type.Bool;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Int;
@@ -35,11 +36,13 @@ import java.util.stream.Collectors;
  */
 public class EntityModel extends AbstractModel implements IPropertyChangeListener {
     
-    public  final static String ID  = "ID";
-    public  final static String OWN = "OWN";
-    public  final static String SEQ = "SEQ";
-    public  final static String PID = "PID";
-    public  final static String OVR = "OVR";
+    public  final static String ID  = "ID";  // Primary unique identifier
+    public  final static String OWN = "OWN"; // Reference to owner entity
+    public  final static String SEQ = "SEQ"; // Order sequence number
+    public  final static String PID = "PID"; // Title or name 
+    public  final static String OVR = "OVR"; // List of overridden values
+    public  final static String DEL = "DEL"; // Entity must be deleted
+    
     public  final static List<String> SYSPROPS = Arrays.asList(new String[] {ID, OWN, SEQ, PID, OVR});
     
     private final static IConfigStoreService    CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
@@ -59,17 +62,17 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         this.databaseValues = CAS.readClassInstance(entityClass, PID, owner.getId());
         
         addDynamicProp(
-                EntityModel.ID, 
+                ID, 
                 new Int(databaseValues.get(ID) != null ? Integer.valueOf(databaseValues.get(ID)) : null), 
-                Access.Any, null
+                null, null
         );
         
         addDynamicProp(
-                EntityModel.OWN, 
+                OWN, 
                 owner, 
-                Access.Any, null
+                null, null
         );
-        addUserProp(EntityModel.SEQ, new Int(null), 
+        addUserProp(SEQ, new Int(null), 
                 !Catalog.class.isAssignableFrom(entityClass), 
                 Access.Any
         );
@@ -341,13 +344,38 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         if (!changes.isEmpty()) {
             Map<String, IComplexType> values = new LinkedHashMap<>();
             changes.forEach((propName) -> {
+                
+                // Create instance of referenced object if not exists
+                if (getProperty(propName).getPropValue() instanceof EntityRef) {
+                    EntityRef ref = ((EntityRef) getProperty(propName).getPropValue());
+                    
+                    if (ref.isLoaded() && ref.getId() == null) {
+                        Entity owner = ref.getValue().model.getOwner();
+                        Map<String, IComplexType> propDefinitions = new HashMap() {{
+                            put(OWN, owner == null ? null : owner.toRef());
+                            put(DEL, new Bool(true)); // Auto delete
+                        }};
+                        
+                        Map<String, Integer> keys = CAS.initClassInstance(
+                                ref.getEntityClass(), 
+                                ref.getValue().model.getPID(), 
+                                propDefinitions,
+                                owner == null ? null : owner.model.getID()
+                        );
+                        ref.getValue().model.setValue(ID, keys.get(ID));
+                        ref.getValue().model.setValue(SEQ, keys.get(SEQ));
+                        
+                        CAS.updateClassInstance(ref.getEntityClass(), keys.get(ID), propDefinitions);
+                    }
+                }
+                
                 values.put(propName, getProperty(propName).getPropValue());
             });
             if (getID() == null || !databaseValues.keySet().containsAll(changes)) {
                 Map<String, IComplexType> propDefinitions = new LinkedHashMap<>();
                 
-                propDefinitions.put(EntityModel.OWN, getProperty(EntityModel.OWN).getPropValue());
-                values.put(EntityModel.OWN, getProperty(EntityModel.OWN).getPropValue());
+                propDefinitions.put(OWN, getProperty(OWN).getPropValue());
+                values.put(OWN, getProperty(OWN).getPropValue());
                 
                 getProperties(Access.Any)
                     .stream()
@@ -358,7 +386,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                         propDefinitions.put(propName, getProperty(propName).getPropValue());
                     });
                 
-                EntityRef ownerRef = (EntityRef) getProperty(EntityModel.OWN).getPropValue();
+                EntityRef ownerRef = (EntityRef) getProperty(OWN).getPropValue();
                 Integer ownerId = ownerRef.getValue() != null ? ownerRef.getValue().model.getID() : null;
                 Map<String, Integer> keys = CAS.initClassInstance(entityClass, getPID(), propDefinitions, ownerId);
                 setValue(ID, keys.get(ID));
@@ -366,6 +394,19 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             }
             int result = CAS.updateClassInstance(entityClass, getID(), values);
             if (result == IConfigStoreService.RC_SUCCESS) {
+                
+                // Delete instance of referenced object if necessary (DEL = "1")
+                changes.forEach((propName) -> {    
+                    if (getProperty(propName).getPropValue() instanceof EntityRef) {
+                        Entity prevValue = (Entity) undoRegistry.previous(propName);
+                        if (prevValue != null) {
+                            if ("1".equals(CAS.readClassInstance(prevValue.getClass(), prevValue.model.getID()).get(DEL))) {
+                                CAS.removeClassInstance(prevValue.getClass(), prevValue.model.getID());
+                            }
+                        }
+                    }
+                });
+                
                 undoRegistry.clear();
                 new LinkedList<>(modelListeners).forEach((listener) -> {
                     listener.modelSaved(this, changes);
