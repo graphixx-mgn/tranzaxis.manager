@@ -39,7 +39,6 @@ public class UpdateWC extends EntityCommand {
                     return !entity.model.getValue("wcStatus").equals(WCStatus.Invalid);
                 }
         );
-        setGroupId("update");
     }
 
     @Override

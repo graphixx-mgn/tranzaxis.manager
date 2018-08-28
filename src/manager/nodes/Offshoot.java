@@ -59,9 +59,9 @@ public class Offshoot extends BinarySource {
         
         // Commands
         addCommand(new DeleteWC());
-        addCommand(new RefreshWC());
-        addCommand(new UpdateWC());
-        addCommand(new BuildWC());
+        addCommand(new RefreshWC().setGroupId("update"));
+        addCommand(new UpdateWC().setGroupId("update"));
+        addCommand(new BuildWC().setGroupId("update"));
         addCommand(new RunDesigner());
     }
 

@@ -75,7 +75,6 @@ public class BuildWC extends EntityCommand {
                 }
         );
         setParameters(params);
-        setGroupId("update");
     }
     
     @Override

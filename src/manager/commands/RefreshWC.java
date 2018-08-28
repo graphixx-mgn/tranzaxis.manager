@@ -28,7 +28,6 @@ public class RefreshWC extends EntityCommand {
         setParameters(
                 new PropertyHolder("clean", new Bool(Boolean.FALSE), true)
         );
-        setGroupId("update");
     }
     
     @Override
