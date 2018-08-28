@@ -64,13 +64,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         addDynamicProp(
                 ID, 
                 new Int(databaseValues.get(ID) != null ? Integer.valueOf(databaseValues.get(ID)) : null), 
-                null, null
+                Access.Any, null
         );
         
         addDynamicProp(
                 OWN, 
                 owner, 
-                null, null
+                Access.Any, null
         );
         addUserProp(SEQ, new Int(null), 
                 !Catalog.class.isAssignableFrom(entityClass), 
