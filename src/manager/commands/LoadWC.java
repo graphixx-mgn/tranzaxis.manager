@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
 import manager.nodes.Development;
+import manager.nodes.ReleaseList;
 import manager.nodes.Repository;
 import manager.svn.SVN;
 import org.tmatesoft.svn.core.SVNErrorCode;
@@ -111,8 +112,8 @@ public class LoadWC extends EntityCommand {
                 if (!valid) {
                     throw new UnsupportedOperationException(Language.get(Repository.class.getSimpleName(), "error@invalid"));
                 } else {
-                    //ReleaseList releaseRoot = new ReleaseList(repo.toRef());
                     repo.insert(new Development(repo.toRef()));
+                    repo.insert(new ReleaseList(repo.toRef()));
                 }
             } catch (SVNException e) {
                 if (e.getErrorMessage().getErrorCode().getCode() != SVNErrorCode.RA_SVN_MALFORMED_DATA.getCode()) {
