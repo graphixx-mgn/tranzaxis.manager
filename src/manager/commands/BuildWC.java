@@ -2,23 +2,22 @@
 package manager.commands;
 
 import codex.command.EntityCommand;
+import codex.command.ParametersDialog;
 import codex.log.Logger;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
-import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.task.ExecuteException;
 import codex.task.GroupTask;
 import codex.task.ITask;
-import codex.task.ITaskExecutorService;
 import codex.task.ITaskListener;
 import codex.task.Status;
-import codex.task.TaskManager;
 import codex.type.Bool;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import com.sun.javafx.PlatformUtil;
+import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
@@ -29,10 +28,15 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
+import javax.swing.SwingUtilities;
 import manager.commands.build.BuildingNotifier;
 import manager.commands.build.IBuildingNotifier;
 import manager.commands.build.KernelBuilder;
@@ -43,8 +47,6 @@ import manager.type.WCStatus;
 import org.apache.tools.ant.util.DateUtils;
 
 public class BuildWC extends EntityCommand {
-    
-    private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
     
     public  static final Integer    RMI_PORT = 2099;  
     private static Registry         RMI_REGISTRY;
@@ -76,48 +78,75 @@ public class BuildWC extends EntityCommand {
         setGroupId("update");
     }
     
-//    @Override
-//    public void actionPerformed(ActionEvent event) {
-//        if (getContext().length == 1) {
-//            super.actionPerformed(event);
-//        } else {
-//            ParametersDialog paramDialog = new ParametersDialog(this, () -> {
-//                return Stream.concat(
-//                        Arrays.stream(params), 
-//                        Arrays.stream(new PropertyHolder[] { new PropertyHolder("sequential", new Bool(Boolean.FALSE), true) })
-//                ).toArray(PropertyHolder[]::new);
-//            });
-//            try {
-//                Map<String, IComplexType> paramValues = paramDialog.call();
-//                if (paramValues.get("sequential").getValue() == Boolean.TRUE) {
-//                    final List<ITask> sequence = new LinkedList<>();
-//                    for (Entity entity : getContext()) {
-//                        sequence.add(
-//                                new GroupTask<>(
-//                                        Language.get("title") + ": "+((Offshoot) entity).getWCPath(),
-//                                        new BuildKernelTask((Offshoot) entity),
-//                                        new BuildSourceTask((Offshoot) entity, paramValues.get("clean").getValue() == Boolean.TRUE)
-//                                )
-//                        );
-//                    }
-//                    TES.enqueueTask(new GroupTask(
-//                            "[SEQUENTIAL]", 
-//                            sequence.toArray(new ITask[] {})
-//                    ));
-//                } else {
-//                    SwingUtilities.invokeLater(() -> {
-//                        Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
-//                        for (Entity entity : getContext()) {
-//                            execute(entity, paramValues);
-//                        }
-//                        activate();
-//                    });
-//                }
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        }
-//    }
+    @Override
+    public void actionPerformed(ActionEvent event) {
+        if (getContext().length == 1) {
+            super.actionPerformed(event);
+        } else {
+            ParametersDialog paramDialog = new ParametersDialog(this, () -> {
+                return Stream.concat(
+                        Arrays.stream(params), 
+                        Arrays.stream(new PropertyHolder[] { new PropertyHolder(
+                                "sequence", 
+                                Language.get(BuildWC.class.getSimpleName(), "sequence.title"),
+                                Language.get(BuildWC.class.getSimpleName(), "sequence.desc"),
+                                new Bool(Boolean.FALSE), 
+                                true
+                        )})
+                ).toArray(PropertyHolder[]::new);
+            });
+            
+            try {
+                Map<String, IComplexType> paramValues = paramDialog.call();
+                if (paramValues == null) {
+                    return;
+                }
+                if (paramValues.get("sequence").getValue() == Boolean.TRUE) {
+                    final List<ITask> sequence = new LinkedList<>();
+                    for (Entity entity : getContext()) {
+                        ITaskListener unlocker = new ITaskListener() {
+                            @Override
+                            public void statusChanged(ITask task, Status status) {
+                                if (status.isFinal()) {
+                                    entity.getLock().release();
+                                }
+                            }
+                        };
+                        
+                        ITask buildKernel = new BuildKernelTask((Offshoot) entity);
+                        ITask buildSource = new BuildSourceTask((Offshoot) entity, paramValues.get("clean").getValue() == Boolean.TRUE);
+                        ITask buildGroup  = new GroupTask<>(
+                                Language.get("title") + ": "+((Offshoot) entity).getWCPath(),
+                                buildKernel,
+                                buildSource
+                        );
+                        
+                        buildGroup.addListener(unlocker);
+                        sequence.add(buildGroup);
+                        entity.getLock().acquire();
+                    }
+                    executeTask(
+                            null,
+                            new GroupTask(
+                                    Language.get(BuildWC.class.getSimpleName(), "task@sequence"), 
+                                    sequence.toArray(new ITask[] {})
+                            ),
+                            false
+                    );
+                } else {
+                    SwingUtilities.invokeLater(() -> {
+                        Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
+                        for (Entity entity : getContext()) {
+                            execute(entity, paramValues);
+                        }
+                        activate();
+                    });
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
     
     @Override
     public boolean multiContextAllowed() {
