@@ -20,6 +20,12 @@ public interface IConfigStoreService extends IService {
     public static int RC_DEL_CONSTRAINT = 11;
     
     /**
+     * Перестроение таблицы для актуализации структуры.
+     * @param unusedColumns 
+     */
+    default public void maintainClassCatalog(Class clazz, List<String> unusedProperties, Map<String, IComplexType> newProperties) {}
+    
+    /**
      * Создать пустую запись в каталоге для модели сушности по её уникальному ключу.
      * @param clazz Класс сущности.
      * @param PID Наименование сущности.

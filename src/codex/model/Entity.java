@@ -4,12 +4,15 @@ import codex.command.EntityCommand;
 import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
+import codex.config.ConfigStoreService;
+import codex.config.IConfigStoreService;
 import codex.explorer.tree.AbstractNode;
 import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.property.IPropertyChangeListener;
+import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Iconified;
@@ -29,6 +32,8 @@ import javax.swing.ImageIcon;
  */
 public abstract class Entity extends AbstractNode implements IPropertyChangeListener, Iconified {
    
+    private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    
     private       String        title;
     private final ImageIcon     icon;
     private final String        hint;
@@ -90,6 +95,34 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     @Override
     public void insert(INode child) {
         super.insert(child);
+        
+        Entity childEntity = (Entity) child;
+        if (childEntity.model.getID() != null) {
+            Map<String, String> databaseValues = CAS.readClassInstance(child.getClass(), childEntity.model.getID());
+            if (!databaseValues.isEmpty()) {
+                List<String> propList = childEntity.model.getProperties(Access.Any).stream().filter((propName) -> {
+                    return !childEntity.model.isPropertyDynamic(propName);
+                }).collect(Collectors.toList());
+                
+                List<String> extraProps = databaseValues.keySet().stream().filter((propName) -> {
+                    return !propList.contains(propName) && !EntityModel.SYSPROPS.contains(propName);
+                }).collect(Collectors.toList());
+                
+                Map<String, IComplexType> absentProps = propList.stream()
+                        .filter((propName) -> {
+                            return !databaseValues.containsKey(propName);
+                        })
+                        .collect(Collectors.toMap(
+                                propName -> propName, 
+                                propName -> childEntity.model.getProperty(propName).getPropValue()
+                        ));
+                
+                if (!extraProps.isEmpty() || !absentProps.isEmpty()) {
+                    CAS.maintainClassCatalog(child.getClass(), extraProps, absentProps);
+                }
+            }
+        }
+        
         if (!((Entity) child).model.getProperty(EntityModel.OWN).isEmpty()) {
             return;
         }

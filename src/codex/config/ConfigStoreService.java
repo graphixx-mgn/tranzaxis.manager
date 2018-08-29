@@ -20,7 +20,11 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.sqlite.JDBC;
 import org.sqlite.core.Codes;
 
@@ -148,35 +152,175 @@ public final class ConfigStoreService implements IConfigStoreService {
                 ));
             } catch (SQLException e) {
                 Logger.getLogger().error("Unable to register class catalog", e);
-            }
-            
-        } else {
-            try (final Statement alter = connection.createStatement()) {
-                for (String column : columns) {
-                    String alterSQL = MessageFormat.format("ALTER TABLE {0} ADD COLUMN {1}",
-                        className,
-                        column
-                    );
-                    alter.execute(alterSQL);                
-                }
-                connection.commit();
-
-                List<String> columnNames = new LinkedList<>(propDefinition.keySet());
-                columnNames.addAll(0, Arrays.asList(new String[] {"ID", "PID", "SEQ", "OVR"}));
-                storeStructure.put(className, columnNames);
+            }   
+        }
+    }
+    
+    @Override
+    public void maintainClassCatalog(Class clazz, List<String> unusedProperties, Map<String, IComplexType> newProperties) {
+        final String className = clazz.getSimpleName().toUpperCase();
+        try {
+            semaphore.acquire();
+            if (unusedProperties != null && !unusedProperties.isEmpty()) {
+                cropCatalog(clazz, unusedProperties);
                 Logger.getLogger().debug(MessageFormat.format(
-                        "CAS: Altered catalog {0}: {1}", className, storeStructure.get(className)
+                        "CAS: Catalog {0} maintainance: Deleted columns {1}", 
+                        className,
+                        unusedProperties
                 ));
-            } catch (SQLException e) {
-                Logger.getLogger().error("Unable to create class catalog", e);
             }
+            if (newProperties != null && !newProperties.isEmpty()) {
+                extendCatalog(clazz, newProperties);
+                Logger.getLogger().debug(MessageFormat.format(
+                        "CAS: Catalog {0} maintainance: Added columns {1}", 
+                        className,
+                        newProperties.keySet()
+                ));
+            }
+        } catch (Exception e) {
+            Logger.getLogger().error(MessageFormat.format(
+                    "CAS: Сatalog {0} maintainance failed", className
+            ), e);
+        } finally {
+            semaphore.release();
+        }
+    }
+    
+    private void extendCatalog(Class clazz, Map<String, IComplexType> newProperties) throws Exception {
+        final String className = clazz.getSimpleName().toUpperCase();
+        List<String> columns = new LinkedList<>();
+        
+        newProperties.forEach((propName, propVal) -> {
+            Class refClazz;
+            if (propVal instanceof EntityRef && (refClazz = ((EntityRef) propVal).getEntityClass()) != null) {
+                if (!storeStructure.containsKey(refClazz.getSimpleName().toUpperCase())) {
+                    buildClassCatalog(refClazz, new HashMap<>());
+                }
+                columns.add(propName
+                        .concat(" INTEGER REFERENCES ")
+                        .concat(refClazz.getSimpleName().toUpperCase())
+                        .concat("(ID)")
+                );
+            } else {
+                columns.add(propName.concat(" TEXT"));
+            }
+        });
+
+        try (final Statement alter = connection.createStatement()) {
+            for (String column : columns) {
+                String alterSQL = MessageFormat.format("ALTER TABLE {0} ADD COLUMN {1}",
+                    className,
+                    column
+                );
+                alter.execute(alterSQL);                
+            }
+            connection.commit();
+            storeStructure.get(className).addAll(newProperties.keySet());
+        } catch (SQLException e) {
+            throw new Exception("Unable to add column", e);
+        }
+    }
+    
+    private void cropCatalog(Class clazz, List<String> unusedProperties) throws Exception {
+        final String className = clazz.getSimpleName().toUpperCase();
+        
+        String primaryKey = "";  
+        final Map<String, String>       columns = new LinkedHashMap<>(); 
+        final Map<String, String>       references = new LinkedHashMap<>(); 
+        final Map<String, List<String>> constraints = new HashMap<>(); 
+        
+        // Primary key
+        try (ResultSet rs = connection.getMetaData().getPrimaryKeys(null, null, className)) {
+            if (rs.next()) {
+                primaryKey = rs.getString("COLUMN_NAME");
+            }
+        } catch (SQLException e) {
+            throw new Exception("Unable to determine primary key", e);
+        }
+        
+        // Foreign keys
+        try (ResultSet rs = connection.getMetaData().getImportedKeys(null, null, className)) {
+            while (rs.next()) {
+                references.put(rs.getString("FKCOLUMN_NAME"), "REFERENCES "+rs.getString("PKTABLE_NAME")+"("+rs.getString("PKCOLUMN_NAME")+")");
+            }
+        } catch (SQLException e) {
+            throw new Exception("Unable to retrieve foreign keys", e);
+        }
+        
+        // Columns
+        try (ResultSet rs = connection.getMetaData().getColumns(null, null, className, "%")) {
+            while (rs.next()) {
+                if (!unusedProperties.contains(rs.getString("COLUMN_NAME"))) {
+                    columns.put(
+                            rs.getString("COLUMN_NAME"),
+                            rs.getString("COLUMN_NAME").concat(" ")
+                                .concat(rs.getString("TYPE_NAME")).concat(" ")
+                                .concat("YES".equals(rs.getString("IS_NULLABLE")) ? "" : "NOT NULL").concat(" ")
+                                .concat(rs.getString("COLUMN_NAME").equals(primaryKey.toUpperCase()) ? "PRIMARY KEY AUTOINCREMENT" : "").concat(" ")
+                                .concat(references.containsKey(rs.getString("COLUMN_NAME")) ? references.get(rs.getString("COLUMN_NAME")) : "")
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            throw new Exception("Unable to get columns list", e);
+        }
+        
+        try (ResultSet rs = connection.getMetaData().getIndexInfo(null, null, className, true, false)) {
+            while (rs.next()) {
+                if (!constraints.containsKey(rs.getString("INDEX_NAME"))) {
+                    constraints.put(rs.getString("INDEX_NAME"), new LinkedList<>());
+                }
+                constraints.get(rs.getString("INDEX_NAME")).add(rs.getString("COLUMN_NAME"));
+            }
+        } catch (SQLException e) {
+            throw new Exception("Unable to get indexes list", e);
+        }
+        
+        StringJoiner constraintSql = new StringJoiner(",");
+        AtomicInteger constraintIndex = new AtomicInteger(0);
+        constraints.forEach((indexName, columnNames) -> {
+            constraintIndex.addAndGet(1);
+            constraintSql.add("CONSTRAINT UNIQUE_"+constraintIndex.get()+" UNIQUE ("+String.join(",", columnNames)+")");
+        });
+
+        String createSQL = MessageFormat.format(
+                "CREATE TABLE IF NOT EXISTS {0} ({1}, {2});",
+                className.concat("_NEW"),
+                String.join(", ", columns.values()),
+                constraintSql.toString()
+        );
+        String copySQL = MessageFormat.format(
+                "INSERT INTO {0} SELECT {1} FROM {2}",
+                className.concat("_NEW"),
+                String.join(", ", columns.keySet()),
+                className
+        );
+        String dropSQL = MessageFormat.format(
+                "DROP TABLE IF EXISTS {0}",
+                className
+        );
+        String renameSQL = MessageFormat.format(
+                "ALTER TABLE {0} RENAME TO {1}",
+                className.concat("_NEW"),
+                className
+        );
+        
+        try (final Statement statement = connection.createStatement()) {
+            statement.execute(createSQL);
+            statement.execute(copySQL);
+            statement.execute(dropSQL);
+            statement.execute(renameSQL);
+            connection.commit();
+            storeStructure.get(className).removeAll(unusedProperties);
+        } catch (SQLException e) {
+            throw new Exception("Unable to rebuild class catalog", e);
         }
     }
 
     @Override
     public Map<String, Integer> initClassInstance(Class clazz, String PID, Map<String, IComplexType> propDefinition, Integer ownerId) {
         final String className = clazz.getSimpleName().toUpperCase();
-        if (!storeStructure.containsKey(className) || !storeStructure.get(className).containsAll(propDefinition.keySet())) {
+        if (!storeStructure.containsKey(className)/* || !storeStructure.get(className).containsAll(propDefinition.keySet())*/) {
             buildClassCatalog(clazz, propDefinition);
         }
         final String selectSQL;
@@ -256,8 +400,10 @@ public final class ConfigStoreService implements IConfigStoreService {
         if (!properties.isEmpty()) {
             final String className = clazz.getSimpleName().toUpperCase();
             final String[] parts   = properties.keySet().toArray(new String[]{});
+            
             final String updateSQL = "UPDATE "+className+" SET "+String.join(" = ?, ", parts)+" = ? WHERE ID = ?";
-                
+            final String updateTraceSQL = prepareTraceSQL(updateSQL, properties.values().toArray(), ID);
+            
             try (PreparedStatement update = connection.prepareStatement(updateSQL)) {
                 List keys = new ArrayList(properties.keySet());
                 properties.forEach((key, value) -> {
@@ -277,6 +423,7 @@ public final class ConfigStoreService implements IConfigStoreService {
                 return RC_SUCCESS;
             } catch (SQLException | InterruptedException e) {
                 Logger.getLogger().error("Unable to update instance", e);
+                Logger.getLogger().debug("SQL Query: {0}", updateTraceSQL);
                 return RC_ERROR;
             } finally {
                 semaphore.release();
@@ -468,6 +615,36 @@ public final class ConfigStoreService implements IConfigStoreService {
             }
         } catch (SQLException | ClassNotFoundException e) {}
         return null;
+    }
+    
+    private String prepareTraceSQL(String sql, Object... values) {
+        AtomicInteger index = new AtomicInteger(-1);
+        Object[] flattened = flatten(values).toArray();
+        String pattern = sql
+                .toUpperCase()
+                .chars()
+                .mapToObj((code) -> {
+                    String symbol = String.valueOf((char) code);
+                    if ("?".equals(symbol)) {
+                        index.addAndGet(1);
+                        if (flattened[index.get()] == null || flattened[index.get()].toString().isEmpty()) {
+                            symbol = "(NULL)";
+                        } else if (flattened[index.get()] instanceof EntityRef) {
+                            symbol = "("+((EntityRef) flattened[index.get()]).getValue()+")";
+                        } else {
+                            symbol = "''{"+index.get()+"}''";
+                        }
+                    }
+                    return symbol;
+                })
+                .collect(Collectors.joining());
+        return MessageFormat.format(pattern, flattened);
+    }
+    
+    private static Stream<Object> flatten(Object[] array) {
+        return Arrays
+                .stream(array)
+                .flatMap(o -> o instanceof Object[]? flatten((Object[])o): Stream.of(o));
     }
 
 }
