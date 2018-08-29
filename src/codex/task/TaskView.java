@@ -122,6 +122,7 @@ final class TaskView extends AbstractTaskView {
             updater.start();
         } else if (progress.isIndeterminate() && !isInfinitive) {
             updater.stop();
+        } else if (!isInfinitive) {
             progress.setString(null);
         }
         progress.setIndeterminate(isInfinitive);
