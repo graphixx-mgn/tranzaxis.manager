@@ -2,11 +2,14 @@ package codex.task;
 
 import codex.log.Logger;
 import java.text.MessageFormat;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
@@ -25,6 +28,16 @@ public abstract class AbstractTask<T> implements ITask<T> {
     private String  description;
     private final FutureTask<T> future;
     private List<ITaskListener> listeners = new LinkedList<>();
+    private final Semaphore     semaphore = new Semaphore(1, true) {
+        @Override
+        public void release() {
+            if (availablePermits() == 0) {
+                // Avoid extra releases that increases permits counter
+                super.release();
+            }
+        }
+    };
+    private LocalDateTime startTime, pauseTime;
 
     /**
      * Конструктор задачи.
@@ -77,6 +90,9 @@ public abstract class AbstractTask<T> implements ITask<T> {
      */
     @Override
     public final boolean cancel(boolean mayInterruptIfRunning) {
+        if (semaphore.availablePermits() == 0) {
+            setPause(false);
+        }
         return future.cancel(mayInterruptIfRunning);
     }
 
@@ -94,6 +110,37 @@ public abstract class AbstractTask<T> implements ITask<T> {
     @Override
     public final boolean isDone() {
         return future.isDone();
+    }
+    
+    @Override
+    public boolean isPauseable() {
+        return false;
+    }
+    
+    private Status prevStatus;
+    final void setPause(boolean paused) {
+        if (isPauseable()) {
+            if (paused) {
+                try {
+                    prevStatus = getStatus();
+                    setStatus(Status.PAUSED);
+                    semaphore.acquire();
+                } catch (InterruptedException e) {}
+            } else {
+                setStatus(prevStatus);
+                semaphore.release();
+            }
+        }
+    }
+    
+    @Override
+    public final void checkPaused() {
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+        } finally {
+            semaphore.release();
+        }
     }
 
     @Override
@@ -143,12 +190,25 @@ public abstract class AbstractTask<T> implements ITask<T> {
     public final Integer getProgress() {
         return percent;
     }
+    
+    public final long getDuration() {
+        return Duration.between(startTime, LocalDateTime.now()).toMillis();
+    }
 
     /**
-     * Установить состояние задачи.
+     * Установить состояние задачи и вернуть предыдущее.
      * @param state Константа типа {@link Status}
      */
     void setStatus(Status state) {
+        if (this.status == Status.PENDING && state == Status.STARTED) {
+            startTime = LocalDateTime.now();
+        }
+        if (state == Status.PAUSED) {
+            pauseTime = LocalDateTime.now();
+        }
+        if (this.status == Status.PAUSED) {
+            startTime = startTime.minusNanos(Duration.between(LocalDateTime.now(), pauseTime).toNanos());
+        }
         if (!this.status.equals(state)) {
             Logger.getLogger().debug("Task ''{0}'' state changed: {1} -> {2}", getTitle(), this.status, state);
             if (this.status == Status.CANCELLED && state == Status.FINISHED) {
