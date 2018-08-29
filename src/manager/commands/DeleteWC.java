@@ -19,12 +19,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.DirectoryStream;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.text.MessageFormat;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.SwingUtilities;
@@ -104,6 +106,11 @@ public class DeleteWC extends EntityCommand {
         }
 
         @Override
+        public boolean isPauseable() {
+            return true;
+        }
+
+        @Override
         public Void execute() throws Exception {
             String wcPath = offshoot.getWCPath();
 
@@ -112,26 +119,46 @@ public class DeleteWC extends EntityCommand {
             Logger.getLogger().info("Total number of files/directories in working copy ''{0}'': {1}", new Object[] {wcPath, totalFiles});
 
             AtomicInteger processed = new AtomicInteger(0);
-            Files.walk(Paths.get(wcPath)).sorted(Collections.reverseOrder()).forEach((path) -> {
-                if (isCancelled()) {
-                    return;
+            Files.walkFileTree(Paths.get(wcPath), new SimpleFileVisitor<Path>() {
+                
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    return processPath(file);
                 }
-                try {
-                    FileDeleteStrategy.NORMAL.delete(path.toFile());
-                    processed.addAndGet(1);
-                    String fileName = path.toString().replace(wcPath+File.separator, "");
-                    setProgress(
-                            (int) (processed.get() * 100 / totalFiles),
-                            MessageFormat.format(
-                                    Language.get(DeleteWC.class.getSimpleName(), "command@progress"),
-                                    fileName
-                            )
-                    );
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+                    return processPath(dir);
+                }
+                
+                private FileVisitResult processPath(Path path) {
+                    checkPaused();
+                    if (isCancelled()) {
+                        return FileVisitResult.TERMINATE;
+                    }
+                    try {
+                        FileDeleteStrategy.NORMAL.delete(path.toFile());
+                        processed.addAndGet(1);
+                        String fileName = path.toString().replace(wcPath+File.separator, "");
+                        setProgress(
+                                (int) (processed.get() * 100 / totalFiles),
+                                MessageFormat.format(
+                                        Language.get(DeleteWC.class.getSimpleName(), "command@progress"),
+                                        fileName
+                                )
+                        );
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                    return FileVisitResult.CONTINUE;
                 }
             });
-
+         
             DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(wcPath).getParent());
             if (!dirStream.iterator().hasNext()) {
                 FileDeleteStrategy.NORMAL.delete(new File(wcPath).getParentFile());
