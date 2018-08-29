@@ -26,7 +26,7 @@ public final class TaskManager extends AbstractUnit {
                 @Override
                 public void actionPerformed(ActionEvent event) {
                     long running = taskDialog.taskRegistry.keySet().stream()
-                                    .filter(queued -> queued.getStatus() == Status.PENDING   || queued.getStatus() == Status.STARTED)
+                                    .filter(queued -> !queued.getStatus().isFinal())
                                     .count();
                     if (event.getID() == TaskDialog.CANCEL || running == 0) {
                         taskDialog.taskRegistry.keySet().stream().forEach((task) -> {

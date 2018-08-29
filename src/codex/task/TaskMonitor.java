@@ -227,7 +227,7 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
             
             @Override
             public void accept(ITask context) {
-                if (context.getStatus() == Status.PENDING || context.getStatus() == Status.STARTED) {
+                if (!context.getStatus().isFinal()) {
                     context.cancel(true);
                 } else {
                     taskList.remove(taskRegistry.get(context));

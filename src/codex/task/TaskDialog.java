@@ -107,7 +107,7 @@ class TaskDialog extends Dialog implements ITaskListener {
     @Override
     public void statusChanged(ITask task, Status status) {
         long running  = taskRegistry.keySet().stream()
-                .filter(queued -> queued.getStatus() == Status.PENDING   || queued.getStatus() == Status.STARTED)
+                .filter(queued -> !queued.getStatus().isFinal())
                 .count();
         long failed   = taskRegistry.keySet().stream()
                 .filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED)

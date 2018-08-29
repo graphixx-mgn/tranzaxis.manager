@@ -106,7 +106,7 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
 
     @Override
     public void statusChanged(ITask task, Status newStatus) {
-        long running  = queue.stream().filter(queued -> queued.getStatus() == Status.PENDING   || queued.getStatus() == Status.STARTED).count();
+        long running  = queue.stream().filter(queued -> !queued.getStatus().isFinal()).count();
         long failed   = queue.stream().filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED).count();
         boolean ready = running + failed == 0;
         
@@ -157,7 +157,7 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
     public void progressChanged(ITask task, int percent, String description) {
         int prevProgress = progress.getValue();
         progress.setValue(queue.stream().mapToInt(
-                queued -> queued.getStatus() == Status.PENDING || queued.getStatus() == Status.STARTED ? queued.getProgress() : 100
+                queued -> !queued.getStatus().isFinal() ? queued.getProgress() : 100
         ).sum() / queue.size());
       
         if (prevProgress != progress.getValue() && PlatformUtil.isWin7OrLater() && SwingUtilities.getWindowAncestor(this) != null) {
