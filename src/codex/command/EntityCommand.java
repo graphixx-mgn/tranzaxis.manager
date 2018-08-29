@@ -236,21 +236,24 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
      * @param foreground Исполнить в модальном диалоге.
      */
     public final void executeTask(Entity context, ITask task, boolean foreground) {
-        task.addListener(new ITaskListener() {
-            @Override
-            public void statusChanged(ITask task, Status status) {
-                if (!status.isFinal()) {
-                    try {
-                        context.getLock().acquire();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+        if (context != null) {
+            task.addListener(new ITaskListener() {
+                @Override
+                public void statusChanged(ITask task, Status status) {
+                    if (!status.isFinal()) {
+                        try {
+                            if (!context.islocked()) {
+                                context.getLock().acquire();
+                            }
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        context.getLock().release();
                     }
-                } else {
-                    context.getLock().release();
                 }
-                
-            }
-        });
+            });
+        }
         if (foreground) {
             TES.executeTask(task);
         } else {
