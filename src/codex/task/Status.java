@@ -12,19 +12,23 @@ public enum Status implements Iconified {
     /**
      * Находится в стадии ожидания очереди исволнения.
      */
-    PENDING("Pending",    ImageUtils.resize(ImageUtils.getByPath("/images/wait.png"), 17, 17)),
+    PENDING("Pending",     ImageUtils.resize(ImageUtils.getByPath("/images/wait.png"), 17, 17)),
     /**
      * Запущена и исполняется.
      */
-    STARTED("Started",    ImageUtils.resize(ImageUtils.getByPath("/images/start.png"), 17, 17)),
+    STARTED("Started",     ImageUtils.resize(ImageUtils.getByPath("/images/start.png"), 17, 17)),
     /**
      * Успешно завершилась.
      */
-    FINISHED("Finished",  ImageUtils.resize(ImageUtils.getByPath("/images/success.png"), 17, 17)),
+    FINISHED("Finished",   ImageUtils.resize(ImageUtils.getByPath("/images/success.png"), 17, 17)),
+    /**
+     * Приостановлена.
+     */
+    PAUSED("Paused",       ImageUtils.resize(ImageUtils.getByPath("/images/pause.png"), 17, 17)),
     /**
      * Прервана вследствие ошибки при исполнении.
      */
-    FAILED("Failed",      ImageUtils.resize(ImageUtils.getByPath("/images/stop.png"), 17, 17)),
+    FAILED("Failed",       ImageUtils.resize(ImageUtils.getByPath("/images/stop.png"), 17, 17)),
     /**
      * Отменена по команде пользователя или вследствие ошибки в связанной задаче.
      */
