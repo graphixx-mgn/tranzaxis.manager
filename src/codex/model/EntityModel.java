@@ -43,7 +43,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public  final static String OVR = "OVR"; // List of overridden values
     public  final static String DEL = "DEL"; // Entity must be deleted
     
-    public  final static List<String> SYSPROPS = Arrays.asList(new String[] {ID, OWN, SEQ, PID, OVR});
+    public  final static List<String> SYSPROPS = Arrays.asList(new String[] {ID, OWN, SEQ, PID, OVR, DEL});
     
     private final static IConfigStoreService    CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
@@ -402,6 +402,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                         if (prevValue != null) {
                             if ("1".equals(CAS.readClassInstance(prevValue.getClass(), prevValue.model.getID()).get(DEL))) {
                                 CAS.removeClassInstance(prevValue.getClass(), prevValue.model.getID());
+                                prevValue.model.setValue(ID, null);
+                                prevValue.model.setValue(SEQ, null);
                             }
                         }
                     }
@@ -495,10 +497,14 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             public void modelSaved(EntityModel model, List<String> changes) {
                 DynamicResolver.this.modelSaved(
                         EntityModel.this, 
-                        resolveOrder.stream()
+                        new LinkedList<>(resolveOrder)
+                            .stream()
                             .filter((propName) -> {
+                                if (getPropertyType(propName) == EntityRef.class && getValue(propName) == null) {
+                                }
                                 return 
                                         getPropertyType(propName) == EntityRef.class &&
+                                        getValue(propName) != null &&
                                         ((Entity) getValue(propName)).model.equals(model);
                             })
                             .collect(Collectors.toList())
