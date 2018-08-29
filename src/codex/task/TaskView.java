@@ -1,16 +1,14 @@
 package codex.task;
 
-import codex.component.button.IButton;
 import codex.component.ui.StripedProgressBarUI;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.function.Consumer;
-import javax.swing.JButton;
+import javax.swing.AbstractAction;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
@@ -26,12 +24,12 @@ import javax.swing.border.MatteBorder;
  */
 final class TaskView extends AbstractTaskView {
     
+    private final static SimpleDateFormat DURATION_FORMAT = new SimpleDateFormat("mm:ss", java.util.Locale.getDefault());
+    
     private final JLabel title;
     private final JLabel status;
     private final Timer  updater;
     private final JProgressBar progress;
-    
-    private LocalDateTime startTime;
     
     /**
      * Конструктор виджета.
@@ -58,14 +56,33 @@ final class TaskView extends AbstractTaskView {
         JPanel controls = new JPanel(new BorderLayout());
         controls.setOpaque(false);
         controls.setBorder(new EmptyBorder(0, 5, 0, 0));
-        controls.add(progress, BorderLayout.CENTER);
+        controls.add(progress, BorderLayout.WEST);
         
         if (cancelAction != null) {
-            IButton cancel = new CancelButton();
+            CancelButton cancel = new CancelButton();
             cancel.addActionListener((event) -> {
                 cancelAction.accept(task);
             });
-            controls.add((JButton) cancel, BorderLayout.EAST);
+            controls.add(cancel, BorderLayout.EAST);
+        }
+        if (task.isPauseable()) {
+            PauseButton pause = new PauseButton();
+            pause.addActionListener(new AbstractAction() {
+                
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    ((AbstractTask) task).setPause(task.getStatus() != Status.PAUSED);
+                }
+            });
+            task.addListener(new ITaskListener() {
+                @Override
+                public void statusChanged(ITask task, Status status) {
+                    if (status.isFinal()) {
+                        pause.setEnabled(false);
+                    }
+                }
+            });
+            controls.add(pause, BorderLayout.CENTER);
         }
         
         add(title,    BorderLayout.CENTER);
@@ -75,11 +92,7 @@ final class TaskView extends AbstractTaskView {
         task.addListener(this);
         
         updater = new Timer(1000, (ActionEvent event) -> {
-            LocalDateTime curTime = LocalDateTime.now();
-            long duration = java.time.Duration.between(startTime, curTime).toMillis();
-        
-            SimpleDateFormat format = new SimpleDateFormat("mm:ss", java.util.Locale.getDefault());
-            progress.setString(format.format(new Date(duration)));
+            progress.setString(DURATION_FORMAT.format(new Date(((AbstractTask) task).getDuration())));
         });
         updater.setInitialDelay(0);
         statusChanged(task, task.getStatus());
@@ -100,22 +113,24 @@ final class TaskView extends AbstractTaskView {
     @Override
     public void progressChanged(ITask task, int percent, String description) {
         progress.setValue(task.getStatus() == Status.FINISHED ? 100 : task.getProgress());
+        boolean isInfinitive = task.getStatus() == Status.STARTED && task.getProgress() == 0;
         
-        if (!progress.isIndeterminate() && task.getStatus() == Status.STARTED && task.getProgress() == 0) {
-            startTime = LocalDateTime.now();
+        if (task.getStatus() == Status.PAUSED) {
+            updater.stop();
+            progress.setString(Status.PAUSED.toString());
+        } else if (!progress.isIndeterminate() && isInfinitive) {
             updater.start();
-        }
-        if (progress.isIndeterminate() && !(task.getStatus() == Status.STARTED && task.getProgress() == 0)) {
+        } else if (progress.isIndeterminate() && !isInfinitive) {
             updater.stop();
             progress.setString(null);
         }
-        progress.setIndeterminate(task.getStatus() == Status.STARTED && task.getProgress() == 0);
-
+        progress.setIndeterminate(isInfinitive);
+        
         progress.setForeground(
             progress.isIndeterminate() ? PROGRESS_INFINITE : 
                 task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
                     task.getStatus() == Status.FAILED ? PROGRESS_ABORTED :
-                        task.getStatus() == Status.CANCELLED ? PROGRESS_CANCELED :
+                        (task.getStatus() == Status.CANCELLED || task.getStatus() == Status.PAUSED) ? PROGRESS_CANCELED :
                             PROGRESS_NORMAL
         );
         status.setText(task.getDescription());
