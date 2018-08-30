@@ -143,4 +143,24 @@ public class Offshoot extends BinarySource {
             return null;
         }
     }
+    
+    public final static WCStatus getStatus(File dir) {
+        if (!dir.exists()) {
+            return WCStatus.Absent;
+        } else if (!SVNWCUtil.isVersionedDirectory(dir)) {
+            return WCStatus.Invalid;
+        } else {
+            SVNInfo info = SVN.info(dir.getPath(), false, null, null);
+            if (
+                    info == null || 
+                    info.getCommittedDate() == null || 
+                    info.getCommittedRevision() == null ||
+                    info.getCommittedRevision() == SVNRevision.UNDEFINED
+            ) {
+                return WCStatus.Interrupted;
+            } else {
+                return WCStatus.Succesfull;
+            }
+        }
+    }
 }
