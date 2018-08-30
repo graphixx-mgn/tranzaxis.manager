@@ -70,11 +70,13 @@ public final class GroupTask<T> extends AbstractTask<T> {
     public AbstractTaskView createView(Consumer<ITask> cancelAction) {
         return new GroupTaskView(getTitle(), this, sequence, (task) -> {
             sequence.forEach((subTask) -> {
-                if (subTask.getStatus().equals(Status.STARTED)) {
+                if (!subTask.getStatus().isFinal()) {
                     subTask.cancel(true);
                 }
             });
-            cancelAction.accept(task);
+            if (cancelAction != null) {
+                cancelAction.accept(task);
+            }
         });
     }
     
