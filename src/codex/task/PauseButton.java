@@ -13,13 +13,16 @@ import javax.swing.event.ChangeEvent;
  */
 final class PauseButton extends JButton implements IButton {
     
-    private final ImageIcon activeIcon;
-    private final ImageIcon passiveIcon;
+    private static final ImageIcon ICON_PAUSE  = ImageUtils.getByPath("/images/pausetask.png");
+    private static final ImageIcon ICON_RESUME = ImageUtils.getByPath("/images/resumetask.png");
+    
+    private ImageIcon activeIcon;
+    private ImageIcon passiveIcon;
 
     PauseButton() {
         super();
-        this.activeIcon  = ImageUtils.getByPath("/images/pausetask.png");
-        this.passiveIcon = ImageUtils.grayscale(this.activeIcon);
+        this.activeIcon  = ICON_PAUSE;
+        this.passiveIcon = ImageUtils.grayscale(ICON_PAUSE);
         setIcon(passiveIcon);
         setDisabledIcon(passiveIcon);
         setFocusable(false);
@@ -37,6 +40,16 @@ final class PauseButton extends JButton implements IButton {
                 setIcon(passiveIcon);
             }
         });
+    }
+    
+    public void setState(boolean paused) {
+        this.activeIcon  = paused ? ICON_RESUME : ICON_PAUSE;
+        this.passiveIcon = ImageUtils.grayscale(paused ? ICON_RESUME : ICON_PAUSE);
+        if (getModel().isRollover()) {
+            setIcon(activeIcon);
+        } else {
+            setIcon(passiveIcon);
+        }
     }
 
     @Override

@@ -72,6 +72,7 @@ final class TaskView extends AbstractTaskView {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     ((AbstractTask) task).setPause(task.getStatus() != Status.PAUSED);
+                    pause.setState(task.getStatus() == Status.PAUSED);
                 }
             });
             task.addListener(new ITaskListener() {
