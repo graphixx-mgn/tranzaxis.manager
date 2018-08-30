@@ -200,13 +200,11 @@ public abstract class AbstractTask<T> implements ITask<T> {
      * @param state Константа типа {@link Status}
      */
     void setStatus(Status state) {
-        if (this.status == Status.PENDING && state == Status.STARTED) {
+        if ((this.status == Status.PENDING || this.status == Status.PAUSED) && state == Status.STARTED) {
             startTime = LocalDateTime.now();
-        }
-        if (state == Status.PAUSED) {
+        } else if (this.status == Status.STARTED && state == Status.PAUSED) {
             pauseTime = LocalDateTime.now();
-        }
-        if (this.status == Status.PAUSED) {
+        } else if (this.status == Status.PAUSED && state == Status.STARTED) {
             startTime = startTime.minusNanos(Duration.between(LocalDateTime.now(), pauseTime).toNanos());
         }
         if (!this.status.equals(state)) {
