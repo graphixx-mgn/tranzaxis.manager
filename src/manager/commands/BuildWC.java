@@ -115,7 +115,7 @@ public class BuildWC extends EntityCommand {
                         ITask buildKernel = new BuildKernelTask((Offshoot) entity);
                         ITask buildSource = new BuildSourceTask((Offshoot) entity, paramValues.get("clean").getValue() == Boolean.TRUE);
                         ITask buildGroup  = new GroupTask<>(
-                                Language.get("title") + ": "+((Offshoot) entity).getWCPath(),
+                                Language.get("title") + ": "+((Offshoot) entity).getLocalPath(),
                                 buildKernel,
                                 buildSource
                         );
@@ -157,7 +157,7 @@ public class BuildWC extends EntityCommand {
         executeTask(
                 entity,
                 new GroupTask<>(
-                        Language.get("title") + ": \""+((Offshoot) entity).getWCPath()+"\"",
+                        Language.get("title") + ": \""+((Offshoot) entity).getLocalPath()+"\"",
                         new BuildKernelTask((Offshoot) entity),
                         new BuildSourceTask((Offshoot) entity, map.get("clean").getValue() == Boolean.TRUE)
                 ),
@@ -212,14 +212,14 @@ public class BuildWC extends EntityCommand {
             }
             String javac = System.getenv("JAVA_HOME")+File.separator+"lib"+File.separator+"tools.jar";
             StringJoiner radixBinPath = new StringJoiner(File.separator)
-                .add(offshoot.getWCPath())
+                .add(offshoot.getLocalPath())
                 .add("org.radixware")
                 .add("kernel")
                 .add("common")
                 .add("bin")
                 .add("*");
             StringJoiner radixLibPath = new StringJoiner(File.separator)
-                .add(offshoot.getWCPath())
+                .add(offshoot.getLocalPath())
                 .add("org.radixware")
                 .add("kernel")
                 .add("common")
@@ -232,7 +232,7 @@ public class BuildWC extends EntityCommand {
             command.add(KernelBuilder.class.getCanonicalName());
 
             command.add(uid.toString());
-            command.add(offshoot.getWCPath());
+            command.add(offshoot.getLocalPath());
 
             final ProcessBuilder builder = new ProcessBuilder(command);
             builder.redirectInput(ProcessBuilder.Redirect.INHERIT);
@@ -263,12 +263,12 @@ public class BuildWC extends EntityCommand {
                     public void failed(Throwable ex) {
                         String message = MessageFormat.format(
                                 "BUILD KERNEL [{0}] failed. Total time: {1}", 
-                                new Object[]{offshoot.getWCPath(), DateUtils.formatElapsedTime(System.currentTimeMillis() - startTime)}
+                                new Object[]{offshoot.getLocalPath(), DateUtils.formatElapsedTime(System.currentTimeMillis() - startTime)}
                         );
                         errorRef.set(new ExecuteException(
                                 MessageFormat.format(
                                         Language.get(BuildWC.class.getSimpleName(), "command@seelog"), 
-                                        offshoot.getWCPath()+File.separator+"build-kernel.log"
+                                        offshoot.getLocalPath()+File.separator+"build-kernel.log"
                                 ),
                                 message+"\n                     "+ex.getMessage().replaceAll("\n", "\n                     ")
                         ));
@@ -278,7 +278,7 @@ public class BuildWC extends EntityCommand {
                     public void finished() {
                         Logger.getLogger().info(MessageFormat.format(
                                 "BUILD KERNEL [{0}] finished. Total time: {1}", 
-                                new Object[]{offshoot.getWCPath(), DateUtils.formatElapsedTime(System.currentTimeMillis() - startTime)}
+                                new Object[]{offshoot.getLocalPath(), DateUtils.formatElapsedTime(System.currentTimeMillis() - startTime)}
                         ));
                     }
 
@@ -351,14 +351,14 @@ public class BuildWC extends EntityCommand {
                 classPath = System.getProperty("java.class.path");
             }
             StringJoiner radixBinPath = new StringJoiner(File.separator)
-                .add(offshoot.getWCPath())
+                .add(offshoot.getLocalPath())
                 .add("org.radixware")
                 .add("kernel")
                 .add("common")
                 .add("bin")
                 .add("*");
             StringJoiner radixLibPath = new StringJoiner(File.separator)
-                .add(offshoot.getWCPath())
+                .add(offshoot.getLocalPath())
                 .add("org.radixware")
                 .add("kernel")
                 .add("common")
@@ -371,7 +371,7 @@ public class BuildWC extends EntityCommand {
             command.add(SourceBuilder.class.getCanonicalName());
             
             command.add(uid.toString());
-            command.add(offshoot.getWCPath());
+            command.add(offshoot.getLocalPath());
             command.add(clean ? "1" : "0");
             
             final ProcessBuilder builder = new ProcessBuilder(command);
@@ -402,7 +402,7 @@ public class BuildWC extends EntityCommand {
                     public void failed(Throwable ex) {
                         String message = MessageFormat.format(
                                 "BUILD SOURCE [{0}] failed. Total time: {1}", 
-                                new Object[]{offshoot.getWCPath(), DateUtils.formatElapsedTime(System.currentTimeMillis() - startTime)}
+                                new Object[]{offshoot.getLocalPath(), DateUtils.formatElapsedTime(System.currentTimeMillis() - startTime)}
                         );
                         errorRef.set(new ExecuteException(
                                 message,
@@ -414,7 +414,7 @@ public class BuildWC extends EntityCommand {
                     public void finished() {
                         Logger.getLogger().info(MessageFormat.format(
                                 "BUILD SOURCE [{0}] finished. Total time: {1}", 
-                                new Object[]{offshoot.getWCPath(), DateUtils.formatElapsedTime(System.currentTimeMillis() - startTime)}
+                                new Object[]{offshoot.getLocalPath(), DateUtils.formatElapsedTime(System.currentTimeMillis() - startTime)}
                         ));
                     }
 

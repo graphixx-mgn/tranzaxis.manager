@@ -56,7 +56,7 @@ public class UpdateWC extends EntityCommand {
         private final Offshoot offshoot;
 
         public UpdateTask(Offshoot offshoot) {
-            super(Language.get(UpdateWC.class.getSimpleName(), "title") + ": \""+offshoot.getWCPath()+"\"");
+            super(Language.get(UpdateWC.class.getSimpleName(), "title") + ": \""+offshoot.getLocalPath()+"\"");
             this.offshoot = offshoot;
         }
         
@@ -67,7 +67,7 @@ public class UpdateWC extends EntityCommand {
 
         @Override
         public Void execute() throws Exception {
-            String wcPath  = offshoot.getWCPath();
+            String wcPath  = offshoot.getLocalPath();
             String repoUrl = offshoot.model.getOwner().model.getValue("repoUrl")+"/dev/"+offshoot.model.getPID();
                       
             setProgress(0, Language.get(UpdateWC.class.getSimpleName(), "command@calc"));

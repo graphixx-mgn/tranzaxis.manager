@@ -71,7 +71,7 @@ public class RunExplorer extends EntityCommand {
             command.add("-jar");
 
             StringJoiner starterPath = new StringJoiner(File.separator)
-                    .add(offshoot.getWCPath())
+                    .add(offshoot.getLocalPath())
                     .add("org.radixware")
                     .add("kernel")
                     .add("starter")
@@ -82,7 +82,7 @@ public class RunExplorer extends EntityCommand {
 
             // Starter arguments
             command.add("-authUser="+offshoot.model.getOwner().model.getValue("svnUser"));
-            command.add("-workDir="+offshoot.getWCPath());
+            command.add("-workDir="+offshoot.getLocalPath());
             command.add("-topLayerUri="+database.model.getValue("layerURI"));
             command.add("-disableHardlinks");
             command.add("-showSplashScreen=Server: "+env);
@@ -99,7 +99,7 @@ public class RunExplorer extends EntityCommand {
             builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
             builder.redirectError(ProcessBuilder.Redirect.INHERIT);
 
-            File logDir = new File(offshoot.getWCPath()+File.separator+"logs");
+            File logDir = new File(offshoot.getLocalPath()+File.separator+"logs");
             if (!logDir.exists()) {
                     logDir.mkdirs();
                 }

@@ -1,8 +1,13 @@
 package manager.nodes;
 
+import codex.explorer.ExplorerAccessService;
+import codex.explorer.IExplorerAccessService;
+import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.Str;
 import codex.utils.ImageUtils;
+import java.io.File;
+import java.util.StringJoiner;
 
 
 public class Release extends BinarySource {
@@ -19,6 +24,20 @@ public class Release extends BinarySource {
     @Override
     public Class getChildClass() {
         return null;
+    }
+    
+    @Override
+    public final String getLocalPath() {
+        IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+        String workDir = EAS.getRoot().model.getValue("workDir").toString();
+        String repoUrl = (String) this.model.getOwner().model.getValue("repoUrl");
+        
+        StringJoiner wcPath = new StringJoiner(File.separator)
+            .add(workDir)
+            .add("cache")
+            .add(Repository.urlToDirName(repoUrl))
+            .add(model.getPID());
+        return wcPath.toString();
     }
     
 }

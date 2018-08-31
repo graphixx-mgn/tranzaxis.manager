@@ -101,7 +101,7 @@ public class DeleteWC extends EntityCommand {
         private final Offshoot offshoot;
 
         public DeleteTask(Offshoot offshoot) {
-            super(Language.get(DeleteWC.class.getSimpleName(), "title") + ": "+offshoot.getWCPath());
+            super(Language.get(DeleteWC.class.getSimpleName(), "title") + ": "+offshoot.getLocalPath());
             this.offshoot = offshoot;
         }
 
@@ -112,7 +112,7 @@ public class DeleteWC extends EntityCommand {
 
         @Override
         public Void execute() throws Exception {
-            String wcPath = offshoot.getWCPath();
+            String wcPath = offshoot.getLocalPath();
 
             setProgress(0, Language.get(DeleteWC.class.getSimpleName(), "command@calc"));
             long totalFiles = Files.walk(Paths.get(wcPath)).count();

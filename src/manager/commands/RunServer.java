@@ -64,6 +64,7 @@ public class RunServer extends EntityCommand {
         public Void execute() throws Exception {
             Offshoot offshoot = (Offshoot) env.model.getValue("offshoot");
             Database database = (Database) env.model.getValue("database");
+            //boolean  useWC    = env.model.getValue("binaries") instanceof Offshoot;
 
             final ArrayList<String> command = new ArrayList<>();
             command.add("java");
@@ -71,19 +72,24 @@ public class RunServer extends EntityCommand {
             command.addAll((List<String>) env.model.getValue("jvmServer"));
             command.add("-jar");
 
-            StringJoiner starterPath = new StringJoiner(File.separator)
-                    .add(offshoot.getWCPath())
-                    .add("org.radixware")
-                    .add("kernel")
-                    .add("starter")
-                    .add("bin")
-                    .add("dist")
-                    .add("starter.jar");
+            StringJoiner starterPath = new StringJoiner(File.separator);
+            //if (useWC) {
+                starterPath.add(offshoot.getLocalPath());
+                starterPath.add("org.radixware");
+                starterPath.add("kernel");
+                starterPath.add("starter");
+                starterPath.add("bin");
+                starterPath.add("dist");
+                starterPath.add("starter.jar");
+//            } else {
+//                starterPath.add(offshoot.getWCPath());
+//            }
+            
             command.add(starterPath.toString());
 
             // Starter arguments
             command.add("-authUser="+offshoot.model.getOwner().model.getValue("svnUser"));
-            command.add("-workDir="+offshoot.getWCPath());
+            command.add("-workDir="+offshoot.getLocalPath());
             command.add("-topLayerUri="+database.model.getValue("layerURI"));
             command.add("-disableHardlinks");
             command.add("-showSplashScreen=Server: "+env);
@@ -113,7 +119,7 @@ public class RunServer extends EntityCommand {
             builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
             builder.redirectError(ProcessBuilder.Redirect.INHERIT);
 
-            File logDir = new File(offshoot.getWCPath()+File.separator+"logs");
+            File logDir = new File(offshoot.getLocalPath()+File.separator+"logs");
             if (!logDir.exists()) {
                     logDir.mkdirs();
                 }

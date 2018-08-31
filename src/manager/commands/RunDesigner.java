@@ -36,7 +36,7 @@ public class RunDesigner extends EntityCommand {
     @Override
     public void execute(Entity entity, Map<String, IComplexType> map) {
         try {
-            String localPath = ((Offshoot) entity).getWCPath();
+            String localPath = ((Offshoot) entity).getLocalPath();
             
             List<String> args = new ArrayList() {{
                 boolean is64Bits  = System.getProperty("sun.cpu.isalist").contains("64");

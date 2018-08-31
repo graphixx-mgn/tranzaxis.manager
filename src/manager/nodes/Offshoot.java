@@ -83,7 +83,8 @@ public class Offshoot extends BinarySource {
             .add(model.getPID()).toString();
     }
     
-    public final String getWCPath() {
+    @Override
+    public final String getLocalPath() {
         IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
         String workDir = EAS.getRoot().model.getValue("workDir").toString();
         String repoUrl = (String) this.model.getOwner().model.getValue("repoUrl");
@@ -98,7 +99,7 @@ public class Offshoot extends BinarySource {
     }
     
     public final WCStatus getStatus() {
-        String   wcPath = getWCPath();
+        String   wcPath = getLocalPath();
         WCStatus status;
         
         final File localDir = new File(wcPath);
@@ -124,20 +125,20 @@ public class Offshoot extends BinarySource {
     }
     
     public final SVNRevision getRevision(boolean remote) {
-        String wcPath = remote ? getUrlPath() : getWCPath();
+        String wcPath = remote ? getUrlPath() : getLocalPath();
         SVNInfo info = SVN.info(wcPath, remote, null, null);
         return info.getCommittedRevision();
     }
     
     public final Date getRevisionDate(boolean remote) {
-        String wcPath = remote ? getUrlPath() : getWCPath();
+        String wcPath = remote ? getUrlPath() : getLocalPath();
         SVNInfo info = SVN.info(wcPath, remote, null, null);
         return info.getCommittedDate();
     }
     
     public final String getBaseDevUri() {
         try {
-            Branch branch = Branch.Factory.loadFromDir(new File(getWCPath()));
+            Branch branch = Branch.Factory.loadFromDir(new File(getLocalPath()));
             return branch.getBaseDevelopmentLayerUri();
         } catch (IOException e) {
             return null;
