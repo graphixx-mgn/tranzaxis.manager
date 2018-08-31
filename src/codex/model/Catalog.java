@@ -45,7 +45,7 @@ public abstract class Catalog extends Entity {
         if (getChildClass() != null) {
             try {
                 getLock().acquire();
-                TES.enqueueTask(new LoadChildren());
+                TES.quietTask(new LoadChildren());
             } catch (InterruptedException e) {}
         }
     }
