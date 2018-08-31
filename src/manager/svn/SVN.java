@@ -207,4 +207,20 @@ public class SVN {
         }
     }
     
+    public final static void export(String url, String path, String user, String pass) {
+        final SVNAuthentication auth = new SVNPasswordAuthentication(user, pass, false);
+        final ISVNAuthenticationManager authMgr = new BasicAuthenticationManager(new SVNAuthentication[] { auth });
+        final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
+        
+        try {
+            SVNURL svnUrl = SVNURL.parseURIEncoded(url);
+            SVNUpdateClient client = clientMgr.getUpdateClient();
+            client.doExport(svnUrl, new File(path), SVNRevision.HEAD, SVNRevision.HEAD, null, true, SVNDepth.INFINITY);
+        } catch (SVNException e) {
+            Logger.getLogger().warn("SVN operation ''export'' error: {0}", e.getErrorMessage());
+        } finally {
+            clientMgr.dispose();
+        }
+    }
+    
 }
