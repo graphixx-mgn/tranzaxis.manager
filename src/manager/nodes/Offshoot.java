@@ -91,7 +91,7 @@ public class Offshoot extends BinarySource {
         StringJoiner wcPath = new StringJoiner(File.separator)
             .add(workDir)
             .add("sources")
-            .add(repoUrl.replaceAll("svn(|\\+[\\w]+)://([\\w\\./\\d]+)", "$2").replaceAll("[/\\\\]{1}", "."))
+            .add(Repository.urlToDirName(repoUrl))
             .add(model.getPID());
         
         return wcPath.toString();

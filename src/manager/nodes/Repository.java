@@ -64,4 +64,8 @@ public class Repository extends Entity {
         getCommand("load").execute(this, null);
     }
     
+    public static String urlToDirName(String url) {
+        return url.replaceAll("svn(|\\+[\\w]+)://([\\w\\./\\d]+)", "$2").replaceAll("[/\\\\]{1}", ".");
+    }
+    
 }
