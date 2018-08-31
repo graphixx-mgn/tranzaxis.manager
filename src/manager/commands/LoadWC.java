@@ -28,6 +28,7 @@ import org.tmatesoft.svn.core.SVNException;
 
 public class LoadWC extends EntityCommand {
     
+    private final static ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class);
     private final static ImageIcon ENABLED  = ImageUtils.resize(ImageUtils.getByPath("/images/switch_on.png"),  28, 28);
     private final static ImageIcon DISABLED = ImageUtils.resize(ImageUtils.getByPath("/images/switch_off.png"), 28, 28);
     private final static List<String> DIRS  = Arrays.asList(new String[] {"releases", "dev"});
@@ -66,9 +67,11 @@ public class LoadWC extends EntityCommand {
     }
     
     private void load(Entity entity) {
-        ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).enqueueTask(
-                new LoadTask((Repository) entity)
-        );
+        if (getContext() == null) {
+            TES.quietTask(new LoadTask((Repository) entity));
+        } else {
+            TES.enqueueTask(new LoadTask((Repository) entity));
+        }
     }
     
     private void unload(Entity entity) {
