@@ -59,12 +59,17 @@ public class UpdateWC extends EntityCommand {
             super(Language.get(UpdateWC.class.getSimpleName(), "title") + ": \""+offshoot.getWCPath()+"\"");
             this.offshoot = offshoot;
         }
+        
+        @Override
+        public boolean isPauseable() {
+            return true;
+        }
 
         @Override
         public Void execute() throws Exception {
             String wcPath  = offshoot.getWCPath();
             String repoUrl = offshoot.model.getOwner().model.getValue("repoUrl")+"/dev/"+offshoot.model.getPID();
-            
+                      
             setProgress(0, Language.get(UpdateWC.class.getSimpleName(), "command@calc"));
             try {
                 Long changes = SVN.diff(wcPath, repoUrl, SVNRevision.HEAD, null, null, new ISVNEventHandler() {
@@ -73,6 +78,7 @@ public class UpdateWC extends EntityCommand {
 
                     @Override
                     public void checkCancelled() throws SVNCancelException {
+                        checkPaused();
                         if (UpdateTask.this.isCancelled()) {
                             throw new SVNCancelException();
                         }
@@ -124,6 +130,7 @@ public class UpdateWC extends EntityCommand {
 
                             @Override
                             public void checkCancelled() throws SVNCancelException {
+                                checkPaused();
                                 if (UpdateTask.this.isCancelled()) {
                                     throw new SVNCancelException();
                                 }
