@@ -10,6 +10,7 @@ public interface IBuildingNotifier extends Remote {
     public void setStatus(String uid, String text)   throws RemoteException;
     public void failed(String uid, Throwable ex)     throws RemoteException;
     public void finished(String uid)                 throws RemoteException;
+    public void checkPaused(String uid)              throws RemoteException;
     
     public interface IBuildListener {
     
@@ -17,6 +18,7 @@ public interface IBuildingNotifier extends Remote {
         public void setStatus(String text);
         public void failed(Throwable ex);
         public void finished();
+        public void checkPaused();
         
     }
     

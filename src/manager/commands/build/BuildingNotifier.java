@@ -40,5 +40,10 @@ public class BuildingNotifier extends UnicastRemoteObject implements IBuildingNo
     public void removeListener(UUID uuid) {
         listeners.remove(uuid);
     }
-        
+
+    @Override
+    public void checkPaused(String uid) throws RemoteException {
+        listeners.get(UUID.fromString(uid)).checkPaused();
+    }
+ 
 }

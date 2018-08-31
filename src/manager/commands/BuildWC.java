@@ -281,6 +281,9 @@ public class BuildWC extends EntityCommand {
                                 new Object[]{offshoot.getWCPath(), DateUtils.formatElapsedTime(System.currentTimeMillis() - startTime)}
                         ));
                     }
+
+                    @Override
+                    public void checkPaused() {}
                 });
                 Runtime.getRuntime().addShutdownHook(hook);
                 addListener(new ITaskListener() {
@@ -328,6 +331,11 @@ public class BuildWC extends EntityCommand {
             this.clean    = clean;
         }
 
+        @Override
+        public boolean isPauseable() {
+            return true;
+        }
+        
         @Override
         public Error execute() throws Exception {
             UUID uid = UUID.randomUUID();
@@ -408,6 +416,11 @@ public class BuildWC extends EntityCommand {
                                 "BUILD SOURCE [{0}] finished. Total time: {1}", 
                                 new Object[]{offshoot.getWCPath(), DateUtils.formatElapsedTime(System.currentTimeMillis() - startTime)}
                         ));
+                    }
+
+                    @Override
+                    public void checkPaused() {
+                        BuildSourceTask.this.checkPaused();
                     }
                 });
                 Runtime.getRuntime().addShutdownHook(hook);

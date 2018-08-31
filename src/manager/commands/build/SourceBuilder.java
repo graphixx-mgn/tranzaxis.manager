@@ -209,15 +209,24 @@ public class SourceBuilder {
                     public void start(int i) {}
 
                     @Override
-                    public void progress(String string, int i) {}
+                    public void progress(String string, int i) {
+                        progress(0);
+                    }
 
                     @Override
-                    public void progress(int i) {}
+                    public void progress(int i) {
+                        try {
+                            notifier.checkPaused(args[0]);
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
+                        }
+                    }
 
                     @Override
                     public void setDisplayName(String name) {
                         Matcher matcher = MODULE_BUILD.matcher(name);
                         try {
+                            notifier.checkPaused(args[0]);
                             if (matcher.find() && !builtModules.contains(matcher.group(1))) {
                                 builtModules.add(matcher.group(1));
                                 int progress = 100*builtModules.size()/totalModules.get();
