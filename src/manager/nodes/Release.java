@@ -27,6 +27,14 @@ public class Release extends BinarySource {
     }
     
     @Override
+    public String getRemotePath() {
+        return new StringJoiner("/")
+            .add((String) this.model.getOwner().model.getValue("repoUrl"))
+            .add("releases")
+            .add(model.getPID()).toString();
+    }
+    
+    @Override
     public final String getLocalPath() {
         IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
         String workDir = EAS.getRoot().model.getValue("workDir").toString();
@@ -34,7 +42,7 @@ public class Release extends BinarySource {
         
         StringJoiner wcPath = new StringJoiner(File.separator)
             .add(workDir)
-            .add("cache")
+            .add("releases")
             .add(Repository.urlToDirName(repoUrl))
             .add(model.getPID());
         return wcPath.toString();

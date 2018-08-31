@@ -39,5 +39,6 @@ public abstract class BinarySource extends Catalog {
     }
     
     public abstract String getLocalPath();
+    public abstract String getRemotePath();
     
 }

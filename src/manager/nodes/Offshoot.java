@@ -76,7 +76,8 @@ public class Offshoot extends BinarySource {
         return null;
     }
     
-    public final String getUrlPath() {
+    @Override
+    public final String getRemotePath() {
         return new StringJoiner("/")
             .add((String) this.model.getOwner().model.getValue("repoUrl"))
             .add("dev")
@@ -125,13 +126,13 @@ public class Offshoot extends BinarySource {
     }
     
     public final SVNRevision getRevision(boolean remote) {
-        String wcPath = remote ? getUrlPath() : getLocalPath();
+        String wcPath = remote ? getRemotePath(): getLocalPath();
         SVNInfo info = SVN.info(wcPath, remote, null, null);
         return info.getCommittedRevision();
     }
     
     public final Date getRevisionDate(boolean remote) {
-        String wcPath = remote ? getUrlPath() : getLocalPath();
+        String wcPath = remote ? getRemotePath() : getLocalPath();
         SVNInfo info = SVN.info(wcPath, remote, null, null);
         return info.getCommittedDate();
     }
