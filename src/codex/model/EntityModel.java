@@ -5,6 +5,7 @@ import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
+import static codex.config.IConfigStoreService.RC_SUCCESS;
 import codex.editor.IEditor;
 import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
@@ -215,10 +216,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         if (!dynamicProps.contains(name)) {
             undoRegistry.put(name, oldValue, newValue);
         }
-        changeListeners.forEach((listener) -> {
+        new LinkedList<>(changeListeners).forEach((listener) -> {
             listener.propertyChange(name, oldValue, newValue);
         });
-        modelListeners.forEach((listener) -> {
+        new LinkedList<>(modelListeners).forEach((listener) -> {
             listener.modelChanged(this, getChanges());
         });
     }
@@ -392,8 +393,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 setValue(ID, keys.get(ID));
                 setValue(SEQ, keys.get(SEQ));
             }
-            int result = CAS.updateClassInstance(entityClass, getID(), values);
-            if (result == IConfigStoreService.RC_SUCCESS) {
+            int updateResult = CAS.updateClassInstance(entityClass, getID(), values);
+            if (updateResult == IConfigStoreService.RC_SUCCESS) {
                 
                 // Delete instance of referenced object if necessary (DEL = "1")
                 changes.forEach((propName) -> {    
@@ -401,9 +402,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                         Entity prevValue = (Entity) undoRegistry.previous(propName);
                         if (prevValue != null) {
                             if ("1".equals(CAS.readClassInstance(prevValue.getClass(), prevValue.model.getID()).get(DEL))) {
-                                CAS.removeClassInstance(prevValue.getClass(), prevValue.model.getID());
-                                prevValue.model.setValue(ID, null);
-                                prevValue.model.setValue(SEQ, null);
+                                int deleteResult = CAS.removeClassInstance(prevValue.getClass(), prevValue.model.getID());
+                                if (deleteResult == RC_SUCCESS) {
+                                    prevValue.model.setValue(ID, null);
+                                    prevValue.model.setValue(SEQ, null);
+                                }
                             }
                         }
                     }
