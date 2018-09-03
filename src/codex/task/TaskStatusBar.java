@@ -106,8 +106,9 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
 
     @Override
     public void statusChanged(ITask task, Status newStatus) {
-        long running  = queue.stream().filter(queued -> !queued.getStatus().isFinal()).count();
-        long failed   = queue.stream().filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED).count();
+        List<ITask> taskList = new LinkedList<>(queue);  
+        long running  = taskList.stream().filter(queued -> !queued.getStatus().isFinal()).count();
+        long failed   = taskList.stream().filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED).count();
         boolean ready = running + failed == 0;
         
         status.setVisible(!ready);
@@ -132,7 +133,7 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
             return;
         }
         
-        long finished = queue.stream().filter(queued -> queued.getStatus() == Status.FINISHED).count();
+        long finished = taskList.stream().filter(queued -> queued.getStatus() == Status.FINISHED).count();
         status.setText(MessageFormat.format(failed > 0 ? PATTERN_ERRORS : PATTERN_NORMAL, running, finished, failed));
         if (task != null) {
             progressChanged(task, task.getProgress(), task.getDescription());
@@ -155,10 +156,11 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
 
     @Override
     public void progressChanged(ITask task, int percent, String description) {
+        List<ITask> taskList = new LinkedList<>(queue); 
         int prevProgress = progress.getValue();
-        progress.setValue(queue.stream().mapToInt(
+        progress.setValue(taskList.stream().mapToInt(
                 queued -> !queued.getStatus().isFinal() ? queued.getProgress() : 100
-        ).sum() / queue.size());
+        ).sum() / taskList.size());
       
         if (prevProgress != progress.getValue() && PlatformUtil.isWin7OrLater() && SwingUtilities.getWindowAncestor(this) != null) {
             try {
