@@ -1,5 +1,6 @@
 package codex.task;
 
+import codex.component.panel.ScrollablePanel;
 import codex.component.render.GeneralRenderer;
 import codex.editor.IEditor;
 import codex.notification.INotificationService;
@@ -62,7 +63,7 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
     private final Map<ITask, AbstractTaskView> taskRegistry = new HashMap<>();
     private final List<ExecutorService>        threadPool;
     
-    private final JPanel            taskList;
+    private final ScrollablePanel   taskList;
     private final Consumer<ITask>   cancelAction;
     
     private final JProgressBar      poolUsage = new JProgressBar();
@@ -89,15 +90,12 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
         this.threadPool = threadPool;
         
         // Панель задач
-        taskList = new JPanel();
+        taskList = new ScrollablePanel();
         taskList.setLayout(new BoxLayout(taskList, BoxLayout.Y_AXIS));
         taskList.add(Box.createVerticalGlue());
+        taskList.setScrollableWidth(ScrollablePanel.ScrollableSizeHint.FIT);
 
-        JPanel taskPanel = new JPanel(new BorderLayout());
-        taskPanel.add(taskList, BorderLayout.NORTH);
-     
-        JScrollPane taskScrollPane = new JScrollPane(taskPanel);
-        taskScrollPane.getVerticalScrollBar().setUnitIncrement(15);
+        JScrollPane taskScrollPane = new JScrollPane(taskList);        
         taskScrollPane.getViewport().setBackground(Color.WHITE);
         taskScrollPane.setBorder(new CompoundBorder(
                 new EmptyBorder(2, 2, 1, 2),
@@ -305,5 +303,5 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
                     );
         }
     }
-    
+ 
 }
