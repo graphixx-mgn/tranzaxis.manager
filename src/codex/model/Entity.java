@@ -317,18 +317,18 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return ref;
     }
     
-    private static EnityCache CACHE = EnityCache.getInstance();
+    private static final EnityCache CACHE = EnityCache.getInstance();
     
-    public static Entity newInstance(Class entityClass, EntityRef parent, String title) {
+    public static synchronized Entity newInstance(Class entityClass, EntityRef parent, String title) {
         try {
             Entity found = CACHE.findEntity(
-                    entityClass, 
-                    parent == null ? null : (
-                        !parent.isLoaded() ? parent.getId() : (
-                                getOwner(parent.getValue()) != null ? getOwner(parent.getValue()).model.getID() : null
-                        )
-                    ),
-                    title
+                entityClass, 
+                parent == null ? null : (
+                    !parent.isLoaded() ? parent.getId() : (
+                            getOwner(parent.getValue()) != null ? getOwner(parent.getValue()).model.getID() : null
+                    )
+                ),
+                title
             );
             if (found != null) {
                 if (parent != null) {
@@ -346,11 +346,10 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             Logger.getLogger().error(
                     MessageFormat.format("Unable instantiate entity ''{0}''", entityClass.getCanonicalName()), e
             );
-            return null;
         } catch (NoSuchMethodException e) {
             Logger.getLogger().error("Entity ''{0}'' does not have universal constructor (EntityRef, String)", entityClass.getCanonicalName());
-            return null;
         }
+        return null;
     }
     
     static Entity getOwner(INode from) {
