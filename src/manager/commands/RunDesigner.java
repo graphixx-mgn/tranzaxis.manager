@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import manager.nodes.Offshoot;
 import manager.type.WCStatus;
 
@@ -36,25 +37,44 @@ public class RunDesigner extends EntityCommand {
     @Override
     public void execute(Entity entity, Map<String, IComplexType> map) {
         try {
+            boolean is64Bits = System.getProperty("sun.cpu.isalist").contains("64");
             String localPath = ((Offshoot) entity).getLocalPath();
             
+            StringJoiner designerPath = new StringJoiner(File.separator);
+            designerPath.add(localPath);
+            designerPath.add("org.radixware");
+            designerPath.add("kernel");
+            designerPath.add("designer");
+            designerPath.add("bin");
+            designerPath.add("bin");
+            if (PlatformUtil.isWindows()) {
+                designerPath.add("designer"+(is64Bits ? "64" : "")+".exe");
+            } else {
+                designerPath.add("designer");
+            }
+            
+            File designer = new File(designerPath.toString());
+            File workDir  = designer.getParentFile();
+            File confDir  = new File(localPath+File.separator+".config");
+            
             List<String> args = new ArrayList() {{
-                boolean is64Bits  = System.getProperty("sun.cpu.isalist").contains("64");
                 if (PlatformUtil.isWindows()) {
-                    add(localPath+"/org.radixware/kernel/designer/bin/bin/designer"+(is64Bits ? "64" : "")+".exe");
+                    add(designer.getAbsolutePath());
                 } else {
                     add("/bin/sh");
-                    add("designer");
+                    add(designer.getAbsolutePath());
                 }
                 add("-J-Xmx4G");
                 add("-J-Xms500M");
+                add("--userdir");
+                add(confDir.toString());
                 add("--console");
                 add("suppress");
             }};
             
-            ProcessBuilder procBuilder = new ProcessBuilder(args);
-            procBuilder.directory(new File(localPath+"/org.radixware/kernel/designer/bin/bin"));
-            procBuilder.start();
+            ProcessBuilder builder = new ProcessBuilder(args);
+            builder.directory(workDir);
+            builder.start();
         } catch (IOException e) {
             Logger.getLogger().error("Unable to execute RW Designer", e);
         }
