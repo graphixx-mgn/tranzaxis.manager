@@ -8,13 +8,22 @@ import codex.config.IConfigStoreService;
 import codex.editor.IEditor;
 import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
+import codex.model.Access;
+import codex.model.Catalog;
 import codex.model.Entity;
 import codex.model.EntityModel;
+import codex.presentation.CommandPanel;
+import codex.presentation.SelectorTableModel;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.task.AbstractTaskView;
+import codex.task.ITask;
 import codex.task.ITaskExecutorService;
+import codex.task.ITaskListener;
+import codex.task.Status;
 import codex.task.TaskManager;
+import codex.type.Bool;
+import codex.type.Enum;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.type.Str;
@@ -27,18 +36,24 @@ import java.awt.event.HierarchyBoundsListener;
 import java.awt.event.HierarchyEvent;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -54,10 +69,10 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
-import javax.swing.table.DefaultTableModel;
 import manager.nodes.Offshoot;
 import manager.nodes.Release;
 import manager.nodes.Repository;
+import org.apache.commons.io.FileDeleteStrategy;
 
 public class DiskUsageReport extends EntityCommand {
     
@@ -126,15 +141,26 @@ public class DiskUsageReport extends EntityCommand {
             }
         });
         
-        dialog.setPreferredSize(new Dimension(700, 600));
+        dialog.setPreferredSize(new Dimension(800, 600));
         dialog.setResizable(false);
         TES.quietTask(buildTask);
         dialog.setVisible(true);
     }
     
-    public class BuildReport extends AbstractTask<Void> {
-
-        private final JPanel content;
+    class BuildReport extends AbstractTask<Void> {
+        
+        final AtomicLong totalSize = new AtomicLong(0);
+        final AtomicLong totalFree = new AtomicLong(0);
+        final Map<String, SelectorTableModel> tableModelsMap = new HashMap<>();
+        
+        final JPanel content;
+        final JLabel total = new JLabel(MessageFormat.format(
+                Language.get(DiskUsageReport.class.getSimpleName(), "task@total"), 
+                formatFileSize(totalSize.get()),
+                formatFileSize(totalFree.get())
+        )) {{
+            setBorder(new EmptyBorder(5, 10, 5, 5));
+        }};
         
         public BuildReport(JPanel content) {
             super(Language.get(DiskUsageReport.class.getSimpleName(), "task@title"));
@@ -145,14 +171,7 @@ public class DiskUsageReport extends EntityCommand {
         public Void execute() throws Exception {
             setProgress(0, Language.get(DiskUsageReport.class.getSimpleName(), "task@structure"));
             
-            JLabel total = new JLabel(MessageFormat.format(
-                    Language.get(DiskUsageReport.class.getSimpleName(), "task@total"), 
-                    formatFileSize(0),
-                    formatFileSize(0)
-            ));
-            total.setBorder(new EmptyBorder(5, 10, 5, 5));
             content.add(total, BorderLayout.NORTH);
-            
             JTabbedPane tabPanel = new JTabbedPane(JTabbedPane.LEFT) {{
                 setFocusable(false);
                 setBorder(new MatteBorder(1, 0, 0, 0, Color.LIGHT_GRAY));
@@ -197,32 +216,36 @@ public class DiskUsageReport extends EntityCommand {
                     });
                 });
             }
-            Map<String, DefaultTableModel> tableModelsMap = new HashMap<>();
-
-            structureMap.entrySet().stream().forEach((repoEntry) -> {
+            
+            structureMap.entrySet().stream().sorted((o1, o2) -> {
+                Integer repoId1 = repoIndex.entrySet().stream().filter((indexEntry) -> {
+                    return indexEntry.getValue().equals(o1.getKey());
+                }).findFirst().get().getKey();
+                Integer repoId2 = repoIndex.entrySet().stream().filter((indexEntry) -> {
+                    return indexEntry.getValue().equals(o2.getKey());
+                }).findFirst().get().getKey();
+                
+                Integer repoSeq1 = Integer.valueOf(CAS.readClassInstance(Repository.class, repoId1).get(EntityModel.SEQ));
+                Integer repoSeq2 = Integer.valueOf(CAS.readClassInstance(Repository.class, repoId2).get(EntityModel.SEQ));
+                        
+                return Integer.compare(repoSeq1, repoSeq2); 
+                
+            }).forEach((repoEntry) -> {
                 // Create tab
                 JPanel repoContent = new JPanel(new BorderLayout());
                 repoContent.setBackground(Color.WHITE);
                 tabPanel.addTab(null, ImageUtils.resize(ImageUtils.getByPath("/images/repository.png"), 20, 20),  repoContent);
                 
-                repoContent.add(new JLabel(MessageFormat.format(Language.get(DiskUsageReport.class.getSimpleName(), "task@repo"), 
-                            repoEntry.getKey()
-                        )) {{
-                            setOpaque(true);
-                            setBorder(new EmptyBorder(3, 5, 3, 0));
-                            setBackground(Color.decode("#EEEEEE"));
-                        }}, 
-                        BorderLayout.NORTH
-                );
-                
                 // Create table model
-                DefaultTableModel tableModel = new DefaultTableModel() {
-                    {
-                        addColumn(Language.get(DiskUsageReport.class.getSimpleName(), "entry@type")); 
-                        addColumn(Language.get(DiskUsageReport.class.getSimpleName(), "entry@name"));
-                        addColumn(Language.get(DiskUsageReport.class.getSimpleName(), "entry@used"));
-                        addColumn(Language.get(DiskUsageReport.class.getSimpleName(), "entry@size"));
-                    }
+                RepoEntity repoEntity = new RepoEntity();
+                Entity prototype = null;
+                try {
+                    prototype = (Entity) EntryEntity.class.getConstructor(DiskUsageReport.class, Entry.class).newInstance(DiskUsageReport.this, null);
+                } catch (IllegalAccessException | IllegalArgumentException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                
+                SelectorTableModel tableModel = new SelectorTableModel(repoEntity, prototype) {
                     @Override
                     public Class<?> getColumnClass(int columnIndex) {
                         return Str.class;
@@ -241,16 +264,97 @@ public class DiskUsageReport extends EntityCommand {
                 table.setIntercellSpacing(new Dimension(0,0));
 
                 table.setDefaultRenderer(Str.class, new GeneralRenderer());
-                table.getTableHeader().setDefaultRenderer(new GeneralRenderer());                    
+                table.getTableHeader().setDefaultRenderer(new GeneralRenderer());
 
-                table.getColumnModel().getColumn(0).setPreferredWidth(110);
-                table.getColumnModel().getColumn(0).setMaxWidth(110);
+                table.getColumnModel().getColumn(0).setPreferredWidth(130);
+                table.getColumnModel().getColumn(0).setMaxWidth(130);
                 table.getColumnModel().getColumn(1).setPreferredWidth(100);
                 table.getColumnModel().getColumn(1).setMaxWidth(100);
-                table.getColumnModel().getColumn(3).setMaxWidth(80);
+                table.getColumnModel().getColumn(3).setPreferredWidth(90);
+                table.getColumnModel().getColumn(3).setMaxWidth(90);
                 
-                JScrollPane threadScrollPane = new JScrollPane(table);
-                repoContent.add(threadScrollPane, BorderLayout.CENTER);
+                JScrollPane scrollPane = new JScrollPane(table);
+                
+                // Create Tool bar and delete command
+                CommandPanel toolBar = new CommandPanel();
+                EntityCommand delete = new EntityCommand(
+                        "delete", 
+                        Language.get(DiskUsageReport.class.getSimpleName(), "delete@title"), 
+                        ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28), 
+                        Language.get(DiskUsageReport.class.getSimpleName(), "delete@title"), 
+                        (entity) -> {
+                            return isDone() && entity.model.getValue("kind") != EntryKind.Sources;
+                        }
+                ) {            
+                    @Override
+                    public void execute(Entity entity, Map<String, IComplexType> map) {
+                        long sizeBefore = Long.valueOf((String) entity.model.getValue("bytes"));
+                        
+                        executeTask(entity, new DeleteTask(entity) {
+                            @Override
+                            public void finished(Void t) {
+                                SwingUtilities.invokeLater(() -> {
+                                    File directory = new File((String) entity.model.getValue("file"));
+                                    long sizeAfter = Long.valueOf((String) entity.model.getValue("bytes"));
+                                    
+                                    if (!directory.exists()) {
+                                        tableModelsMap.get(repoEntry.getKey()).removeRow(
+                                                repoEntity.getIndex(entity)
+                                        );
+                                        repoEntity.delete(entity);
+                                    } else {
+                                        entity.model.updateDynamicProp("size");
+                                    }
+                                    long deleted = sizeBefore - sizeAfter;
+                                    totalSize.addAndGet(-1 * deleted);
+                                    if (entity.model.getValue("used") == Boolean.FALSE) {
+                                        totalFree.addAndGet(-1 * deleted);
+                                    }
+                                    total.setText(MessageFormat.format(
+                                            Language.get(DiskUsageReport.class.getSimpleName(), "task@total"), 
+                                            formatFileSize(totalSize.get()),
+                                            formatFileSize(totalFree.get())
+                                    ));
+                                });
+                            }
+                            
+                        }, true);
+                    }
+                };
+                delete.activate();
+                addListener(new ITaskListener() {
+                    @Override
+                    public void statusChanged(ITask task, Status status) {
+                        delete.activate();
+                    }
+                });
+                toolBar.addCommands(delete);
+                
+                table.getSelectionModel().addListSelectionListener((event) -> {
+                    if (event.getValueIsAdjusting()) return;
+                    List<Entity> context = Arrays
+                        .stream(table.getSelectedRows())
+                        .boxed()
+                        .map((rowIdx) -> {
+                            return tableModel.getEntityAt(rowIdx);
+                        })
+                        .collect(Collectors.toList());
+                    delete.setContext(context.toArray(new Entity[]{}));
+                });
+                
+                JLabel repoName = new JLabel(MessageFormat.format(
+                        Language.get(DiskUsageReport.class.getSimpleName(), "task@repo"), 
+                        repoEntry.getKey())) 
+                {{
+                    setOpaque(true);
+                    setBorder(new EmptyBorder(3, 5, 3, 0));
+                    setBackground(Color.WHITE);
+                }};
+                JPanel header = new JPanel(new BorderLayout());
+                header.add(repoName, BorderLayout.NORTH);
+                header.add(toolBar, BorderLayout.CENTER);
+                repoContent.add(header, BorderLayout.NORTH);
+                repoContent.add(scrollPane, BorderLayout.CENTER);
                 
                 // Create table rows
                 repoEntry.getValue().forEach((entry) -> {
@@ -282,42 +386,65 @@ public class DiskUsageReport extends EntityCommand {
                             links = new LinkedList<>();
                     }
                     
-                    tableModel.addRow(new Object[]{
-                        entry.kind,
-                        entry.kind == EntryKind.Sources ? 
-                                new Iconified() {
-                                    @Override
-                                    public ImageIcon getIcon() {
-                                        return Offshoot.getStatus(entry.dir).getIcon();
-                                    }
-
-                                    @Override
-                                    public String toString() {
-                                        return entry.dir.getName();
-                                    }
-                                } : 
-                                entry.dir.getName(),
-                        links.isEmpty() ? null : new Iconified() {
-                            @Override
-                            public ImageIcon getIcon() {
-                                try {
-                                    return EAS.getEntity(Class.forName(links.get(0).entryClass), links.get(0).entryID).getIcon();
-                                } catch (ClassNotFoundException e) {}
-                                return null;
-                            }
-
-                            @Override
-                            public String toString() {
-                                return links.stream().map((link) -> {
-                                    try {
-                                        return EAS.getEntity(Class.forName(links.get(0).entryClass), links.get(0).entryID).toString();
-                                    } catch (ClassNotFoundException e) {}
-                                    return null;
-                                }).collect(Collectors.joining(","));
-                            }
-                        },
-                        ""
+                    EntryEntity newEntity = new EntryEntity(entry);
+                    repoEntity.insert(newEntity);
+                    if (entry.kind == EntryKind.Cache) {
+                        File starter = new File(entry.dir.getAbsolutePath()+File.separator+"starter.jar");
+                        if (starter.exists() && !starter.renameTo(starter)) {
+                            try {
+                                newEntity.getLock().acquire();
+                            } catch (InterruptedException e) {}
+                        }
+                    }
+                    newEntity.model.setValue("used", !links.isEmpty());
+                    
+                    newEntity.model.addChangeListener((name, oldValue, newValue) -> {
+                        final int entityIdx = repoEntity.getIndex(newEntity);
+                        if (newEntity.model.getProperties(Access.Select).contains(name)) {
+                            tableModel.setValueAt(newValue, entityIdx, newEntity.model.getProperties(Access.Select).indexOf(name));
+                        }
                     });
+                    tableModel.addRow(
+                            newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
+                                switch (propName) {
+                                    case "name":
+                                        return entry.kind == EntryKind.Sources ? 
+                                            new Iconified() {
+                                                @Override
+                                                public ImageIcon getIcon() {
+                                                    return Offshoot.getStatus(entry.dir).getIcon();
+                                                }
+
+                                                @Override
+                                                public String toString() {
+                                                    return entry.dir.getName();
+                                                }
+                                            } : entry.dir.getName();
+                                    case "used":
+                                        return links.isEmpty() ? null : new Iconified() {
+                                            @Override
+                                            public ImageIcon getIcon() {
+                                                try {
+                                                    return EAS.getEntity(Class.forName(links.get(0).entryClass), links.get(0).entryID).getIcon();
+                                                } catch (ClassNotFoundException e) {}
+                                                return null;
+                                            }
+
+                                            @Override
+                                            public String toString() {
+                                                return links.stream().map((link) -> {
+                                                    try {
+                                                        return EAS.getEntity(Class.forName(links.get(0).entryClass), links.get(0).entryID).toString();
+                                                    } catch (ClassNotFoundException e) {}
+                                                    return null;
+                                                }).collect(Collectors.joining(","));
+                                            }
+                                        };
+                                    default:
+                                        return newEntity.model.getValue(propName);
+                                }
+                            }).toArray()
+                    );
                 });
             });
             
@@ -336,10 +463,7 @@ public class DiskUsageReport extends EntityCommand {
             }).sum();
             
             // Calc entries size
-            AtomicLong totalSize = new AtomicLong(0);
-            AtomicLong totalFree = new AtomicLong(0);
             AtomicLong processed = new AtomicLong(0);
-            
             structureMap.entrySet().stream().forEach((repoEntry) -> {
                 repoEntry.getValue().stream().forEach((entry) -> {
                     AtomicLong dirSize = new AtomicLong(0);
@@ -378,8 +502,12 @@ public class DiskUsageReport extends EntityCommand {
                                 return FileVisitResult.CONTINUE;
                             }
                         });
+                        Entity entryEntity = tableModelsMap.get(repoEntry.getKey()).getEntityAt(repoEntry.getValue().indexOf(entry));
+                        entryEntity.model.setValue("bytes", dirSize.get()+"");
+                        entryEntity.model.updateDynamicProp("size");
+                        
                         totalSize.addAndGet(dirSize.get());
-                        if (tableModelsMap.get(repoEntry.getKey()).getValueAt(repoEntry.getValue().indexOf(entry), 2) == null) {
+                        if (entryEntity.model.getValue("used") == Boolean.FALSE) {
                             totalFree.addAndGet(dirSize.get());
                         }
                         total.setText(MessageFormat.format(
@@ -387,11 +515,6 @@ public class DiskUsageReport extends EntityCommand {
                                 formatFileSize(totalSize.get()),
                                 formatFileSize(totalFree.get())
                         ));
-                        tableModelsMap.get(repoEntry.getKey()).setValueAt(
-                                formatFileSize(dirSize.get()), 
-                                repoEntry.getValue().indexOf(entry),
-                                3
-                        );
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -430,19 +553,7 @@ public class DiskUsageReport extends EntityCommand {
         return hrSize;
     }
     
-    class Entry {
-        
-        final EntryKind kind;
-        final File      dir;
-
-        public Entry(EntryKind kind, File dir) {
-            this.kind = kind;
-            this.dir  = dir;
-        }
-        
-    }
-    
-    enum EntryKind implements Iconified {
+    private enum EntryKind implements Iconified {
 
         Sources(Language.get(DiskUsageReport.class.getSimpleName(), "kind@sources"), ImageUtils.getByPath("/images/branch.png")),
         Cache(Language.get(DiskUsageReport.class.getSimpleName(), "kind@cache"), ImageUtils.getByPath("/images/release.png"));
@@ -467,4 +578,128 @@ public class DiskUsageReport extends EntityCommand {
 
     }
     
+    private class Entry {
+        
+        final EntryKind kind;
+        final File      dir;
+
+        public Entry(EntryKind kind, File dir) {
+            this.kind = kind;
+            this.dir  = dir;
+        }
+        
+    }
+    
+    private class RepoEntity extends Catalog {
+
+        public RepoEntity() {
+            super(null, null);
+        }
+
+        @Override
+        public Class getChildClass() {
+            return null;
+        }
+    
+    }
+    
+    private class EntryEntity extends Catalog {
+    
+        public EntryEntity(Entry entry) {
+            super(null, null, entry != null ? entry.dir.getName() : null, null);
+            model.addDynamicProp("kind", new Enum(entry != null ? entry.kind : EntryKind.Cache), null, null);
+            model.addDynamicProp("file", new Str(entry != null ? entry.dir.getAbsolutePath() : null), Access.Any, null);
+            model.addDynamicProp("name", new Str(model.getPID()), null, null);
+            model.addDynamicProp("used", new Bool(false), null, null);
+            
+            model.addDynamicProp("bytes", new Str(null), Access.Any, null);
+            model.addDynamicProp("size",  new Str(null), null, () -> {
+                if (model.getValue("bytes") == null) {
+                    return null;
+                } else {
+                    return formatFileSize(Long.valueOf((String) model.getValue("bytes")));
+                }
+            });
+        }
+        
+        @Override
+        public Class getChildClass() {
+            return null;
+        }
+    
+    }
+    
+    private class DeleteTask extends AbstractTask<Void> {
+        
+        private final Entity     entity;
+        private final AtomicLong remain  = new AtomicLong(0);
+        private final AtomicLong deleted = new AtomicLong(0);
+
+        public DeleteTask(Entity entity) {
+            super(Language.get(DiskUsageReport.class.getSimpleName(), "delete@title")+": "+entity.model.getValue("file"));
+            this.entity = entity;
+            this.remain.addAndGet(Long.valueOf((String) entity.model.getValue("bytes")));
+        }
+
+        @Override
+        public Void execute() throws Exception {
+            File directory = new File((String) entity.model.getValue("file"));
+            
+            setProgress(0, Language.get(DiskUsageReport.class.getSimpleName(), "delete@calc"));
+            long totalFiles = Files.walk(directory.toPath()).count();
+
+            AtomicInteger processed = new AtomicInteger(0);
+            Files.walkFileTree(directory.toPath(), new SimpleFileVisitor<Path>() {
+                
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    deleted.addAndGet(attrs.size());
+                    return processPath(file);
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+                    return processPath(dir);
+                }
+                
+                private FileVisitResult processPath(Path path) {
+                    if (isCancelled()) {
+                        return FileVisitResult.TERMINATE;
+                    }
+                    try {
+                        FileDeleteStrategy.NORMAL.delete(path.toFile());
+                        processed.addAndGet(1);
+                        String fileName = path.toString().replace(directory.toPath()+File.separator, "");
+                        setProgress(
+                                (int) (processed.get() * 100 / totalFiles),
+                                MessageFormat.format(
+                                        Language.get(DiskUsageReport.class.getSimpleName(), "delete@progress"),
+                                        fileName.replace(directory.toString(), "")
+                                )
+                        );
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+            
+            entity.model.setValue("bytes", (remain.get() - deleted.get())+"");
+            
+            DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(directory.getPath()).getParent());
+            if (!dirStream.iterator().hasNext()) {
+                FileDeleteStrategy.NORMAL.delete(directory.getParentFile());
+            }
+            return null;
+        }
+
+        @Override
+        public void finished(Void t) {}
+    
+    }
 }
