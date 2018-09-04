@@ -39,6 +39,9 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     
     private PropertyHolder(List<String> callers, String name, IComplexType<V, ?> value, boolean require) {
         this(name, Language.lookup(callers, name+".title"), Language.lookup(callers, name+".desc"), value, require);
+        if (name == "kind") {
+            System.err.println(callers);
+        }
     }
     
     /**
@@ -215,7 +218,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
         return Arrays.asList(new Exception().getStackTrace())
                 .stream()
                 .map((stackItem) -> {
-                    return stackItem.getClassName().replaceAll(".*\\.(\\w+)", "$1");
+                    return stackItem.getClassName().replaceAll(".*[\\.$](\\w+)", "$1");
                 })
                 .filter((className) -> {
                     return !className.equals(PropertyHolder.class.getSimpleName());
