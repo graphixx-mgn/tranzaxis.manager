@@ -52,7 +52,7 @@ public final class ConfigStoreService implements IConfigStoreService {
 
         try {
             DriverManager.registerDriver(new JDBC());
-            connection = DriverManager.getConnection("jdbc:sqlite:"+configFile.getPath());
+            connection = DriverManager.getConnection("jdbc:sqlite:"+configFile.getPath());       
             connection.createStatement().executeUpdate("PRAGMA foreign_keys = ON");
             if (connection != null) {
                 final DatabaseMetaData meta = connection.getMetaData();
@@ -221,7 +221,7 @@ public final class ConfigStoreService implements IConfigStoreService {
         }
     }
     
-    private void cropCatalog(Class clazz, List<String> unusedProperties) throws Exception {
+    private synchronized void cropCatalog(Class clazz, List<String> unusedProperties) throws Exception {
         final String className = clazz.getSimpleName().toUpperCase();
         
         String primaryKey = "";  
@@ -284,7 +284,7 @@ public final class ConfigStoreService implements IConfigStoreService {
         });
 
         String createSQL = MessageFormat.format(
-                "CREATE TABLE IF NOT EXISTS {0} ({1}, {2});",
+                "CREATE TABLE IF NOT EXISTS {0} ({1}, {2})",
                 className.concat("_NEW"),
                 String.join(", ", columns.values()),
                 constraintSql.toString()
@@ -306,13 +306,25 @@ public final class ConfigStoreService implements IConfigStoreService {
         );
         
         try (final Statement statement = connection.createStatement()) {
-            statement.execute(createSQL);
-            statement.execute(copySQL);
-            statement.execute(dropSQL);
-            statement.execute(renameSQL);
-            connection.commit();
-            storeStructure.get(className).removeAll(unusedProperties);
+            if (storeStructure.get(className).containsAll(unusedProperties)) {
+                storeStructure.get(className).removeAll(unusedProperties);
+                
+                connection.setAutoCommit(true);
+                connection.createStatement().executeUpdate("PRAGMA foreign_keys = OFF");
+                connection.setAutoCommit(false);
+                
+                statement.executeUpdate(createSQL);
+                statement.executeUpdate(copySQL);
+                statement.executeUpdate(dropSQL);
+                statement.executeUpdate(renameSQL);
+                connection.commit();
+                
+                connection.setAutoCommit(true);
+                connection.createStatement().executeUpdate("PRAGMA foreign_keys = ON");
+                connection.setAutoCommit(false);
+            }
         } catch (SQLException e) {
+            connection.rollback();
             throw new Exception("Unable to rebuild class catalog", e);
         }
     }
