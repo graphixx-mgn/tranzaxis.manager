@@ -39,9 +39,6 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     
     private PropertyHolder(List<String> callers, String name, IComplexType<V, ?> value, boolean require) {
         this(name, Language.lookup(callers, name+".title"), Language.lookup(callers, name+".desc"), value, require);
-        if (name == "kind") {
-            System.err.println(callers);
-        }
     }
     
     /**
