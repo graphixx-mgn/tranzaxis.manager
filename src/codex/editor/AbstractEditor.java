@@ -122,6 +122,18 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     public final boolean isEditable() {
         return editable;
     }
+    
+    @Override
+    public void setVisible(boolean visible) {
+        boolean prevValue = editor.isVisible();
+        editor.setVisible(visible);
+        editor.firePropertyChange("visible", prevValue, visible);
+    }
+    
+    @Override
+    public boolean isVisible() {
+        return editor.isVisible();
+    };
 
     @Override
     public void addCommand(ICommand command) {

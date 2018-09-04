@@ -101,6 +101,14 @@ public interface IEditor<T> {
      */
     public boolean isEditable();
     /**
+     * Установить признак видимости редактора.
+     */
+    public void setVisible(boolean visible);
+    /**
+     * Возвращает признак видимости редактора.
+     */
+    public boolean isVisible();
+    /**
      * Добавить команду изменения свойства.
      */
     public void addCommand(ICommand<PropertyHolder> command);
