@@ -55,43 +55,44 @@ public class StripedProgressBarUI extends BasicProgressBarUI {
         if (barRectWidth <= 0 || barRectHeight <= 0) {
             return;
         }
-
-        boxRect = getBox(boxRect);
-        if (Objects.nonNull(boxRect)) {
-            int w = 10;
-            int x = getAnimationIndex();
-            GeneralPath p = new GeneralPath();
-            if (forward) {
-                p.moveTo(boxRect.x,           boxRect.y);
-                p.lineTo(boxRect.x + w * .5f, boxRect.y + boxRect.height);
-                p.lineTo(boxRect.x + w,       boxRect.y + boxRect.height);
-                p.lineTo(boxRect.x + w * .5f, boxRect.y);
-            } else {
-                p.moveTo(boxRect.x,           boxRect.y + boxRect.height);
-                p.lineTo(boxRect.x + w * .5f, boxRect.y + boxRect.height);
-                p.lineTo(boxRect.x + w,       boxRect.y);
-                p.lineTo(boxRect.x + w * .5f, boxRect.y);
-            }
-            p.closePath();
-
-            Graphics2D g2 = (Graphics2D) graphics.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setPaint(progressBar.getForeground());
-            if (forward) {
-                for (int i = boxRect.width + x; i > -w; i -= w) {
-                    g2.fill(AffineTransform.getTranslateInstance(i, 0).createTransformedShape(p));
+        try {
+            boxRect = getBox(boxRect);
+            if (Objects.nonNull(boxRect)) {
+                int w = 10;
+                int x = getAnimationIndex();
+                GeneralPath p = new GeneralPath();
+                if (forward) {
+                    p.moveTo(boxRect.x,           boxRect.y);
+                    p.lineTo(boxRect.x + w * .5f, boxRect.y + boxRect.height);
+                    p.lineTo(boxRect.x + w,       boxRect.y + boxRect.height);
+                    p.lineTo(boxRect.x + w * .5f, boxRect.y);
+                } else {
+                    p.moveTo(boxRect.x,           boxRect.y + boxRect.height);
+                    p.lineTo(boxRect.x + w * .5f, boxRect.y + boxRect.height);
+                    p.lineTo(boxRect.x + w,       boxRect.y);
+                    p.lineTo(boxRect.x + w * .5f, boxRect.y);
                 }
-            } else {
-                for (int i = -x; i < boxRect.width; i += w) {
-                    g2.fill(AffineTransform.getTranslateInstance(i, 0).createTransformedShape(p));
+                p.closePath();
+
+                Graphics2D g2 = (Graphics2D) graphics.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setPaint(progressBar.getForeground());
+                if (forward) {
+                    for (int i = boxRect.width + x; i > -w; i -= w) {
+                        g2.fill(AffineTransform.getTranslateInstance(i, 0).createTransformedShape(p));
+                    }
+                } else {
+                    for (int i = -x; i < boxRect.width; i += w) {
+                        g2.fill(AffineTransform.getTranslateInstance(i, 0).createTransformedShape(p));
+                    }
                 }
+                if (progressBar.isStringPainted()) {
+                    int amountFull = getAmountFull(b, barRectWidth, barRectHeight);
+                    paintString(g2, b.left, b.top, barRectWidth, barRectHeight, amountFull, b);
+                }
+                g2.dispose();
             }
-            if (progressBar.isStringPainted()) {
-                int amountFull = getAmountFull(b, barRectWidth, barRectHeight);
-                paintString(g2, b.left, b.top, barRectWidth, barRectHeight, amountFull, b);
-            }
-            g2.dispose();
-        }        
+        } catch (Exception e) {}
     }
 
     @Override
