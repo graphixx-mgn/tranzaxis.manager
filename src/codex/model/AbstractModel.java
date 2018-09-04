@@ -2,8 +2,10 @@ package codex.model;
 
 import codex.editor.IEditor;
 import codex.property.PropertyHolder;
+import codex.property.PropertyState;
 import codex.type.IComplexType;
 import java.text.MessageFormat;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +20,7 @@ public class AbstractModel {
     final Map<String, PropertyHolder> properties = new LinkedHashMap<>();
     final Map<String, IEditor> editors = new LinkedHashMap<>();
     final Map<String, Access>  restrictions = new LinkedHashMap<>();
+    final Map<String, String>  propertyGroups = new HashMap<>();
     
     /**
      * Возвращает признак что модель корректна.
@@ -29,6 +32,13 @@ public class AbstractModel {
         }
         return isValid;
     };
+    
+    /**
+     * Возвращает состояние свойства.
+     */
+    public PropertyState getPropState(String name) {
+        return getProperty(name).isValid() ? PropertyState.Good : PropertyState.Error;
+    }
     
     void addProperty(String name, IComplexType value, boolean require, Access restriction) {
         this.addProperty(new PropertyHolder(name, value, require), restriction);
@@ -71,6 +81,21 @@ public class AbstractModel {
             );
         }
         return properties.get(name);
+    }
+    
+    public final void addPropertyGroup(String groupTitle, String... propNames) {
+        for (String propName : propNames) {
+            if (!properties.containsKey(propName)) {
+                throw new NoSuchFieldError(
+                        MessageFormat.format("Model does not have property ''{0}''", propName)
+                );
+            }
+            propertyGroups.put(propName, groupTitle);
+        }
+    }
+    
+    public final String getPropertyGroup(String propName) {
+        return propertyGroups.get(propName);
     }
     
     /**

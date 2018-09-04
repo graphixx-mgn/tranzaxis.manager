@@ -1,6 +1,7 @@
 package codex.presentation;
 
 import codex.command.ICommand;
+import codex.component.border.RoundedBorder;
 import codex.editor.IEditor;
 import codex.model.AbstractModel;
 import codex.model.Access;
@@ -11,13 +12,17 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.border.LineBorder;
+import javax.swing.border.TitledBorder;
 
 /**
  * Страница редактирования сущности, используется в составе презентации редактора
@@ -26,27 +31,27 @@ import javax.swing.border.LineBorder;
  */
 public final class EditorPage extends JPanel {
     
+    private final Map<String, JPanel> groupWidgets = new HashMap<>();
+    
     /**
      * Конструктор страницы. 
      * @param model Редактируемая модель сущности.
      */
     public EditorPage(AbstractModel model) {
         super(new GridBagLayout());
-        setBorder(new LineBorder(Color.RED, 1));
         
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 10, 5, 10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.gridwidth = 1;
+        this.putClientProperty("GBC", new GridBagConstraints() {{
+            insets = new Insets(5, 10, 5, 10);
+            fill = GridBagConstraints.HORIZONTAL;
+            gridwidth = 1;
+            gridx = 0; 
+            gridy = 1;
+        }});
         
-        int lineIdx = 1, maxSize = 0;
+        final AtomicInteger maxSize = new AtomicInteger(0);
         final Vector<Component> focusOrder = new Vector<>();
         List<String> properties = model.getProperties(Access.Edit);
         for (String propName : properties) {
-            gbc.gridx = 0; 
-            gbc.gridy = lineIdx;
-            gbc.weightx = 0;
-            
             IEditor propEditor = model.getEditor(propName);
             /* Нужно перерисовать компонент на случай если уже было обращение к нему
              * на ранней стадии инициализации сухности */
@@ -54,10 +59,7 @@ public final class EditorPage extends JPanel {
             if (propEditor.getFocusTarget() != null && propEditor.isEditable()) {
                 focusOrder.add(propEditor.getFocusTarget());
             }
-            add(propEditor.getLabel(), gbc);
             
-            gbc.gridx = 1;
-            gbc.weightx = 1;
             Box container = new Box(BoxLayout.X_AXIS);
             Box editor    = propEditor.getEditor();
             
@@ -74,60 +76,79 @@ public final class EditorPage extends JPanel {
             ((List<ICommand<PropertyHolder>>) propEditor.getCommands()).stream().forEach((command) -> {
                 editor.add((JComponent) command.getButton());
             });
-            add(container, gbc);
+            String propGroup = model.getPropertyGroup(propName);
+            if (propGroup != null) {
+                addEditorWidget(addGroupWidget(this, propGroup), propEditor.getLabel(), container);
+            } else {
+                addEditorWidget(this, propEditor.getLabel(), container);
+            }
             
-            maxSize = Math.max(maxSize, propEditor.getLabel()
-                    .getFontMetrics(IEditor.FONT_BOLD)
-                    .stringWidth(propEditor.getLabel().getText()));
-            lineIdx++;
+            maxSize.set(Math.max(
+                    maxSize.get(), 
+                    propEditor.getLabel()
+                        .getFontMetrics(IEditor.FONT_BOLD)
+                        .stringWidth(propEditor.getLabel().getText())
+            ));
         }
         
-//        gbc.gridx = 0;
-//        gbc.gridy++;
-//        gbc.gridwidth = 2;
-//        gbc.insets = new Insets(5, 3, 5, 3);
-//        
-//        JPanel group = new JPanel(new GridBagLayout());
-//        group.setBorder(new TitledBorder("TEST"));
-//        add(group, gbc);
-//        
-//        GridBagConstraints gbcGrouped = new GridBagConstraints();
-//        gbcGrouped.insets = new Insets(2, 2, 2, 2);
-//        gbcGrouped.gridwidth = 1;
-//        gbcGrouped.fill = GridBagConstraints.HORIZONTAL;
-//        
-//        PropertyHolder propHolder = new PropertyHolder("test", new Bool(false), true);
-//        IEditor propEditor = propHolder.getPropValue().editorFactory().newInstance(propHolder);
-//        
-//        gbcGrouped.gridx = 0;
-//        gbcGrouped.gridy = 0;
-//        gbcGrouped.weightx = 0;
-//        group.add(propEditor.getLabel(), gbcGrouped);
-//        gbcGrouped.gridx = 1;
-//        gbcGrouped.gridy = 0;
-//        gbcGrouped.weightx = 1;
-//        Box container = new Box(BoxLayout.X_AXIS);
-//        Box editor    = propEditor.getEditor();
-//            
-//        container.add(editor);
-//        container.add(Box.createRigidArea(new Dimension(1, 28)));
-//        group.add(container, gbcGrouped);
-//        gbcGrouped.gridx = 0;
-//        gbcGrouped.gridy++;
-//        gbcGrouped.weightx = 0;
-//        group.add(Box.createHorizontalStrut(Math.max(220, maxSize+30)), gbcGrouped);
-//        
-//        gbc.gridwidth = 1;
+        addEditorWidget(this, Box.createHorizontalStrut(Math.max(220, maxSize.get()+30)), null);
+        groupWidgets.values().forEach((panel) -> {
+            addEditorWidget(panel, Box.createHorizontalStrut(Math.max(220, maxSize.get()+30)), null);
+        });
         
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.weightx = 0;
-        add(Box.createHorizontalStrut(Math.max(220, maxSize+30)), gbc);
         if (focusOrder.size() > 0) {
             setFocusCycleRoot(true);
             setFocusTraversalPolicyProvider(true);
             setFocusTraversalPolicy(new FocusPolicy(focusOrder));
         }
+    }
+    
+    private void addEditorWidget(JPanel container, Component label, Component editor) {
+        GridBagConstraints gbc = (GridBagConstraints) container.getClientProperty("GBC");
+        gbc.gridx   = 0;
+        gbc.weightx = 0;
+        container.add(label, gbc);
+        if (editor != null) {
+            gbc.gridx   = 1;
+            gbc.weightx = 1;
+            container.add(editor, gbc);
+        }
+        gbc.gridy++;
+    }
+    
+    private JPanel addGroupWidget(JPanel container, String groupName) {
+        if (!groupWidgets.containsKey(groupName)) {
+            GridBagConstraints gbc = (GridBagConstraints) container.getClientProperty("GBC");
+            Insets prevInsets = gbc.insets;
+            gbc.insets = new Insets(3, 4, 3, 3);
+            gbc.gridx  = 0;
+            gbc.gridwidth = 2;
+
+            JPanel group = new JPanel(new GridBagLayout());
+            group.setBackground(Color.decode("#F5F5F5"));
+            group.setOpaque(true);
+            group.setBorder(new TitledBorder(
+                    new RoundedBorder(new LineBorder(Color.LIGHT_GRAY, 1), 5),
+                    groupName,
+                    TitledBorder.CENTER,
+                    TitledBorder.BELOW_TOP
+            ));
+            
+            group.putClientProperty("GBC", new GridBagConstraints() {{
+                insets = new Insets(7, 9, 3, 2);
+                fill = GridBagConstraints.HORIZONTAL;
+                gridwidth = 1;
+                gridx = 0; 
+                gridy = 1;
+            }});
+            container.add(group, gbc);
+            groupWidgets.put(groupName, group);
+
+            gbc.insets = prevInsets;
+            gbc.gridwidth = 1;
+            gbc.gridy++;
+        }
+        return groupWidgets.get(groupName);
     }
 
 }
