@@ -23,6 +23,7 @@ import codex.task.ITaskListener;
 import codex.task.Status;
 import codex.task.TaskManager;
 import codex.type.Bool;
+import codex.type.EntityRef;
 import codex.type.Enum;
 import codex.type.IComplexType;
 import codex.type.Iconified;
@@ -53,8 +54,10 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.swing.ImageIcon;
@@ -72,6 +75,7 @@ import javax.swing.border.MatteBorder;
 import manager.nodes.Offshoot;
 import manager.nodes.Release;
 import manager.nodes.Repository;
+import manager.type.WCStatus;
 import org.apache.commons.io.FileDeleteStrategy;
 
 public class DiskUsageReport extends EntityCommand {
@@ -200,8 +204,13 @@ public class DiskUsageReport extends EntityCommand {
                     if (!structureMap.containsKey(repositoryDir.getName())) {
                         structureMap.put(repositoryDir.getName(), new LinkedList<>());
                     }
+                    
+                    Integer repoId = repoIndex.entrySet().stream().filter((indexEntry) -> {
+                        return indexEntry.getValue().equals(repositoryDir.getName());
+                    }).findFirst().get().getKey();
+                    
                     Stream.of(repositoryDir.listFiles()).forEach((offshootDir) -> {
-                        structureMap.get(repositoryDir.getName()).add(new Entry(EntryKind.Sources, offshootDir));
+                        structureMap.get(repositoryDir.getName()).add(new Entry(EntryKind.Sources, repoId, offshootDir));
                     });
                 });
             }
@@ -211,26 +220,33 @@ public class DiskUsageReport extends EntityCommand {
                         structureMap.put(repositoryDir.getName(), new LinkedList<>());
                     }
                     
+                    Integer repoId = repoIndex.entrySet().stream().filter((indexEntry) -> {
+                        return indexEntry.getValue().equals(repositoryDir.getName());
+                    }).findFirst().get().getKey();
+
                     Stream.of(repositoryDir.listFiles()).forEach((cacheDir) -> {
-                        structureMap.get(repositoryDir.getName()).add(new Entry(EntryKind.Cache, cacheDir));
+                        structureMap.get(repositoryDir.getName()).add(new Entry(EntryKind.Cache, repoId, cacheDir));
                     });
                 });
             }
             
-            structureMap.entrySet().stream().sorted((o1, o2) -> {
-                Integer repoId1 = repoIndex.entrySet().stream().filter((indexEntry) -> {
-                    return indexEntry.getValue().equals(o1.getKey());
-                }).findFirst().get().getKey();
-                Integer repoId2 = repoIndex.entrySet().stream().filter((indexEntry) -> {
-                    return indexEntry.getValue().equals(o2.getKey());
-                }).findFirst().get().getKey();
-                
-                Integer repoSeq1 = Integer.valueOf(CAS.readClassInstance(Repository.class, repoId1).get(EntityModel.SEQ));
-                Integer repoSeq2 = Integer.valueOf(CAS.readClassInstance(Repository.class, repoId2).get(EntityModel.SEQ));
-                        
-                return Integer.compare(repoSeq1, repoSeq2); 
-                
-            }).forEach((repoEntry) -> {
+            Supplier<Stream<Map.Entry<String, List<Entry>>>> structureStream = () -> {
+                return structureMap.entrySet().stream().sorted((o1, o2) -> {
+                    Integer repoId1 = repoIndex.entrySet().stream().filter((indexEntry) -> {
+                        return indexEntry.getValue().equals(o1.getKey());
+                    }).findFirst().get().getKey();
+                    Integer repoId2 = repoIndex.entrySet().stream().filter((indexEntry) -> {
+                        return indexEntry.getValue().equals(o2.getKey());
+                    }).findFirst().get().getKey();
+
+                    Integer repoSeq1 = Integer.valueOf(CAS.readClassInstance(Repository.class, repoId1).get(EntityModel.SEQ));
+                    Integer repoSeq2 = Integer.valueOf(CAS.readClassInstance(Repository.class, repoId2).get(EntityModel.SEQ));
+
+                    return Integer.compare(repoSeq1, repoSeq2); 
+                });
+            };
+            
+            structureStream.get().forEach((repoEntry) -> {
                 // Create tab
                 JPanel repoContent = new JPanel(new BorderLayout());
                 repoContent.setBackground(Color.WHITE);
@@ -359,42 +375,40 @@ public class DiskUsageReport extends EntityCommand {
                 // Create table rows
                 repoEntry.getValue().forEach((entry) -> {
                     
-                    List<IConfigStoreService.ForeignLink> links;
-                    switch (entry.kind) {
-                        case Cache:
-                        case Sources:
-                            Integer repoId = repoIndex.entrySet().stream().filter((indexEntry) -> {
-                                return indexEntry.getValue().equals(repoEntry.getKey());
-                            }).findFirst().get().getKey();
-                            
-                            Map<String, String> dbValues =  CAS.readClassInstance(
-                                    entry.kind == EntryKind.Sources ? Offshoot.class : Release.class, 
-                                    entry.dir.getName(), 
-                                    repoId
-                            );
-                            if (dbValues.containsKey(EntityModel.ID)) {
-                                Integer entityId = Integer.valueOf(dbValues.get(EntityModel.ID));
-                                links = CAS.findReferencedEntries(
-                                        entry.kind == EntryKind.Sources ? Offshoot.class : Release.class, 
-                                        entityId
-                                );
-                            } else {
-                                links = new LinkedList<>();
-                            }                            
-                            break;
-                        default:
-                            links = new LinkedList<>();
-                    }
-                    
                     EntryEntity newEntity = new EntryEntity(entry);
                     repoEntity.insert(newEntity);
-                    if (entry.kind == EntryKind.Cache) {
-                        File starter = new File(entry.dir.getAbsolutePath()+File.separator+"starter.jar");
+                    
+                    if (entry.kind == EntryKind.Cache || entry.kind == EntryKind.Sources) {
+                        StringJoiner starterPath = new StringJoiner(File.separator);
+                        if (entry.kind == EntryKind.Sources) {
+                            starterPath.add(entry.dir.getAbsolutePath());
+                            starterPath.add("org.radixware");
+                            starterPath.add("kernel");
+                            starterPath.add("starter");
+                            starterPath.add("bin");
+                            starterPath.add("dist");
+                            starterPath.add("starter.jar");
+                        } else {
+                            starterPath.add(entry.dir.getAbsolutePath());
+                            starterPath.add("starter.jar");
+                        }
+                        File starter = new File(starterPath.toString());
                         if (starter.exists() && !starter.renameTo(starter)) {
                             try {
                                 newEntity.getLock().acquire();
                             } catch (InterruptedException e) {}
                         }
+                    }
+                    
+                    Entity easEntity = entry.getEntity();
+                    List<IConfigStoreService.ForeignLink> links;
+                    if (easEntity != null) {
+                        links = CAS.findReferencedEntries(
+                                easEntity.getClass(), 
+                                easEntity.model.getID()
+                        );
+                    } else {
+                        links = new LinkedList<>();
                     }
                     newEntity.model.setValue("used", !links.isEmpty());
                     
@@ -404,42 +418,57 @@ public class DiskUsageReport extends EntityCommand {
                             tableModel.setValueAt(newValue, entityIdx, newEntity.model.getProperties(Access.Select).indexOf(name));
                         }
                     });
+                    
                     tableModel.addRow(
                             newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
                                 switch (propName) {
                                     case "name":
-                                        return entry.kind == EntryKind.Sources ? 
-                                            new Iconified() {
-                                                @Override
-                                                public ImageIcon getIcon() {
-                                                    return Offshoot.getStatus(entry.dir).getIcon();
-                                                }
+                                        switch (entry.kind) {
+                                            case Sources:
+                                                return new Iconified() {
+                                                    @Override
+                                                    public ImageIcon getIcon() {
+                                                        WCStatus  wcStatus = ((Offshoot) easEntity).getStatus();
+                                                        Iconified builtResult = (Iconified) easEntity.model.getValue("built");
+                                                        return wcStatus != WCStatus.Succesfull ? wcStatus.getIcon() : (
+                                                                builtResult == null ? WCStatus.Absent.getIcon() : builtResult.getIcon()
+                                                        );
+                                                    }
 
-                                                @Override
-                                                public String toString() {
-                                                    return entry.dir.getName();
-                                                }
-                                            } : entry.dir.getName();
+                                                    @Override
+                                                    public String toString() {
+                                                        return entry.dir.getName();
+                                                    }
+                                                };
+                                            default:
+                                                return entry.dir.getName();
+                                        }
                                     case "used":
-                                        return links.isEmpty() ? null : new Iconified() {
-                                            @Override
-                                            public ImageIcon getIcon() {
-                                                try {
-                                                    return EAS.getEntity(Class.forName(links.get(0).entryClass), links.get(0).entryID).getIcon();
-                                                } catch (ClassNotFoundException e) {}
-                                                return null;
-                                            }
+                                        switch (entry.kind) {
+                                            case Cache:
+                                            case Sources:
+                                                return links.isEmpty() ? null : new Iconified() {
+                                                    @Override
+                                                    public ImageIcon getIcon() {
+                                                        try {
+                                                            return EAS.getEntity(Class.forName(links.get(0).entryClass), links.get(0).entryID).getIcon();
+                                                        } catch (ClassNotFoundException e) {}
+                                                        return null;
+                                                    }
 
-                                            @Override
-                                            public String toString() {
-                                                return links.stream().map((link) -> {
-                                                    try {
-                                                        return EAS.getEntity(Class.forName(links.get(0).entryClass), links.get(0).entryID).toString();
-                                                    } catch (ClassNotFoundException e) {}
-                                                    return null;
-                                                }).collect(Collectors.joining(","));
-                                            }
-                                        };
+                                                    @Override
+                                                    public String toString() {
+                                                        return links.stream().map((link) -> {
+                                                            try {
+                                                                return EAS.getEntity(Class.forName(links.get(0).entryClass), links.get(0).entryID).toString();
+                                                            } catch (ClassNotFoundException e) {}
+                                                            return null;
+                                                        }).collect(Collectors.joining(","));
+                                                    }
+                                                };
+                                            default:
+                                                return null;
+                                        }
                                     default:
                                         return newEntity.model.getValue(propName);
                                 }
@@ -464,7 +493,7 @@ public class DiskUsageReport extends EntityCommand {
             
             // Calc entries size
             AtomicLong processed = new AtomicLong(0);
-            structureMap.entrySet().stream().forEach((repoEntry) -> {
+            structureStream.get().forEach((repoEntry) -> {
                 repoEntry.getValue().stream().forEach((entry) -> {
                     AtomicLong dirSize = new AtomicLong(0);
                     if (isCancelled()) {
@@ -581,11 +610,32 @@ public class DiskUsageReport extends EntityCommand {
     private class Entry {
         
         final EntryKind kind;
+        final Integer   repoId;
         final File      dir;
 
-        public Entry(EntryKind kind, File dir) {
-            this.kind = kind;
-            this.dir  = dir;
+        public Entry(EntryKind kind, Integer repoId, File dir) {
+            this.kind   = kind;
+            this.repoId = repoId;
+            this.dir    = dir;
+        }
+        
+        public Entity getEntity() {
+            if (kind == EntryKind.Cache || kind == EntryKind.Sources) {
+                EntityRef ref = new EntityRef(kind == EntryKind.Sources ? Offshoot.class : Release.class);
+                
+                Map<String, String> dbValues =  CAS.readClassInstance(
+                        ref.getEntityClass(),
+                        dir.getName(), 
+                        repoId
+                );
+                
+                if (dbValues.containsKey(EntityModel.ID)) {
+                    Integer entityId = Integer.valueOf(dbValues.get(EntityModel.ID));
+                    ref.valueOf(entityId.toString());
+                    return ref.getValue();
+                }
+            }
+            return null;
         }
         
     }
