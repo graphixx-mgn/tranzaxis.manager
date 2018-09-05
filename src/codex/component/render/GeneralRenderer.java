@@ -16,7 +16,6 @@ import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Font;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -34,7 +33,7 @@ import javax.swing.tree.TreeCellRenderer;
 /**
  * Стандартный рендерер ячеек списка, таблицы и элементов дерева.
  */
-public final class GeneralRenderer extends JLabel implements ListCellRenderer, TableCellRenderer, TreeCellRenderer {
+public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCellRenderer, TreeCellRenderer {
     
     private static final ImageIcon ICON_INVALID = ImageUtils.getByPath("/images/warn.png");
     private static final ImageIcon ICON_LOCKED  = ImageUtils.getByPath("/images/lock.png");
@@ -74,7 +73,7 @@ public final class GeneralRenderer extends JLabel implements ListCellRenderer, T
     public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean hasFocus) {
         if (value != null) {
             setText(value.toString());
-            setFont(new Font(IEditor.FONT_VALUE.getName(), Font.PLAIN, (int) (IEditor.FONT_VALUE.getSize()*1.2)));
+            setFont(IEditor.FONT_VALUE);
             setBackground(isSelected ? IButton.PRESS_COLOR : list.getBackground());
             if (Iconified.class.isAssignableFrom(value.getClass())) {
                 if (value instanceof Entity && !((Entity) value).model.isValid()) {
