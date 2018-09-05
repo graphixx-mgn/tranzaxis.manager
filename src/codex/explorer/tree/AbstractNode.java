@@ -147,4 +147,9 @@ public abstract class AbstractNode implements INode {
         );
     }
     
+    @Override
+    public boolean isLeaf() {
+        return getChildCount() == 0 || !allowModifyChild();
+    }
+    
 }
