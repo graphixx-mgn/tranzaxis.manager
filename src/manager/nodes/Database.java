@@ -4,14 +4,10 @@ import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.database.IDatabaseAccessService;
 import codex.database.OracleAccessService;
-import codex.database.RowSelector;
-import codex.mask.DataSetMask;
 import codex.mask.RegexMask;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
-import codex.supplier.IDataSupplier;
-import codex.type.ArrStr;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Str;
@@ -20,7 +16,6 @@ import codex.utils.Language;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import manager.commands.CheckDatabase;
 
 public class Database extends Entity {
@@ -69,15 +64,6 @@ public class Database extends Entity {
         }
         return null;
     };
-    
-    private final Supplier<Integer> connectionSupplier = () -> {
-        return connectionGetter.apply(true);
-    };
-    
-    private final IDataSupplier<String> layerSupplier = new RowSelector(
-            RowSelector.Mode.Row, connectionSupplier, 
-            "SELECT LAYERURI, VERSION, UPGRADEDATE FROM RDX_DDSVERSION"
-    );
 
     public Database(EntityRef parent, String title) {
         super(parent, ImageUtils.getByPath("/images/database.png"), title, null);
@@ -93,18 +79,14 @@ public class Database extends Entity {
         true, Access.Select);
         model.addUserProp("dbSchema", new Str(null), true, null);
         model.addUserProp("dbPass",   new Str(null), true, Access.Select);
-        model.addUserProp("layerURI", new ArrStr().setMask(new DataSetMask(
-                "{0}", layerSupplier
-        )),  true, Access.Select);
         model.addUserProp("userNote", new Str(null), false, null);
-        
         
         // Commands
         addCommand(new CheckDatabase());
     }
     
-    public Integer getConnectionID() {
-        return connectionGetter.apply(false);
+    public Integer getConnectionID(boolean showError) {
+        return connectionGetter.apply(showError);
     }
     
 }
