@@ -1,7 +1,10 @@
 package manager.svn;
 
 import codex.log.Logger;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -13,12 +16,16 @@ import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
+import org.tmatesoft.svn.core.SVNProperties;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.auth.BasicAuthenticationManager;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
 import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
+import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
 import org.tmatesoft.svn.core.internal.wc.DefaultSVNOptions;
+import org.tmatesoft.svn.core.io.SVNRepository;
+import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.svn.core.wc.ISVNEventHandler;
 import org.tmatesoft.svn.core.wc.ISVNStatusHandler;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
@@ -221,6 +228,27 @@ public class SVN {
         } finally {
             clientMgr.dispose();
         }
+    }
+    
+    public final static InputStream readFile(String url, String path, String user, String pass) {
+        final SVNAuthentication auth = new SVNPasswordAuthentication(user, pass, false);
+        final ISVNAuthenticationManager authMgr = new BasicAuthenticationManager(new SVNAuthentication[] { auth });
+        
+        try {
+            SVNRepositoryFactoryImpl.setup();
+            SVNRepository repository = SVNRepositoryFactory.create(SVNURL.parseURIEncoded(url));
+            repository.setAuthenticationManager(authMgr);
+            repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
+            
+            SVNProperties properties = new SVNProperties();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            repository.getFile(path, -1, properties, baos);
+            
+            return new ByteArrayInputStream(baos.toByteArray());
+        } catch (SVNException e) {
+            Logger.getLogger().warn("SVN operation ''read'' error: {0}", e.getErrorMessage());
+        }
+        return null;
     }
     
 }
