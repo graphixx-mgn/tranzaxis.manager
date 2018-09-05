@@ -82,6 +82,13 @@ public class RowSelector implements IDataSupplier<String> {
      * параметров нет.
      */
     public RowSelector(Mode mode, Supplier<Integer> connectionID, String query, Object... parameters) {
+        this(connectionID, query, () -> {
+            return parameters;
+        });
+        this.mode = mode;
+    }
+    
+    public RowSelector(Mode mode, Supplier<Integer> connectionID, String query, Supplier<Object[]> parameters) {
         this(connectionID, query, parameters);
         this.mode = mode;
     }
@@ -93,7 +100,7 @@ public class RowSelector implements IDataSupplier<String> {
      * @param params Список значений параметров запроса, не указывать если 
      * параметров нет.
      */
-    public RowSelector(Supplier<Integer> connectionID, String query, Object... parameters) {
+    public RowSelector(Supplier<Integer> connectionID, String query, Supplier<Object[]> parameters) {
         btnConfirm = Dialog.Default.BTN_OK.newInstance();
         btnCancel  = Dialog.Default.BTN_CANCEL.newInstance();
         btnConfirm.setEnabled(false);
@@ -137,7 +144,7 @@ public class RowSelector implements IDataSupplier<String> {
                 try {
                     Integer connID = connectionID.get();
                     if (connID != null) {
-                        ResultSet rset = DAS.select(connID, query, parameters);
+                        ResultSet rset = DAS.select(connID, query, parameters.get());
                         ResultSetMetaData meta = rset.getMetaData();
                         int colomnCount = meta.getColumnCount();
                         Vector<String> columns = new Vector<>();
@@ -234,7 +241,7 @@ public class RowSelector implements IDataSupplier<String> {
                 } catch (SQLException e) {
                     String command = MessageFormat.format(
                             query.replaceAll("\\?", "{0}"),
-                            parameters
+                            parameters.get()
                     );
                     Logger.getLogger().error(e.getMessage()+"\nQuery: "+command);
                     MessageBox.show(MessageType.ERROR, e.getMessage());
