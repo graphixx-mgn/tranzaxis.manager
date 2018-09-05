@@ -50,7 +50,7 @@ public interface IEditor<T> {
     /**
      * Стандартный шрифт отображения значений свойств.
      */
-    public static final Font FONT_VALUE = new Font("SansSerif", Font.PLAIN, (int) (UIManager.getDefaults().getFont("Label.font").getSize() * 1.2));
+    public static final Font FONT_VALUE = new Font("SansSerif", Font.PLAIN, (int) (UIManager.getDefaults().getFont("Label.font").getSize() * 1.3));
     
     /**
      * Стандартный бордюр редактора.
