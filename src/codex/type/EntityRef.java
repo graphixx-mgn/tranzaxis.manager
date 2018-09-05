@@ -12,6 +12,7 @@ import codex.model.EntityModel;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
@@ -26,6 +27,7 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
     private Integer           entityID;
     private Entity            entityInstance;
     private Predicate<Entity> entityFilter;
+    private Function<Entity, Match> entityMatcher;
     
     /**
      * Констуктор типа.
@@ -41,7 +43,11 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
      * @param entityFilter Пользовательский фильтр допустимых значений.
      */
     public EntityRef(Class entityClass, Predicate<Entity> entityFilter) {
-        setEntityClass(entityClass, entityFilter);
+        this(entityClass, entityFilter, null);
+    }
+    
+    public EntityRef(Class entityClass, Predicate<Entity> entityFilter, Function<Entity, Match> entityMatcher) {
+        setEntityClass(entityClass, entityFilter, entityMatcher);
     }
     
     /**
@@ -50,10 +56,13 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
      * @param entityFilter Опционально - задать фильтр сущностей, если не 
      * требуется - указазать null.
      */
-    public final void setEntityClass(Class entityClass, Predicate<Entity> entityFilter) {
+    public final void setEntityClass(Class entityClass, Predicate<Entity> entityFilter, Function<Entity, Match> entityMatcher) {
         this.entityClass  = entityClass;
         this.entityFilter = entityFilter != null ? entityFilter : (entity) -> {
             return true;
+        };
+        this.entityMatcher = entityMatcher != null ? entityMatcher : (entity) -> {
+            return Match.Unknown;
         };
     }
     
@@ -69,6 +78,10 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
      */
     public final Predicate<Entity> getEntityFilter() {
         return entityFilter;
+    }
+    
+    public final Function<Entity, Match> getEntityMatcher() {
+        return entityMatcher;
     }
 
     @Override
@@ -123,6 +136,12 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
         ownerRef.valueOf(databaseValues.get(EntityModel.OWN));
         entityInstance = Entity.newInstance(entityClass, ownerRef, databaseValues.get(EntityModel.PID));;
         return entityInstance;
+    }
+    
+    public enum Match {
+    
+        Exact, About, None, Unknown
+        
     }
     
 }

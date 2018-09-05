@@ -2,7 +2,6 @@ package codex.editor;
 
 import codex.component.button.IButton;
 import codex.component.render.GeneralRenderer;
-import static codex.editor.IEditor.FONT_VALUE;
 import codex.explorer.ExplorerAccessService;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
@@ -11,15 +10,18 @@ import codex.type.EntityRef;
 import codex.type.IComplexType;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComboBox;
+import javax.swing.JList;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.LineBorder;
@@ -35,6 +37,7 @@ import javax.swing.plaf.basic.BasicComboPopup;
 public class EntityRefEditor extends AbstractEditor implements ActionListener {
     
     private final static ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+    private final static Font DEFAULT_FONT = new Font(IEditor.FONT_VALUE.getName(), Font.PLAIN, (int) (IEditor.FONT_VALUE.getSize()*1.2));
     
     private JComboBox comboBox;
 
@@ -91,7 +94,28 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
         SwingUtilities.updateComponentTreeUI(comboBox);
 
         comboBox.setFont(FONT_VALUE);
-        comboBox.setRenderer(new GeneralRenderer());
+        comboBox.setRenderer(new GeneralRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean hasFocus) {
+                Component component = super.getListCellRendererComponent(list, value, index, isSelected, hasFocus);
+                Function<Entity, EntityRef.Match> entityMatcher = ((EntityRef) propHolder.getPropValue()).getEntityMatcher();
+                if (entityMatcher != null && value instanceof Entity) {
+                    EntityRef.Match match = entityMatcher.apply((Entity) value);
+                    switch (match) {
+                        case Exact:
+                            component.setForeground(Color.decode("#1C5F0A"));
+                            component.setFont(component.getFont().deriveFont(Font.BOLD));
+                            break;
+                        case About:
+                            component.setForeground(Color.decode("#E8A442"));
+                            component.setFont(component.getFont().deriveFont(Font.BOLD));
+                            break;
+                    }
+                }
+                return component;
+            }
+            
+        });
         comboBox.addFocusListener(this);
         comboBox.addActionListener(this);
         comboBox.addPopupMenuListener(new PopupMenuListener() {
@@ -101,7 +125,7 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
                 comboBox.removeActionListener(EntityRefEditor.this);
                 comboBox.removeAllItems();
                 
-                List<Object> values = getValues();                
+                List<Object> values = getValues();
                 
                 comboBox.addItem(new NullValue());
                 for (Object item : values) {
@@ -118,11 +142,24 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
                     comboBox.addItem(propHolder.getPropValue().getValue());
                     setValue(propHolder.getPropValue().getValue());
                 }
+                if (propHolder.getPropValue().getValue() == null) {
+                    Function<Entity, EntityRef.Match> entityMatcher = ((EntityRef) propHolder.getPropValue()).getEntityMatcher();
+                    Object suitable = values.stream().filter((entity) -> {
+                        return entityMatcher.apply((Entity) entity) == EntityRef.Match.Exact;
+                    }).findFirst().orElse(null);
+                    if (suitable != null) {
+                        comboBox.setSelectedItem(suitable);
+                    }
+                }
                 comboBox.addActionListener(EntityRefEditor.this);
             }
 
             @Override
-            public void popupMenuWillBecomeInvisible(PopupMenuEvent event) {}
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent event) {
+                if (propHolder.getPropValue().getValue() == null) {
+                    comboBox.setSelectedItem(comboBox.getItemAt(0));
+                }
+            }
 
             @Override
             public void popupMenuCanceled(PopupMenuEvent event) {}
@@ -141,12 +178,18 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
     public void setValue(Object value) {
         if (value == null) {
             comboBox.setSelectedItem(comboBox.getItemAt(0));
+            comboBox.setForeground(Color.GRAY);
+            comboBox.setFont(FONT_VALUE);
         } else {
             if (!comboBox.getSelectedItem().equals(value)) {
                 comboBox.setSelectedItem(value);
             }
+            JList list = ((BasicComboPopup) comboBox.getAccessibleContext().getAccessibleChild(0)).getList();
+            Component rendered = comboBox.getRenderer().getListCellRendererComponent(list, value, comboBox.getSelectedIndex(), false, false);
+            comboBox.setForeground(rendered.getForeground());
+            comboBox.setFont(rendered.getFont());
         }
-        comboBox.setForeground(value == null ? Color.GRAY : IEditor.COLOR_NORMAL);
+
     }
     
     @Override
