@@ -19,12 +19,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
+import manager.nodes.BinarySource;
 import manager.nodes.Database;
 import manager.nodes.Environment;
-import manager.nodes.Offshoot;
+import manager.nodes.Release;
 
 
 public class RunServer extends EntityCommand {
+    
+    private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
 
     public RunServer() {
         super(
@@ -40,9 +43,43 @@ public class RunServer extends EntityCommand {
 
     @Override
     public void execute(Entity entity, Map<String, IComplexType> map) {
-        ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).enqueueTask(
+        BinarySource source = (BinarySource) entity.model.getValue("binaries");
+        if (source instanceof Release) {
+            Thread checker = new Thread(() -> {
+                Release release = (Release) source;
+                String  topLayer = entity.model.getValue("layerURI").toString();
+                List<String> requiredLayers = release.getRequiredLayers(topLayer);
+                
+                boolean result = requiredLayers.parallelStream().allMatch((layerName) -> {
+                    return Release.checkStructure(release.getLocalPath()+File.separator+layerName+File.separator+"directory.xml");
+                });
+                if (!result) {
+                    TES.executeTask(
+                        release.new LoadCache(requiredLayers) {
+                            @Override
+                            public Void execute() throws Exception {
+                                entity.getLock().acquire();
+                                return super.execute();
+                            }
+
+                            @Override
+                            public void finished(Void t) {
+                                super.finished(t);
+                                entity.getLock().release();
+                                TES.enqueueTask(new RunServerTask((Environment) entity));
+                            }
+                        }
+                    );
+                } else {
+                    TES.enqueueTask(new RunServerTask((Environment) entity));
+                }
+            });
+            checker.start();
+        } else {
+            TES.enqueueTask(
                 new RunServerTask((Environment) entity)
-        );
+            );
+        }
     }
     
     class RunServerTask extends AbstractTask<Void> {
@@ -54,7 +91,7 @@ public class RunServer extends EntityCommand {
             super(MessageFormat.format(
                     Language.get("RunTX", "server@task"),
                     env, 
-                    ((Entity) env.model.getValue("offshoot")).model.getPID(),
+                    ((Entity) env.model.getValue("binaries")).model.getPID(),
                     env.model.getValue("database")
             ));
             this.env = env;
@@ -62,9 +99,8 @@ public class RunServer extends EntityCommand {
 
         @Override
         public Void execute() throws Exception {
-            Offshoot offshoot = (Offshoot) env.model.getValue("offshoot");
-            Database database = (Database) env.model.getValue("database");
-            //boolean  useWC    = env.model.getValue("binaries") instanceof Offshoot;
+            Database     database = (Database) env.model.getValue("database");
+            BinarySource source   = (BinarySource) env.model.getValue("binaries");
 
             final ArrayList<String> command = new ArrayList<>();
             command.add("java");
@@ -73,26 +109,20 @@ public class RunServer extends EntityCommand {
             command.add("-jar");
 
             StringJoiner starterPath = new StringJoiner(File.separator);
-            //if (useWC) {
-                starterPath.add(offshoot.getLocalPath());
-                starterPath.add("org.radixware");
-                starterPath.add("kernel");
-                starterPath.add("starter");
-                starterPath.add("bin");
-                starterPath.add("dist");
-                starterPath.add("starter.jar");
-//            } else {
-//                starterPath.add(offshoot.getWCPath());
-//            }
-            
+            starterPath.add(source.getLocalPath());
+            starterPath.add("org.radixware");
+            starterPath.add("kernel");
+            starterPath.add("starter");
+            starterPath.add("bin");
+            starterPath.add("dist");
+            starterPath.add("starter.jar");
             command.add(starterPath.toString());
 
             // Starter arguments
-            command.add("-authUser="+offshoot.model.getOwner().model.getValue("svnUser"));
-            command.add("-workDir="+offshoot.getLocalPath());
-            command.add("-topLayerUri="+database.model.getValue("layerURI"));
+            command.add("-workDir="+source.getLocalPath());
+            command.add("-topLayerUri="+((List<String>) env.model.getValue("layerURI")).get(0));
             command.add("-disableHardlinks");
-            command.add("-showSplashScreen=Server: "+env);
+            command.add("-showSplashScreen=Server: "+env+" ("+source.model.getPID()+")");
             command.add("org.radixware.kernel.server.Server");
 
             // Server arguments
@@ -118,11 +148,11 @@ public class RunServer extends EntityCommand {
             builder.redirectInput(ProcessBuilder.Redirect.INHERIT);
             builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
             builder.redirectError(ProcessBuilder.Redirect.INHERIT);
-
-            File logDir = new File(offshoot.getLocalPath()+File.separator+"logs");
+            
+            File logDir = new File(source.getLocalPath()+File.separator+"logs");
             if (!logDir.exists()) {
-                    logDir.mkdirs();
-                }
+                logDir.mkdirs();
+            }
             builder.directory(logDir);
 
             addListener(new ITaskListener() {
