@@ -96,7 +96,7 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
         taskList.setScrollableWidth(ScrollablePanel.ScrollableSizeHint.FIT);
 
         JScrollPane taskScrollPane = new JScrollPane(taskList);        
-        taskScrollPane.getViewport().setBackground(Color.WHITE);
+        taskScrollPane.getViewport().setBackground(Color.decode("#F5F5F5"));
         taskScrollPane.setBorder(new CompoundBorder(
                 new EmptyBorder(2, 2, 1, 2),
                 new LineBorder(Color.LIGHT_GRAY, 1)

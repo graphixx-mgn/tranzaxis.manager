@@ -8,11 +8,13 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import javax.swing.AbstractAction;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -60,15 +62,44 @@ final class GroupTaskView extends AbstractTaskView {
         mainProgress.setBorder(new LineBorder(Color.LIGHT_GRAY, 1));
         mainProgress.setStringPainted(true);
         
+        JPanel controls = new JPanel(new BorderLayout());
+        controls.setOpaque(false);
+        controls.add(mainProgress, BorderLayout.WEST);
+        
         IButton cancel = new CancelButton();
         cancel.addActionListener((event) -> {
             cancelAction.accept(main);
         });
-        
-        JPanel controls = new JPanel(new BorderLayout());
-        controls.setOpaque(false);
-        controls.add(mainProgress, BorderLayout.CENTER);
         controls.add((JButton) cancel, BorderLayout.EAST);
+        
+        if (children.stream().anyMatch((subTask) -> {
+            return subTask.isPauseable();
+        })) {
+            PauseButton pause = new PauseButton();
+            pause.addActionListener(new AbstractAction() {
+                
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    ITask running = children.stream().filter((subTask) -> {
+                        return !subTask.getStatus().isFinal();
+                    }).findFirst().get();
+                    ((AbstractTask) running).setPause(running.getStatus() != Status.PAUSED);
+                    pause.setState(running.getStatus() == Status.PAUSED);
+                }
+            });
+            main.addListener(new ITaskListener() {
+                @Override
+                public void statusChanged(ITask task, Status status) {
+                    if (status.isFinal()) {
+                        pause.setEnabled(false);
+                    }
+                }
+            });
+            controls.add(pause, BorderLayout.CENTER);
+        }
+        
+        
+        
         
         JPanel subTasks = new JPanel(new GridLayout(0, 1));
         subTasks.setBorder(new TitledBorder(Language.get("border@title")));

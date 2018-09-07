@@ -65,7 +65,7 @@ final class TaskView extends AbstractTaskView {
             });
             controls.add(cancel, BorderLayout.EAST);
         }
-        if (task.isPauseable()) {
+        if (task.isPauseable() && cancelAction != null) {
             PauseButton pause = new PauseButton();
             pause.addActionListener(new AbstractAction() {
                 
