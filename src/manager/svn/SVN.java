@@ -215,6 +215,10 @@ public class SVN {
     }
     
     public final static void export(String url, String path, String user, String pass) {
+        export(url, path, user, pass, null);
+    }
+    
+    public final static void export(String url, String path, String user, String pass, SVNDepth depth) {
         final SVNAuthentication auth = new SVNPasswordAuthentication(user, pass, false);
         final ISVNAuthenticationManager authMgr = new BasicAuthenticationManager(new SVNAuthentication[] { auth });
         final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
@@ -222,7 +226,7 @@ public class SVN {
         try {
             SVNURL svnUrl = SVNURL.parseURIEncoded(url);
             SVNUpdateClient client = clientMgr.getUpdateClient();
-            client.doExport(svnUrl, new File(path), SVNRevision.HEAD, SVNRevision.HEAD, null, true, SVNDepth.INFINITY);
+            client.doExport(svnUrl, new File(path), SVNRevision.HEAD, SVNRevision.HEAD, null, true, depth != null ? depth : SVNDepth.INFINITY);
         } catch (SVNException e) {
             Logger.getLogger().warn("SVN operation ''export'' error: {0}", e.getErrorMessage());
         } finally {
