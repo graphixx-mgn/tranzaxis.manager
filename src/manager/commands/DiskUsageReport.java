@@ -385,18 +385,13 @@ public class DiskUsageReport extends EntityCommand {
                     
                     if (entry.kind == EntryKind.Cache || entry.kind == EntryKind.Sources) {
                         StringJoiner starterPath = new StringJoiner(File.separator);
-                        if (entry.kind == EntryKind.Sources) {
-                            starterPath.add(entry.dir.getAbsolutePath());
-                            starterPath.add("org.radixware");
-                            starterPath.add("kernel");
-                            starterPath.add("starter");
-                            starterPath.add("bin");
-                            starterPath.add("dist");
-                            starterPath.add("starter.jar");
-                        } else {
-                            starterPath.add(entry.dir.getAbsolutePath());
-                            starterPath.add("starter.jar");
-                        }
+                        starterPath.add(entry.dir.getAbsolutePath());
+                        starterPath.add("org.radixware");
+                        starterPath.add("kernel");
+                        starterPath.add("starter");
+                        starterPath.add("bin");
+                        starterPath.add("dist");
+                        starterPath.add("starter.jar");
                         File starter = new File(starterPath.toString());
                         if (starter.exists() && !starter.renameTo(starter)) {
                             try {
