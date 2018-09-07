@@ -20,6 +20,7 @@ import manager.xml.PropertyDocument;
 import manager.xml.SubantDocument;
 import manager.xml.TargetDocument;
 import org.apache.commons.io.FileUtils;
+import org.apache.tools.ant.BuildEvent;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.BuildLogger;
 import org.apache.tools.ant.DefaultLogger;
@@ -88,7 +89,18 @@ public class KernelBuilder {
 
                 File logFile = new File(localDir.getPath()+File.separator+"build-kernel.log");
                 PrintStream logStream = new PrintStream(logFile);
-                BuildLogger consoleLogger = new DefaultLogger();
+                BuildLogger consoleLogger = new DefaultLogger() {
+                    @Override
+                    public void taskStarted(BuildEvent event) {
+                        try {
+                            notifier.checkPaused(args[0]);
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
+                        }
+                        super.taskStarted(event);
+                    }
+                    
+                };
                 consoleLogger.setErrorPrintStream(logStream);
                 consoleLogger.setOutputPrintStream(logStream);
                 consoleLogger.setMessageOutputLevel(Project.MSG_INFO);

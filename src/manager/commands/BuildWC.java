@@ -178,7 +178,7 @@ public class BuildWC extends EntityCommand {
         return null;
     }
     
-    public class BuildKernelTask extends AbstractTask<Void> {
+    class BuildKernelTask extends AbstractTask<Void> {
         
         private final Offshoot offshoot;
         Process process;
@@ -194,6 +194,11 @@ public class BuildWC extends EntityCommand {
         public BuildKernelTask(Offshoot offshoot) {
             super(Language.get(BuildWC.class.getSimpleName(), "command@kernel"));
             this.offshoot = offshoot;
+        }
+        
+        @Override
+        public boolean isPauseable() {
+            return true;
         }
 
         @Override
@@ -283,7 +288,10 @@ public class BuildWC extends EntityCommand {
                     }
 
                     @Override
-                    public void checkPaused() {}
+                    public void checkPaused() {
+                        BuildKernelTask.this.checkPaused();
+                    }
+                    
                 });
                 Runtime.getRuntime().addShutdownHook(hook);
                 addListener(new ITaskListener() {
@@ -311,7 +319,7 @@ public class BuildWC extends EntityCommand {
         public void finished(Void t) {}
     }
     
-    public class BuildSourceTask extends AbstractTask<Error> {
+    class BuildSourceTask extends AbstractTask<Error> {
         
         private final Offshoot offshoot;
         private final boolean  clean;
