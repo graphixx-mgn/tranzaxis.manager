@@ -50,15 +50,20 @@ public class RunAll extends EntityCommand {
                             @Override
                             public Void execute() throws Exception {
                                 entity.getLock().acquire();
-                                return super.execute();
+                                try {
+                                    return super.execute();
+                                } finally {
+                                    entity.getLock().release();
+                                }
                             }
 
                             @Override
                             public void finished(Void t) {
                                 super.finished(t);
-                                entity.getLock().release();
-                                TES.enqueueTask(((RunServer) entity.getCommand("server")).new RunServerTask((Environment) entity));
-                                TES.enqueueTask(((RunExplorer) entity.getCommand("explorer")).new RunExplorerTask((Environment) entity));
+                                if (!isCancelled()) {
+                                    TES.enqueueTask(((RunServer) entity.getCommand("server")).new RunServerTask((Environment) entity));
+                                    TES.enqueueTask(((RunExplorer) entity.getCommand("explorer")).new RunExplorerTask((Environment) entity));
+                                }
                             }
                         }
                     );

@@ -58,14 +58,19 @@ public class RunExplorer extends EntityCommand {
                             @Override
                             public Void execute() throws Exception {
                                 entity.getLock().acquire();
-                                return super.execute();
+                                try {
+                                    return super.execute();
+                                } finally {
+                                    entity.getLock().release();
+                                }
                             }
 
                             @Override
                             public void finished(Void t) {
                                 super.finished(t);
-                                entity.getLock().release();
-                                TES.enqueueTask(new RunExplorerTask((Environment) entity));
+                                if (!isCancelled()) {
+                                    TES.enqueueTask(new RunExplorerTask((Environment) entity));
+                                }
                             }
                         }
                     );
