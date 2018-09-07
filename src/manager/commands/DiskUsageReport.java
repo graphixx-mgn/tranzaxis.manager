@@ -301,7 +301,12 @@ public class DiskUsageReport extends EntityCommand {
                         (entity) -> {
                             return isDone() && entity.model.getValue("kind") != EntryKind.Sources;
                         }
-                ) {            
+                ) {
+                    @Override
+                    public boolean multiContextAllowed() {
+                        return true;
+                    }
+                    
                     @Override
                     public void execute(Entity entity, Map<String, IComplexType> map) {
                         long sizeBefore = Long.valueOf((String) entity.model.getValue("bytes"));
