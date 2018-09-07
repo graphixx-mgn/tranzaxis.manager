@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<xs:schema version="1.0"
+           xmlns="http://schemas.radixware.org/product.xsd"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified"
+           targetNamespace="http://schemas.radixware.org/product.xsd">
+    <xs:element name="Directory" type="Directory"/>
+    <xs:complexType name="Directory" mixed="false">
+        <xs:sequence>
+            <xs:element name="FileGroups">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="FileGroup" maxOccurs="unbounded">
+                            <xs:complexType>
+                                <xs:sequence>
+                                    <xs:element name="File" maxOccurs="unbounded">
+                                        <xs:complexType>
+                                            <xs:attribute name="Name" type="xs:string" use="required"/>
+                                        </xs:complexType>
+                                    </xs:element>
+                                </xs:sequence>
+                                    <xs:attribute name="GroupType" use="required">
+                                        <xs:simpleType>
+                                            <xs:restriction base="xs:string">
+                                                <xs:enumeration value="KernelCommon"/>
+                                                <xs:enumeration value="KernelServer"/>
+                                                <xs:enumeration value="KernelExplorer"/>
+                                                <xs:enumeration value="KernelWeb"/>
+                                                <xs:enumeration value="KernelDesigner"/>
+                                                <xs:enumeration value="KernelOther"/>
+                                                <xs:enumeration value="Dds"/>
+                                                <xs:enumeration value="AdsCommon"/>
+                                                <xs:enumeration value="AdsServer"/>
+                                                <xs:enumeration value="AdsExplorer"/>
+                                                <xs:enumeration value="AdsClient"/>
+                                                <xs:enumeration value="AdsWeb"/>
+                                            </xs:restriction>
+                                        </xs:simpleType>
+                                    </xs:attribute>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="Includes" minOccurs="0">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="Include" maxOccurs="unbounded">
+                            <xs:complexType>
+                                <xs:attribute name="FileName" type="xs:string" use="required"/>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>

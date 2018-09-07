@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<xs:schema version="1.0"
+           xmlns="http://schemas.radixware.org/product.xsd"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified"
+           targetNamespace="http://schemas.radixware.org/product.xsd">
+    <xs:element name="Release" type="Release"/>
+    <xs:complexType name="Release" mixed="false">
+        <xs:sequence>
+            <xs:element name="Branch">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="Layer" minOccurs="1" maxOccurs="unbounded">
+                            <xs:complexType>
+                                <xs:attribute name="Uri" type="xs:string"/>
+                                <xs:attribute name="BaseLayerURIs">
+                                    <xs:simpleType>
+                                        <xs:list itemType="xs:string"/>
+                                    </xs:simpleType>
+                                </xs:attribute>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="ReleaseNumber" type="xs:string" use="required"/>
+        <xs:attribute name="SrcBranch" type="xs:string" use="required"/>
+        <xs:attribute name="RepositoryRevision" type="xs:integer" use="required"/>
+        <xs:attribute name="PrevReleaseNumber" type="xs:string"/>
+    </xs:complexType>
+</xs:schema>
