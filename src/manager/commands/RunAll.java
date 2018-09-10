@@ -1,6 +1,10 @@
 package manager.commands;
 
 import codex.command.EntityCommand;
+import codex.config.ConfigStoreService;
+import codex.config.IConfigStoreService;
+import codex.explorer.ExplorerAccessService;
+import codex.explorer.IExplorerAccessService;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.task.ITaskExecutorService;
@@ -11,6 +15,7 @@ import codex.utils.Language;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import javax.swing.SwingUtilities;
 import manager.nodes.BinarySource;
 import manager.nodes.Environment;
 import manager.nodes.Release;
@@ -18,7 +23,9 @@ import manager.nodes.Release;
 
 public class RunAll extends EntityCommand {
     
-    private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
+    private final static IConfigStoreService    CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+    private static final ITaskExecutorService   TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
 
     public RunAll() {
         super(
@@ -47,13 +54,24 @@ public class RunAll extends EntityCommand {
                 if (!result) {
                     TES.executeTask(
                         release.new LoadCache(requiredLayers) {
+                            
+                            List<IConfigStoreService.ForeignLink> links = CAS.findReferencedEntries(source.getClass(), source.model.getID());
+                            
                             @Override
                             public Void execute() throws Exception {
-                                entity.getLock().acquire();
+                                links.forEach((link) -> {
+                                    try {
+                                        EAS.getEntity(Class.forName(link.entryClass), link.entryID).getLock().acquire();
+                                    } catch (ClassNotFoundException | InterruptedException e) {}
+                                });
                                 try {
                                     return super.execute();
                                 } finally {
-                                    entity.getLock().release();
+                                    links.forEach((link) -> {
+                                        try {
+                                            EAS.getEntity(Class.forName(link.entryClass), link.entryID).getLock().release();
+                                        } catch (ClassNotFoundException e) {}
+                                    });
                                 }
                             }
 
@@ -61,8 +79,10 @@ public class RunAll extends EntityCommand {
                             public void finished(Void t) {
                                 super.finished(t);
                                 if (!isCancelled()) {
-                                    TES.enqueueTask(((RunServer) entity.getCommand("server")).new RunServerTask((Environment) entity));
-                                    TES.enqueueTask(((RunExplorer) entity.getCommand("explorer")).new RunExplorerTask((Environment) entity));
+                                    SwingUtilities.invokeLater(() -> {
+                                        TES.enqueueTask(((RunServer) entity.getCommand("server")).new RunServerTask((Environment) entity));
+                                        TES.enqueueTask(((RunExplorer) entity.getCommand("explorer")).new RunExplorerTask((Environment) entity));
+                                    });
                                 }
                             }
                         }
