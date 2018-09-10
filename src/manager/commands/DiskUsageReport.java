@@ -199,6 +199,23 @@ public class DiskUsageReport extends EntityCommand {
                     ));
             
             final Map<String, List<Entry>> structureMap = new LinkedHashMap<>();
+            
+            if (binDir.exists()) {
+                Stream.of(binDir.listFiles()).forEach((repositoryDir) -> {
+                    if (!structureMap.containsKey(repositoryDir.getName())) {
+                        structureMap.put(repositoryDir.getName(), new LinkedList<>());
+                    }
+
+                    Integer repoId = repoIndex.entrySet().stream().filter((indexEntry) -> {
+                        return indexEntry.getValue().equals(repositoryDir.getName());
+                    }).findFirst().get().getKey();
+
+                    Stream.of(repositoryDir.listFiles()).forEach((cacheDir) -> {
+                        structureMap.get(repositoryDir.getName()).add(new Entry(EntryKind.Cache, repoId, cacheDir));
+                    });
+                });
+            }
+            
             if (srcDir.exists()) {
                 Stream.of(srcDir.listFiles()).forEach((repositoryDir) -> {
                     if (!structureMap.containsKey(repositoryDir.getName())) {
@@ -211,21 +228,6 @@ public class DiskUsageReport extends EntityCommand {
                     
                     Stream.of(repositoryDir.listFiles()).forEach((offshootDir) -> {
                         structureMap.get(repositoryDir.getName()).add(new Entry(EntryKind.Sources, repoId, offshootDir));
-                    });
-                });
-            }
-            if (binDir.exists()) {
-                Stream.of(binDir.listFiles()).forEach((repositoryDir) -> {
-                    if (!structureMap.containsKey(repositoryDir.getName())) {
-                        structureMap.put(repositoryDir.getName(), new LinkedList<>());
-                    }
-                    
-                    Integer repoId = repoIndex.entrySet().stream().filter((indexEntry) -> {
-                        return indexEntry.getValue().equals(repositoryDir.getName());
-                    }).findFirst().get().getKey();
-
-                    Stream.of(repositoryDir.listFiles()).forEach((cacheDir) -> {
-                        structureMap.get(repositoryDir.getName()).add(new Entry(EntryKind.Cache, repoId, cacheDir));
                     });
                 });
             }
@@ -286,8 +288,8 @@ public class DiskUsageReport extends EntityCommand {
                 table.getColumnModel().getColumn(0).setMaxWidth(130);
                 table.getColumnModel().getColumn(1).setPreferredWidth(100);
                 table.getColumnModel().getColumn(1).setMaxWidth(100);
-                table.getColumnModel().getColumn(3).setPreferredWidth(90);
-                table.getColumnModel().getColumn(3).setMaxWidth(90);
+                table.getColumnModel().getColumn(3).setPreferredWidth(100);
+                table.getColumnModel().getColumn(3).setMaxWidth(100);
                 
                 JScrollPane scrollPane = new JScrollPane(table);
                 
@@ -582,7 +584,7 @@ public class DiskUsageReport extends EntityCommand {
         return hrSize;
     }
     
-    private enum EntryKind implements Iconified {
+    private enum  EntryKind implements Iconified {
 
         Sources(Language.get(DiskUsageReport.class.getSimpleName(), "kind@sources"), ImageUtils.getByPath("/images/branch.png")),
         Cache(Language.get(DiskUsageReport.class.getSimpleName(), "kind@cache"), ImageUtils.getByPath("/images/release.png"));
@@ -741,9 +743,10 @@ public class DiskUsageReport extends EntityCommand {
             
             entity.model.setValue("bytes", (remain.get() - deleted.get())+"");
             
-            DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(directory.getPath()).getParent());
-            if (!dirStream.iterator().hasNext()) {
-                FileDeleteStrategy.NORMAL.delete(directory.getParentFile());
+            try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(directory.getPath()).getParent());) {
+                if (!dirStream.iterator().hasNext()) {
+                    directory.getParentFile().delete();
+                }
             }
             return null;
         }

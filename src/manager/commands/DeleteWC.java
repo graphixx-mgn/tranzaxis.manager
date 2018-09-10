@@ -159,10 +159,12 @@ public class DeleteWC extends EntityCommand {
                 }
             });
          
-            DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(wcPath).getParent());
-            if (!dirStream.iterator().hasNext()) {
-                FileDeleteStrategy.NORMAL.delete(new File(wcPath).getParentFile());
+            try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(wcPath).getParent());) {
+                if (!dirStream.iterator().hasNext()) {
+                    FileDeleteStrategy.NORMAL.delete(new File(wcPath).getParentFile());
+                }
             }
+            
             return null;
         }
 
