@@ -4,6 +4,7 @@ import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
+import codex.task.CancelException;
 import codex.type.EntityRef;
 import codex.type.Str;
 import codex.utils.ImageUtils;
@@ -45,6 +46,7 @@ import org.tmatesoft.svn.core.SVNNodeKind;
 
 public class Release extends BinarySource {
     
+    private final static ExecutorService   EXECUTOR = Executors.newFixedThreadPool(10);
     private final static Predicate<String> XML_PATTERN = Pattern.compile("^[^/]*.xml").asPredicate();
     private final static Pattern INCLUDE = Pattern.compile("Include FileName=\"(.*)\"");
     private final static Pattern FILE    = Pattern.compile("File Name=\"(.*)\"\\s");
@@ -110,21 +112,20 @@ public class Release extends BinarySource {
         return chain;
     }
     
-    private Map<String, String> getLayerPaths(List<String> layers) {
+    private Map<String, String> getLayerPaths(List<String> layers) throws SVNException {
         Map<String, String> map = new LinkedHashMap<>();
-        try {
-            List<SVNDirEntry> entries = SVN.list(getRemotePath(), null, null);
-            entries.stream()
-                .filter((dirEntry) -> (dirEntry.getKind() == SVNNodeKind.DIR && layers.contains(dirEntry.getName())))
-                .forEachOrdered((dirEntry) -> {
-                    map.put(
-                        dirEntry.getName(),
-                        getRemotePath()+"/"+dirEntry.getName()
-                    );
-                });
-        } catch (SVNException e) {
-            e.printStackTrace();
-        }
+//        try {
+        List<SVNDirEntry> entries = SVN.list(getRemotePath(), null, null);
+        entries.stream()
+            .filter((dirEntry) -> (dirEntry.getKind() == SVNNodeKind.DIR && layers.contains(dirEntry.getName())))
+            .forEachOrdered((dirEntry) -> {
+                map.put(
+                    dirEntry.getName(),
+                    getRemotePath()+"/"+dirEntry.getName()
+                );
+            });
+//        } catch (SVNException e) {
+//        }
         return map;
     }
     
@@ -247,7 +248,9 @@ public class Release extends BinarySource {
                         throw new Error(e.getMessage());
                     } catch (XmlException e) {}
                 });
-        } catch (InterruptedException e) {}
+        } catch (InterruptedException e) {
+            throw new CancelException();
+        }
     }
     
     private static <T> Predicate<T> distinctByKey(Function<? super T, Object> keyExtractor) {
@@ -308,8 +311,7 @@ public class Release extends BinarySource {
 
     public class LoadCache extends AbstractTask<Void> {
         
-        private final ExecutorService loadExecutor = Executors.newFixedThreadPool(10);
-        private final List<String>    requiredLayers;
+        private final List<String> requiredLayers;
         
         public LoadCache(List<String> requiredLayers) {
             super(MessageFormat.format(
@@ -323,7 +325,7 @@ public class Release extends BinarySource {
         public Void execute() throws Exception {
             setProgress(0, Language.get(Release.class.getSimpleName(), "cache@task.index"));
             Map<String, String> layerPaths = getLayerPaths(requiredLayers);
-            loadIndex(1, loadExecutor,
+            loadIndex(1, EXECUTOR,
                 layerPaths.entrySet().parallelStream()
                     .collect(Collectors.toMap(
                         entry -> getLocalPath()+File.separator+entry.getKey()+File.separator+"directory.xml",
@@ -338,12 +340,13 @@ public class Release extends BinarySource {
                         entry.getValue()+"/directory.xml"
                 ));
             });
-            loadGaps(loadExecutor, absentFiles);
+            loadGaps(EXECUTOR, absentFiles);
             return null;
         }
         
         private void loadGaps(ExecutorService executor, Map<String, String> mapLocalToRemote) {
             AtomicInteger current = new AtomicInteger(0);
+            String releaseBase = Release.this.getRemotePath();
             List<Callable<Map.Entry<String, String>>> callables = mapLocalToRemote.entrySet().parallelStream()
                     .map((pathEntry) -> {
                         return new Callable<Map.Entry<String, String>>() {
@@ -355,7 +358,7 @@ public class Release extends BinarySource {
                                         current.get() * 100 / mapLocalToRemote.size(), 
                                         MessageFormat.format(
                                                 Language.get(Release.class.getSimpleName(), "cache@task.progress"),
-                                                pathEntry.getValue()
+                                                pathEntry.getValue().replace(releaseBase, "")
                                         )
                                 );
                                 return new Pair<>(pathEntry.getKey(), pathEntry.getValue());
@@ -365,7 +368,9 @@ public class Release extends BinarySource {
 
             try {
                 executor.invokeAll(callables);
-            } catch (InterruptedException e) {}
+            } catch (InterruptedException e) {
+                throw new CancelException();
+            }
         }
 
         @Override
