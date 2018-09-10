@@ -2,6 +2,8 @@ package manager.nodes;
 
 import codex.database.RowSelector;
 import codex.editor.AbstractEditor;
+import codex.explorer.tree.INode;
+import codex.explorer.tree.INodeListener;
 import codex.mask.DataSetMask;
 import codex.model.Access;
 import codex.model.Entity;
@@ -28,7 +30,7 @@ import manager.svn.SVN;
 import manager.type.WCStatus;
 import org.apache.commons.io.IOUtils;
 
-public class Environment extends Entity {
+public class Environment extends Entity implements INodeListener {
     
     private final static Pattern PATTERN_DEV_URI = Pattern.compile(".*BaseDevUri=\"([a-z\\.]*)\".*");
     
@@ -129,6 +131,9 @@ public class Environment extends Entity {
         // Property settings
         release.setMandatory(model.getValue("offshoot") == null);
         offshoot.setMandatory(model.getValue("release") == null);
+        if (model.getValue("release") != null) {
+            ((Entity) model.getValue("release")).addNodeListener(this);
+        }
         
         // Editor settings
         model.addPropertyGroup(Language.get("group@database"), "database", "layerURI", "instanceId");
@@ -155,8 +160,22 @@ public class Environment extends Entity {
                     model.getEditor("instanceId").setVisible(newValue != null);
                     break;
                 case "release":
+                    Release oldRelease = (Release) oldValue;
+                    Release newRelease = (Release) newValue;
+                    if (oldValue != null) {
+                        oldRelease.removeNodeListener(this);
+                        if (oldRelease.islocked()) {
+                            getLock().release();
+                        }
+                    }
                     if (newValue != null) {
                         model.setValue("offshoot", null);
+                        newRelease.addNodeListener(this);
+                        if (newRelease.islocked()) {
+                            try {
+                                getLock().acquire();
+                            } catch (InterruptedException e) {}
+                        }
                     }
                     offshoot.setMandatory(newValue == null);
                     break;
@@ -174,7 +193,20 @@ public class Environment extends Entity {
         addCommand(new RunServer().setGroupId("run"));
         addCommand(new RunExplorer().setGroupId("run"));
     }
-    
+
+    @Override
+    public void childChanged(INode node) {
+        if (node instanceof Release) {
+            try {
+                if (((Release) node).islocked()) {
+                    getLock().acquire();
+                } else {
+                    getLock().release();
+                }
+            } catch (InterruptedException e) {}
+        }
+    }
+
     private String[] getBaseDevUri(Repository repo) {
         String devUri = null;
         
