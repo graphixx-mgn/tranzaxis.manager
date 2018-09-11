@@ -1,6 +1,8 @@
 package manager.commands;
 
 import codex.command.EntityCommand;
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.task.ITaskExecutorService;
@@ -9,12 +11,19 @@ import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.io.File;
-import java.util.List;
+import java.nio.file.Path;
+import java.text.MessageFormat;
+import java.util.LinkedList;
 import java.util.Map;
 import javax.swing.SwingUtilities;
 import manager.nodes.BinarySource;
 import manager.nodes.Environment;
 import manager.nodes.Release;
+import manager.nodes.Repository;
+import manager.svn.SVN;
+import org.tmatesoft.svn.core.SVNErrorCode;
+import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 
 
 public class RunAll extends EntityCommand {
@@ -44,15 +53,49 @@ public class RunAll extends EntityCommand {
                 
                 Release release = (Release) source;
                 String  topLayer = entity.model.getValue("layerURI").toString();
-                List<String> requiredLayers = release.getRequiredLayers(topLayer);
                 
-                
-                boolean result = requiredLayers.parallelStream().allMatch((layerName) -> {
+                String rootUrl = release.getRemotePath();
+                ISVNAuthenticationManager authMgr = ((Repository) release.model.getOwner()).getAuthManager();
+                boolean online = false;
+                try {
+                    if (SVN.checkConnection(rootUrl, authMgr)) {
+                        online = true;
+                    }
+                } catch (SVNException e) {
+                    SVNErrorCode code = e.getErrorMessage().getErrorCode();
+                    if (code != SVNErrorCode.RA_SVN_IO_ERROR && code != SVNErrorCode.RA_SVN_MALFORMED_DATA) {
+                        MessageBox.show(MessageType.ERROR, 
+                                MessageFormat.format(
+                                        Language.get(Repository.class.getSimpleName(), "error@message"),
+                                        ((Release) source).model.getOwner().model.getPID(),
+                                        e.getMessage()
+                                )
+                        );
+                        source.getLock().release();
+                    }
+                }
+                Map<String, Path> requiredLayers = release.getRequiredLayers(topLayer, online);
+                String lostLayer = requiredLayers.entrySet().stream().filter((entry) -> {
+                    return entry.getValue() == null;
+                }).map((entry) -> {
+                    return entry.getKey();
+                }).findFirst().orElse(null);
+                if (lostLayer != null) {
+                    MessageBox.show(MessageType.WARNING, 
+                            MessageFormat.format(Language.get("RunTX", "error@layer"), lostLayer)
+                    );
+                    source.getLock().release();
+                }
+                boolean checkResult = requiredLayers.keySet().parallelStream().allMatch((layerName) -> {
                     return Release.checkStructure(release.getLocalPath()+File.separator+layerName+File.separator+"directory.xml");
                 });
-                if (!result) {
-                    TES.executeTask(
-                        release.new LoadCache(requiredLayers) {
+                if (!checkResult) {
+                    if (!online) {
+                        MessageBox.show(MessageType.WARNING, Language.get("RunTX", "error@structure"));
+                        source.getLock().release();
+                    } else {
+                        TES.executeTask(
+                        release.new LoadCache(new LinkedList<>(requiredLayers.keySet())) {
                             
                             @Override
                             public Void execute() throws Exception {
@@ -62,7 +105,7 @@ public class RunAll extends EntityCommand {
                                     source.getLock().release();
                                 }
                             }
-
+                            
                             @Override
                             public void finished(Void t) {
                                 super.finished(t);
@@ -75,6 +118,7 @@ public class RunAll extends EntityCommand {
                             }
                         }
                     );
+                    }
                 } else {
                     source.getLock().release();
                     TES.enqueueTask(((RunServer) entity.getCommand("server")).new RunServerTask((Environment) entity));
