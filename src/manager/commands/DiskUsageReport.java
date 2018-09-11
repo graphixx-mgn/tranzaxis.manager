@@ -409,6 +409,11 @@ public class DiskUsageReport extends EntityCommand {
                                 easEntity.getClass(), 
                                 easEntity.model.getID()
                         );
+                        if (easEntity.islocked()) {
+                            try {
+                                newEntity.getLock().acquire();
+                            } catch (InterruptedException e) {}
+                        }
                     } else {
                         links = new LinkedList<>();
                     }
