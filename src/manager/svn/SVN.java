@@ -18,10 +18,7 @@ import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
 import org.tmatesoft.svn.core.SVNProperties;
 import org.tmatesoft.svn.core.SVNURL;
-import org.tmatesoft.svn.core.auth.BasicAuthenticationManager;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
-import org.tmatesoft.svn.core.auth.SVNAuthentication;
-import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
 import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
 import org.tmatesoft.svn.core.internal.wc.DefaultSVNOptions;
 import org.tmatesoft.svn.core.io.SVNRepository;
@@ -45,11 +42,26 @@ import org.tmatesoft.svn.core.wc2.SvnTarget;
 
 public class SVN {
     
-    public static SVNInfo info(String url, boolean remote, String user, String pass){
+    public static boolean checkConnection(String url, ISVNAuthenticationManager authMgr) throws SVNException {
+        SVNRepository repository = SVNRepositoryFactory.create(SVNURL.parseURIEncoded(url));
+        try {
+            repository.setAuthenticationManager(authMgr);
+            repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
+            repository.testConnection();
+            return true;
+        } catch (SVNException e) {
+            if (e.getErrorMessage().getErrorCode() == SVNErrorCode.RA_NOT_AUTHORIZED) {
+                return false;
+            } else {
+                throw e;
+            }
+        } finally {
+            repository.closeSession();
+        }
+    }
+    
+    public static SVNInfo info(String url, boolean remote, ISVNAuthenticationManager authMgr){
         SVNInfo info = null;
-        
-        final SVNAuthentication auth = new SVNPasswordAuthentication(user, pass, false);
-        final ISVNAuthenticationManager authMgr = new BasicAuthenticationManager(new SVNAuthentication[] { auth });
         final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
         
         try {
@@ -67,11 +79,8 @@ public class SVN {
         return info;
     }
     
-    public static List<SVNDirEntry> list(String url, String user, String pass) throws SVNException {
+    public static List<SVNDirEntry> list(String url, ISVNAuthenticationManager authMgr) throws SVNException {
         final List<SVNDirEntry> entries = new LinkedList<>();
-        
-        final SVNAuthentication auth = new SVNPasswordAuthentication(user, pass, false);
-        final ISVNAuthenticationManager authMgr = new BasicAuthenticationManager(new SVNAuthentication[] { auth });
         final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
         
         try {
@@ -80,22 +89,15 @@ public class SVN {
             client.doList(svnUrl, SVNRevision.HEAD, SVNRevision.HEAD, true, false, (entry) -> {
                 entries.add(entry);
             });
-        } catch (SVNException e) {
-            Logger.getLogger().warn("SVN operation ''list'' error: {0}", e.getErrorMessage());
-            throw e;
         } finally {
             clientMgr.dispose();
         }
         return entries;
     }
     
-    public static Long diff(String path, String url, SVNRevision revision, String user, String pass, ISVNEventHandler handler) throws SVNException {
+    public static Long diff(String path, String url, SVNRevision revision, ISVNAuthenticationManager authMgr, ISVNEventHandler handler) throws SVNException {
         AtomicLong changes = new AtomicLong(0);
-        
-        final SVNAuthentication auth = new SVNPasswordAuthentication(user, pass, false);
-        final ISVNAuthenticationManager authMgr = new BasicAuthenticationManager(new SVNAuthentication[] { auth });
         final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
-        
         final File localDir = new File(path);
         
         try {
@@ -172,11 +174,8 @@ public class SVN {
         return changes.get();
     }
     
-    public static void update(String url, String path, SVNRevision revision, String user, String pass, ISVNEventHandler handler) throws SVNException {
-        final SVNAuthentication auth = new SVNPasswordAuthentication(user, pass, false);
-        final ISVNAuthenticationManager authMgr = new BasicAuthenticationManager(new SVNAuthentication[] { auth });
+    public static void update(String url, String path, SVNRevision revision, ISVNAuthenticationManager authMgr, ISVNEventHandler handler) throws SVNException {
         final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
-        
         final SVNUpdateClient updateClient = clientMgr.getUpdateClient();
         updateClient.setIgnoreExternals(false);
         if (handler != null) {
@@ -212,47 +211,34 @@ public class SVN {
         } finally {
             clientMgr.dispose();
         }
+    }    
+    
+    public final static void export(String url, String path, ISVNAuthenticationManager authMgr) throws SVNException {
+        export(url, path, authMgr, null);
     }
     
-    public final static void export(String url, String path, String user, String pass) {
-        export(url, path, user, pass, null);
-    }
-    
-    public final static void export(String url, String path, String user, String pass, SVNDepth depth) {
-        final SVNAuthentication auth = new SVNPasswordAuthentication(user, pass, false);
-        final ISVNAuthenticationManager authMgr = new BasicAuthenticationManager(new SVNAuthentication[] { auth });
+    public final static void export(String url, String path, ISVNAuthenticationManager authMgr, SVNDepth depth) throws SVNException {
         final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
-        
         try {
             SVNURL svnUrl = SVNURL.parseURIEncoded(url);
             SVNUpdateClient client = clientMgr.getUpdateClient();
             client.doExport(svnUrl, new File(path), SVNRevision.HEAD, SVNRevision.HEAD, null, true, depth != null ? depth : SVNDepth.INFINITY);
-        } catch (SVNException e) {
-            Logger.getLogger().warn("SVN operation ''export'' error: {0}", e.getErrorMessage());
         } finally {
             clientMgr.dispose();
         }
     }
     
-    public final static InputStream readFile(String url, String path, String user, String pass) {
-        final SVNAuthentication auth = new SVNPasswordAuthentication(user, pass, false);
-        final ISVNAuthenticationManager authMgr = new BasicAuthenticationManager(new SVNAuthentication[] { auth });
-        
-        try {
-            SVNRepositoryFactoryImpl.setup();
-            SVNRepository repository = SVNRepositoryFactory.create(SVNURL.parseURIEncoded(url));
-            repository.setAuthenticationManager(authMgr);
-            repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
-            
-            SVNProperties properties = new SVNProperties();
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            repository.getFile(path, -1, properties, baos);
-            
-            return new ByteArrayInputStream(baos.toByteArray());
-        } catch (SVNException e) {
-            Logger.getLogger().warn("SVN operation ''read'' error: {0}", e.getErrorMessage());
-        }
-        return null;
+    public final static InputStream readFile(String url, String path, ISVNAuthenticationManager authMgr) throws SVNException {        
+        SVNRepositoryFactoryImpl.setup();
+        SVNRepository repository = SVNRepositoryFactory.create(SVNURL.parseURIEncoded(url));
+        repository.setAuthenticationManager(authMgr);
+        repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
+
+        SVNProperties properties = new SVNProperties();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        repository.getFile(path, -1, properties, baos);
+
+        return new ByteArrayInputStream(baos.toByteArray());
     }
     
 }
