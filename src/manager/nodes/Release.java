@@ -18,7 +18,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -42,6 +41,7 @@ import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 
 
 public class Release extends BinarySource {
@@ -50,6 +50,7 @@ public class Release extends BinarySource {
     private final static Predicate<String> XML_PATTERN = Pattern.compile("^[^/]*.xml").asPredicate();
     private final static Pattern INCLUDE = Pattern.compile("Include FileName=\"(.*)\"");
     private final static Pattern FILE    = Pattern.compile("File Name=\"(.*)\"\\s");
+    private final static Pattern LAYER   = Pattern.compile("\\sBaseLayerURIs=\"([\\w\\.]*)\"\\s");
 
     public Release(EntityRef parent, String title) {
         super(parent, ImageUtils.getByPath("/images/release.png"), title);
@@ -87,25 +88,50 @@ public class Release extends BinarySource {
         return wcPath.toString();
     }
     
-    public List<String> getRequiredLayers(String topLayer) {
-        InputStream in = SVN.readFile(getRemotePath(), "release.xml", null, null);
-        try {
-            ReleaseDocument releaseDoc = ReleaseDocument.Factory.parse(in);
-            manager.xml.Release.Branch.Layer[] layers = releaseDoc.getRelease().getBranch().getLayerArray();
-            return createLayerChain(layers, topLayer);
-        } catch (IOException | XmlException e) {
-            e.printStackTrace();
+    public Map<String, Path> getRequiredLayers(String topLayer, boolean online) {
+        if (online) {
+            try {
+                ISVNAuthenticationManager authMgr = ((Repository) model.getOwner()).getAuthManager();
+                InputStream in = SVN.readFile(getRemotePath(), "release.xml", authMgr);
+                ReleaseDocument releaseDoc = ReleaseDocument.Factory.parse(in);
+                manager.xml.Release.Branch.Layer[] layers = releaseDoc.getRelease().getBranch().getLayerArray();
+                return createLayerChain(layers, topLayer);
+            } catch (SVNException | XmlException | IOException e) {
+                return new LinkedHashMap<String, Path>(){{
+                    put(topLayer, null);
+                }};
+            }
+        } else {
+            return createLayerChain(topLayer);
         }
-        return null;
     }
     
-    private List<String> createLayerChain(manager.xml.Release.Branch.Layer[] layers, String nextLayer) {
-        List<String> chain = new LinkedList<>();
+    private Map<String, Path> createLayerChain(String nextLayer) {
+        Map<String, Path> chain = new LinkedHashMap<>();
+        Path layerDef = Paths.get(getLocalPath()+File.separator+nextLayer+File.separator+"layer.xml");
+        if (Files.exists(layerDef)) {
+            try {
+                chain.put(nextLayer, layerDef);
+                String content = new String(Files.readAllBytes(layerDef), Charset.forName("UTF-8"));
+                Matcher layerMatcher = LAYER.matcher(content);
+                if (layerMatcher.find()) {
+                    chain.putAll(createLayerChain(layerMatcher.group(1)));
+                }
+            } catch (IOException e) {}
+        } else {
+            chain.put(nextLayer, null);
+        }
+        return chain;
+    }
+    
+    private Map<String, Path> createLayerChain(manager.xml.Release.Branch.Layer[] layers, String nextLayer) {
+        Map<String, Path> chain = new LinkedHashMap<>();
         for (manager.xml.Release.Branch.Layer layer : layers) {
             if (layer.getUri().equals(nextLayer)) {
-                chain.add(layer.getUri());
+                Path layerDef = Paths.get(getLocalPath()+File.separator+nextLayer+File.separator+"layer.xml");
+                chain.put(layer.getUri(), layerDef);
                 if (!layer.getBaseLayerURIs().isEmpty()) {
-                    chain.addAll(createLayerChain(layers, (String) layer.getBaseLayerURIs().get(0)));
+                    chain.putAll(createLayerChain(layers, (String) layer.getBaseLayerURIs().get(0)));
                 }
             }
         }
@@ -114,8 +140,8 @@ public class Release extends BinarySource {
     
     private Map<String, String> getLayerPaths(List<String> layers) throws SVNException {
         Map<String, String> map = new LinkedHashMap<>();
-//        try {
-        List<SVNDirEntry> entries = SVN.list(getRemotePath(), null, null);
+        ISVNAuthenticationManager authMgr = ((Repository) model.getOwner()).getAuthManager();
+        List<SVNDirEntry> entries = SVN.list(getRemotePath(), authMgr);
         entries.stream()
             .filter((dirEntry) -> (dirEntry.getKind() == SVNNodeKind.DIR && layers.contains(dirEntry.getName())))
             .forEachOrdered((dirEntry) -> {
@@ -124,8 +150,6 @@ public class Release extends BinarySource {
                     getRemotePath()+"/"+dirEntry.getName()
                 );
             });
-//        } catch (SVNException e) {
-//        }
         return map;
     }
     
@@ -167,7 +191,7 @@ public class Release extends BinarySource {
         return false;
     }
     
-    private static void loadIndex(int level, ExecutorService executor, Map<String, String> mapLocalToRemote) {
+    private static void loadIndex(int level, ExecutorService executor, Map<String, String> mapLocalToRemote, ISVNAuthenticationManager authMgr) {
         List<Callable<Map.Entry<String, String>>> callables = mapLocalToRemote.entrySet().parallelStream()
                 .map((pathEntry) -> {
                     return new Callable<Map.Entry<String, String>>() {
@@ -177,8 +201,7 @@ public class Release extends BinarySource {
                                 SVN.export(
                                         pathEntry.getValue().substring(0, pathEntry.getValue().lastIndexOf("/")),
                                         Paths.get(pathEntry.getKey()).getParent().toString(), 
-                                        null, 
-                                        null,
+                                        authMgr,
                                         SVNDepth.FILES
                                 );
                             }
@@ -186,8 +209,7 @@ public class Release extends BinarySource {
                                 SVN.export(
                                         pathEntry.getValue(),
                                         Paths.get(pathEntry.getKey()).toString(), 
-                                        null, 
-                                        null,
+                                        authMgr, 
                                         SVNDepth.EMPTY
                                 );
                             }
@@ -221,7 +243,8 @@ public class Release extends BinarySource {
                                 ).collect(Collectors.toMap(
                                     fileName -> dirFile.getParentFile().getPath()+File.separator+fileName, 
                                     fileName -> loadedEntry.getValue().substring(0, loadedEntry.getValue().lastIndexOf("/"))+"/"+fileName 
-                                ))
+                                )),
+                                authMgr
                         );
 
                         // Load files
@@ -242,7 +265,8 @@ public class Release extends BinarySource {
                                         ).collect(Collectors.toMap(
                                             fileName ->  dirFile.getParentFile().getPath()+File.separator+fileName,
                                             fileName -> loadedEntry.getValue().substring(0, loadedEntry.getValue().lastIndexOf("/"))+"/"+fileName 
-                                        ))
+                                        )),
+                                authMgr
                         );
                     } catch (IOException e) {
                         throw new Error(e.getMessage());
@@ -330,7 +354,8 @@ public class Release extends BinarySource {
                     .collect(Collectors.toMap(
                         entry -> getLocalPath()+File.separator+entry.getKey()+File.separator+"directory.xml",
                         entry -> entry.getValue()+"/directory.xml"
-                    ))
+                    )),
+                ((Repository) model.getOwner()).getAuthManager()
             );
             setProgress(0, Language.get(Release.class.getSimpleName(), "cache@task.bins"));
             Map<String, String> absentFiles = new LinkedHashMap<>();

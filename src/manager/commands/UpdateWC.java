@@ -16,11 +16,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import javax.swing.SwingUtilities;
 import manager.nodes.Offshoot;
+import manager.nodes.Repository;
 import manager.svn.SVN;
 import manager.type.WCStatus;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.wc.ISVNEventHandler;
 import org.tmatesoft.svn.core.wc.SVNEvent;
 import org.tmatesoft.svn.core.wc.SVNEventAction;
@@ -71,8 +73,10 @@ public class UpdateWC extends EntityCommand {
             String repoUrl = offshoot.model.getOwner().model.getValue("repoUrl")+"/dev/"+offshoot.model.getPID();
                       
             setProgress(0, Language.get(UpdateWC.class.getSimpleName(), "command@calc"));
+            ISVNAuthenticationManager authMgr = ((Repository) offshoot.model.getOwner()).getAuthManager();
+            
             try {
-                Long changes = SVN.diff(wcPath, repoUrl, SVNRevision.HEAD, null, null, new ISVNEventHandler() {
+                Long changes = SVN.diff(wcPath, repoUrl, SVNRevision.HEAD, authMgr, new ISVNEventHandler() {
                     @Override
                     public void handleEvent(SVNEvent svne, double d) throws SVNException {}
 
@@ -98,7 +102,7 @@ public class UpdateWC extends EntityCommand {
                     AtomicInteger restored = new AtomicInteger(0);
                     AtomicInteger changed  = new AtomicInteger(0);
 
-                    SVN.update(repoUrl, wcPath, SVNRevision.HEAD, null, null, new ISVNEventHandler() {
+                    SVN.update(repoUrl, wcPath, SVNRevision.HEAD, authMgr, new ISVNEventHandler() {
                             @Override
                             public void handleEvent(SVNEvent event, double d) throws SVNException {
                                 if (event.getAction() != SVNEventAction.UPDATE_STARTED && event.getAction() != SVNEventAction.UPDATE_COMPLETED) {

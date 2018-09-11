@@ -29,6 +29,7 @@ import manager.commands.RunServer;
 import manager.svn.SVN;
 import manager.type.WCStatus;
 import org.apache.commons.io.IOUtils;
+import org.tmatesoft.svn.core.SVNException;
 
 public class Environment extends Entity implements INodeListener {
     
@@ -212,13 +213,13 @@ public class Environment extends Entity implements INodeListener {
         
         if (repo != null) {
             String repoUrl = repo.model.getValue("repoUrl").toString();
-            InputStream in = SVN.readFile(repoUrl, "config/repository.xml", null, null);
             try {
+                InputStream in = SVN.readFile(repoUrl, "config/repository.xml", repo.getAuthManager());
                 Matcher m = PATTERN_DEV_URI.matcher(IOUtils.toString(in, Charset.forName("UTF-8")));
                 if (m.find()) {
                     devUri = m.group(1);
                 }
-            } catch (IOException e) {
+            } catch (IOException | SVNException e) {
                 e.printStackTrace();
             }
         }

@@ -24,6 +24,7 @@ import manager.svn.SVN;
 import manager.type.BuildStatus;
 import manager.type.WCStatus;
 import org.radixware.kernel.common.repository.Branch;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.wc.SVNInfo;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
@@ -109,7 +110,8 @@ public class Offshoot extends BinarySource {
         } else if (!SVNWCUtil.isVersionedDirectory(localDir)) {
             status = WCStatus.Invalid;
         } else {
-            SVNInfo info = SVN.info(wcPath, false, null, null);
+            ISVNAuthenticationManager authMgr = ((Repository) model.getOwner()).getAuthManager();
+            SVNInfo info = SVN.info(wcPath, false, authMgr);
             if (
                     info == null || 
                     info.getCommittedDate() == null || 
@@ -127,13 +129,15 @@ public class Offshoot extends BinarySource {
     
     public final SVNRevision getRevision(boolean remote) {
         String wcPath = remote ? getRemotePath(): getLocalPath();
-        SVNInfo info = SVN.info(wcPath, remote, null, null);
+        ISVNAuthenticationManager authMgr = ((Repository) model.getOwner()).getAuthManager();
+        SVNInfo info = SVN.info(wcPath, remote, authMgr);
         return info.getCommittedRevision();
     }
     
     public final Date getRevisionDate(boolean remote) {
         String wcPath = remote ? getRemotePath() : getLocalPath();
-        SVNInfo info = SVN.info(wcPath, remote, null, null);
+        ISVNAuthenticationManager authMgr = ((Repository) model.getOwner()).getAuthManager();
+        SVNInfo info = SVN.info(wcPath, remote, authMgr);
         return info.getCommittedDate();
     }
     
@@ -146,23 +150,4 @@ public class Offshoot extends BinarySource {
         }
     }
     
-    public final static WCStatus getStatus(File dir) {
-        if (!dir.exists()) {
-            return WCStatus.Absent;
-        } else if (!SVNWCUtil.isVersionedDirectory(dir)) {
-            return WCStatus.Invalid;
-        } else {
-            SVNInfo info = SVN.info(dir.getPath(), false, null, null);
-            if (
-                    info == null || 
-                    info.getCommittedDate() == null || 
-                    info.getCommittedRevision() == null ||
-                    info.getCommittedRevision() == SVNRevision.UNDEFINED
-            ) {
-                return WCStatus.Interrupted;
-            } else {
-                return WCStatus.Succesfull;
-            }
-        }
-    }
 }

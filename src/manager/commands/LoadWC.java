@@ -1,9 +1,13 @@
 package manager.commands;
 
 import codex.command.EntityCommand;
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
 import codex.explorer.tree.INode;
+import codex.model.Access;
 import codex.model.Catalog;
 import codex.model.Entity;
+import codex.model.EntityModel;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.task.ITaskExecutorService;
@@ -16,6 +20,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
 import manager.nodes.Development;
@@ -24,6 +29,7 @@ import manager.nodes.Repository;
 import manager.svn.SVN;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 
 
 public class LoadWC extends EntityCommand {
@@ -55,11 +61,17 @@ public class LoadWC extends EntityCommand {
 
     @Override
     public void execute(Entity entity, Map<String, IComplexType> map) {      
-        boolean locked = ((Repository) entity).model.getValue("locked") == Boolean.TRUE;
+        AtomicBoolean locked = new AtomicBoolean(((Repository) entity).model.getValue("locked") == Boolean.TRUE);
         if (getContext() == null) {
-            locked = !locked;
+            locked.set(!locked.get());
         }
-        if (!locked) {
+        entity.model.getProperties(Access.Edit).stream()
+                .filter((propName) -> {
+                    return !propName.equals(EntityModel.PID);
+                }).forEach((propName) -> {
+                    entity.model.getEditor(propName).setEditable(locked.get());
+                });
+        if (!locked.get()) {
             load(entity);
         } else {
             unload(entity);
@@ -83,13 +95,18 @@ public class LoadWC extends EntityCommand {
     
     private void switchLock(Entity entity, boolean locked) {
         entity.setMode((locked ? INode.MODE_ENABLED : INode.MODE_NONE) + INode.MODE_SELECTABLE);
-        entity.model.getEditor("repoUrl").setEditable(!locked);
+        entity.model.getProperties(Access.Edit).stream()
+                .filter((propName) -> {
+                    return !propName.equals(EntityModel.PID);
+                }).forEach((propName) -> {
+                    entity.model.getEditor(propName).setEditable(!locked);
+                });
         entity.model.setValue("locked", locked);
         entity.model.commit();
         entity.getLock().release();
     }
     
-    private class LoadTask extends AbstractTask<Void> {
+    private class LoadTask extends AbstractTask<Boolean> {
         
         final Repository repo;
 
@@ -102,35 +119,63 @@ public class LoadWC extends EntityCommand {
         }
 
         @Override
-        public Void execute() throws Exception {
+        public Boolean execute() throws Exception {
             String rootUrl = (String) repo.model.getValue("repoUrl");
-            String svnUser = (String) repo.model.getValue("svnUser");
-            String svnPass = (String) repo.model.getValue("svnPass");
-            
+            ISVNAuthenticationManager authMgr = repo.getAuthManager();
             try {
-                boolean valid = SVN.list(rootUrl, svnUser, svnPass).stream().map((entry) -> {
-                    return entry.getName();
-                }).collect(Collectors.toList()).containsAll(DIRS);
+                if (SVN.checkConnection(rootUrl, authMgr)) {
+                    boolean valid = SVN.list(rootUrl, authMgr).stream().map((entry) -> {
+                        return entry.getName();
+                    }).collect(Collectors.toList()).containsAll(DIRS);
                 
-                if (!valid) {
-                    throw new UnsupportedOperationException(Language.get(Repository.class.getSimpleName(), "error@invalid"));
+                    if (!valid) {
+                        MessageBox.show(MessageType.ERROR, 
+                                MessageFormat.format(
+                                        Language.get(Repository.class.getSimpleName(), "error@message"),
+                                        repo.model.getPID(),
+                                        MessageFormat.format(
+                                            Language.get(Repository.class.getSimpleName(), "error@invalid"),
+                                            DIRS.stream().collect(Collectors.joining(", "))
+                                        )
+                                )
+                        );
+                        return false;
+                    } else {
+                        repo.insert(new Development(repo.toRef()));
+                        repo.insert(new ReleaseList(repo.toRef()));
+                        return true;
+                    }
                 } else {
-                    repo.insert(new Development(repo.toRef()));
-                    repo.insert(new ReleaseList(repo.toRef()));
+                    MessageBox.show(MessageType.WARNING, 
+                            MessageFormat.format(
+                                    Language.get(Repository.class.getSimpleName(), "error@message"),
+                                    repo.model.getPID(),
+                                    Language.get(Repository.class.getSimpleName(), "error@auth")
+                            )
+                    );
+                    return false;
                 }
             } catch (SVNException e) {
-                if (e.getErrorMessage().getErrorCode().getCode() != SVNErrorCode.RA_SVN_MALFORMED_DATA.getCode()) {
-                    throw new UnsupportedOperationException(Language.get(Repository.class.getSimpleName(), "error@svnerr"));
-                } else {
+                SVNErrorCode code = e.getErrorMessage().getErrorCode();
+                if (code == SVNErrorCode.RA_SVN_IO_ERROR || code == SVNErrorCode.RA_SVN_MALFORMED_DATA) {
                     repo.insert(new Development(repo.toRef()));
+                    return true;
+                } else {
+                    MessageBox.show(MessageType.ERROR, 
+                            MessageFormat.format(
+                                    Language.get(Repository.class.getSimpleName(), "error@message"),
+                                    repo.model.getPID(),
+                                    e.getMessage()
+                            )
+                    );
+                    return false;
                 }
             }
-            return null;
         }
 
         @Override
-        public void finished(Void result) {
-            switchLock(repo, true);
+        public void finished(Boolean result) {
+            switchLock(repo, result);
         }
     
     }
