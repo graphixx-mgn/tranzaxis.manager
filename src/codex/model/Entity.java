@@ -6,6 +6,7 @@ import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
+import codex.editor.IEditor;
 import codex.explorer.tree.AbstractNode;
 import codex.explorer.tree.INode;
 import codex.log.Logger;
@@ -80,7 +81,15 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 ownerRef,
                 this.getClass(), 
                 PID
-        );
+        ) {
+            @Override
+            public IEditor getEditor(String name) {
+                IEditor editor = super.getEditor(name);
+                editor.setEditable(!islocked());
+                return editor;
+            }
+            
+        };
         this.model.addChangeListener(this);
         this.model.addModelListener(new IModelListener() {
             @Override

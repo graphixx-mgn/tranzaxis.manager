@@ -407,6 +407,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())
             ));
             
+            confirmBtn.setEnabled(getButton().getIcon().equals(IMAGE_EDIT));
+            
             Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
                     getIcon(),

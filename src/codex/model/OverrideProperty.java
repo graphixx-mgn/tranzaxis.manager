@@ -113,9 +113,4 @@ public class OverrideProperty extends EditorCommand {
         switcher.accept(context);
     }
 
-    @Override
-    public boolean disableWithContext() {
-        return false;
-    }
-
 }
