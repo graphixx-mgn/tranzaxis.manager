@@ -42,9 +42,11 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
+import org.apache.log4j.Appender;
 import org.apache.log4j.Level;
 import org.apache.log4j.spi.Filter;
 import org.apache.log4j.spi.LoggingEvent;
+import org.apache.log4j.varia.LevelMatchFilter;
 
 public class LogUnit extends AbstractUnit implements WindowStateListener {
     
@@ -238,6 +240,27 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
                 if (filterButtons.containsKey(level.log4jLevel)) {
                     filterButtons.get(level.log4jLevel).setChecked(enable);
                     LogUnit.this.paneAppender.toggleLevel(level.log4jLevel, enable);
+                    
+                    Appender appender;
+                    switch (level) {
+                        case Debug:
+                        case Info:
+                            appender = Logger.getRootLogger().getAppender("INFO");
+                            break;
+                        case Warn:
+                            appender = Logger.getRootLogger().getAppender("WARN");
+                            break;
+                        case Error:
+                            appender = Logger.getRootLogger().getAppender("ERR");
+                            break;
+                        default:
+                            return;
+                    }
+                    LevelMatchFilter filter = (LevelMatchFilter) appender.getFilter();
+                    while (!filter.getLevelToMatch().equals(level.getSysLevel().toString())) {
+                        filter = (LevelMatchFilter) filter.getNext();
+                    }
+                    filter.setAcceptOnMatch(enable);
                 }
             });
         }

@@ -21,6 +21,10 @@ public enum Level implements Iconified {
         this.icon  = icon;
     }
     
+    public org.apache.log4j.Level getSysLevel() {
+        return log4jLevel;
+    }
+    
     @Override
     public ImageIcon getIcon() {
         return icon;
