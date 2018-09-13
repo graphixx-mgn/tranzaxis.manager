@@ -1,6 +1,9 @@
 package codex.presentation;
 
 import codex.command.EntityCommand;
+import codex.editor.AbstractEditor;
+import codex.explorer.tree.INode;
+import codex.explorer.tree.INodeListener;
 import codex.model.Access;
 import codex.model.Entity;
 import java.awt.BorderLayout;
@@ -44,6 +47,19 @@ public final class EditorPresentation extends JPanel {
         if (!entity.model.getProperties(Access.Edit).isEmpty() || !commands.isEmpty()) {
             commandPanel.setVisible(!commands.isEmpty());
             add(commandPanel, BorderLayout.NORTH);
+            
+            entity.addNodeListener(new INodeListener() {
+                
+                @Override
+                public void childChanged(INode node) {
+                    Entity changed = (Entity) node;
+                    changed.model.getProperties(Access.Edit).stream().filter((propName) -> {
+                        return !changed.model.isPropertyDynamic(propName);
+                    }).forEach((propName) -> {
+                        ((AbstractEditor) changed.model.getEditor(propName)).setLocked(changed.islocked());
+                    });
+                }
+            });
             add(new EditorPage(entity.model), BorderLayout.CENTER);
         } else {
             setVisible(false);
