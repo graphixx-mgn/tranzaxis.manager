@@ -240,9 +240,6 @@ public class BuildWC extends EntityCommand {
             command.add(offshoot.getLocalPath());
 
             final ProcessBuilder builder = new ProcessBuilder(command);
-            builder.redirectInput(ProcessBuilder.Redirect.INHERIT);
-            builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-            builder.redirectError(ProcessBuilder.Redirect.INHERIT);
             if (currentJar.isFile()) {
                 builder.directory(currentJar.getParentFile());
             } else {
@@ -383,9 +380,6 @@ public class BuildWC extends EntityCommand {
             command.add(clean ? "1" : "0");
             
             final ProcessBuilder builder = new ProcessBuilder(command);
-            builder.redirectInput(ProcessBuilder.Redirect.INHERIT);
-            builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-            builder.redirectError(ProcessBuilder.Redirect.INHERIT);
             if (currentJar.isFile()) {
                 builder.directory(currentJar.getParentFile());
             } else {
