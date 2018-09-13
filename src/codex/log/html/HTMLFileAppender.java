@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Scanner;
 import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.Layout;
 import org.apache.log4j.spi.LoggingEvent;
 
 /**
@@ -17,8 +18,11 @@ import org.apache.log4j.spi.LoggingEvent;
  */
 public class HTMLFileAppender extends AppenderSkeleton {
     
+    private final static String LOG_PATH = java.lang.System.getProperty("user.home") + "/.manager.tranzaxis/manager.html";
+    
     private String           fileName;
     private FileOutputStream fileStream;
+    
     
     /**
      * Get file defined in the .properties file
@@ -26,6 +30,16 @@ public class HTMLFileAppender extends AppenderSkeleton {
      */
     public String getFile() {
         return fileName;
+    }
+
+    @Override
+    public void setLayout(Layout layout) {
+        super.setLayout(layout);
+        try {
+            setFile(LOG_PATH);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
     
     /**
