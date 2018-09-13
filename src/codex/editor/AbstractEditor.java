@@ -30,6 +30,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     private final JLabel label;
     protected Box        editor;
     private boolean      editable = true;
+    private boolean      locked   = false;
     
     protected final PropertyHolder propHolder;
     protected final List<ICommand<PropertyHolder>> commands = new LinkedList<>();
@@ -105,9 +106,17 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         setBorder(BORDER_NORMAL);
     }
     
+    public void setLocked(boolean locked) {
+        this.locked = locked;
+        setEditable(isEditable());
+        super.updateUI();
+    }
+    
     @Override
     public void setEditable(boolean editable) {
-        this.editable = editable;
+        if (!locked) {
+            this.editable = editable;
+        }
         commands.stream().filter((command) -> {
             return command.disableWithContext();
         }).forEach((command) -> {
@@ -120,7 +129,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     
     @Override
     public final boolean isEditable() {
-        return editable;
+        return editable && !locked;
     }
     
     @Override

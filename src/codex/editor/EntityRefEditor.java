@@ -49,12 +49,16 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
         super(propHolder);
         propHolder.addChangeListener((String name, Object oldValue, Object newValue) -> {
             if (newValue instanceof IComplexType) {
+                comboBox.removeActionListener(this);
                 comboBox.removeAllItems();
+                
                 comboBox.addItem(new NullValue());
                 for (Object item : getValues()) {
                     comboBox.addItem(item);
                 }
                 comboBox.setSelectedItem(comboBox.getItemAt(0));
+                
+                comboBox.addActionListener(this);
             }
         });
     }
