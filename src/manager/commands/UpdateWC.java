@@ -152,7 +152,10 @@ public class UpdateWC extends EntityCommand {
                             wcPath, added.get(), deleted.get(), restored.get(), changed.get(), loaded.get()
                     );
                 } else {
-                    Logger.getLogger().info("No need to update working copy: {0}", wcPath);
+                    Logger.getLogger().info(
+                            "UPDATE [{0}] finished. working copy already actual", 
+                            new Object[]{wcPath}
+                    );
                 }
             } catch (SVNException e) {
                 Optional<Throwable> rootCause = Stream
@@ -160,7 +163,7 @@ public class UpdateWC extends EntityCommand {
                         .filter(element -> element.getCause() == null)
                         .findFirst();
                 if (rootCause.get() instanceof SVNCancelException || rootCause.get() instanceof ClosedChannelException) {
-                    Logger.getLogger().warn(
+                    Logger.getLogger().info(
                             "UPDATE [{0}] canceled", 
                             new Object[]{wcPath}
                     );
