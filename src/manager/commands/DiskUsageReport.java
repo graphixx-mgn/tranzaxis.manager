@@ -8,6 +8,7 @@ import codex.config.IConfigStoreService;
 import codex.editor.IEditor;
 import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
+import codex.log.Logger;
 import codex.model.Access;
 import codex.model.Catalog;
 import codex.model.Entity;
@@ -499,8 +500,12 @@ public class DiskUsageReport extends EntityCommand {
             }).sum();
             
             // Calc entries size
+            StringBuilder logBuilder = new StringBuilder();
+            logBuilder.append("Working directory usage report\n");
             AtomicLong processed = new AtomicLong(0);
             structureStream.get().forEach((repoEntry) -> {
+                
+                logBuilder.append("                     [").append(repoEntry.getKey()).append("]\n");
                 repoEntry.getValue().stream().forEach((entry) -> {
                     AtomicLong dirSize = new AtomicLong(0);
                     if (isCancelled()) {
@@ -546,6 +551,15 @@ public class DiskUsageReport extends EntityCommand {
                         if (entryEntity.model.getValue("used") == Boolean.FALSE) {
                             totalFree.addAndGet(dirSize.get());
                         }
+                        logBuilder
+                                .append("                     - ")
+                                .append(entryEntity.model.getValue("used") == Boolean.TRUE ? "(+) " : "(-) ")
+                                .append(entry.dir.getName())
+                                .append("\n                           Type: ")
+                                .append(entry.kind.title)
+                                .append("\n                           Size: ")
+                                .append(formatFileSize(dirSize.get()))
+                                .append("\n");
                         total.setText(MessageFormat.format(
                                 Language.get(DiskUsageReport.class.getSimpleName(), "task@total"), 
                                 formatFileSize(totalSize.get()),
@@ -556,6 +570,7 @@ public class DiskUsageReport extends EntityCommand {
                     }
                 });
             });
+            Logger.getLogger().info(logBuilder);
             return null;
         }
 
