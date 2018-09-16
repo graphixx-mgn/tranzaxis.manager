@@ -4,6 +4,7 @@ import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.explorer.tree.INode;
+import codex.log.Logger;
 import codex.model.Access;
 import codex.model.Catalog;
 import codex.model.Entity;
@@ -19,6 +20,7 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -143,31 +145,44 @@ public class LoadWC extends EntityCommand {
                     } else {
                         repo.insert(new Development(repo.toRef()));
                         repo.insert(new ReleaseList(repo.toRef()));
+                        Logger.getLogger().info("Repository ''{0}'' loaded in ONLINE mode", repo);
                         return true;
                     }
                 } else {
-                    MessageBox.show(MessageType.WARNING, 
-                            MessageFormat.format(
-                                    Language.get(Repository.class.getSimpleName(), "error@message"),
-                                    repo.model.getPID(),
-                                    Language.get(Repository.class.getSimpleName(), "error@auth")
-                            )
-                    );
+                    if (getContext() == null) {
+                        Logger.getLogger().warn(
+                                "Repository ''{0}'' not loaded. Reason: {1}", repo, 
+                                Language.get(Repository.class.getSimpleName(), "error@auth", Locale.ENGLISH)
+                        );
+                    } else {
+                        MessageBox.show(MessageType.WARNING, 
+                                MessageFormat.format(
+                                        Language.get(Repository.class.getSimpleName(), "error@message"),
+                                        repo.model.getPID(),
+                                        Language.get(Repository.class.getSimpleName(), "error@auth")
+                                )
+                        );
+                    }
                     return false;
                 }
             } catch (SVNException e) {
                 SVNErrorCode code = e.getErrorMessage().getErrorCode();
                 if (code == SVNErrorCode.RA_SVN_IO_ERROR || code == SVNErrorCode.RA_SVN_MALFORMED_DATA) {
                     repo.insert(new Development(repo.toRef()));
+                    Logger.getLogger().warn("Repository ''{0}'' loaded in OFFLINE mode", repo);
                     return true;
                 } else {
-                    MessageBox.show(MessageType.ERROR, 
-                            MessageFormat.format(
-                                    Language.get(Repository.class.getSimpleName(), "error@message"),
-                                    repo.model.getPID(),
-                                    e.getMessage()
-                            )
-                    );
+                    if (getContext() == null) {
+                        Logger.getLogger().warn("Repository ''{0}'' not loaded. Reason: {1}", repo, e.getErrorMessage().getMessage());
+                    } else {
+                        MessageBox.show(MessageType.ERROR, 
+                                MessageFormat.format(
+                                        Language.get(Repository.class.getSimpleName(), "error@message"),
+                                        repo.model.getPID(),
+                                        e.getMessage()
+                                )
+                        );
+                    }
                     return false;
                 }
             }
