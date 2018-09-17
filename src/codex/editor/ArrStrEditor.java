@@ -97,6 +97,15 @@ public class ArrStrEditor extends AbstractEditor {
         } else {
             addCommand(new ArrStrEditor.ListEditor());
         }
+        
+        textField.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                if (event.getClickCount() == 2) {
+                    commands.get(0).execute(propHolder);
+                }
+            }
+        });
 
         Box container = new Box(BoxLayout.X_AXIS);
         container.setBackground(textField.getBackground());
