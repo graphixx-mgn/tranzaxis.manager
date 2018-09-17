@@ -4,9 +4,13 @@ import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.database.IDatabaseAccessService;
 import codex.database.OracleAccessService;
+import codex.explorer.tree.INode;
+import codex.log.Logger;
 import codex.mask.RegexMask;
 import codex.model.Access;
 import codex.model.Entity;
+import codex.model.EntityModel;
+import codex.model.IModelListener;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
@@ -15,6 +19,7 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.function.Function;
 import manager.commands.CheckDatabase;
 
@@ -81,8 +86,52 @@ public class Database extends Entity {
         model.addUserProp("dbPass",   new Str(null), true, Access.Select);
         model.addUserProp("userNote", new Str(null), false, null);
         
+        // Handlers
+        model.addModelListener(new IModelListener() {
+            @Override
+            public void modelSaved(EntityModel model, List<String> changes) {
+                if (changes.contains("dbUrl") || changes.contains("dbSchema") || changes.contains("dbPass")) {
+                    startService();
+                }
+            }
+        });
+        
         // Commands
         addCommand(new CheckDatabase());
+    }
+
+    @Override
+    public void setParent(INode parent) {
+        super.setParent(parent);
+        startService();
+    }
+    
+//    @Override
+//    public void modelSaved(EntityModel model, List<String> changes) {
+//        super.modelSaved(model, changes);
+//        if (changes.contains("dbUrl")) {
+//            activate();
+//        }
+//    }
+    
+    private void startService() {
+        String url  = (String) model.getUnsavedValue("dbUrl");
+        String user = (String) model.getUnsavedValue("dbSchema"); 
+        String pass = (String) model.getUnsavedValue("dbPass");
+        if (user != null && pass != null && CheckDatabase.checkUrlPort(url)) {
+            Thread preload = new Thread(() -> {
+                try {
+                    Database.DAS.registerConnection("jdbc:oracle:thin:@//"+url, user, pass);
+                    Logger.getLogger().info("Registered connection for database ''{0}''", this);
+                } catch (SQLException e) {
+                    Logger.getLogger().warn(
+                            "Unable to register connection for database ''{0}'': {1}",
+                            this, e.getMessage()
+                    );
+                }
+            });
+            preload.start();
+        }
     }
     
     public Integer getConnectionID(boolean showError) {

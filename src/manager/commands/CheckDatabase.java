@@ -1,14 +1,12 @@
 package manager.commands;
 
 import codex.command.EntityCommand;
-import codex.log.Logger;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import codex.utils.NetTools;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -33,12 +31,6 @@ public class CheckDatabase extends EntityCommand {
                 if (dbUrl != null) {
                     if (checkUrlPort(dbUrl)) {
                         getButton().setIcon(ACTIVE);
-                        startService(
-                                entities[0],
-                                "jdbc:oracle:thin:@//"+dbUrl, 
-                                (String) entities[0].model.getUnsavedValue("dbSchema"), 
-                                (String) entities[0].model.getUnsavedValue("dbPass")
-                        );
                     } else {
                         getButton().setIcon(PASSIVE);
                     }
@@ -83,19 +75,6 @@ public class CheckDatabase extends EntityCommand {
             }
         } else {
             return false;
-        }
-    }
-    
-    private void startService(Entity context,  String url, String user, String password) {
-        if (!IComplexType.coalesce(user, password, "").isEmpty()) {
-            try {
-                Database.DAS.registerConnection(url, user, password);
-            } catch (SQLException e) {
-                Logger.getLogger().warn(
-                        "Unable to connect to database ''{0}'': {1}",
-                        context, e.getMessage()
-                );
-            }
         }
     }
     
