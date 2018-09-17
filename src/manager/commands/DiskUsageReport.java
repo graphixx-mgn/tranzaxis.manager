@@ -555,9 +555,9 @@ public class DiskUsageReport extends EntityCommand {
                                 .append("                     - ")
                                 .append(entryEntity.model.getValue("used") == Boolean.TRUE ? "(+) " : "(-) ")
                                 .append(entry.dir.getName())
-                                .append("\n                           Type: ")
+                                .append(" / Type: ")
                                 .append(entry.kind.title)
-                                .append("\n                           Size: ")
+                                .append(" / Size: ")
                                 .append(formatFileSize(dirSize.get()))
                                 .append("\n");
                         total.setText(MessageFormat.format(
@@ -570,6 +570,7 @@ public class DiskUsageReport extends EntityCommand {
                     }
                 });
             });
+            logBuilder.append("                     Total: ").append(formatFileSize(totalSize.get()));
             Logger.getLogger().info(logBuilder);
             return null;
         }
