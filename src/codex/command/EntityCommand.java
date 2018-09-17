@@ -267,6 +267,16 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     }
 
     @Override
+    public void modelRestored(EntityModel model, List<String> changes) {
+        activate();
+    }
+
+    @Override
+    public void modelSaved(EntityModel model, List<String> changes) {
+        activate();
+    }
+
+    @Override
     public final Entity[] getContext() {
         return context;
     }
