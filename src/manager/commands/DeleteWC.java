@@ -116,7 +116,6 @@ public class DeleteWC extends EntityCommand {
 
             setProgress(0, Language.get(DeleteWC.class.getSimpleName(), "command@calc"));
             long totalFiles = Files.walk(Paths.get(wcPath)).count();
-            Logger.getLogger().info("Total number of files/directories in working copy ''{0}'': {1}", new Object[] {wcPath, totalFiles});
 
             AtomicInteger processed = new AtomicInteger(0);
             Files.walkFileTree(Paths.get(wcPath), new SimpleFileVisitor<Path>() {
