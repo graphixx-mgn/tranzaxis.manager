@@ -26,6 +26,8 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -272,9 +274,27 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 
                 @Override
                 public Dimension getPreferredSize() {
-                    return new Dimension(550, super.getPreferredSize().height);
+                    return new Dimension(650, super.getPreferredSize().height);
                 }
             };
+            
+            newEntity.model.getProperties(Access.Edit).stream()
+                    .map((propName) -> {
+                        return newEntity.model.getEditor(propName);
+                    }).forEach((propEditor) -> {
+                        propEditor.getEditor().addComponentListener(new ComponentAdapter() {
+                            @Override
+                            public void componentHidden(ComponentEvent e) {
+                                editor.pack();
+                            }
+
+                            @Override
+                            public void componentShown(ComponentEvent e) {
+                                editor.pack();
+                            }
+                        });
+                    });
+            
             editor.setResizable(false);
             editor.setVisible(true);
         }
@@ -363,9 +383,27 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 
                 @Override
                 public Dimension getPreferredSize() {
-                    return new Dimension(550, super.getPreferredSize().height);
+                    return new Dimension(650, super.getPreferredSize().height);
                 }
             };
+            
+            newEntity.model.getProperties(Access.Edit).stream()
+                    .map((propName) -> {
+                        return newEntity.model.getEditor(propName);
+                    }).forEach((propEditor) -> {
+                        propEditor.getEditor().addComponentListener(new ComponentAdapter() {
+                            @Override
+                            public void componentHidden(ComponentEvent e) {
+                                editor.pack();
+                            }
+
+                            @Override
+                            public void componentShown(ComponentEvent e) {
+                                editor.pack();
+                            }
+                        });
+                    });
+            
             editor.setResizable(false);
             editor.setVisible(true);
         }
@@ -440,9 +478,27 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 
                 @Override
                 public Dimension getPreferredSize() {
-                    return new Dimension(550, super.getPreferredSize().height);
+                    return new Dimension(650, super.getPreferredSize().height);
                 }
             };
+            
+            context.model.getProperties(Access.Edit).stream()
+                    .map((propName) -> {
+                        return context.model.getEditor(propName);
+                    }).forEach((propEditor) -> {
+                        propEditor.getEditor().addComponentListener(new ComponentAdapter() {
+                            @Override
+                            public void componentHidden(ComponentEvent e) {
+                                editor.pack();
+                            }
+
+                            @Override
+                            public void componentShown(ComponentEvent e) {
+                                editor.pack();
+                            }
+                        });
+                    });
+            
             editor.setResizable(false);
             editor.setVisible(true);
         }
