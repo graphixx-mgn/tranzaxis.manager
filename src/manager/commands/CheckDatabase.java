@@ -27,7 +27,7 @@ public class CheckDatabase extends EntityCommand {
         
         activator = (entities) -> {
             if (entities != null && entities.length > 0 && !(entities.length > 1 && !multiContextAllowed())) {
-                String dbUrl = (String) entities[0].model.getUnsavedValue("dbUrl");
+                String dbUrl = (String) entities[0].model.getValue("dbUrl");
                 if (dbUrl != null) {
                     if (checkUrlPort(dbUrl)) {
                         getButton().setIcon(ACTIVE);

@@ -4,13 +4,10 @@ import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.database.IDatabaseAccessService;
 import codex.database.OracleAccessService;
-import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.mask.RegexMask;
 import codex.model.Access;
 import codex.model.Entity;
-import codex.model.EntityModel;
-import codex.model.IModelListener;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
@@ -19,44 +16,55 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.sql.SQLException;
 import java.text.MessageFormat;
-import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
+import java.util.regex.Pattern;
+import javax.swing.ImageIcon;
 import manager.commands.CheckDatabase;
 
 public class Database extends Entity {
     
+    private final static ImageIcon       ONLINE  = ImageUtils.getByPath("/images/database_active.png");
+    private final static ImageIcon       OFFLINE = ImageUtils.getByPath("/images/database_passive.png");
+    
+    private final static Pattern         INET_ADDRESS = Pattern.compile("([\\d\\.]+|[^\\s]+):(\\d+)/");
     public static IDatabaseAccessService DAS;
+    
     static {
         ServiceRegistry.getInstance().registerService(OracleAccessService.getInstance());
         DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
     }
     
     private final Function<Boolean, Integer> connectionGetter = (showError) -> {
-        if (IComplexType.notNull(
-                model.getUnsavedValue("dbUrl"), 
-                model.getUnsavedValue("dbSchema"), 
-                model.getUnsavedValue("dbPass")
-            )
-        ) {
-            String dbUrl = (String) model.getUnsavedValue("dbUrl");
-            if (!CheckDatabase.checkUrlPort(dbUrl)) {
+        String url  = (String) model.getUnsavedValue("dbUrl");
+        String user = (String) model.getUnsavedValue("dbSchema"); 
+        String pass = (String) model.getUnsavedValue("dbPass");
+        
+        if (IComplexType.notNull(url, user, pass)) {
+            if (!CheckDatabase.checkUrlPort(url)) {
                 if (showError) {
                     MessageBox.show(MessageType.WARNING, MessageFormat.format(
                             Language.get(Database.class.getSimpleName(), "error@unavailable"),
-                            dbUrl.substring(0, dbUrl.indexOf("/"))
+                            url.substring(0, url.indexOf("/"))
                     ));
+                } else {
+                    Logger.getLogger().warn(
+                            Language.get(Database.class.getSimpleName(), "error@unavailable", Locale.US),
+                            url.substring(0, url.indexOf("/"))
+                    );
                 }
                 return null;
             }
             try {
-                return DAS.registerConnection(
-                        "jdbc:oracle:thin:@//"+dbUrl, 
-                        (String) model.getUnsavedValue("dbSchema"), 
-                        (String) model.getUnsavedValue("dbPass")
-                );
+                return Database.DAS.registerConnection("jdbc:oracle:thin:@//"+url, user, pass);
             } catch (SQLException e) {
                 if (showError) {
                     MessageBox.show(MessageType.ERROR, e.getMessage());
+                } else {
+                    Logger.getLogger().warn(
+                            "Unable to open connection for database ''{0}'': {1}",
+                            this, e.getMessage()
+                    );
                 }
             }
         } else {
@@ -65,14 +73,18 @@ public class Database extends Entity {
                         MessageType.WARNING, 
                         Language.get(Database.class.getSimpleName(), "error@notready")
                 );
+            } else {
+                Logger.getLogger().warn(
+                        Language.get(Database.class.getSimpleName(), "error@notready", Locale.US)
+                );
             }
         }
         return null;
     };
-
+    
     public Database(EntityRef parent, String title) {
         super(parent, ImageUtils.getByPath("/images/database.png"), title, null);
-        
+
         // Properties
         model.addUserProp("dbUrl", 
                 new Str(null).setMask(new RegexMask(
@@ -86,52 +98,8 @@ public class Database extends Entity {
         model.addUserProp("dbPass",   new Str(null), true, Access.Select);
         model.addUserProp("userNote", new Str(null), false, null);
         
-        // Handlers
-        model.addModelListener(new IModelListener() {
-            @Override
-            public void modelSaved(EntityModel model, List<String> changes) {
-                if (changes.contains("dbUrl") || changes.contains("dbSchema") || changes.contains("dbPass")) {
-                    startService();
-                }
-            }
-        });
-        
         // Commands
         addCommand(new CheckDatabase());
-    }
-
-    @Override
-    public void setParent(INode parent) {
-        super.setParent(parent);
-        startService();
-    }
-    
-//    @Override
-//    public void modelSaved(EntityModel model, List<String> changes) {
-//        super.modelSaved(model, changes);
-//        if (changes.contains("dbUrl")) {
-//            activate();
-//        }
-//    }
-    
-    private void startService() {
-        String url  = (String) model.getUnsavedValue("dbUrl");
-        String user = (String) model.getUnsavedValue("dbSchema"); 
-        String pass = (String) model.getUnsavedValue("dbPass");
-        if (user != null && pass != null && CheckDatabase.checkUrlPort(url)) {
-            Thread preload = new Thread(() -> {
-                try {
-                    Database.DAS.registerConnection("jdbc:oracle:thin:@//"+url, user, pass);
-                    Logger.getLogger().info("Registered connection for database ''{0}''", this);
-                } catch (SQLException e) {
-                    Logger.getLogger().warn(
-                            "Unable to register connection for database ''{0}'': {1}",
-                            this, e.getMessage()
-                    );
-                }
-            });
-            preload.start();
-        }
     }
     
     public Integer getConnectionID(boolean showError) {
