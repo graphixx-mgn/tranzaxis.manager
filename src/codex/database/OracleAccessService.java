@@ -1,5 +1,6 @@
 package codex.database;
 
+import codex.log.Logger;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -51,11 +52,13 @@ public class OracleAccessService implements IDatabaseAccessService {
 
                     urlToIdMap.put(PID, SEQ.incrementAndGet());
                     idToPoolMap.put(SEQ.get(), pds);
+                    Logger.getLogger().debug("OAS: Registered new connection: URL={0}, User={1}", url, user);
                     return SEQ.get();
                 } catch (SQLException e) {
                     throw new SQLException(getCause(e).getMessage().trim());
                 }
             } else {
+                Logger.getLogger().debug("OAS: Connection already exists: URL={0}, User={1}", url, user);
                 return urlToIdMap.get(PID);
             }
         }
