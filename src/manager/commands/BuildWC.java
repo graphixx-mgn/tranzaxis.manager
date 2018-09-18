@@ -238,8 +238,12 @@ public class BuildWC extends EntityCommand {
 
             command.add(uid.toString());
             command.add(offshoot.getLocalPath());
-
+            
             final ProcessBuilder builder = new ProcessBuilder(command);
+            File temp = File.createTempFile("build_trace", ".tmp", new File(offshoot.getLocalPath()));
+            temp.deleteOnExit();
+            builder.redirectError(temp);
+            builder.redirectOutput(temp);
             if (currentJar.isFile()) {
                 builder.directory(currentJar.getParentFile());
             } else {
@@ -380,6 +384,10 @@ public class BuildWC extends EntityCommand {
             command.add(clean ? "1" : "0");
             
             final ProcessBuilder builder = new ProcessBuilder(command);
+            File temp = File.createTempFile("build_trace", ".tmp", new File(offshoot.getLocalPath()));
+            temp.deleteOnExit();
+            builder.redirectError(temp);
+            builder.redirectOutput(temp);
             if (currentJar.isFile()) {
                 builder.directory(currentJar.getParentFile());
             } else {
