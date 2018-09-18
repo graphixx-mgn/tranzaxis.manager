@@ -36,7 +36,7 @@ import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 
 public class RunExplorer extends EntityCommand {
     
-    private static final ITaskExecutorService   TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
+    private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
 
     public RunExplorer() {
         super(
@@ -45,7 +45,7 @@ public class RunExplorer extends EntityCommand {
                 ImageUtils.resize(ImageUtils.getByPath("/images/explorer.png"), 28, 28), 
                 Language.get("RunTX", "explorer@title"), 
                 (entity) -> {
-                    return entity.model.isValid();
+                    return ((Environment) entity).canStartExplorer();
                 }
         );
     }

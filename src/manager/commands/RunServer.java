@@ -46,7 +46,7 @@ public class RunServer extends EntityCommand {
                 ImageUtils.resize(ImageUtils.getByPath("/images/server.png"), 28, 28), 
                 Language.get("RunTX", "server@title"), 
                 (entity) -> {
-                    return entity.model.isValid();
+                    return ((Environment) entity).canStartServer();
                 }
         );
     }
