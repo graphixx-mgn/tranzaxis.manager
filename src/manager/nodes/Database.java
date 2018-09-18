@@ -18,16 +18,10 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.function.Function;
-import java.util.regex.Pattern;
-import javax.swing.ImageIcon;
 import manager.commands.CheckDatabase;
 
 public class Database extends Entity {
-    
-    private final static ImageIcon       ONLINE  = ImageUtils.getByPath("/images/database_active.png");
-    private final static ImageIcon       OFFLINE = ImageUtils.getByPath("/images/database_passive.png");
-    
-    private final static Pattern         INET_ADDRESS = Pattern.compile("([\\d\\.]+|[^\\s]+):(\\d+)/");
+   
     public static IDatabaseAccessService DAS;
     
     static {
