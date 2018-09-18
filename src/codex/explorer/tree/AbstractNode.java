@@ -43,10 +43,14 @@ public abstract class AbstractNode implements INode {
     @Override
     public final void setMode(int mode) {
         this.mode = mode;
+        fireChangeEvent();
+    };
+    
+    protected final void fireChangeEvent() {
         new LinkedList<>(nodeListeners).forEach((listener) -> {
             listener.childChanged(this);
         });
-    };
+    }
     
     @Override
     public final List<INode> getPath() {
@@ -119,9 +123,7 @@ public abstract class AbstractNode implements INode {
                 @Override
                 public void acquire() throws InterruptedException {
                     super.acquire();
-                    new LinkedList<>(nodeListeners).forEach((listener) -> {
-                        listener.childChanged(AbstractNode.this);
-                    });
+                    fireChangeEvent();
                 }
                 
                 @Override
@@ -129,9 +131,7 @@ public abstract class AbstractNode implements INode {
                     if (availablePermits() == 0) {
                         // Avoid extra releases that increases permits counter
                         super.release();
-                        new LinkedList<>(nodeListeners).forEach((listener) -> {
-                            listener.childChanged(AbstractNode.this);
-                        });
+                        fireChangeEvent();
                     }
                 }
             };
