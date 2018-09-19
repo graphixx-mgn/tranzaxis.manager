@@ -245,9 +245,10 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                             );
                             newEntity.model.addModelListener(tableModel);
                             newEntity.model.addChangeListener((name, oldValue, newValue) -> {
-                                if (newEntity.model.isPropertyDynamic(name)) {
+                                List<String> selectorProps = newEntity.model.getProperties(Access.Select);
+                                if (newEntity.model.isPropertyDynamic(name) && selectorProps.contains(name)) {
                                     final int entityIdx = tableModel.getRowCount() - 1;
-                                    int propIdx = newEntity.model.getProperties(Access.Select).indexOf(name);
+                                    int propIdx = selectorProps.indexOf(name);
                                     tableModel.setValueAt(newValue, entityIdx, propIdx);
                                 }
                             });
@@ -354,9 +355,11 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                             );
                             newEntity.model.addModelListener(tableModel);
                             newEntity.model.addChangeListener((name, oldValue, newValue) -> {
-                                if (newEntity.model.isPropertyDynamic(name)) {
+                                List<String> selectorProps = newEntity.model.getProperties(Access.Select);
+                                if (newEntity.model.isPropertyDynamic(name) && selectorProps.contains(name)) {
                                     final int entityIdx = tableModel.getRowCount() - 1;
-                                    int propIdx = newEntity.model.getProperties(Access.Select).indexOf(name);
+                                    int propIdx = selectorProps.indexOf(name);
+                                    System.err.println(newEntity.model.getProperties(Access.Select));
                                     tableModel.setValueAt(newValue, entityIdx, propIdx);
                                 }
                             });
