@@ -89,11 +89,6 @@ public final class TaskManager extends AbstractUnit {
                 thread.setName(name);
             }
         });
-        if (!quiet) {
-            SwingUtilities.invokeLater(() -> {
-                taskDialog.setVisible(true);
-            });
-        }
     }
     
     public class TaskExecutorService implements ITaskExecutorService {

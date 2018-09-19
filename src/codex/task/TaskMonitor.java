@@ -161,6 +161,8 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
         threadTableModel.addColumn(Language.get("thread@status"));
         threadTable.setRowHeight((int) (threadTable.getRowHeight() * 1.3));
         threadTable.getColumnModel().getColumn(0).setMaxWidth(40);
+        threadTable.getColumnModel().getColumn(1).setMinWidth(230);
+        threadTable.getColumnModel().getColumn(1).setMaxWidth(230);
         threadTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
 
         JScrollPane threadScrollPane = new JScrollPane(threadTable);

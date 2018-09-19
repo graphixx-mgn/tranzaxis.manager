@@ -8,11 +8,12 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Window;
 import java.awt.event.ActionListener;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
@@ -41,7 +42,37 @@ class TaskDialog extends Dialog implements ITaskListener {
     
     private final JPanel viewPort;
     private final JPanel viewPanel;
-    final Map<ITask, AbstractTaskView> taskRegistry = new HashMap<>();
+    final Map<ITask, AbstractTaskView> taskRegistry = new ConcurrentHashMap<ITask, AbstractTaskView>() {
+        
+        @Override
+        public AbstractTaskView put(ITask key, AbstractTaskView view) {
+            viewPanel.add(view);
+            super.put(key, view);
+            SwingUtilities.invokeLater(() -> {
+                setVisible(size() > 0);
+            });
+            return view;
+        }
+
+        @Override
+        public void clear() {
+            super.clear();
+            SwingUtilities.invokeLater(() -> {
+                setVisible(false);
+            });
+        }
+
+        @Override
+        public AbstractTaskView remove(Object key) {
+            AbstractTaskView view = super.remove(key);
+            SwingUtilities.invokeLater(() -> {
+                setVisible(size() != 0);
+            });
+            return view;
+        }
+        
+        
+    };
     
     /**
      * Конструктор окна.
@@ -85,7 +116,6 @@ class TaskDialog extends Dialog implements ITaskListener {
                 statusChanged(null, null);
             }
         }));
-        viewPanel.add(taskRegistry.get(task));
         task.addListener(this);
     }
     
@@ -93,15 +123,8 @@ class TaskDialog extends Dialog implements ITaskListener {
      * Очистка окна.
      */
     void clear() {
-        viewPanel.removeAll();
         taskRegistry.clear();
-    }
-    
-    @Override
-    public void setVisible(boolean visible) {
-        pack();
-        setMinimumSize(getPreferredSize());
-        super.setVisible(visible);
+        viewPanel.removeAll();
     }
 
     @Override
@@ -118,8 +141,14 @@ class TaskDialog extends Dialog implements ITaskListener {
         
         if (ready) {
             clear();
-            setVisible(false);
         }
+    }
+    
+    @Override
+    public void setVisible(boolean visible) {
+        try {
+            super.setVisible(visible);
+        } catch (Throwable e) {}
     }
     
 }

@@ -214,7 +214,6 @@ public class Dialog extends JDialog {
                 preventDefault = false;
             }
         });
-        pack();
     }
     
     /**
