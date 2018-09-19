@@ -3,6 +3,7 @@ package codex.task;
 import codex.log.Logger;
 import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
+import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
@@ -40,7 +41,13 @@ public final class TaskManager extends AbstractUnit {
                     taskDialog.clear();
                 }
             }
-    );
+    ) {
+        @Override
+        public void setLocationRelativeTo(Component c) {
+            super.setLocationRelativeTo(SwingUtilities.getWindowAncestor(getViewport()));
+        }
+    
+    };
     
     public TaskManager() {
         Logger.getLogger().debug("Initialize unit: Task Manager");
