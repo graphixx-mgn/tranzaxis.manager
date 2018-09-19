@@ -6,6 +6,7 @@ import codex.component.messagebox.MessageType;
 import codex.config.ConfigStoreService;
 import codex.explorer.ExplorerUnit;
 import codex.explorer.tree.NodeTreeModel;
+import codex.launcher.LauncherUnit;
 import codex.log.ILogMgmtService;
 import codex.log.LogUnit;
 import codex.log.Logger;
@@ -33,6 +34,7 @@ import manager.type.Locale;
 import manager.ui.Splash;
 import manager.ui.Window;
 import org.apache.log4j.Level;
+import sun.util.logging.PlatformLogger;
 
 public class Manager {
     
@@ -49,9 +51,12 @@ public class Manager {
     private final Window window;
     private final AbstractUnit 
             logUnit, updateUnit, explorerUnit, 
-            /*launchUnit, serviceUnit,*/ taskUnit;
+            launchUnit, /*serviceUnit,*/ taskUnit;
     
     public Manager() {
+        PlatformLogger platformLogger = PlatformLogger.getLogger("java.util.prefs");
+        platformLogger.setLevel(PlatformLogger.Level.OFF);
+
         window = new Window("TranzAxis Manager", ImageUtils.getByPath("/images/project.png"));
         Splash splash = new Splash();
         splash.setVisible(true);
@@ -78,8 +83,8 @@ public class Manager {
         root.insert(bases);
         root.insert(envs);
         
-//        splash.setProgress(70, "Start Launcher unit");
-//        launchUnit = new LauncherUnit();
+        splash.setProgress(70, "Start Launcher unit");
+        launchUnit = new LauncherUnit();
         
 //        splash.setProgress(80, "Start service management system");
 //        serviceUnit = new ServiceUnit();
@@ -95,7 +100,7 @@ public class Manager {
         window.addUnit(logUnit,      window.loggingPanel);
         window.addUnit(updateUnit,   window.upgradePanel);
         window.addUnit(explorerUnit, window.explorePanel);
-        //window.addUnit(launchUnit,   window.launchPanel);
+        window.addUnit(launchUnit,   window.launchPanel);
         //window.addUnit(serviceUnit,  window.servicePanel);
         window.addUnit(taskUnit,     window.taskmgrPanel);
         splash.setProgress(100);
