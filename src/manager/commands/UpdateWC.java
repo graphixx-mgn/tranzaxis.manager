@@ -168,10 +168,7 @@ public class UpdateWC extends EntityCommand {
                             new Object[]{wcPath}
                     );
                 } else {
-                    Logger.getLogger().warn(
-                            "UPDATE [{0}] failed: {1}", 
-                            wcPath, e.getMessage()
-                    );
+                    throw e;
                 }
             }
             return null;
