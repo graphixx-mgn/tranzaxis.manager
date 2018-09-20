@@ -60,8 +60,8 @@ public class RunServer extends EntityCommand {
                     source.getLock().acquire();
                 } catch (InterruptedException e) {}
                 
-                Release release = (Release) source;
-                String  topLayer = entity.model.getValue("layerURI").toString();
+                Release release  = (Release) source;
+                String  topLayer = (String) entity.model.getValue("layerURI");
                 
                 String rootUrl = release.getRemotePath();
                 ISVNAuthenticationManager authMgr = ((Repository) release.model.getOwner()).getAuthManager();
@@ -178,7 +178,7 @@ public class RunServer extends EntityCommand {
 
             // Starter arguments
             command.add("-workDir="+source.getLocalPath());
-            command.add("-topLayerUri="+((List<String>) env.model.getValue("layerURI")).get(0));
+            command.add("-topLayerUri="+env.model.getValue("layerURI"));
             command.add("-disableHardlinks");
             command.add("-showSplashScreen=Server: "+env+" ("+source.model.getPID()+")");
             command.add("org.radixware.kernel.server.Server");
