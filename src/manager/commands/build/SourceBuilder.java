@@ -15,6 +15,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.prefs.Preferences;
 import java.util.regex.Matcher;
@@ -39,7 +43,6 @@ import org.radixware.kernel.common.enums.EDefType;
 import org.radixware.kernel.common.enums.ERuntimeEnvironmentType;
 import org.radixware.kernel.common.repository.Branch;
 import org.radixware.kernel.common.repository.Layer;
-import org.radixware.kernel.common.repository.Modules;
 import org.radixware.kernel.common.repository.ads.AdsSegment;
 import org.radixware.kernel.common.types.Id;
 
@@ -61,52 +64,62 @@ public class SourceBuilder {
                     if (layer.isReadOnly()) return;
                     
                     AdsSegment segment = (AdsSegment) layer.getAds();
-                    Modules<AdsModule> ms = segment.getModules();
-                    
-                    for (AdsModule module : segment.getModules()) {
-                        if (module.isUnderConstruction()) {
-                            continue;
-                        }
+                    segment.getModules().list().parallelStream().filter((module) -> {
+                        return !module.isUnderConstruction();
+                    }).forEachOrdered((module) -> {
                         if (!modulesIndex.containsKey(module.getId())) {
                             modulesIndex.put(module.getId(), module);
                         }
-                    }
+                    });
+                    
                     defsIndex.clear();
-                    modulesIndex.values().stream().map((module) -> {
-                        AdsModule m = (AdsModule) module;
-                        try {
-                            while (m != null) {
-                                if (!m.isReadOnly()) {
-                                    if (!m.getLayer().isLocalizing()) {
-                                        final AdsLocalizingBundleDef moduleBundle = ((AdsModule) module).findExistingLocalizingBundle();
-                                        if (moduleBundle != null) {
-                                            if (!defsIndex.containsKey(moduleBundle.getId())) {
-                                                defsIndex.put(moduleBundle.getId(), moduleBundle);
-                                            }
-                                        }
-                                        for (AdsDefinition def : m.getDefinitions()) {
-                                            if (!defsIndex.containsKey(def.getId())) {
-                                                defsIndex.put(def.getId(), def);
-                                            }
-                                            if (def.getDefinitionType() != EDefType.LOCALIZING_BUNDLE) {
-                                                AdsLocalizingBundleDef bundle = def.findExistingLocalizingBundle();
-                                                if (bundle != null) {
-                                                    if (!defsIndex.containsKey(bundle.getId())) {
-                                                        defsIndex.put(bundle.getId(), bundle);
+                    
+                    ExecutorService executor = Executors.newCachedThreadPool();
+                    executor.invokeAll(modulesIndex.values().parallelStream().map((module) -> {
+                        return new Callable<Void>() {
+                            @Override
+                            public Void call() throws Exception {
+                                AdsModule m = (AdsModule) module;
+                                try {
+                                    while (m != null) {
+                                        if (!m.isReadOnly()) {
+                                            if (!m.getLayer().isLocalizing()) {
+                                                final AdsLocalizingBundleDef moduleBundle = ((AdsModule) module).findExistingLocalizingBundle();
+                                                if (moduleBundle != null) {
+                                                    if (!defsIndex.containsKey(moduleBundle.getId())) {
+                                                        defsIndex.put(moduleBundle.getId(), moduleBundle);
+                                                    }
+                                                }
+                                                for (AdsDefinition def : m.getDefinitions()) {
+                                                    if (!defsIndex.containsKey(def.getId())) {
+                                                        defsIndex.put(def.getId(), def);
+                                                    }
+                                                    if (def.getDefinitionType() != EDefType.LOCALIZING_BUNDLE) {
+                                                        AdsLocalizingBundleDef bundle = def.findExistingLocalizingBundle();
+                                                        if (bundle != null) {
+                                                            if (!defsIndex.containsKey(bundle.getId())) {
+                                                                defsIndex.put(bundle.getId(), bundle);
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
+                                        m = m.findOverwritten();
                                     }
+                                } catch (Throwable e) {
+                                    e.printStackTrace();
                                 }
-                                m = m.findOverwritten();
+                                return null;
                             }
-                        } catch (Throwable e) {
+                        };
+                    }).collect(Collectors.toList())).stream().forEachOrdered((future) -> {
+                        try {
+                            future.get();
+                            result.addAll(defsIndex.values());
+                        } catch (ExecutionException | InterruptedException e) {
                             e.printStackTrace();
                         }
-                        return module;
-                    }).forEachOrdered((item) -> {
-                        result.addAll(defsIndex.values());
                     });
                 } catch (Throwable e) {
                     e.printStackTrace();
@@ -145,28 +158,14 @@ public class SourceBuilder {
                 checkedDefinitions.forEach((context) -> {
                     context.visit(collector, visitor);
                 });
-
-                Map<Module, List<Definition>> modules = new HashMap<>();
-                for (RadixObject ro : collector.get()) {
+                totalModules.addAndGet(collector.get().parallelStream().map((ro) -> {
                     Definition definition = (Definition) ro;
                     if (definition instanceof Module) {
-                        Module module = (Module) definition;
-                        if (!modules.containsKey(module)) {
-                            modules.put(module, null);
-                        }
-                        continue;
+                        return definition;
+                    } else {
+                        return definition.getModule();
                     }
-
-                    Module module = definition.getModule();
-                    List<Definition> list = modules.get(module);
-                    if (list == null) {
-
-                        list = new ArrayList<>();
-                        modules.put(module, list);
-                    }
-                    list.add(definition);
-                }
-                totalModules.addAndGet(modules.size());
+                }).collect(Collectors.toSet()).size());
             });
             return totalModules.get();
         } catch (Throwable e) {
