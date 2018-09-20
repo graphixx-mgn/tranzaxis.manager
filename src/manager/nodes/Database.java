@@ -22,11 +22,10 @@ import manager.commands.CheckDatabase;
 
 public class Database extends Entity {
    
-    public static IDatabaseAccessService DAS;
+    private static IDatabaseAccessService DAS = OracleAccessService.getInstance();
     
     static {
-        ServiceRegistry.getInstance().registerService(OracleAccessService.getInstance());
-        DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
+        ServiceRegistry.getInstance().registerService(DAS);
     }
     
     private final Function<Boolean, Integer> connectionGetter = (showError) -> {
@@ -39,12 +38,12 @@ public class Database extends Entity {
                 if (showError) {
                     MessageBox.show(MessageType.WARNING, MessageFormat.format(
                             Language.get(Database.class.getSimpleName(), "error@unavailable"),
-                            url.substring(0, url.indexOf("/"))
+                            model.getPID(), url.substring(0, url.indexOf("/"))
                     ));
                 } else {
                     Logger.getLogger().warn(
                             Language.get(Database.class.getSimpleName(), "error@unavailable", Locale.US),
-                            url.substring(0, url.indexOf("/"))
+                            model.getPID(), url.substring(0, url.indexOf("/"))
                     );
                 }
                 return null;
