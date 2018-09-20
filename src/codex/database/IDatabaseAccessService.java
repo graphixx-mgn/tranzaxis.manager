@@ -1,8 +1,14 @@
 package codex.database;
 
 import codex.service.IService;
+import codex.type.EntityRef;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.MessageFormat;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Интерфейс сервиса взаимодействия с базой данных.
@@ -35,6 +41,36 @@ public interface IDatabaseAccessService extends IService {
     @Override
     default String getTitle() {
         return "Database Access Service";
+    }
+    
+    public static String prepareTraceSQL(String sql, Object... values) {
+        AtomicInteger index = new AtomicInteger(-1);
+        Object[] flattened = flatten(values).toArray();
+        String pattern = sql
+                .toUpperCase()
+                .chars()
+                .mapToObj((code) -> {
+                    String symbol = String.valueOf((char) code);
+                    if ("?".equals(symbol)) {
+                        index.addAndGet(1);
+                        if (flattened[index.get()] == null || flattened[index.get()].toString().isEmpty()) {
+                            symbol = "(NULL)";
+                        } else if (flattened[index.get()] instanceof EntityRef) {
+                            symbol = "("+((EntityRef) flattened[index.get()]).getValue()+")";
+                        } else {
+                            symbol = "''{"+index.get()+"}''";
+                        }
+                    }
+                    return symbol;
+                })
+                .collect(Collectors.joining());
+        return MessageFormat.format(pattern, flattened);
+    }
+    
+    public static Stream<Object> flatten(Object[] array) {
+        return Arrays
+                .stream(array)
+                .flatMap(o -> o instanceof Object[]? flatten((Object[])o): Stream.of(o));
     }
     
 }

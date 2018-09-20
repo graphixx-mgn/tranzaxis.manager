@@ -1,5 +1,6 @@
 package codex.config;
 
+import codex.database.IDatabaseAccessService;
 import codex.log.Logger;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
@@ -23,8 +24,6 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.sqlite.JDBC;
 import org.sqlite.core.Codes;
 
@@ -414,7 +413,7 @@ public final class ConfigStoreService implements IConfigStoreService {
             final String[] parts   = properties.keySet().toArray(new String[]{});
             
             final String updateSQL = "UPDATE "+className+" SET "+String.join(" = ?, ", parts)+" = ? WHERE ID = ?";
-            final String updateTraceSQL = prepareTraceSQL(updateSQL, properties.values().toArray(), ID);
+            final String updateTraceSQL = IDatabaseAccessService.prepareTraceSQL(updateSQL, properties.values().toArray(), ID);
             
             try (PreparedStatement update = connection.prepareStatement(updateSQL)) {
                 List keys = new ArrayList(properties.keySet());
@@ -627,36 +626,6 @@ public final class ConfigStoreService implements IConfigStoreService {
             }
         } catch (SQLException | ClassNotFoundException e) {}
         return null;
-    }
-    
-    private String prepareTraceSQL(String sql, Object... values) {
-        AtomicInteger index = new AtomicInteger(-1);
-        Object[] flattened = flatten(values).toArray();
-        String pattern = sql
-                .toUpperCase()
-                .chars()
-                .mapToObj((code) -> {
-                    String symbol = String.valueOf((char) code);
-                    if ("?".equals(symbol)) {
-                        index.addAndGet(1);
-                        if (flattened[index.get()] == null || flattened[index.get()].toString().isEmpty()) {
-                            symbol = "(NULL)";
-                        } else if (flattened[index.get()] instanceof EntityRef) {
-                            symbol = "("+((EntityRef) flattened[index.get()]).getValue()+")";
-                        } else {
-                            symbol = "''{"+index.get()+"}''";
-                        }
-                    }
-                    return symbol;
-                })
-                .collect(Collectors.joining());
-        return MessageFormat.format(pattern, flattened);
-    }
-    
-    private static Stream<Object> flatten(Object[] array) {
-        return Arrays
-                .stream(array)
-                .flatMap(o -> o instanceof Object[]? flatten((Object[])o): Stream.of(o));
     }
 
 }

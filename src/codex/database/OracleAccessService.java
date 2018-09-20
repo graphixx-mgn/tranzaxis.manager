@@ -68,6 +68,7 @@ public class OracleAccessService implements IDatabaseAccessService {
     public ResultSet select(Integer connectionID, String query, Object... params) throws SQLException {
         try {
             final RowSet rowSet = prepareSet(connectionID);
+            Logger.getLogger().debug("OAS: Execute query: "+IDatabaseAccessService.prepareTraceSQL(query, params));
             rowSet.setCommand(query);
             if (params != null) {
                 int paramIdx = 0;
