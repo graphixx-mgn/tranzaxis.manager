@@ -369,7 +369,7 @@ public final class ConfigStoreService implements IConfigStoreService {
                             try (ResultSet updateRS = insert.getGeneratedKeys()) {                        
                                 if (updateRS.next()) {
                                     Logger.getLogger().debug(MessageFormat.format(
-                                            "CAS: New catalog {0} entry: #{1} '{'PID={2}'}'", className, updateRS.getInt(1), PID
+                                            "CAS: New catalog {0} entry: #{1}-{2}", className, updateRS.getInt(1), PID
                                     ));
                                     Map<String, Integer> keys = new HashMap<>();
                                     keys.put("ID",  updateRS.getInt(1));
@@ -535,6 +535,7 @@ public final class ConfigStoreService implements IConfigStoreService {
     public int removeClassInstance(Class clazz, Integer ID) {
         final String className = clazz.getSimpleName().toUpperCase();
         final String deleteSQL = MessageFormat.format("DELETE FROM {0} WHERE ID = ?", className);
+        String PID = readClassInstance(clazz, ID).get("PID");
         
         try {
             semaphore.acquire();
@@ -544,7 +545,7 @@ public final class ConfigStoreService implements IConfigStoreService {
                 delete.executeUpdate();
                 connection.commit();
                 Logger.getLogger().debug(MessageFormat.format(
-                        "CAS: Deleted catalog {0} entry: {1}", className, ID
+                        "CAS: Deleted catalog {0} entry: #{1}-{2}", className, ID, PID
                 ));
                 return RC_SUCCESS;
             } catch (SQLException e) {
@@ -589,7 +590,7 @@ public final class ConfigStoreService implements IConfigStoreService {
                     try (ResultSet selectRS = select.executeQuery()) {
                         while (selectRS.next()) {
                             Logger.getLogger().debug(MessageFormat.format(
-                                "CAS: Found existing reference: {0}/{1}-{2}",
+                                "CAS: Found existing reference: {0}/#{1}-{2}",
                                 selectRS.getString(1), selectRS.getInt(2), selectRS.getString(3)
                             ));
                             links.add(new ForeignLink(
