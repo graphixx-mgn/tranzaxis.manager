@@ -98,7 +98,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public final boolean isValid() {
         boolean isValid = true;
         for (String propName : getProperties(Access.Any)) {
-            isValid = isValid & getProperty(propName).isValid();
+            if (!propName.equals(EntityModel.OWN)) {
+                isValid = isValid & getProperty(propName).isValid();
+            }
         }
         return isValid;
     };
@@ -193,21 +195,21 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     /**
      * Добавление слушателя события изменения значения свойства.
      */
-    public final void addChangeListener(IPropertyChangeListener listener) {
+    public final synchronized void addChangeListener(IPropertyChangeListener listener) {
         changeListeners.add(listener);
     }
     
     /**
      * Добавление слушателя событии модели.
      */
-    public final void addModelListener(IModelListener listener) {
+    public final synchronized void addModelListener(IModelListener listener) {
         modelListeners.add(listener);
     }
     
     /**
      * Удаление слушателя событии модели.
      */
-    public final void removeModelListener(IModelListener listener) {
+    public final synchronized void removeModelListener(IModelListener listener) {
         modelListeners.remove(listener);
     }
 
@@ -503,8 +505,6 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                         new LinkedList<>(resolveOrder)
                             .stream()
                             .filter((propName) -> {
-                                if (getPropertyType(propName) == EntityRef.class && getValue(propName) == null) {
-                                }
                                 return 
                                         getPropertyType(propName) == EntityRef.class &&
                                         getValue(propName) != null &&
@@ -529,8 +529,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 
                 if (getPropertyType(basePropName) == EntityRef.class) {
                     properties.get(basePropName).addChangeListener(this);
-                    if (((EntityRef) getProperty(basePropName).getPropValue()).getValue() != null) {
-                        ((EntityRef) getProperty(basePropName).getPropValue()).getValue().model.addModelListener(referenceListener);
+                    Entity baseEntity = (Entity) getValue(basePropName);
+                    if (baseEntity != null) {
+                        baseEntity.model.addModelListener(referenceListener);
                     }
                 }
             }
