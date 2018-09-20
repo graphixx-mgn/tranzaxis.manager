@@ -10,7 +10,10 @@ import codex.type.Bool;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.Window;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -19,6 +22,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 
 /**
@@ -62,6 +66,17 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
             };
         }
             @Override
+            public void setLocationRelativeTo(Component c) {
+                Container container = SwingUtilities.getAncestorOfClass(Container.class, (JComponent) command.getButton());
+                Window wnd;
+                if (container instanceof JPopupMenu) {
+                    super.setLocationRelativeTo(SwingUtilities.getWindowAncestor(((JPopupMenu) container).getInvoker()));
+                } else {
+                    super.setLocationRelativeTo(SwingUtilities.getWindowAncestor(container));
+                }
+            }
+            
+            @Override
             public void setVisible(boolean visible) {
                 PropertyHolder[] propHolders = paramProps.get();
                 if (propHolders.length != 0) {
@@ -88,6 +103,7 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
      */
     @Override
     public Map<String, IComplexType> call() throws Exception {
+        dialog.setLocationRelativeTo(null);
         dialog.setVisible(true);
         return data;
     }
