@@ -52,13 +52,12 @@ public class OracleAccessService implements IDatabaseAccessService {
 
                     urlToIdMap.put(PID, SEQ.incrementAndGet());
                     idToPoolMap.put(SEQ.get(), pds);
-                    Logger.getLogger().debug("OAS: Registered new connection: URL={0}, User={1}", url, user);
+                    Logger.getLogger().debug("OAS: Registered new connection #{0}: URL={1}, User={2}", SEQ.get(), url, user);
                     return SEQ.get();
                 } catch (SQLException e) {
                     throw new SQLException(getCause(e).getMessage().trim());
                 }
             } else {
-                Logger.getLogger().debug("OAS: Connection already exists: URL={0}, User={1}", url, user);
                 return urlToIdMap.get(PID);
             }
         }
@@ -68,7 +67,10 @@ public class OracleAccessService implements IDatabaseAccessService {
     public ResultSet select(Integer connectionID, String query, Object... params) throws SQLException {
         try {
             final RowSet rowSet = prepareSet(connectionID);
-            Logger.getLogger().debug("OAS: Execute query: "+IDatabaseAccessService.prepareTraceSQL(query, params));
+            Logger.getLogger().debug(
+                    "OAS: Execute query: {0} (connection #{1})", 
+                    IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
+            );
             rowSet.setCommand(query);
             if (params != null) {
                 int paramIdx = 0;
