@@ -7,6 +7,7 @@ import codex.mask.StrSetMask;
 import codex.property.PropertyHolder;
 import java.text.MessageFormat;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -43,7 +44,7 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
 
     @Override
     public List<String> getValue() {
-        return value;
+        return value == null ? new FormattedList() : new FormattedList(value);
     }
 
     @Override
@@ -177,6 +178,29 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
             values.clear();
         }
         return values;
+    }
+    
+    private class FormattedList extends LinkedList<String> {
+
+        public FormattedList() {
+            super();
+        }
+
+        public FormattedList(Collection<? extends String> c) {
+            super(c);
+        }
+        
+        @Override
+        public String toString() {
+            if (!isEmpty() && mask != null && mask.getFormat() != null) {
+                return MessageFormat.format(
+                    mask.getFormat(), 
+                    toArray()
+                ).replaceAll("\\{\\d+\\}", "");
+            } else {
+                return String.join(", ", this);
+            }
+        }
     }
     
 }
