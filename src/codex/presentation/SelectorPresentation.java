@@ -12,6 +12,7 @@ import codex.log.Logger;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.model.EntityModel;
+import codex.model.OverrideProperty;
 import codex.type.ArrStr;
 import codex.type.Bool;
 import codex.type.EntityRef;
@@ -215,6 +216,23 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
             Entity newEntity = Entity.newInstance(entityClass, null, null);
+            
+            EntityModel parentModel = context.model;
+            EntityModel childModel  = newEntity.model;
+            
+            List<String> overrideProps = parentModel.getProperties(Access.Edit)
+                    .stream()
+                    .filter(propName -> childModel.hasProperty(propName) && !EntityModel.SYSPROPS.contains(propName))
+                    .collect(Collectors.toList());
+            if (!overrideProps.isEmpty()) {
+                overrideProps.forEach((propName) -> {
+                    if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
+                        return command instanceof OverrideProperty;
+                    })) {
+                        childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
+                    }
+                });
+            }
  
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
@@ -316,15 +334,37 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            Entity newEntity = Entity.newInstance(context.getParent().getChildClass(), /*SelectorPresentation.this.entity*/null, null);
+            Entity newEntity = Entity.newInstance(context.getParent().getChildClass(), null, null);
             
+            EntityModel parentModel = ((Entity) context.getParent()).model;
+            EntityModel childModel  = newEntity.model;
+            
+            List<String> overridableProps = parentModel.getProperties(Access.Edit)
+                    .stream()
+                    .filter(propName -> childModel.hasProperty(propName) && !EntityModel.SYSPROPS.contains(propName))
+                    .collect(Collectors.toList());
+            List<String> overriddenProps = (List<String>) context.model.getValue(EntityModel.OVR);
+
             context.model.getProperties(Access.Edit).forEach((propName) -> {
                 if (EntityModel.PID.equals(propName)) {
                     newEntity.model.setValue(propName, context.model.getValue(propName)+" (1)");
                 } else {
-                    newEntity.model.setValue(propName, context.model.getValue(propName));
+                    if (!(overridableProps.contains(propName) && !overriddenProps.contains(propName))) {
+                        newEntity.model.setValue(propName, context.model.getValue(propName));
+                    }
                 }
             });
+            newEntity.model.setValue(EntityModel.OVR, overriddenProps);
+
+            if (!overridableProps.isEmpty()) {
+                overridableProps.forEach((propName) -> {
+                    if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
+                        return command instanceof OverrideProperty;
+                    })) {
+                        childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
+                    }
+                });
+            }
             
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
