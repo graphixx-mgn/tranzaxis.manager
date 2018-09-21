@@ -91,6 +91,13 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     }
     
     /**
+     * Получить экземпляр хранимого объекта без учета наследования{@link IComplexType}
+     */
+    public IComplexType<? extends V, ?> getOwnPropValue() {
+        return value;
+    }
+    
+    /**
      * Установка нового значения свойства. При этом допустимо передать как новый 
      * экземпляр {@link IComplexType} так и его внутреннее значения.
      */
@@ -129,11 +136,11 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
             }
         }
         if (
-                (prevValue == null && getPropValue().getValue() != null) || 
-                (prevValue != null && getPropValue().getValue() == null) ||
-                (prevValue != null && getPropValue().getValue() != null && !prevValue.equals(getPropValue().getValue()))
+                (prevValue == null && getOwnPropValue().getValue() != null) || 
+                (prevValue != null && getOwnPropValue().getValue() == null) ||
+                (prevValue != null && getOwnPropValue().getValue() != null && !prevValue.equals(getOwnPropValue().getValue()))
         ) {
-            fireChangeEvent(prevValue, getPropValue().getValue());
+            fireChangeEvent(prevValue, getOwnPropValue().getValue());
         }
     }
 
