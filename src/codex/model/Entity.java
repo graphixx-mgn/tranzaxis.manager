@@ -256,8 +256,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     @Override
     public final void propertyChange(String name, Object oldValue, Object newValue) {
         Logger.getLogger().debug(
-                "Property ''{0}@{1}'' has been changed: ''{2}'' -> ''{3}''", 
-                this, name, oldValue, (newValue instanceof IComplexType) ? 
+                "Property ''{0}/{1}@{2}'' has been changed: ''{3}'' -> ''{4}''", 
+                this.getClass().getSimpleName(), this, name, oldValue, (newValue instanceof IComplexType) ? 
                         ((IComplexType) newValue).getValue() : newValue
         );
     }
