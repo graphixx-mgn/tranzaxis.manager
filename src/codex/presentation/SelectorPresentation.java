@@ -349,8 +349,10 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 if (EntityModel.PID.equals(propName)) {
                     newEntity.model.setValue(propName, context.model.getValue(propName)+" (1)");
                 } else {
-                    if (!(overridableProps.contains(propName) && (overriddenProps == null || !overriddenProps.contains(propName)))) {
-                        newEntity.model.setValue(propName, context.model.getValue(propName));
+                    if (!newEntity.model.isPropertyDynamic(propName)) {
+                        if (!(overridableProps.contains(propName) && (overriddenProps == null || !overriddenProps.contains(propName)))) {
+                            newEntity.model.setValue(propName, context.model.getValue(propName));
+                        }
                     }
                 }
             });
