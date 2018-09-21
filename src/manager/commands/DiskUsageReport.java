@@ -2,6 +2,8 @@ package manager.commands;
 
 import codex.command.EntityCommand;
 import codex.component.dialog.Dialog;
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
 import codex.component.render.GeneralRenderer;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
@@ -14,6 +16,7 @@ import codex.model.Catalog;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.presentation.CommandPanel;
+import codex.presentation.SelectorPresentation;
 import codex.presentation.SelectorTableModel;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
@@ -34,11 +37,11 @@ import codex.utils.Language;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.event.ActionEvent;
 import java.awt.event.HierarchyBoundsListener;
 import java.awt.event.HierarchyEvent;
 import java.io.File;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileVisitResult;
@@ -77,7 +80,6 @@ import manager.nodes.Offshoot;
 import manager.nodes.Release;
 import manager.nodes.Repository;
 import manager.type.WCStatus;
-import org.apache.commons.io.FileDeleteStrategy;
 
 public class DiskUsageReport extends EntityCommand {
     
@@ -302,12 +304,53 @@ public class DiskUsageReport extends EntityCommand {
                         ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28), 
                         Language.get(DiskUsageReport.class.getSimpleName(), "delete@title"), 
                         (entity) -> {
-                            return isDone() && entity.model.getValue("kind") != EntryKind.Sources;
+                            return 
+                                    entity.model.getValue("kind") != EntryKind.Sources &&
+                                    entity.model.getValue("size") != null;
                         }
                 ) {
                     @Override
                     public boolean multiContextAllowed() {
                         return true;
+                    }
+
+                    @Override
+                    public void actionPerformed(ActionEvent event) {
+                        SwingUtilities.invokeLater(() -> {
+                            String message; 
+                            if (getContext().length == 1) {
+                                message = MessageFormat.format(
+                                        Language.get(
+                                                SelectorPresentation.class.getSimpleName(), 
+                                                "confirm@del.single"
+                                        ), 
+                                        getContext()[0]
+                                );
+                            } else {
+                                StringBuilder msgBuilder = new StringBuilder(
+                                        Language.get(
+                                                SelectorPresentation.class.getSimpleName(), 
+                                                "confirm@del.range"
+                                        )
+                                );
+                                Arrays.asList(getContext()).forEach((entity) -> {
+                                    msgBuilder.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(entity.toString());
+                                });
+                                message = msgBuilder.toString();
+                            }
+                            MessageBox.show(
+                                    MessageType.CONFIRMATION, null, message,
+                                    (close) -> {
+                                        if (close.getID() == Dialog.OK) {
+                                            Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
+                                            for (Entity entity : getContext()) {
+                                                execute(entity, null);
+                                            }
+                                            activate();
+                                        }
+                                    }
+                            );
+                        });
                     }
                     
                     @Override
@@ -570,8 +613,10 @@ public class DiskUsageReport extends EntityCommand {
                     }
                 });
             });
-            logBuilder.append("                     Total: ").append(formatFileSize(totalSize.get()));
-            Logger.getLogger().info(logBuilder);
+            if (!isCancelled()) {
+                logBuilder.append("                     Total: ").append(formatFileSize(totalSize.get()));
+                Logger.getLogger().info(logBuilder);
+            }
             return null;
         }
 
@@ -646,7 +691,7 @@ public class DiskUsageReport extends EntityCommand {
             if (kind == EntryKind.Cache || kind == EntryKind.Sources) {
                 EntityRef ref = new EntityRef(kind == EntryKind.Sources ? Offshoot.class : Release.class);
                 
-                Map<String, String> dbValues =  CAS.readClassInstance(
+                Map<String, String> dbValues = CAS.readClassInstance(
                         ref.getEntityClass(),
                         dir.getName(), 
                         repoId
@@ -744,8 +789,8 @@ public class DiskUsageReport extends EntityCommand {
                     if (isCancelled()) {
                         return FileVisitResult.TERMINATE;
                     }
-                    try {
-                        FileDeleteStrategy.NORMAL.delete(path.toFile());
+//                    try {
+                        //FileDeleteStrategy.NORMAL.delete(path.toFile());
                         processed.addAndGet(1);
                         String fileName = path.toString().replace(directory.toPath()+File.separator, "");
                         setProgress(
@@ -755,9 +800,9 @@ public class DiskUsageReport extends EntityCommand {
                                         fileName.replace(directory.toString(), "")
                                 )
                         );
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
+//                    } catch (IOException e) {
+//                        throw new UncheckedIOException(e);
+//                    }
                     return FileVisitResult.CONTINUE;
                 }
             });
@@ -766,7 +811,7 @@ public class DiskUsageReport extends EntityCommand {
             
             try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(directory.getPath()).getParent());) {
                 if (!dirStream.iterator().hasNext()) {
-                    directory.getParentFile().delete();
+                    //directory.getParentFile().delete();
                 }
             }
             return null;
