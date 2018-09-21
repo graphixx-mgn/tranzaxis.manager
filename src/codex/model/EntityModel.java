@@ -372,7 +372,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     }
                 }
                 
-                values.put(propName, getProperty(propName).getPropValue());
+                values.put(propName, getProperty(propName).getOwnPropValue());
             });
             if (getID() == null || !databaseValues.keySet().containsAll(changes)) {
                 Map<String, IComplexType> propDefinitions = new LinkedHashMap<>();
@@ -434,6 +434,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void rollback() {
         List<String> changes = getChanges();
+//        changes.sort((propName1, propName2) -> {
+//            return propName1.equals(EntityModel.OVR) ? 1 : (propName2.equals(EntityModel.OVR) ? -1 : 0);
+//        });
         changes.forEach((name) -> {
             getProperty(name).setValue(undoRegistry.previous(name));
         });
