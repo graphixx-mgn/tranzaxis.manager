@@ -234,7 +234,7 @@ public class ArrStrEditor extends AbstractEditor {
                             )
                         ) {
                             list.stopEditing();
-                            propHolder.setValue(new ArrStr(values).setMask((IArrMask)contex.getPropValue().getMask()));
+                            propHolder.setValue(values);
                         }
                     },
                     confirmBtn,

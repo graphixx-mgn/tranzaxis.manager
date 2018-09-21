@@ -44,26 +44,14 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
 
     @Override
     public List<String> getValue() {
-        return value == null ? new FormattedList() : new FormattedList(value);
+        return value == null ? null : new FormattedList(value);
     }
 
     @Override
     public void setValue(List<String> value) {
         if (value != null && !value.isEmpty()) {
             // Может быть передан immutable List (Arrays.asList(...)) 
-            this.value = new LinkedList(value) {
-                @Override
-                public String toString() {
-                    if (value != null && mask != null && mask.getFormat() != null) {
-                        return MessageFormat.format(
-                            mask.getFormat(), 
-                            ((List) value).toArray()
-                        ).replaceAll("\\{\\d+\\}", "");
-                    } else {
-                        return String.join(", ", this);
-                    }
-                }
-            };
+            this.value = new FormattedList(value);
         } else {
             this.value = null;
         }
