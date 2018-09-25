@@ -56,6 +56,11 @@ public class CheckDatabase extends EntityCommand {
     }
     
     @Override
+    public Kind getKind() {
+        return Kind.Info;
+    }
+    
+    @Override
     public void modelSaved(EntityModel model, List<String> changes) {
         super.modelSaved(model, changes);
         if (changes.contains("dbUrl")) {
