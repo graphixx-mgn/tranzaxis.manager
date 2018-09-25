@@ -95,7 +95,12 @@ public class DeleteWC extends EntityCommand {
             );
         });
     }
-    
+
+    @Override
+    public Kind getKind() {
+        return Kind.Admin;
+    }
+
     private class DeleteTask extends AbstractTask<Void> {
         
         private final Offshoot offshoot;
