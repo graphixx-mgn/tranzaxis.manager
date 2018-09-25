@@ -48,6 +48,12 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     
     private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
     
+    public enum Kind {
+        Admin,
+        Info,
+        Action
+    }
+    
     private KeyStroke key;
     private String    name;
     private String    title;
@@ -108,6 +114,13 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         this.button.setHint(hint + (key == null ? "" : " ("+getKeyText(key)+")"));
         
         addListener(this);
+    }
+    
+    /**
+     * Возвращает тип команды.
+     */
+    public Kind getKind() {
+        return Kind.Action;
     }
     
     /**
