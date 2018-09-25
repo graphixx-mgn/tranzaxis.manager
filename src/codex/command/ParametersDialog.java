@@ -11,18 +11,16 @@ import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.Component;
-import java.awt.Container;
 import java.awt.Dimension;
-import java.awt.Window;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import javax.swing.FocusManager;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 
 /**
@@ -67,13 +65,7 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
         }
             @Override
             public void setLocationRelativeTo(Component c) {
-                Container container = SwingUtilities.getAncestorOfClass(Container.class, (JComponent) command.getButton());
-                Window wnd;
-                if (container instanceof JPopupMenu) {
-                    super.setLocationRelativeTo(SwingUtilities.getWindowAncestor(((JPopupMenu) container).getInvoker()));
-                } else {
-                    super.setLocationRelativeTo(SwingUtilities.getWindowAncestor(container));
-                }
+                super.setLocationRelativeTo(FocusManager.getCurrentManager().getActiveWindow());
             }
             
             @Override
