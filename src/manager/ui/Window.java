@@ -32,7 +32,7 @@ import manager.Manager;
 
 public final class Window extends JFrame implements WindowStateListener {
     
-    //private final static ImageIcon LAUNCH  = ImageUtils.resize(ImageUtils.getByPath("/images/launch.png"), 20, 20);
+    private final static ImageIcon LAUNCH  = ImageUtils.resize(ImageUtils.getByPath("/images/launch.png"), 20, 20);
     private final static ImageIcon VIEWER  = ImageUtils.resize(ImageUtils.getByPath("/images/viewer.png"), 20, 20);
     //private final static ImageIcon SERVICE = ImageUtils.resize(ImageUtils.getByPath("/images/services.png"), 20, 20);
     
@@ -41,7 +41,7 @@ public final class Window extends JFrame implements WindowStateListener {
     public final JPanel taskmgrPanel = new JPanel();
     public final JPanel loggingPanel = new JPanel();
     public final JPanel explorePanel = new JPanel();
-    //public final JPanel launchPanel  = new JPanel();
+    public final JPanel launchPanel  = new JPanel();
     //public final JPanel servicePanel = new JPanel();
     
     private final TrayIcon  trayIcon;
@@ -56,7 +56,7 @@ public final class Window extends JFrame implements WindowStateListener {
         }
         
         setPreferredSize(new Dimension(1200, 800));
-        setMinimumSize(new Dimension(700, 500));
+        setMinimumSize(new Dimension(900, 500));
         
         tabbedPanel.setFocusable(false);
         tabbedPanel.setBorder(new MatteBorder(1, 0, 1, 0, Color.GRAY));
@@ -64,7 +64,7 @@ public final class Window extends JFrame implements WindowStateListener {
         loggingPanel.setBorder(new MatteBorder(0, 1, 0, 0, Color.GRAY));
         
         tabbedPanel.addTab(null, VIEWER,  explorePanel);
-//        tabbedPanel.addTab(null, LAUNCH,  launchPanel);
+        tabbedPanel.addTab(null, LAUNCH,  launchPanel);
 //        tabbedPanel.addTab(null, SERVICE, servicePanel);
         
         GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
