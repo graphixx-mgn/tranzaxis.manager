@@ -152,7 +152,7 @@ public class LoadWC extends EntityCommand {
                     if (getContext() == null) {
                         Logger.getLogger().warn(
                                 "Repository ''{0}'' not loaded. Reason: {1}", repo, 
-                                Language.get(Repository.class.getSimpleName(), "error@auth", Locale.ENGLISH)
+                                Language.get(Repository.class.getSimpleName(), "error@auth", Locale.US)
                         );
                     } else {
                         MessageBox.show(MessageType.WARNING, 

@@ -92,12 +92,12 @@ public class KernelBuilder {
                 BuildLogger consoleLogger = new DefaultLogger() {
                     @Override
                     public void taskStarted(BuildEvent event) {
+                        super.taskStarted(event);
                         try {
                             notifier.checkPaused(args[0]);
                         } catch (RemoteException e) {
                             e.printStackTrace();
                         }
-                        super.taskStarted(event);
                     }
                     
                 };
