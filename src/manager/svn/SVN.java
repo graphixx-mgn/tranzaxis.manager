@@ -14,6 +14,7 @@ import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNErrorCode;
+import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
 import org.tmatesoft.svn.core.SVNProperties;
@@ -26,6 +27,8 @@ import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.svn.core.wc.ISVNEventHandler;
 import org.tmatesoft.svn.core.wc.ISVNStatusHandler;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
+import org.tmatesoft.svn.core.wc.SVNEvent;
+import org.tmatesoft.svn.core.wc.SVNEventAction;
 import org.tmatesoft.svn.core.wc.SVNInfo;
 import org.tmatesoft.svn.core.wc.SVNLogClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
@@ -193,12 +196,20 @@ public class SVN {
                         if (needCleanup) {
                             SVNWCClient client = clientMgr.getWCClient();
                             client.doCleanup(localDir, true, true, true, false, false, true);
-                            Logger.getLogger().info("Continue update after recovery");
+                            if (handler != null) {
+                                handler.handleEvent(
+                                        new SVNEvent(SVNErrorMessage.create(SVNErrorCode.WC_CLEANUP_REQUIRED), SVNEventAction.RESOLVER_DONE), 0
+                                );
+                            }
                         }
                         updateClient.doUpdate(localDir, revision, SVNDepth.INFINITY, false, true);
                     } catch (SVNException e) {
                         if (e.getErrorMessage().getErrorCode().getCode() == SVNErrorCode.WC_LOCKED.getCode()) {
-                            Logger.getLogger().warn("Perform cleanup");
+                            if (handler != null) {
+                                handler.handleEvent(
+                                        new SVNEvent(SVNErrorMessage.create(SVNErrorCode.WC_CLEANUP_REQUIRED), SVNEventAction.RESOLVER_STARTING), 0
+                                );
+                            }
                             needCleanup = true;
                             continue;
                         } else {

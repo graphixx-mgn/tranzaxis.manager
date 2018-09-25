@@ -20,6 +20,7 @@ import manager.nodes.Repository;
 import manager.svn.SVN;
 import manager.type.WCStatus;
 import org.tmatesoft.svn.core.SVNCancelException;
+import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
@@ -78,7 +79,7 @@ public class UpdateWC extends EntityCommand {
             try {
                 Long changes = SVN.diff(wcPath, repoUrl, SVNRevision.HEAD, authMgr, new ISVNEventHandler() {
                     @Override
-                    public void handleEvent(SVNEvent svne, double d) throws SVNException {}
+                    public void handleEvent(SVNEvent event, double d) throws SVNException {}
 
                     @Override
                     public void checkCancelled() throws SVNCancelException {
@@ -105,6 +106,15 @@ public class UpdateWC extends EntityCommand {
                     SVN.update(repoUrl, wcPath, SVNRevision.HEAD, authMgr, new ISVNEventHandler() {
                             @Override
                             public void handleEvent(SVNEvent event, double d) throws SVNException {
+                                if (event.getErrorMessage() != null && event.getErrorMessage().getErrorCode() == SVNErrorCode.WC_CLEANUP_REQUIRED) {
+                                    if (event.getExpectedAction() == SVNEventAction.RESOLVER_STARTING) {
+                                        Logger.getLogger().warn("UPDATE [{0}] perfom recovery", wcPath);
+                                    } else {
+                                        Logger.getLogger().info("UPDATE [{0}] continue after recovery", wcPath);
+                                    }
+                                    return;
+                                }
+                                
                                 if (event.getAction() != SVNEventAction.UPDATE_STARTED && event.getAction() != SVNEventAction.UPDATE_COMPLETED) {
                                     if (event.getNodeKind() != SVNNodeKind.DIR) {
                                         loaded.addAndGet(1);
