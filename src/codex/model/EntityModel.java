@@ -331,6 +331,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         } else {
             int result = CAS.removeClassInstance(entityClass, getID());
             if (result == IConfigStoreService.RC_SUCCESS) {
+                getProperty(ID).getPropValue().valueOf("");
+                getProperty(SEQ).getPropValue().valueOf("");
                 new LinkedList<>(modelListeners).forEach((listener) -> {
                     listener.modelDeleted(this);
                 });
@@ -391,9 +393,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 
                 EntityRef ownerRef = (EntityRef) getProperty(OWN).getPropValue();
                 Integer ownerId = ownerRef.getValue() != null ? ownerRef.getValue().model.getID() : null;
+                
                 Map<String, Integer> keys = CAS.initClassInstance(entityClass, getPID(), propDefinitions, ownerId);
-                setValue(ID, keys.get(ID));
-                setValue(SEQ, keys.get(SEQ));
+                getProperty(ID).getPropValue().valueOf(keys.get(ID).toString());
+                getProperty(SEQ).getPropValue().valueOf(keys.get(SEQ).toString());
             }
             int updateResult = CAS.updateClassInstance(entityClass, getID(), values);
             if (updateResult == IConfigStoreService.RC_SUCCESS) {
@@ -406,8 +409,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                             if ("1".equals(CAS.readClassInstance(prevValue.getClass(), prevValue.model.getID()).get(DEL))) {
                                 int deleteResult = CAS.removeClassInstance(prevValue.getClass(), prevValue.model.getID());
                                 if (deleteResult == RC_SUCCESS) {
-                                    prevValue.model.setValue(ID, null);
-                                    prevValue.model.setValue(SEQ, null);
+                                    prevValue.model.getProperty(ID).getPropValue().valueOf("");
+                                    prevValue.model.getProperty(SEQ).getPropValue().valueOf("");
                                 }
                             }
                         }
