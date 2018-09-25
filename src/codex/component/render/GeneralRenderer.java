@@ -52,11 +52,7 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
         return new Color((int) r, (int) g, (int) b, (int) a);
     }
     
-    public GeneralRenderer() {
-        setOpaque(true);
-        setIconTextGap(6);
-        setVerticalAlignment(CENTER);
-    }
+    public GeneralRenderer() {}
 
     /**
      * Метод задает внешний вид ячеек списка. Вызывается для каждой ячейки при 
@@ -71,7 +67,10 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
      */
     @Override
     public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean hasFocus) {
-        if (value != null) {
+        JLabel label = new JLabel(value.toString()) {{
+            setOpaque(true);
+            setIconTextGap(6);
+            setVerticalAlignment(CENTER);
             setText(value.toString());
             setFont(IEditor.FONT_VALUE);
             setBackground(isSelected ? IButton.PRESS_COLOR : list.getBackground());
@@ -89,8 +88,8 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
             }
             setBorder(new EmptyBorder(1, 4, 1, 2));
             setForeground(value instanceof AbstractEditor.NullValue ? Color.GRAY : IEditor.COLOR_NORMAL);
-        }
-        return this;
+        }};
+        return label;
     }
 
     /**
