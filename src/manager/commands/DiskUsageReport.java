@@ -42,6 +42,7 @@ import java.awt.event.HierarchyBoundsListener;
 import java.awt.event.HierarchyEvent;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileVisitResult;
@@ -80,6 +81,7 @@ import manager.nodes.Offshoot;
 import manager.nodes.Release;
 import manager.nodes.Repository;
 import manager.type.WCStatus;
+import org.apache.commons.io.FileDeleteStrategy;
 
 public class DiskUsageReport extends EntityCommand {
     
@@ -789,8 +791,8 @@ public class DiskUsageReport extends EntityCommand {
                     if (isCancelled()) {
                         return FileVisitResult.TERMINATE;
                     }
-//                    try {
-                        //FileDeleteStrategy.NORMAL.delete(path.toFile());
+                    try {
+                        FileDeleteStrategy.NORMAL.delete(path.toFile());
                         processed.addAndGet(1);
                         String fileName = path.toString().replace(directory.toPath()+File.separator, "");
                         setProgress(
@@ -800,9 +802,9 @@ public class DiskUsageReport extends EntityCommand {
                                         fileName.replace(directory.toString(), "")
                                 )
                         );
-//                    } catch (IOException e) {
-//                        throw new UncheckedIOException(e);
-//                    }
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
                     return FileVisitResult.CONTINUE;
                 }
             });
@@ -811,7 +813,7 @@ public class DiskUsageReport extends EntityCommand {
             
             try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(directory.getPath()).getParent());) {
                 if (!dirStream.iterator().hasNext()) {
-                    //directory.getParentFile().delete();
+                    directory.getParentFile().delete();
                 }
             }
             return null;
