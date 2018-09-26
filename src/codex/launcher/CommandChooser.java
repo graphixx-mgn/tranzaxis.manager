@@ -42,25 +42,33 @@ class CommandChooser extends AbstractEditor implements ActionListener {
      */
     public final void setEntity(Entity entity) {
         this.entity = entity;
+        comboBox.removeActionListener(this);
         comboBox.removeAllItems();
-        if (entity != null) {
-            entity.getCommands().stream().filter((command) -> (!command.getButton().isInactive())).forEachOrdered((command) -> {
-                comboBox.addItem(command);
-            });
-        }
         comboBox.addItem(new NullValue());
-        comboBox.setSelectedItem(comboBox.getItemAt(comboBox.getItemCount()-1));
+        if (entity != null) {
+            entity.getCommands().stream()
+                .filter((command) -> (
+                    !command.getButton().isInactive() && command.getKind() == EntityCommand.Kind.Action
+                )).forEachOrdered((command) -> {
+                    comboBox.addItem(command);
+                });
+        }
+        comboBox.setSelectedIndex(0);
+        comboBox.addActionListener(this);
     }
 
     @Override
     public Box createEditor() {
         comboBox = new JComboBox();
-        if (entity != null) {
-            entity.getCommands().stream().filter((command) -> (!command.getButton().isInactive())).forEachOrdered((command) -> {
-                comboBox.addItem(command);
-            });
-        }
         comboBox.addItem(new NullValue());
+        if (entity != null) {
+            entity.getCommands().stream()
+                .filter((command) -> (
+                        !command.getButton().isInactive() && command.getKind() == EntityCommand.Kind.Action
+                )).forEachOrdered((command) -> {
+                    comboBox.addItem(command);
+                });
+        }
         
         UIManager.put("ComboBox.border", new BorderUIResource(
                 new LineBorder(UIManager.getColor ("Panel.background"), 1))
@@ -100,7 +108,7 @@ class CommandChooser extends AbstractEditor implements ActionListener {
     
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (comboBox.getSelectedIndex() == comboBox.getItemCount()-1) {
+        if (comboBox.getSelectedIndex() == 0) {
             propHolder.setValue(null);
         } else {
             if (!comboBox.getSelectedItem().equals(propHolder.getPropValue().getValue())) {
