@@ -3,15 +3,13 @@ package codex.launcher;
 import codex.component.layout.WrapLayout;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
-import codex.explorer.ExplorerAccessService;
-import codex.explorer.IExplorerAccessService;
 import codex.model.Entity;
-import codex.model.EntityModel;
 import codex.service.ServiceRegistry;
+import codex.task.AbstractTask;
+import codex.task.ITaskExecutorService;
+import codex.task.TaskManager;
 import codex.unit.AbstractUnit;
 import java.awt.FlowLayout;
-import java.util.List;
-import java.util.Map;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -22,8 +20,8 @@ import javax.swing.border.EmptyBorder;
  */
 public final class LauncherUnit extends AbstractUnit {
 
-    private final static IConfigStoreService    STORE = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
-    private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+    private final static IConfigStoreService  CSS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private final static ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class);
     
     private JScrollPane  launchPanel;
     private final JPanel commandPanel = new JPanel(new WrapLayout(FlowLayout.LEFT));
@@ -33,41 +31,35 @@ public final class LauncherUnit extends AbstractUnit {
         launchPanel = new JScrollPane();
         launchPanel.setBorder(null);
         commandPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
-
-        List<Map<String, String>> rowsData = STORE.readCatalogEntries(Shortcut.class);
-        rowsData.forEach((map) -> {
-            String PID  = map.get(EntityModel.PID);
-            final Shortcut shortcut = (Shortcut) Entity.newInstance(Shortcut.class, PID);
-            final Entity   entityRef = (Entity) shortcut.model.getValue("entity");
-            if (entityRef == null) {
-                CommandLauncher launcher = new CommandLauncher(null, null, PID);
-                commandPanel.add(launcher);
-            } else {
-                final Entity entity  = EAS.getEntity(entityRef.getClass(), entityRef.model.getID());
-                final String cmdName = (String) shortcut.model.getValue("command");
-                
-                if (entity.getCommands().stream().anyMatch((command) -> {
-                    return command.getName().equals(cmdName);
-                })) {
-                    CommandLauncher launcher = new CommandLauncher(
-                            (Entity) shortcut.model.getValue("entity"), 
-                            entity.getCommand(cmdName),
-                            PID
-                    );
-                    commandPanel.add(launcher);
-                } else {
-                    CommandLauncher launcher = new CommandLauncher(null, null, PID);
-                    commandPanel.add(launcher);
-                }
-            }
-        });
-        commandPanel.add(new CreateLauncher());
+          
         return launchPanel;
     }
     
     @Override
     public void viewportBound() {
         launchPanel.setViewportView(commandPanel);
+        TES.quietTask(new LoadShortcuts());
+    }
+    
+    private class LoadShortcuts extends AbstractTask<Void> {
+
+        public LoadShortcuts() {
+            super("Load shortcuts");
+        }
+
+        @Override
+        public Void execute() throws Exception {
+            CSS.readCatalogEntries(null, Shortcut.class).forEach((ID, PID) -> {
+                commandPanel.add(new LaunchShortcut((Shortcut) Entity.newInstance(Shortcut.class, null, PID)));
+            });
+            return null;
+        }
+
+        @Override
+        public void finished(Void result) {
+            commandPanel.add(new CreateShortcut());
+        }
+    
     }
     
 }
