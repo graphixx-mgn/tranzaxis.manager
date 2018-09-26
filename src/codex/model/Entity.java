@@ -106,7 +106,24 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     public void insert(INode child) {
         super.insert(child);
         
-        Entity childEntity = (Entity) child;
+        Entity      childEntity = (Entity) child;
+        EntityModel childModel  = childEntity.model;
+        EntityModel parentModel = this.model;
+
+        List<String> overrideProps = parentModel.getProperties(Access.Edit)
+                .stream()
+                .filter(propName -> childModel.hasProperty(propName) && !EntityModel.SYSPROPS.contains(propName))
+                .collect(Collectors.toList());
+        if (!overrideProps.isEmpty()) {
+            overrideProps.forEach((propName) -> {
+                if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
+                    return command instanceof OverrideProperty;
+                })) {
+                    childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
+                }
+            });
+        }
+
         if (childEntity.model.getID() != null) {
             Map<String, String> databaseValues = CAS.readClassInstance(child.getClass(), childEntity.model.getID());
             if (!databaseValues.isEmpty()) {
@@ -199,48 +216,12 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         if (getChildClass() == null) return null;
         if (selectorPresentation == null) {
             selectorPresentation = new SelectorPresentation(this);
-            childrenList().forEach((child) -> {
-                EntityModel parentModel = this.model;
-                EntityModel childModel  = ((Entity) child).model;                
-                
-                List<String> overrideProps = parentModel.getProperties(Access.Edit)
-                    .stream()
-                    .filter(propName -> (childModel.hasProperty(propName) && !EntityModel.SYSPROPS.contains(propName)))
-                    .collect(Collectors.toList());
-                if (!overrideProps.isEmpty()) {
-                    overrideProps.forEach((propName) -> {
-                        if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
-                            return command instanceof OverrideProperty;
-                        })) {
-                            childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
-                        }
-                    });
-                }
-            });
         }
         return selectorPresentation;
     };
 
     @Override
     public final EditorPresentation getEditorPresentation() {
-        if (getParent() != null) {
-            EntityModel parentModel = ((Entity) getParent()).model;
-            EntityModel childModel  = this.model;
-            
-            List<String> overrideProps = parentModel.getProperties(Access.Edit)
-                    .stream()
-                    .filter(propName -> childModel.hasProperty(propName) && !EntityModel.SYSPROPS.contains(propName))
-                    .collect(Collectors.toList());
-            if (!overrideProps.isEmpty()) {
-                overrideProps.forEach((propName) -> {
-                    if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
-                        return command instanceof OverrideProperty;
-                    })) {
-                        childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
-                    }
-                });
-            }
-        }
         return new EditorPresentation(this);
     };
     
