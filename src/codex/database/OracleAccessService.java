@@ -68,7 +68,7 @@ public class OracleAccessService implements IDatabaseAccessService {
         try {
             final RowSet rowSet = prepareSet(connectionID);
             Logger.getLogger().debug(
-                    "OAS: Execute query: {0} (connection #{1})", 
+                    "OAS: Select query: {0} (connection #{1})", 
                     IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
             );
             rowSet.setCommand(query);

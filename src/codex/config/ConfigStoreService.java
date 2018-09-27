@@ -413,7 +413,7 @@ public final class ConfigStoreService implements IConfigStoreService {
             final String[] parts   = properties.keySet().toArray(new String[]{});
             
             final String updateSQL = "UPDATE "+className+" SET "+String.join(" = ?, ", parts)+" = ? WHERE ID = ?";
-            final String updateTraceSQL = IDatabaseAccessService.prepareTraceSQL(updateSQL, properties.values().toArray(), ID);
+            Logger.getLogger().debug("CAS: Update query: {0}", IDatabaseAccessService.prepareTraceSQL(updateSQL, properties.values().toArray(), ID));
             
             try (PreparedStatement update = connection.prepareStatement(updateSQL)) {
                 List keys = new ArrayList(properties.keySet());
@@ -434,7 +434,6 @@ public final class ConfigStoreService implements IConfigStoreService {
                 return RC_SUCCESS;
             } catch (SQLException | InterruptedException e) {
                 Logger.getLogger().error("Unable to update instance", e);
-                Logger.getLogger().debug("SQL Query: {0}", updateTraceSQL);
                 return RC_ERROR;
             } finally {
                 semaphore.release();

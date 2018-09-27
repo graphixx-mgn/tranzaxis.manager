@@ -1,7 +1,9 @@
 package codex.database;
 
+import codex.model.Entity;
 import codex.service.IService;
 import codex.type.EntityRef;
+import codex.type.Str;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
@@ -54,11 +56,17 @@ public interface IDatabaseAccessService extends IService {
                     if ("?".equals(symbol)) {
                         index.addAndGet(1);
                         if (flattened[index.get()] == null || flattened[index.get()].toString().isEmpty()) {
-                            symbol = "(NULL)";
+                            symbol = "<NULL>";
                         } else if (flattened[index.get()] instanceof EntityRef) {
-                            symbol = "("+((EntityRef) flattened[index.get()]).getValue()+")";
-                        } else {
+                            Entity entity = ((EntityRef) flattened[index.get()]).getValue();
+                            symbol = "["+MessageFormat.format(
+                                "{0}/#{1}-{2}",
+                                entity.getClass().getSimpleName(), entity.model.getID(), entity
+                            )+"]";
+                        } else if (flattened[index.get()] instanceof String || flattened[index.get()] instanceof Str) {
                             symbol = "''{"+index.get()+"}''";
+                        } else {
+                            symbol = "{"+index.get()+"}";
                         }
                     }
                     return symbol;
