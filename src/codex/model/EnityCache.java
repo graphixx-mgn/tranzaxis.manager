@@ -22,7 +22,7 @@ class EnityCache {
             return store.get(entityClass).stream().filter((entity) -> {
                 return 
                         PID.equals(entity.model.getPID()) && (
-                            (entity.model.getOwner() == null && ownerId == null) || (ownerId.equals(entity.model.getOwner().model.getID()))
+                            (entity.model.getOwner() == null && ownerId == null) || (ownerId == entity.model.getOwner().model.getID())
                         );
             }).findFirst().orElse(null);
         }
