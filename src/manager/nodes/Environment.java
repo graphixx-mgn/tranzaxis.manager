@@ -5,8 +5,11 @@ import codex.database.IDatabaseAccessService;
 import codex.database.OracleAccessService;
 import codex.database.RowSelector;
 import codex.editor.AbstractEditor;
+import codex.explorer.ExplorerAccessService;
+import codex.explorer.IExplorerAccessService;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
+import codex.log.Logger;
 import codex.mask.DataSetMask;
 import codex.model.Access;
 import codex.model.Entity;
@@ -14,6 +17,7 @@ import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.supplier.IDataSupplier;
 import codex.type.ArrStr;
+import codex.type.Bool;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Str;
@@ -22,6 +26,8 @@ import codex.utils.Language;
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.Map;
+import javax.swing.ImageIcon;
 import javax.swing.SwingUtilities;
 import manager.commands.RunAll;
 import manager.commands.RunExplorer;
@@ -30,27 +36,8 @@ import manager.type.WCStatus;
 
 public class Environment extends Entity implements INodeListener {
     
-//    private final static Pattern PATTERN_DEV_URI = Pattern.compile(".*BaseDevUri=\"([a-z\\.]*)\".*");
     private final static IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
-    
-//    private final IDataSupplier<String> layerSupplier = new RowSelector(
-//            RowSelector.Mode.Value, () -> {
-//                return ((Database) model.getUnsavedValue("database")).getConnectionID(true);
-//            }, 
-//            "SELECT LAYERURI, VERSION, UPGRADEDATE FROM (\n" +
-//            "    SELECT MIN(SEQ) AS SEQ, LAYERURI, MIN(VERSION) AS VERSION, MIN(UPGRADEDATE) AS UPGRADEDATE FROM (\n" +
-//            "        SELECT ROWNUM AS SEQ, LAYERURI, VERSION, UPGRADEDATE FROM RDX_DDSVERSION \n" +
-//            "        UNION \n" +
-//            "        SELECT 1000, ?, NULL, NULL FROM DUAL\n" +
-//            "    ) \n" +
-//            "    GROUP BY LAYERURI\n" +
-//            "    HAVING LAYERURI IS NOT NULL\n" +
-//            "    ORDER BY SEQ ASC\n" +
-//            ")",
-//            () -> {
-//                return getBaseDevUri((Repository) model.getUnsavedValue("repository"));
-//            }
-//    );
+    private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
     
     private final IDataSupplier<String> layerSupplier = new RowSelector(
             RowSelector.Mode.Value, () -> {
@@ -118,9 +105,6 @@ public class Environment extends Entity implements INodeListener {
                     return entity.getParent().getParent().equals(model.getUnsavedValue("repository"));
                 },
                 (entity) -> {
-                    if (model.getUnsavedValue("version") == null) 
-                        return EntityRef.Match.Unknown;
-
                     String version = (String) model.getUnsavedValue("version");
                     if (version == null || version.isEmpty())
                         return EntityRef.Match.Unknown;
@@ -144,13 +128,11 @@ public class Environment extends Entity implements INodeListener {
             Thread thread = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    try {
-                        model.setValue("version", versionSupplier.call());
-                    } catch (Exception e) {}
+                    updateVersion();
                 }
             });
             thread.start();
-            return null;
+            return model.getValue("version");
         });
         model.addUserProp("instanceId", new ArrStr().setMask(new DataSetMask(
                 "{0} - {1}", instanceSupplier
@@ -159,6 +141,7 @@ public class Environment extends Entity implements INodeListener {
         model.addUserProp("repository",  new EntityRef(Repository.class), true,  Access.Select);
         model.addUserProp(offshoot,      Access.Select);
         model.addUserProp(release,       Access.Select);
+        model.addUserProp("autoRelease", new Bool(false), false, Access.Any);
         model.addDynamicProp("binaries", new EntityRef(BinarySource.class), Access.Edit, () -> {
             return IComplexType.coalesce(model.getValue("offshoot"), model.getValue("release"));
         }, "offshoot", "release", "repository");
@@ -175,11 +158,13 @@ public class Environment extends Entity implements INodeListener {
         model.addPropertyGroup(Language.get("group@database"), "database", "instanceId", "version");
         model.addPropertyGroup(Language.get("group@binaries"), "repository", "offshoot", "release");
         model.getEditor("layerURI").addCommand(layerSelector);
-                
+        
+        EditorCommand synkRelease = new SynkRelease();
+        ((AbstractEditor) model.getEditor("release")).addCommand(synkRelease);
         model.getEditor("release").setVisible(model.getValue("repository")  != null);
         model.getEditor("offshoot").setVisible(model.getValue("repository") != null);
-        model.getEditor("instanceId").setVisible(model.getValue("database")  != null);
-        model.getEditor("version").setVisible(model.getValue("database")     != null);
+        model.getEditor("instanceId").setVisible(model.getValue("database") != null);
+        model.getEditor("version").setVisible(model.getValue("database")    != null);
         
         // Handlers
         model.addChangeListener((name, oldValue, newValue) -> {
@@ -203,6 +188,7 @@ public class Environment extends Entity implements INodeListener {
                 case "version":
                     ((AbstractEditor) model.getEditor("release")).updateUI();
                     ((AbstractEditor) model.getEditor("offshoot")).updateUI();
+                    synkRelease.activate();
                     break;
                     
                 case "repository":
@@ -235,7 +221,9 @@ public class Environment extends Entity implements INodeListener {
                     
                 case "offshoot":
                     if (newValue != null) {
+                        model.setValue("autoRelease", false);
                         model.setValue("release", null);
+                        synkRelease.activate();
                     }
                     release.setMandatory(newValue == null);
                     break;
@@ -243,9 +231,33 @@ public class Environment extends Entity implements INodeListener {
         });
         
         // Commands
-        addCommand(new RunAll());
-        addCommand(new RunServer());
-        addCommand(new RunExplorer());
+        addCommand(new RunAll() {
+            @Override
+            public void execute(Entity entity, Map<String, IComplexType> map) {
+                updateVersion();
+                super.execute(entity, map);
+            }
+        });
+        addCommand(new RunServer() {
+            @Override
+            public void execute(Entity entity, Map<String, IComplexType> map) {
+                updateVersion();
+                super.execute(entity, map);
+            }
+        });
+        addCommand(new RunExplorer() {
+            @Override
+            public void execute(Entity entity, Map<String, IComplexType> map) {
+                updateVersion();
+                super.execute(entity, map);
+            }
+        });
+    }
+    
+    private final void updateVersion() {
+        try {
+            model.setValue("version", versionSupplier.call());
+        } catch (Exception e) {}
     }
     
     public boolean canStartServer() {
@@ -275,24 +287,6 @@ public class Environment extends Entity implements INodeListener {
             } catch (InterruptedException e) {}
         }
     }
-
-//    private String[] getBaseDevUri(Repository repo) {
-//        String devUri = null;
-//        
-//        if (repo != null) {
-//            String repoUrl = repo.model.getValue("repoUrl").toString();
-//            try {
-//                InputStream in = SVN.readFile(repoUrl, "config/repository.xml", repo.getAuthManager());
-//                Matcher m = PATTERN_DEV_URI.matcher(IOUtils.toString(in, Charset.forName("UTF-8")));
-//                if (m.find()) {
-//                    devUri = m.group(1);
-//                }
-//            } catch (IOException | SVNException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//        return new String[] { devUri };
-//    }
     
     private class MutablePropHolder extends PropertyHolder {
     
@@ -315,6 +309,82 @@ public class Environment extends Entity implements INodeListener {
             }
         }
     
+    }
+    
+    private final static ImageIcon UNKNOWN   = ImageUtils.resize(ImageUtils.getByPath("/images/unavailable.png"), 20, 20);
+    private final static ImageIcon CHECKED   = ImageUtils.resize(ImageUtils.getByPath("/images/update.png"), 20, 20);
+    private final static ImageIcon UNCHECKED = ImageUtils.resize(ImageUtils.combine(CHECKED, UNKNOWN), 20, 20);
+    private class SynkRelease extends EditorCommand {
+
+        public SynkRelease() {
+            super(
+                UNKNOWN,
+                Language.get(Environment.class.getSimpleName(), "release.command@synk"),
+                null
+            );
+            activator = (holders) -> {
+                String foundVersion = (String) Environment.this.model.getValue("version");
+                Entity usedRelease  = (Entity) Environment.this.model.getValue("release");
+                String usedVersion  = usedRelease == null ? null : usedRelease.model.getPID();
+                boolean autoRelease = Environment.this.model.getUnsavedValue("autoRelease") == Boolean.TRUE;
+                
+                button.setEnabled(foundVersion != null);
+                button.setIcon(autoRelease ? CHECKED : UNCHECKED);
+                
+                AbstractEditor releaseEditor = (AbstractEditor) model.getEditor("release");
+                releaseEditor.setEditable(!autoRelease || foundVersion == null);
+                
+                if (foundVersion != null && autoRelease && !foundVersion.equals(usedVersion)) {
+                    Entity newValue = findEntity(foundVersion);
+                    if (newValue != null) {
+                        Environment.this.model.setValue("release", newValue);
+                        if (Environment.this.model.getID() != null) {
+                            Environment.this.model.commit();
+                        }
+                        Logger.getLogger().info(
+                                "Environment ''{0}'' release has been updated automatically to ''{1}''",
+                                Environment.this.model.getPID(), newValue
+                        );
+                        releaseEditor.updateUI();
+                    }
+                }
+            };
+        }
+
+        @Override
+        public void execute(PropertyHolder context) {
+            Boolean autoRelease = Environment.this.model.getUnsavedValue("autoRelease") == Boolean.TRUE;
+            Environment.this.model.setValue("autoRelease", !autoRelease);
+            if (Environment.this.model.getID() != null) {
+                Environment.this.model.commit();
+            }
+            activate();
+        }
+        
+        private Entity findEntity(String version) {
+            Entity repo  = (Entity) Environment.this.model.getUnsavedValue("repository");
+            Entity found = EAS.getEntitiesByClass(Release.class).stream()
+                .filter((entity) -> {
+                    return entity.getParent().getParent() == repo && entity.model.getPID().equals(version);
+                })
+                .findFirst().orElse(null);
+            if (found == null) {
+                EntityRef repoRef = new EntityRef(Repository.class);
+                repoRef.valueOf(repo.model.getID().toString());
+                found = Entity.newInstance(
+                        Release.class, 
+                        repoRef, 
+                        version
+                );
+            }
+            return found;
+        }
+
+        @Override
+        public boolean disableWithContext() {
+            return false;
+        }
+        
     }
     
 }
