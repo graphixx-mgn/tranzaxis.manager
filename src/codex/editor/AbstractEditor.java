@@ -44,11 +44,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
      */
     public AbstractEditor(PropertyHolder propHolder) {
         this.propHolder = propHolder;
-        this.label  = new JLabel(
-                propHolder.getDescriprion() == null || propHolder.getDescriprion().isEmpty() ?
-                propHolder.getTitle() :
-                "<html><u>TEST</u></html>"
-        );
+        this.label  = new JLabel(propHolder.getTitle());
         this.editor = createEditor();
         
         label.addMouseListener(new MouseAdapter() {
