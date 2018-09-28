@@ -4,20 +4,22 @@ import codex.utils.ImageUtils;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import javax.swing.BoxLayout;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import net.java.balloontip.BalloonTip;
 import net.java.balloontip.styles.EdgedBalloonStyle;
-import net.java.balloontip.utils.ToolTipUtils;
+import net.java.balloontip.utils.TimingUtils;
 
 /**
  * Простая реализация-декоратор кнопки. Используется для упраления в диалоговых окнах.
@@ -25,6 +27,7 @@ import net.java.balloontip.utils.ToolTipUtils;
 public class PushButton extends JPanel implements IButton, ChangeListener {
     
     protected final JButton button;
+    protected       String  hint;
     
     /**
      * Конструктор экземпляра кнопки.
@@ -51,6 +54,46 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
         button.getModel().addChangeListener(this);
         setIcon(icon);
         add(button);
+        
+        button.addMouseListener(new MouseAdapter() {
+            BalloonTip tooltipBalloon;
+            Timer delayTimer = new Timer(1000, (ActionEvent event) -> {
+                if (hint != null && tooltipBalloon == null) {
+                    tooltipBalloon = new BalloonTip(
+                            button, 
+                            new JLabel(
+                                    hint, 
+                                    ImageUtils.resize(
+                                        ImageUtils.getByPath("/images/event.png"), 
+                                        16, 16
+                                    ), 
+                                    SwingConstants.LEADING
+                            ), 
+                            new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
+                            false
+                    );
+                    TimingUtils.showTimedBalloon(tooltipBalloon, 4000);
+                } 
+            }) {{
+                setRepeats(false);
+            }};
+            
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                delayTimer.start();
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (delayTimer.isRunning()) {
+                    delayTimer.stop();
+                }
+                if (tooltipBalloon != null) {
+                    tooltipBalloon.closeBalloon();
+                    tooltipBalloon = null;
+                }
+            }
+        });
     }
     
     @Override
@@ -103,21 +146,7 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
 
     @Override
     public void setHint(String text) {
-        if (text != null) {
-            BalloonTip tooltipBalloon = new BalloonTip(
-                    (JComponent) this.button, 
-                    new JLabel(
-                            text,
-                            ImageUtils.resize(
-                                ImageUtils.getByPath("/images/event.png"), 
-                                16, 16
-                            ), 
-                            SwingConstants.LEADING), 
-                    new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
-                    false
-            );
-            ToolTipUtils.balloonToToolTip(tooltipBalloon, 2000, 3000);
-        }
+        hint = text;
     }
     
     @Override

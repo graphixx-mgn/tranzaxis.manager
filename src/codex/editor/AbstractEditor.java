@@ -5,9 +5,11 @@ import codex.property.PropertyHolder;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import java.awt.Color;
-import java.awt.Component;
+import java.awt.event.ActionEvent;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.LinkedList;
 import java.util.List;
 import javax.swing.Box;
@@ -16,10 +18,11 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.border.Border;
 import net.java.balloontip.BalloonTip;
 import net.java.balloontip.styles.EdgedBalloonStyle;
-import net.java.balloontip.utils.ToolTipUtils;
+import net.java.balloontip.utils.TimingUtils;
 
 /**
  * Абстрактный редактор свойств {@link PropertyHolder}. Содержит основные функции
@@ -41,10 +44,53 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
      */
     public AbstractEditor(PropertyHolder propHolder) {
         this.propHolder = propHolder;
-        this.label  = new JLabel(propHolder.getTitle());
+        this.label  = new JLabel(
+                propHolder.getDescriprion() == null || propHolder.getDescriprion().isEmpty() ?
+                propHolder.getTitle() :
+                "<html><u>TEST</u></html>"
+        );
         this.editor = createEditor();
         
-        setToolTipRecursively(editor, propHolder.getDescriprion());
+        label.addMouseListener(new MouseAdapter() {
+            BalloonTip tooltipBalloon;
+            Timer delayTimer = new Timer(1000, (ActionEvent e1) -> {
+                if (tooltipBalloon == null) {
+                    tooltipBalloon = new BalloonTip(
+                            label, 
+                            new JLabel(
+                                    propHolder.getDescriprion(), 
+                                    ImageUtils.resize(
+                                        ImageUtils.getByPath("/images/event.png"), 
+                                        16, 16
+                                    ), 
+                                    SwingConstants.LEADING
+                            ), 
+                            new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
+                            false
+                    );
+                    TimingUtils.showTimedBalloon(tooltipBalloon, 4000);
+                } 
+            }) {{
+                setRepeats(false);
+            }};
+            
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                delayTimer.start();
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (delayTimer.isRunning()) {
+                    delayTimer.stop();
+                }
+                if (tooltipBalloon != null) {
+                    tooltipBalloon.closeBalloon();
+                    tooltipBalloon = null;
+                }
+            }
+        });
+        
         propHolder.addChangeListener((String name, Object oldValue, Object newValue) -> {
             updateUI();
         });
@@ -67,24 +113,6 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     public final void setBorder(Border border) {
         editor.setBorder(border);
     };
-    
-    private static void setToolTipRecursively(JComponent component, String text) {
-        component.setToolTipText(text);
-        for (Component child : component.getComponents()) {
-            if (child instanceof JComponent) {
-                BalloonTip tooltipBalloon = new BalloonTip(
-                        (JComponent) child, 
-                        new JLabel(text, ImageUtils.resize(
-                            ImageUtils.getByPath("/images/event.png"), 
-                            16, 16
-                        ), SwingConstants.LEADING), 
-                        new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
-                        false
-                );
-                ToolTipUtils.balloonToToolTip(tooltipBalloon, 2000, 3000);
-            }
-        }
-    }
 
     /**
      * Установка бордюра в момент получения фокуса ввода.
