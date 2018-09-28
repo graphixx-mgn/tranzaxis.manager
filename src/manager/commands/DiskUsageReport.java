@@ -207,17 +207,21 @@ public class DiskUsageReport extends EntityCommand {
             
             if (binDir.exists()) {
                 Stream.of(binDir.listFiles()).forEach((repositoryDir) -> {
-                    if (!structureMap.containsKey(repositoryDir.getName())) {
-                        structureMap.put(repositoryDir.getName(), new LinkedList<>());
+                    if (repoIndex.values().contains(repositoryDir.getName())) {
+                        if (!structureMap.containsKey(repositoryDir.getName())) {
+                            structureMap.put(repositoryDir.getName(), new LinkedList<>());
+                        }
+                        
+                        Integer repoId = repoIndex.entrySet().stream().filter((indexEntry) -> {
+                            return indexEntry.getValue().equals(repositoryDir.getName());
+                        }).findFirst().get().getKey();
+
+                        Stream.of(repositoryDir.listFiles()).forEach((cacheDir) -> {
+                            structureMap.get(repositoryDir.getName()).add(new Entry(EntryKind.Cache, repoId, cacheDir));
+                        });
+                    } else {
+                        Logger.getLogger().warn("Found repository directory ''{0}'' does not match to any existing object", repositoryDir.getAbsolutePath());
                     }
-
-                    Integer repoId = repoIndex.entrySet().stream().filter((indexEntry) -> {
-                        return indexEntry.getValue().equals(repositoryDir.getName());
-                    }).findFirst().get().getKey();
-
-                    Stream.of(repositoryDir.listFiles()).forEach((cacheDir) -> {
-                        structureMap.get(repositoryDir.getName()).add(new Entry(EntryKind.Cache, repoId, cacheDir));
-                    });
                 });
             }
             
