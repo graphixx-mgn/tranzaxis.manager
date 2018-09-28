@@ -20,9 +20,10 @@ class EnityCache {
     public synchronized Entity findEntity(Class entityClass, Integer ownerId, String PID)  {
         if (store.containsKey(entityClass) && PID != null) {
             return store.get(entityClass).stream().filter((entity) -> {
+                Integer entityOwnerId = entity.model.getOwner() == null ? null : entity.model.getOwner().model.getID();
                 return 
                         PID.equals(entity.model.getPID()) && (
-                            (entity.model.getOwner() == null && ownerId == null) || (ownerId == entity.model.getOwner().model.getID())
+                            (entityOwnerId == null && ownerId == null) || (ownerId == entityOwnerId)
                         );
             }).findFirst().orElse(null);
         }
