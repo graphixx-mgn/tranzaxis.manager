@@ -177,11 +177,11 @@ public class DeleteWC extends EntityCommand {
             SwingUtilities.invokeLater(() -> {
                 WCStatus status = offshoot.getStatus();
                 offshoot.model.setValue("wcStatus", status);
-                if (!isCancelled()) {
+                if (!isCancelled() && status == WCStatus.Absent) {
                     offshoot.model.setValue("built", new BuildStatus());
                 }
                 offshoot.model.commit();
-                if (!isCancelled()) {
+                if (!isCancelled() && status == WCStatus.Absent) {
                     if (offshoot.model.getID() != null) {
                         ((IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class)).removeClassInstance(
                                 offshoot.getClass(), offshoot.model.getID()
