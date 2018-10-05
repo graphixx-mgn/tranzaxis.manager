@@ -1,6 +1,5 @@
 package codex.model;
 
-import codex.type.IComplexType;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,9 +30,6 @@ class EnityCache {
     }
 
     public synchronized void addEntity(Entity entity) {
-        if (IComplexType.coalesce(entity.model.getID(), entity.model.getPID()) == null) {
-            return;
-        }
         if (!store.containsKey(entity.getClass())) {
             store.put(entity.getClass(), new LinkedList<>());
         }
