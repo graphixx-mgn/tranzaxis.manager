@@ -263,6 +263,7 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
                         }
                     } else {
                         context.getLock().release();
+                        activate();
                     }
                 }
             });
