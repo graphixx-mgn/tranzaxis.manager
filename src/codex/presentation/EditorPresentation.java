@@ -58,6 +58,7 @@ public final class EditorPresentation extends JPanel {
                     }).forEach((propName) -> {
                         ((AbstractEditor) changed.model.getEditor(propName)).setLocked(changed.islocked());
                     });
+                    activateCommands();
                 }
             });
             add(new EditorPage(entity.model), BorderLayout.CENTER);
