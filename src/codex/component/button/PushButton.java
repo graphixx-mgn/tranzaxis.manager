@@ -93,6 +93,17 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
                     tooltipBalloon = null;
                 }
             }
+            
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (delayTimer.isRunning()) {
+                    delayTimer.stop();
+                }
+                if (tooltipBalloon != null) {
+                    tooltipBalloon.closeBalloon();
+                    tooltipBalloon = null;
+                }
+            }
         });
     }
     
