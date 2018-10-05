@@ -38,7 +38,6 @@ import javax.swing.plaf.basic.BasicComboPopup;
 public class EntityRefEditor extends AbstractEditor implements ActionListener {
     
     private final static ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
-    private final static Font DEFAULT_FONT = new Font(IEditor.FONT_VALUE.getName(), Font.PLAIN, (int) (IEditor.FONT_VALUE.getSize()*1.2));
     
     private JComboBox comboBox;
 
@@ -64,7 +63,7 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
         });
     }
     
-    private List<Object> getValues() {
+    protected List<Object> getValues() {
         Class             entityClass  = ((EntityRef) propHolder.getPropValue()).getEntityClass();
         Predicate<Entity> entityFilter = ((EntityRef) propHolder.getPropValue()).getEntityFilter();
         return entityClass != null ? EAS.getEntitiesByClass(entityClass)
