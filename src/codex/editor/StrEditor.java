@@ -134,6 +134,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         signDelete.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
+                commit.accept(textField.getText());
                 propHolder.setValue(null);
             }
         });
