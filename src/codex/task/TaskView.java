@@ -24,7 +24,7 @@ import javax.swing.border.MatteBorder;
  */
 final class TaskView extends AbstractTaskView {
     
-    private final static SimpleDateFormat DURATION_FORMAT = new SimpleDateFormat("mm:ss", java.util.Locale.getDefault());
+    protected final static SimpleDateFormat DURATION_FORMAT = new SimpleDateFormat("mm:ss", java.util.Locale.getDefault());
     
     private final JLabel title;
     private final JLabel status;
@@ -123,8 +123,10 @@ final class TaskView extends AbstractTaskView {
             updater.start();
         } else if (progress.isIndeterminate() && !isInfinitive) {
             updater.stop();
-        } else if (!isInfinitive) {
+        } else if (!isInfinitive && !task.getStatus().isFinal()) {
             progress.setString(null);
+        } if (task.getStatus() == Status.FINISHED || task.getStatus() == Status.FINISHED) {
+            progress.setString(DURATION_FORMAT.format(new Date(((AbstractTask) task).getDuration())));
         }
         progress.setIndeterminate(isInfinitive);
         

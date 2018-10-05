@@ -37,7 +37,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
             }
         }
     };
-    private LocalDateTime startTime, pauseTime;
+    private LocalDateTime startTime, pauseTime, stopTime;
 
     /**
      * Конструктор задачи.
@@ -192,7 +192,10 @@ public abstract class AbstractTask<T> implements ITask<T> {
     }
     
     public final long getDuration() {
-        return Duration.between(startTime, LocalDateTime.now()).toMillis();
+        return Duration.between(
+                startTime, 
+                status.isFinal() ? stopTime : LocalDateTime.now()
+        ).toMillis();
     }
 
     /**
@@ -201,11 +204,16 @@ public abstract class AbstractTask<T> implements ITask<T> {
      */
     void setStatus(Status state) {
         if ((this.status == Status.PENDING || this.status == Status.PAUSED) && state == Status.STARTED) {
-            startTime = LocalDateTime.now();
+            if (pauseTime == null) {
+                startTime = LocalDateTime.now();
+            } else {
+                startTime = startTime.minusNanos(Duration.between(LocalDateTime.now(), pauseTime).toNanos());
+            }
         } else if (this.status == Status.STARTED && state == Status.PAUSED) {
             pauseTime = LocalDateTime.now();
-        } else if (this.status == Status.PAUSED && state == Status.STARTED) {
-            startTime = startTime.minusNanos(Duration.between(LocalDateTime.now(), pauseTime).toNanos());
+        }
+        if (state.isFinal()) {
+            stopTime = LocalDateTime.now();
         }
         if (!this.status.equals(state)) {
             Logger.getLogger().debug("Task ''{0}'' state changed: {1} -> {2}", getTitle(), this.status, state);

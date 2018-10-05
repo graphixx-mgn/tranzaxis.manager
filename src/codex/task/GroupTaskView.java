@@ -9,6 +9,7 @@ import java.awt.Color;
 import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -128,6 +129,9 @@ final class GroupTaskView extends AbstractTaskView {
                             task.getStatus() == Status.CANCELLED ? PROGRESS_CANCELED :
                                 PROGRESS_NORMAL
                 );
+                if (mainTask.getStatus() == Status.FINISHED || mainTask.getStatus() == Status.FINISHED) {
+                    mainProgress.setString(TaskView.DURATION_FORMAT.format(new Date(((AbstractTask) mainTask).getDuration())));
+                }
             }
         });
     }
