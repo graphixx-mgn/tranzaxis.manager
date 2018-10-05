@@ -311,12 +311,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                         Entity referenced = EAS.getEntity(Class.forName(link.entryClass), link.entryID);
                         msgBuilder
                                 .append(Language.get("link@incoming"))
-                                .append(referenced.getPathString());
+                                .append(referenced != null ? referenced.getPathString() : link.entryPID);
                     } else {
                         msgBuilder
                                 .append(Language.get("link@outgoing"))
-                                .append(link.entryPID)
-                                ;
+                                .append(link.entryPID);
                     }
                 } catch (ClassNotFoundException e) {}
             });

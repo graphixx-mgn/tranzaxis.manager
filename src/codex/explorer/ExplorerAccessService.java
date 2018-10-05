@@ -49,7 +49,7 @@ public class ExplorerAccessService implements IExplorerAccessService {
                 .map((node) -> {
                     return (Entity) node;
                 })
-                .findFirst().get();
+                .findFirst().orElse(null);
     }
     
 }
