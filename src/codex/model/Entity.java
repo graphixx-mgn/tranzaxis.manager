@@ -89,7 +89,16 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 editor.setLocked(islocked());
                 return editor;
             }
-            
+
+            @Override
+            public boolean remove() {
+                boolean result = super.remove();
+                if (result) {
+                    CACHE.removeEntity(Entity.this);
+                }
+                return result;
+            }
+
         };
         this.model.addChangeListener(this);
         this.model.addModelListener(new IModelListener() {
@@ -124,31 +133,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             });
         }
 
-        if (childEntity.model.getID() != null) {
-            Map<String, String> databaseValues = CAS.readClassInstance(child.getClass(), childEntity.model.getID());
-            if (!databaseValues.isEmpty()) {
-                List<String> propList = childEntity.model.getProperties(Access.Any).stream().filter((propName) -> {
-                    return !childEntity.model.isPropertyDynamic(propName);
-                }).collect(Collectors.toList());
-                
-                List<String> extraProps = databaseValues.keySet().stream().filter((propName) -> {
-                    return !propList.contains(propName) && !EntityModel.SYSPROPS.contains(propName);
-                }).collect(Collectors.toList());
-                
-                Map<String, IComplexType> absentProps = propList.stream()
-                        .filter((propName) -> {
-                            return !databaseValues.containsKey(propName);
-                        })
-                        .collect(Collectors.toMap(
-                                propName -> propName, 
-                                propName -> childEntity.model.getProperty(propName).getPropValue()
-                        ));
-                
-                if (!extraProps.isEmpty() || !absentProps.isEmpty()) {
-                    CAS.maintainClassCatalog(child.getClass(), extraProps, absentProps);
-                }
-            }
-        }
+        childEntity.maintenanceModel();
         
         if (!((Entity) child).model.getProperty(EntityModel.OWN).isEmpty()) {
             return;
@@ -207,8 +192,32 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return hint;
     }
     
-    public final boolean islocked() {
-        return getLock().availablePermits() == 0;
+    void maintenanceModel() {
+        if (model.getID() != null) {
+            Map<String, String> databaseValues = CAS.readClassInstance(getClass(), model.getID());
+            if (!databaseValues.isEmpty()) {
+                List<String> propList = model.getProperties(Access.Any).stream().filter((propName) -> {
+                    return !model.isPropertyDynamic(propName);
+                }).collect(Collectors.toList());
+                
+                List<String> extraProps = databaseValues.keySet().stream().filter((propName) -> {
+                    return !propList.contains(propName) && !EntityModel.SYSPROPS.contains(propName);
+                }).collect(Collectors.toList());
+                
+                Map<String, IComplexType> absentProps = propList.stream()
+                        .filter((propName) -> {
+                            return !databaseValues.containsKey(propName);
+                        })
+                        .collect(Collectors.toMap(
+                                propName -> propName, 
+                                propName -> model.getProperty(propName).getPropValue()
+                        ));
+                
+                if (!extraProps.isEmpty() || !absentProps.isEmpty()) {
+                    CAS.maintainClassCatalog(getClass(), extraProps, absentProps);
+                }
+            }
+        }
     }
 
     @Override
@@ -327,6 +336,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 return found;
             } else {
                 Entity instance = (Entity) entityClass.getConstructor(EntityRef.class, String.class).newInstance(parent, (Object) title);
+                instance.maintenanceModel();
                 CACHE.addEntity(instance);
                 return instance;
             }

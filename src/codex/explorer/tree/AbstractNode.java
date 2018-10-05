@@ -131,12 +131,16 @@ public abstract class AbstractNode implements INode {
                     if (availablePermits() == 0) {
                         // Avoid extra releases that increases permits counter
                         super.release();
-                        fireChangeEvent();
                     }
+                    fireChangeEvent();
                 }
             };
         }
         return lock;
+    }
+    
+    public final boolean islocked() {
+        return getLock().availablePermits() == 0;
     }
     
     @Override

@@ -93,7 +93,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public final String getPID() {
         return (String) getProperty(PID).getPropValue().getValue();
     }
-
+    
     @Override
     public final boolean isValid() {
         boolean isValid = true;
@@ -325,7 +325,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
     }
     
-    public final boolean remove() {
+    public boolean remove() {
         if (existReferencies()) {
             return false;
         } else {
@@ -376,7 +376,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 
                 values.put(propName, getProperty(propName).getOwnPropValue());
             });
-            if (getID() == null || !databaseValues.keySet().containsAll(changes)) {
+            if (getID() == null/* || !databaseValues.keySet().containsAll(changes)*/) { // Создание нового объекта при переименовании
                 Map<String, IComplexType> propDefinitions = new LinkedHashMap<>();
                 
                 propDefinitions.put(OWN, getProperty(OWN).getPropValue());
@@ -437,9 +437,6 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void rollback() {
         List<String> changes = getChanges();
-//        changes.sort((propName1, propName2) -> {
-//            return propName1.equals(EntityModel.OVR) ? 1 : (propName2.equals(EntityModel.OVR) ? -1 : 0);
-//        });
         changes.forEach((name) -> {
             getProperty(name).setValue(undoRegistry.previous(name));
         });
