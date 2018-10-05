@@ -39,4 +39,10 @@ class EnityCache {
         }
         store.get(entity.getClass()).add(entity);
     }
+    
+    public synchronized void removeEntity(Entity entity) {
+        if (store.containsKey(entity.getClass())) {
+            store.get(entity.getClass()).remove(entity);
+        }
+    }
 } 
