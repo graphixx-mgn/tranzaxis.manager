@@ -92,7 +92,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         }
         entityClass = entity.getChildClass();
         this.entity = entity;
-        Entity prototype = Entity.newInstance(entityClass, null, null);
+        Entity prototype = Entity.newPrototype(entityClass);
         
         commands.add(new EditEntity());
         if (entity.allowModifyChild()) {

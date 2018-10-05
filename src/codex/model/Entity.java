@@ -316,6 +316,21 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     
     private static final EnityCache CACHE = EnityCache.getInstance();
     
+    public static synchronized Entity newPrototype(Class entityClass) {
+        try {
+            Entity instance = (Entity) entityClass.getConstructor(EntityRef.class, String.class).newInstance(null, null);
+            instance.maintenanceModel();
+            return instance;
+        } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
+            Logger.getLogger().error(
+                    MessageFormat.format("Unable instantiate entity ''{0}''", entityClass.getCanonicalName()), e
+            );
+        } catch (NoSuchMethodException e) {
+            Logger.getLogger().error("Entity ''{0}'' does not have universal constructor (EntityRef, String)", entityClass.getCanonicalName());
+        }
+        return null;
+    }
+    
     public static synchronized Entity newInstance(Class entityClass, EntityRef parent, String title) {
         try {
             Entity found = CACHE.findEntity(
