@@ -53,8 +53,8 @@ class CommandChooser extends AbstractEditor implements ActionListener {
                     comboBox.addItem(command);
                 });
         }
-        comboBox.setSelectedIndex(0);
         comboBox.addActionListener(this);
+        comboBox.setSelectedIndex(0);
     }
 
     @Override
@@ -92,7 +92,7 @@ class CommandChooser extends AbstractEditor implements ActionListener {
     @Override
     public void setValue(Object value) {
         if (value == null) {
-            comboBox.setSelectedItem(comboBox.getItemAt(comboBox.getItemCount()-1));
+            comboBox.setSelectedIndex(0);
         } else {
             if (!comboBox.getSelectedItem().equals(value)) {
                 comboBox.setSelectedItem(value);
