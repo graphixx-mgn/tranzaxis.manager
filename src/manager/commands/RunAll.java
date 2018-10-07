@@ -121,8 +121,10 @@ public class RunAll extends EntityCommand {
                     }
                 } else {
                     source.getLock().release();
-                    TES.enqueueTask(((RunServer) entity.getCommand("server")).new RunServerTask((Environment) entity));
-                    TES.enqueueTask(((RunExplorer) entity.getCommand("explorer")).new RunExplorerTask((Environment) entity));
+                    SwingUtilities.invokeLater(() -> {
+                        TES.enqueueTask(((RunServer) entity.getCommand("server")).new RunServerTask((Environment) entity));
+                        TES.enqueueTask(((RunExplorer) entity.getCommand("explorer")).new RunExplorerTask((Environment) entity));
+                    });
                 }
             });
             checker.start();
