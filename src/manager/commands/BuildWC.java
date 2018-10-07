@@ -138,7 +138,6 @@ public class BuildWC extends EntityCommand {
                         for (Entity entity : getContext()) {
                             execute(entity, paramValues);
                         }
-                        activate();
                     });
                 }
             } catch (Exception e) {

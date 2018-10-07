@@ -89,7 +89,6 @@ public class DeleteWC extends EntityCommand {
                                     execute(entity, null);
                                 }
                             }
-                            activate();
                         }
                     }
             );
