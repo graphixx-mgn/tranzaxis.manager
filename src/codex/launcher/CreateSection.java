@@ -32,7 +32,7 @@ class CreateSection extends EntityCommand {
      */
     CreateSection() {
         super(
-                "new_shortcut", null,
+                "new_section", null,
                 ImageUtils.getByPath("/images/createdir.png"), 
                 Language.get("title"),
                 null
