@@ -1,13 +1,12 @@
 package codex.component.border;
 
-import java.awt.BasicStroke;
 import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.RenderingHints;
+import java.awt.Shape;
 import java.awt.geom.RoundRectangle2D;
-import java.lang.reflect.Field;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.LineBorder;
 
@@ -28,29 +27,22 @@ public class RoundedBorder extends AbstractBorder {
         this.border = border;
         this.radius = radius;
     }
-
+    
     @Override
     public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
-        Graphics2D g2d = (Graphics2D) g.create();
+        Graphics2D g2d = (Graphics2D) g;
+        Shape clip = g2d.getClip();
         g2d.setClip(0, 0, 0, 0);
         border.paintBorder(c, g2d, x, y, width, height);
-        g2d.setClip(x, y, width, height);
         
+        g2d.setClip(clip);
         g2d.setColor(border.getLineColor());
         g2d.setStroke(g2d.getStroke());
         g2d.setRenderingHint(
                 RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_ON
         );
-        try {
-            Field strokeWidth = BasicStroke.class.getDeclaredField("width");
-            strokeWidth.setAccessible(true);
-            strokeWidth.set(g2d.getStroke(), border.getThickness());
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
-        }
         g2d.draw(new RoundRectangle2D.Double(x, y, width-1, height-1, radius, radius));
-        g2d.dispose();
     }
 
     @Override
