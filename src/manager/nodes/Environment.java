@@ -196,6 +196,7 @@ public class Environment extends Entity implements INodeListener {
                     model.setValue("offshoot", null);
                     model.getEditor("release").setVisible(newValue  != null);
                     model.getEditor("offshoot").setVisible(newValue != null);
+                    synkRelease.activate();
                     break;
                     
                 case "release":
@@ -368,7 +369,7 @@ public class Environment extends Entity implements INodeListener {
                     return entity.getParent().getParent() == repo && entity.model.getPID().equals(version);
                 })
                 .findFirst().orElse(null);
-            if (found == null) {
+            if (found == null && repo != null) {
                 EntityRef repoRef = new EntityRef(Repository.class);
                 repoRef.valueOf(repo.model.getID().toString());
                 found = Entity.newInstance(
