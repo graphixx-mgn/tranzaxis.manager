@@ -8,19 +8,19 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.text.MessageFormat;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 /**
  * Абстрактная кнопка-ярлык быстрого доступа к командам.
  */
-abstract class LaunchButton extends JButton implements ChangeListener {
+abstract class LaunchButton extends JButton {
     
     public static final Border NORMAL_BORDER   = new RoundedBorder(new LineBorder(Color.decode("#CCCCCC"), 1), 18);
     public static final Border HOVER_BORDER    = new RoundedBorder((LineBorder) IEditor.BORDER_ACTIVE, 18);
@@ -35,19 +35,32 @@ abstract class LaunchButton extends JButton implements ChangeListener {
     
     LaunchButton(String text, Icon icon) {
         super(MessageFormat.format("<html><center>{0}</center></html>", text), icon);
+        
         setFont(new Font(IEditor.FONT_VALUE.getName(), Font.PLAIN, 10));
         setVerticalAlignment(text != null && !text.isEmpty() ? JLabel.TOP : JLabel.CENTER);
-        setPreferredSize(new Dimension(100, 110));
+        setPreferredSize(new Dimension(110, 90));
         setHorizontalTextPosition(JLabel.CENTER);
         setVerticalTextPosition(JLabel.BOTTOM);
         setContentAreaFilled(false);
         setFocusPainted(false);
         setOpaque(false);
         setBorder(NORMAL_BORDER);
-        getModel().addChangeListener(this);
+        
+        addMouseListener(new MouseAdapter() {
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                stateChanged();
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                stateChanged();
+            }
+        });
     }
     
-    public final void setOpacity(float opacity) {
+    final void setOpacity(float opacity) {
         this.opacity = opacity;
         repaint();
     }    
@@ -59,9 +72,9 @@ abstract class LaunchButton extends JButton implements ChangeListener {
         super.paint(g2);
     }
 
-    @Override
-    public void stateChanged(ChangeEvent event) {
+    
+    protected void stateChanged() {
         setBorder(getModel().isRollover() ? HOVER_BORDER : NORMAL_BORDER);
     }
-    
+
 }
