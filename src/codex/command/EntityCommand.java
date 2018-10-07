@@ -48,9 +48,22 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     
     private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
     
+    /**
+     * Тип команды. 
+     */
     public enum Kind {
+        /**
+         * Административная команда. Не отображается в модуле ярлыков.
+         */
         Admin,
+        /**
+         * Информационная команда. Не отображается в модуле ярлыков и блокируется вместе с сущностью.
+         * Команда такого типа не должна менять значения сущности.
+         */
         Info,
+        /**
+         * Команда, запускающая действие над сущностью.
+         */
         Action
     }
     
