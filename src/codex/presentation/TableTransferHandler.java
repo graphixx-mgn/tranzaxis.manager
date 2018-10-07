@@ -67,12 +67,15 @@ public class TableTransferHandler extends TransferHandler {
                     index--;
                 
                 ((SelectorTableModel) table.getModel()).moveRow(rowFrom, rowFrom, index);
-                table.getSelectionModel().setSelectionInterval(index, index);
+                table.getSelectionModel().setValueIsAdjusting(false);
+                table.changeSelection(index, index, false, false);
                 return true;
             }
         } catch (UnsupportedFlavorException | IOException e) {
             Logger.getLogger().error("Unknown error during moving row", e);
         }
+        table.getSelectionModel().setValueIsAdjusting(false);
+        table.changeSelection(index, index, false, false);
         return false;
     }
 
