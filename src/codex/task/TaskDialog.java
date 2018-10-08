@@ -20,7 +20,7 @@ import javax.swing.border.MatteBorder;
 
 /**
  * Диалог отображения исполнения задач. Окно, содержащее виджеты исполняющихся 
- * в данный момент задач, запущенных методом {@link TaskManager#execute(codex.task.ITask)}.
+ * в данный момент задач, запущенных методом {@link TaskManager.TaskExecutorService#executeTask(codex.task.ITask)}.
  */
 class TaskDialog extends Dialog implements ITaskListener {
     

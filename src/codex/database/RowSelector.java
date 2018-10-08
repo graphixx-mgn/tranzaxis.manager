@@ -78,7 +78,7 @@ public class RowSelector implements IDataSupplier<String> {
      * @param mode Режим возврата значения.
      * @param connectionID Поставщик идентификатора подключения.
      * @param query Запрос, при необходимости включающий в себя параметры.
-     * @param params Список значений параметров запроса, не указывать если 
+     * @param parameters Список значений параметров запроса, не указывать если 
      * параметров нет.
      */
     public RowSelector(Mode mode, Supplier<Integer> connectionID, String query, Object... parameters) {
@@ -97,7 +97,7 @@ public class RowSelector implements IDataSupplier<String> {
      * Конструктор поставщика.
      * @param connectionID Поставщик идентификатора подключения.
      * @param query Запрос, при необходимости включающий в себя параметры.
-     * @param params Список значений параметров запроса, не указывать если 
+     * @param parameters Список значений параметров запроса, не указывать если 
      * параметров нет.
      */
     public RowSelector(Supplier<Integer> connectionID, String query, Supplier<Object[]> parameters) {

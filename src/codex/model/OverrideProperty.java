@@ -30,8 +30,9 @@ public final class OverrideProperty extends EditorCommand {
 
     /**
      * Конструктор команды.
-     * @param childHolder Свойство которое наследует значение.
-     * @param parentHolder Одноименное свойство родительской сущности.
+     * @param parentModel Ссылка на родительскую модель.
+     * @param childModel  Ссылка на дочернюю модель.
+     * @param propName Свойство которое следует перекрыть.
      */
     public OverrideProperty(EntityModel parentModel, EntityModel childModel, String propName) {
         super(childModel.getProperty(propName).isInherited() ? OVERRIDE : INHERIT, Language.get("title"));

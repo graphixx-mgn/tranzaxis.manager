@@ -21,7 +21,8 @@ public interface IConfigStoreService extends IService {
     
     /**
      * Перестроение таблицы для актуализации структуры.
-     * @param unusedColumns 
+     * @param unusedProperties Список неиспользуемых колонок
+     * @param newProperties Список новых колонок
      */
     default public void maintainClassCatalog(Class clazz, List<String> unusedProperties, Map<String, IComplexType> newProperties) {}
     

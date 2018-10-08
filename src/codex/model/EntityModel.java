@@ -444,10 +444,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         });
     }
     
-    /**
-     * Сохранение значения единичного свойства.
-     * @param propName 
-     */
+//    /**
+//     * Сохранение значения единичного свойства.
+//     * @param propName 
+//     */
 //    public final void saveValue(String propName) {
 //        Map<String, String> values = new LinkedHashMap();
 //        values.put(propName, getProperty(propName).getPropValue().toString());
