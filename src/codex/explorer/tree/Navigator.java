@@ -92,6 +92,7 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
                 node = it.next();
                 setToolTip(new TreePath(((NodeTreeModel) model).getPathToRoot(node)), node);
                 node.addNodeListener(this);
+                ((Entity) node).model.addModelListener(this);
             }
         }
     }
@@ -101,20 +102,20 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
             return;
         }
         TreeNodeBalloonTip tip = new TreeNodeBalloonTip(
-                    this, 
-                    new JLabel(
-                            ((Entity) node).getHint(),
-                            ImageUtils.resize(
-                                ImageUtils.getByPath("/images/event.png"), 
-                                16, 16
-                            ), SwingConstants.LEADING
-                    ),
-                    path, 
-                    new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
-                    BalloonTip.Orientation.LEFT_BELOW, 
-                    BalloonTip.AttachLocation.ALIGNED, 
-                    10, 10, false
-            );
+                this, 
+                new JLabel(
+                        ((Entity) node).getHint(),
+                        ImageUtils.resize(
+                            ImageUtils.getByPath("/images/event.png"), 
+                            16, 16
+                        ), SwingConstants.LEADING
+                ),
+                path, 
+                new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
+                BalloonTip.Orientation.LEFT_BELOW, 
+                BalloonTip.AttachLocation.ALIGNED, 
+                10, 10, false
+        );
         ToolTipUtils.balloonToToolTip(tip, 1500, 3000);
     }
 
