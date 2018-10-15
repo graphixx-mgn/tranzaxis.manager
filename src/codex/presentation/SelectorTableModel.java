@@ -7,9 +7,12 @@ import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.model.IModelListener;
 import codex.type.IComplexType;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
+import java.util.stream.Collectors;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 
@@ -70,10 +73,26 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
     public void moveRow(int start, int end, int to) {
         super.moveRow(start, end, to);
         entity.move(getEntityAt(start), to);
+        
         SwingUtilities.invokeLater(() -> {
-            entity.childrenList().forEach((node) -> {
-                ((Entity) node).model.setValue(EntityModel.SEQ, (entity.childrenList().indexOf(node)+1));
-                ((Entity) node).model.commit();
+            List<Integer> sequences = entity.childrenList().stream()
+                .map((childNode) -> {
+                    return ((Entity) childNode).getSEQ();
+                })
+                .collect(Collectors.toList());
+            Collections.sort(sequences);
+            Iterator<Integer> seqIterator = sequences.iterator();
+            
+            entity.childrenList().forEach((childNode) -> {
+                Entity childEntity = (Entity) childNode;
+                childEntity.setSEQ(seqIterator.next());
+                if (!childEntity.model.getChanges().isEmpty()) {
+                    try {
+                        childEntity.model.commit(true);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             });
         });
     }
