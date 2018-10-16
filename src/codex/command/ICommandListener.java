@@ -1,5 +1,7 @@
 package codex.command;
 
+import java.util.List;
+
 /**
  * Интерфейс слушателя событий команды.
  * @param <T> Тип контекста команды.
@@ -11,6 +13,6 @@ public interface ICommandListener<T> {
      * Событие смены контекста команды.
      * @param context Новый контекст.
      */
-    void contextChanged(T... context);
+    void contextChanged(List<T> context);
     
 }

@@ -3,11 +3,8 @@ package codex.command;
 import codex.component.button.CommandButton;
 import codex.component.button.IButton;
 import codex.property.PropertyHolder;
-import codex.type.ArrStr;
-import codex.type.FilePath;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import javax.swing.ImageIcon;
@@ -16,22 +13,17 @@ import javax.swing.JComponent;
 /**
  * Абстрактная реализация команд редактора свойств {@link PropertyHolder}.
  * Используется для возможности производить различные действия над свойством.
- * В частности, таким образом реализуется запуск редакторов таких типов как
- * {@link FilePath} и {@link ArrStr}.
  */
-public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionListener {
+public abstract class EditorCommand implements ICommand<PropertyHolder, PropertyHolder>, ActionListener {
     
-    protected PropertyHolder[] context;
-    protected IButton          button;
+    protected PropertyHolder context;
+    protected IButton        button;
     protected Predicate<PropertyHolder> available;
-    protected Consumer<PropertyHolder[]> activator = (holders) -> {
+    protected Consumer<PropertyHolder>  activator = (holder) -> {
         button.setEnabled(
-                holders != null && holders.length > 0 && 
-                !(holders.length > 1 && !multiContextAllowed()) && (
-                        available == null || Arrays.asList(holders).stream().allMatch(available)
-                ) && Arrays.asList(holders).stream().allMatch((holder) -> {
-                    return !holder.isInherited();
-                })
+                holder != null && (
+                    available == null || available.test(holder)
+                ) && !holder.isInherited()
         );
     };
     
@@ -71,24 +63,19 @@ public abstract class EditorCommand implements ICommand<PropertyHolder>, ActionL
     };
 
     @Override
-    public void setContext(PropertyHolder... context) {
-        if (context.length > 1 && !multiContextAllowed()) {
-            throw new IllegalStateException("Multiple context is not allowed");
-        }
+    public void setContext(PropertyHolder context) {
         this.context = context;
         activate();
     }
     
     @Override
     public void actionPerformed(ActionEvent event) {
-        for (PropertyHolder propHolder : context) {
-            execute(propHolder);
-            ((JComponent) button).getParent().getComponent(0).requestFocusInWindow();
-        }
+        execute(getContext());
+        ((JComponent) button).getParent().getComponent(0).requestFocusInWindow();
     }
 
     @Override
-    public PropertyHolder[] getContext() {
+    public PropertyHolder getContext() {
         return context;
     }
 

@@ -6,7 +6,6 @@ import codex.log.Logger;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.model.IModelListener;
-import codex.model.ParamModel;
 import codex.presentation.CommitEntity;
 import codex.presentation.RollbackEntity;
 import codex.property.PropertyHolder;
@@ -23,7 +22,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.text.MessageFormat;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -40,11 +38,11 @@ import javax.swing.SwingUtilities;
 /**
  * Абстрактная реализация команд сущности {@link Entity}.
  * Используется для возможности производить различные действия над сущностью.
- * В частности, таким образом реализуется сохранение и откат изменений
+ * @param <V> Класс {@link Entity} или один из его производных.
  * @see CommitEntity
  * @see RollbackEntity
  */
-public abstract class EntityCommand implements ICommand<Entity>, ActionListener, IModelListener, ICommandListener<Entity>, Iconified {
+public abstract class EntityCommand<V extends Entity> implements ICommand<V, List<V>>, ActionListener, IModelListener, ICommandListener<V>, Iconified {
     
     private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
     
@@ -70,21 +68,21 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     private KeyStroke key;
     private String    name;
     private String    title;
-    private Entity[]  context;
+    private List<V>   context;
     private IButton   button; 
     private String    groupId;
-    private final List<ICommandListener<Entity>> listeners = new LinkedList<>();
-    private Supplier<PropertyHolder[]> provider = () -> { return new PropertyHolder[] {}; };
+    private final List<ICommandListener<V>> listeners = new LinkedList<>();
+    private Supplier<PropertyHolder[]>      provider  = () -> { return new PropertyHolder[] {}; };
     
-    protected Predicate<Entity>  available;
-    protected Consumer<Entity[]> activator = (entities) -> {
+    protected Predicate<V>      available;
+    protected Consumer<List<V>> activator = (entities) -> {
         button.setEnabled(
-                entities != null && entities.length > 0 && 
-                !(entities.length > 1 && !multiContextAllowed()) && 
-                (available == null || Arrays.asList(entities).stream().allMatch(available)) && 
-                (Arrays.asList(entities).stream().allMatch((entity) -> {
+                entities != null && entities.size() > 0 && 
+                !(entities.size() > 1 && !multiContextAllowed()) && 
+                (available == null || entities.stream().allMatch(available)) && 
+                entities.stream().allMatch((entity) -> {
                     return !entity.islocked();
-                }))
+                })
         );
     };
     
@@ -96,7 +94,7 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
      * @param hint Описание команды, отображается при наведении мыши на кнопку.
      * @param available Функция проверки доступности команды.
      */
-    public EntityCommand(String name, String title, ImageIcon icon, String hint, Predicate<Entity> available) {
+    public EntityCommand(String name, String title, ImageIcon icon, String hint, Predicate<V> available) {
         this(name, title, icon, hint, available, null);
     }
     
@@ -109,7 +107,7 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
      * @param available Функция проверки доступности команды.
      * @param key Код комбинации клавиш клавиатуры для запуска команды.
      */
-    public EntityCommand(String name, String title, ImageIcon icon, String hint, Predicate<Entity> available, KeyStroke key) {
+    public EntityCommand(String name, String title, ImageIcon icon, String hint, Predicate<V> available, KeyStroke key) {
         if (icon == null) {
             throw new IllegalStateException("Parameter 'icon' can not be NULL");
         }
@@ -161,15 +159,15 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     /**
      * Добавляет слушатель событий команды.
      */
-    public final void addListener(ICommandListener<Entity> listener) {
+    public final void addListener(ICommandListener<V> listener) {
         listeners.add(listener);
     }
 
     @Override
-    public final void setContext(Entity... context) {
+    public final void setContext(List<V> context) {
         if (this.context != null) {
-            Arrays.asList(this.context).forEach((entity) -> {
-                entity.model.removeModelListener(this);
+            this.context.forEach((contextItem) -> {
+                contextItem.model.removeModelListener(this);
             });
         }
         this.context = context;
@@ -177,8 +175,8 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
             listener.contextChanged(context);
         });
         if (this.context != null) {
-            Arrays.asList(this.context).forEach((entity) -> {
-                entity.model.addModelListener(this);
+            this.context.forEach((contextItem) -> {
+                contextItem.model.addModelListener(this);
             });
         }
         activate();
@@ -190,9 +188,9 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
      * @param contextItem Сущность контекста команды.
      * @param paramModel Модель набора параметров.
      */
-    public void preprocessParameters(Entity contextItem, ParamModel paramModel) {
-        // Do nothing
-    }
+//    public void preprocessParameters(V contextItem, ParamModel paramModel) {
+//        // Do nothing
+//    }
     
     /**
      * Установка списка пераметров команды.
@@ -240,8 +238,8 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
         Map<String, IComplexType> params = getParameters();
         if (params != null) {
             SwingUtilities.invokeLater(() -> {
-                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
-                for (Entity entity : getContext()) {
+                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), getContext());
+                for (V entity : getContext()) {
                     execute(entity, params);
                 }
                 activate();
@@ -251,9 +249,9 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     
     @Override
     @Deprecated
-    public final void execute(Entity context) {};
+    public final void execute(V context) {};
     
-    public abstract void execute(Entity context, Map<String, IComplexType> params);
+    public abstract void execute(V context, Map<String, IComplexType> params);
     
     /**
      * Исполнение длительной задачи над сущностью с блокировкой.
@@ -261,7 +259,7 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
      * @param task Задача.
      * @param foreground Исполнить в модальном диалоге.
      */
-    public final void executeTask(Entity context, ITask task, boolean foreground) {
+    public final void executeTask(V context, ITask task, boolean foreground) {
         if (context != null) {
             task.addListener(new ITaskListener() {
                 @Override
@@ -304,7 +302,7 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     }
 
     @Override
-    public final Entity[] getContext() {
+    public final List<V> getContext() {
         return context;
     }
     
@@ -343,7 +341,7 @@ public abstract class EntityCommand implements ICommand<Entity>, ActionListener,
     }
 
     @Override
-    public void contextChanged(Entity... context) {
+    public void contextChanged(List<V> context) {
         // Do nothing
     };
 
