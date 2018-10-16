@@ -30,6 +30,7 @@ public final class ExplorerUnit extends AbstractUnit {
         
         this.treeModel = treeModel;
         this.navigator = new Navigator();
+        navigator.setModel(treeModel);
         this.browser   = new Browser();
         
         this.navigator.addNavigateListener((TreePath path) -> {
@@ -63,9 +64,9 @@ public final class ExplorerUnit extends AbstractUnit {
 
     @Override
     public void viewportBound() {
-        navigator.setModel(treeModel);
         navigatePanel.setViewportView(navigator);
         browsePanel.add(browser, BorderLayout.CENTER);
+        navigator.expandPath(new TreePath(treeModel.getPathToRoot((INode) treeModel.getRoot())));
     }
     
 }
