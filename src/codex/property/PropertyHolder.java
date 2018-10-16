@@ -20,10 +20,11 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     private final String  name;
     private final String  title;
     private final String  desc;
-    private final boolean require;
+    private       boolean require;
     private IComplexType<V, ?>   value;
     private PropertyHolder<T, V> inherit;
-    private final List<IPropertyChangeListener> listeners = new LinkedList<>();
+    private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
+    private final List<IPropertyStateListener>  stateListeners  = new LinkedList<>();
     
     /**
      * Конструктор свойства. Наименование и описание достаются их ресурса локализаии
@@ -177,6 +178,11 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
         return require;
     }
     
+    public void setRequired(boolean require) {
+        this.require = require;
+        fireStatusChangeEvent();
+    }
+    
     /**
      * Возвращает флаг пустого значения свойства.
      */
@@ -188,7 +194,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
      * Добавление слушателя события изменения значения свойства.
      */
     public final void addChangeListener(IPropertyChangeListener listener) {
-        listeners.add(listener);
+        changeListeners.add(listener);
     }
     
     /**
@@ -197,8 +203,24 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
      * @param nextValue Новое значение.
      */
     private void fireChangeEvent(Object prevValue, Object nextValue) {
-        listeners.forEach((listener) -> {
+        new LinkedList<>(changeListeners).forEach((listener) -> {
             listener.propertyChange(name, prevValue, nextValue);
+        });
+    }
+    
+    /**
+     * Добавление слушателя события изменения состояния свойства.
+     */
+    public final void addStateListener(IPropertyStateListener listener) {
+        stateListeners.add(listener);
+    }
+    
+    /**
+     * Оповещение слушателей об изменении состояния свойства.
+     */
+    private void fireStatusChangeEvent() {
+        new LinkedList<>(stateListeners).forEach((listener) -> {
+            listener.propertyStatusChange(name);
         });
     }
     

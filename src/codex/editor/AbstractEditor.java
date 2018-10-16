@@ -90,6 +90,9 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         propHolder.addChangeListener((String name, Object oldValue, Object newValue) -> {
             updateUI();
         });
+        propHolder.addStateListener((name) -> {
+            updateUI();
+        });
         
         setBorder(IEditor.BORDER_NORMAL);
         updateUI();

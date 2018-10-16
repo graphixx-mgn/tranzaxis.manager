@@ -3,6 +3,7 @@ package codex.property;
 /**
  * Интерфейс слушателя события изменения значения свойства {@link PropertyHolder}.
  */
+@FunctionalInterface
 public interface IPropertyChangeListener {
     
     /**
