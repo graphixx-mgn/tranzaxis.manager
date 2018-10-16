@@ -1,6 +1,6 @@
 package codex.editor;
 
-import codex.command.ICommand;
+import codex.command.EditorCommand;
 import codex.property.PropertyHolder;
 import codex.utils.Language;
 import java.awt.Color;
@@ -111,11 +111,11 @@ public interface IEditor<T> {
     /**
      * Добавить команду изменения свойства.
      */
-    public void addCommand(ICommand<PropertyHolder> command);
+    public void addCommand(EditorCommand command);
     /**
      * Получить текущий список назначенных редактору команд.
      */
-    public List<ICommand<PropertyHolder>> getCommands();
+    public List<EditorCommand> getCommands();
     
     /**
      * Возвращает компонент редактора, который может получить фокус ввода.
