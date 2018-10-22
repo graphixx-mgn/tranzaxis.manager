@@ -14,8 +14,8 @@ import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 
 public class Development extends Catalog {
     
-    public Development(EntityRef parent) {
-        super(parent, ImageUtils.getByPath("/images/development.png"), "title", null);
+    public Development(EntityRef owner) {
+        super(owner, ImageUtils.getByPath("/images/development.png"), "title", null);
     }
     
     @Override
@@ -28,11 +28,15 @@ public class Development extends Catalog {
         return false;
     };
 
+    Repository getRepository() {
+        return (Repository) this.getOwner();
+    }
+    
     @Override
     protected final Collection<String> getChildrenPIDs() {
-        String repoUrl = (String) this.model.getOwner().model.getValue("repoUrl");
-        ISVNAuthenticationManager authMgr = ((Repository) this.model.getOwner()).getAuthManager();
-        
+        ISVNAuthenticationManager authMgr = getRepository().getAuthManager();
+        String repoUrl = getRepository().getRepoUrl();        
+
         try {
             List<SVNDirEntry> dirItems = SVN.list(repoUrl+"/dev", authMgr);
             return dirItems.stream()
