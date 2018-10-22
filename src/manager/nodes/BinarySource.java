@@ -38,7 +38,12 @@ public abstract class BinarySource extends Catalog {
         return null;
     }
     
+    public Repository getRepository() {
+        return (Repository) this.getOwner();
+    }
+    
     public abstract String getLocalPath();
+    
     public abstract String getRemotePath();
     
 }
