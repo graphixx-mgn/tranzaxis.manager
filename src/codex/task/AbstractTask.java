@@ -47,7 +47,14 @@ public abstract class AbstractTask<T> implements ITask<T> {
         future = new FutureTask<T>((Callable<T>) () -> {
             setStatus(Status.STARTED);
             try {
-                finished(execute());
+                new LinkedList<>(listeners).forEach((listener) -> {
+                    listener.beforeExecute(this);
+                });
+                T result = execute();
+                new LinkedList<>(listeners).forEach((listener) -> {
+                    listener.afterExecute(this);
+                });
+                finished(result);
             } catch (CancelException e) {
                 setStatus(Status.CANCELLED);
             } catch (ExecuteException e) {

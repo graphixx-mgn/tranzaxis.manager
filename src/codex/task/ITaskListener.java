@@ -25,4 +25,19 @@ public interface ITaskListener {
         // Do nothing
     };
     
+    /**
+     * Вызывается перед исполнением метода {@link ITask#execute()}.
+     * @param task Ссылка на задачу.
+     */
+    default public void beforeExecute(ITask task) {
+        // Do nothing
+    };
+    
+    /**
+     * Вызывается после исполнения метода {@link ITask#execute()}.
+     * @param task Ссылка на задачу.
+     */
+    default public void afterExecute(ITask task) {
+        // Do nothing
+    };
 }
