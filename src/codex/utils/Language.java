@@ -74,7 +74,7 @@ public class Language {
         return NOT_FOUND;
     }
     
-    private static Locale getLocale() {
+    public static Locale getLocale() {
         return new Locale(System.getProperty("user.language"), System.getProperty("user.country"));
     }
     
