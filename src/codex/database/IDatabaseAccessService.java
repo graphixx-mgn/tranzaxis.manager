@@ -1,9 +1,7 @@
 package codex.database;
 
-import codex.model.Entity;
 import codex.service.IService;
-import codex.type.EntityRef;
-import codex.type.Str;
+import codex.type.IComplexType;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
@@ -49,22 +47,16 @@ public interface IDatabaseAccessService extends IService {
         AtomicInteger index = new AtomicInteger(-1);
         Object[] flattened = flatten(values).toArray();
         String pattern = sql
-                .toUpperCase()
                 .chars()
                 .mapToObj((code) -> {
                     String symbol = String.valueOf((char) code);
                     if ("?".equals(symbol)) {
                         index.addAndGet(1);
-                        if (flattened[index.get()] == null || flattened[index.get()].toString().isEmpty()) {
+                        if (flattened[index.get()] == null) {
                             symbol = "<NULL>";
-                        } else if (flattened[index.get()] instanceof EntityRef) {
-                            Entity entity = ((EntityRef) flattened[index.get()]).getValue();
-                            symbol = "["+MessageFormat.format(
-                                "{0}/#{1}-{2}",
-                                entity.getClass().getSimpleName(), entity.model.getID(), entity
-                            )+"]";
-                        } else if (flattened[index.get()] instanceof String || flattened[index.get()] instanceof Str) {
-                            symbol = "''{"+index.get()+"}''";
+                        } else if (flattened[index.get()] instanceof IComplexType) {
+                            IComplexType complexVal = (IComplexType) flattened[index.get()];
+                            symbol = complexVal.getQualifiedValue(complexVal.getValue());
                         } else {
                             symbol = "{"+index.get()+"}";
                         }
