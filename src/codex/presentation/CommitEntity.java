@@ -15,7 +15,7 @@ import javax.swing.KeyStroke;
 /**
  * Команда сохранения изменений сущности.
  */
-public class CommitEntity extends EntityCommand {
+public class CommitEntity extends EntityCommand<Entity> {
 
     /**
      * Конструктор команды.
@@ -35,7 +35,9 @@ public class CommitEntity extends EntityCommand {
     @Override
     public void execute(Entity context, Map<String, IComplexType> params) {
         if (context.validate()) {
-            context.model.commit();
+            try {
+                context.model.commit(true);
+            } catch (Exception e) {}
         }
     }
     

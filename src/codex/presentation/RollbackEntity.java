@@ -15,7 +15,7 @@ import javax.swing.KeyStroke;
 /**
  * Команда отката изменений сущности.
  */
-public class RollbackEntity extends EntityCommand {
+public class RollbackEntity extends EntityCommand<Entity> {
     
     /**
      * Конструктор команды.
