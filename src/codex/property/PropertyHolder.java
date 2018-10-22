@@ -198,6 +198,13 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     }
     
     /**
+     * Удаление слушателя события изменения значения свойства.
+     */
+    public final void removeChangeListener(IPropertyChangeListener listener) {
+        changeListeners.remove(listener);
+    }
+    
+    /**
      * Оповещение слушателей об изменении значения свойства.
      * @param prevValue Предыдущее значение свойства.
      * @param nextValue Новое значение.
