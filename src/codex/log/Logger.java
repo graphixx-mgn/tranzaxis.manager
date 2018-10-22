@@ -3,6 +3,8 @@ package codex.log;
 /* http://alvinalexander.com/java/jwarehouse/jakarta-log4j-1.2.8/examples/subclass */
 
 import java.text.MessageFormat;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.log4j.Category;
 
 /**
@@ -10,29 +12,29 @@ import org.apache.log4j.Category;
  * @see Logger#debug
  * @author Gredyaev Ivan
  */
-public class Logger extends org.apache.log4j.Logger {
+public class Logger extends org.apache.log4j.Logger implements Thread.UncaughtExceptionHandler {
     
     private static final String        FQCN = Logger.class.getName();
-    private static final LoggerFactory factory = new LoggerFactory();
+    private static final LoggerFactory FACTORY = new LoggerFactory();
 
     Logger(String name) {
         super(name);
     }
     
     /**
-     * This method overrides {@link Logger#getInstance} by supplying its own factory type as a parameter.
+     * This method overrides {@link Logger#getInstance} by supplying its own FACTORY type as a parameter.
      * @param name Name of logger
      */
     public static Category getInstance(String name) {
-        return org.apache.log4j.Logger.getLogger(name, factory); 
+        return org.apache.log4j.Logger.getLogger(name, FACTORY); 
     }
   
     /**
-     * This method overrides {@link Logger#getLogger} by supplying its own factory type as a parameter.
+     * This method overrides {@link Logger#getLogger} by supplying its own FACTORY type as a parameter.
      * @return Instance of {@link Logger}
      */
     public static Logger getLogger() {
-        return (Logger) org.apache.log4j.Logger.getLogger(Logger.class.getCanonicalName(), factory); 
+        return (Logger) org.apache.log4j.Logger.getLogger(Logger.class.getCanonicalName(), FACTORY); 
     }
 
     /**
@@ -44,7 +46,7 @@ public class Logger extends org.apache.log4j.Logger {
      * @param params Parameters to fill the template
      */
     public final void debug(String message, Object... params) {
-        super.debug(format(message, params));
+        debug(format(message, params));
     }
     
     /**
@@ -56,7 +58,7 @@ public class Logger extends org.apache.log4j.Logger {
      * @param params Parameters to fill the template
      */
     public final void info(String message, Object... params) {
-        super.info(format(message, params));
+        info(format(message, params));
     }
     
     /**
@@ -68,7 +70,7 @@ public class Logger extends org.apache.log4j.Logger {
      * @param params Parameters to fill the template
      */
     public final void warn(String message, Object... params) {
-        super.warn(format(message, params));
+        warn(format(message, params));
     }
     
     /**
@@ -80,7 +82,7 @@ public class Logger extends org.apache.log4j.Logger {
      * @param params Parameters to fill the template
      */
     public final void error(String message, Object... params) {
-        super.error(format(message, params));
+        error(format(message, params));
     }
     
     /**
@@ -92,7 +94,75 @@ public class Logger extends org.apache.log4j.Logger {
      * @param params Parameters to fill the template
      */
     public final void fatal(String message, Object... params) {
-        super.fatal(format(message, params));
+        fatal(format(message, params));
+    }
+    
+    @Override
+    public void debug(Object message, Throwable exception) {
+        debug(format(((String) message).concat("\n{0}"), new Object[]{stackTraceToString(exception)}));
+    }
+
+    @Override
+    public void info(Object message, Throwable exception) {
+        info(format(((String) message).concat("\n{0}"), new Object[]{stackTraceToString(exception)}));
+    }
+    
+    @Override
+    public void warn(Object message, Throwable exception) {
+        warn(format(((String) message).concat("\n{0}"), new Object[]{stackTraceToString(exception)}));
+    }
+
+    @Override
+    public void error(Object message, Throwable exception) {
+        error(format(((String) message).concat("\n{0}"), new Object[]{stackTraceToString(exception)}));
+    }
+    
+    @Override
+    public void fatal(Object message, Throwable exception) {
+        fatal(format(((String) message).concat("\n{0}"), new Object[]{stackTraceToString(exception)}));
+    }
+
+    @Override
+    public void debug(Object message) {
+        super.debug(offset(message.toString()));
+    }
+    
+    @Override
+    public void info(Object message) {
+        super.info(offset(message.toString()));
+    }
+    
+    @Override
+    public void warn(Object message) {
+        super.warn(offset(message.toString()));
+    }
+    
+    @Override
+    public void error(Object message) {
+        super.error(offset(message.toString()));
+    }
+
+    @Override
+    public void fatal(Object message) {
+        super.fatal(offset(message.toString()));
+    }
+    
+    private String stackTraceToString(Throwable exception) {
+        return exception.toString().concat("\n\t").concat(String.join(
+                "\n\t", 
+                Stream.of(exception.getStackTrace())
+                .map((stackElement) -> {
+                    return stackElement.toString();
+                }).collect(Collectors.toList())
+        ));
+    }
+    
+    private String offset(String message) {
+        long lines = message.chars().filter(x -> x == '\n').count() + 1;
+        if (lines > 1) {
+            message = message.replaceAll("\n", "\n                     ");
+        }
+        return message;
     }
     
     /**
@@ -103,6 +173,11 @@ public class Logger extends org.apache.log4j.Logger {
      */
     private String format(String message, Object[] params) {
         return MessageFormat.format(message, params);
+    }
+
+    @Override
+    public void uncaughtException(Thread thread, Throwable e) {
+        error(MessageFormat.format("Unhandled exception in thread ({0})", thread.getName()), e);
     }
     
 }
