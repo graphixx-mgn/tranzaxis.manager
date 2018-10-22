@@ -13,7 +13,6 @@ import codex.service.ServiceRegistry;
 import codex.task.ITask;
 import codex.task.ITaskExecutorService;
 import codex.task.ITaskListener;
-import codex.task.Status;
 import codex.task.TaskManager;
 import codex.type.IComplexType;
 import codex.type.Iconified;
@@ -260,25 +259,24 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
      * @param foreground Исполнить в модальном диалоге.
      */
     public final void executeTask(V context, ITask task, boolean foreground) {
-        if (context != null) {
-            task.addListener(new ITaskListener() {
-                @Override
-                public void statusChanged(ITask task, Status status) {
-                    if (!status.isFinal()) {
-                        try {
-                            if (!context.islocked()) {
-                                context.getLock().acquire();
-                            }
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    } else {
-                        context.getLock().release();
-                        activate();
-                    }
+        task.addListener(new ITaskListener() {
+            @Override
+            public void beforeExecute(ITask task) {
+                if (context != null && !context.islocked()) {
+                    try {
+                        context.getLock().acquire();
+                    } catch (InterruptedException e) {}
                 }
-            });
-        }
+            }
+            
+            @Override
+            public void afterExecute(ITask task) {
+                if (context != null) {
+                    context.getLock().release();
+                }
+            }
+        });
+
         if (foreground) {
             TES.executeTask(task);
         } else {
