@@ -11,7 +11,7 @@ import codex.type.Enum;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import manager.commands.LoadWC;
+import manager.commands.repository.LoadWC;
 import manager.type.SVNAuth;
 import org.tmatesoft.svn.core.auth.BasicAuthenticationManager;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
