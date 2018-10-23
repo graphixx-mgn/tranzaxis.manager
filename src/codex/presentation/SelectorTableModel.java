@@ -115,6 +115,23 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
             }
         }
     }
+
+    @Override
+    public void modelDeleted(EntityModel model) {
+        int rowCount = getRowCount();
+        for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+            if (getEntityAt(rowIdx).model.equals(model)) {
+                final int entityIdx = rowIdx;
+                List<String> selectorProps = model.getProperties(Access.Select);
+                selectorProps.forEach((propName) -> {
+                    int propIdx = selectorProps.indexOf(propName);
+                    setValueAt(model.getValue(propName), entityIdx, propIdx);
+                });
+                fireTableRowsUpdated(rowIdx, rowIdx);
+                break;
+            }
+        }
+    }
     
     private static Vector generateHeader(Entity entity, final Entity prototype) {
         Vector headerVector = new Vector();
