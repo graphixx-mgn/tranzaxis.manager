@@ -50,10 +50,14 @@ public abstract class AbstractTask<T> implements ITask<T> {
                 new LinkedList<>(listeners).forEach((listener) -> {
                     listener.beforeExecute(this);
                 });
-                T result = execute();
-                new LinkedList<>(listeners).forEach((listener) -> {
-                    listener.afterExecute(this);
-                });
+                T result = null;
+                try {
+                    result = execute();
+                } finally {
+                    new LinkedList<>(listeners).forEach((listener) -> {
+                        listener.afterExecute(this);
+                    });
+                }
                 finished(result);
             } catch (CancelException e) {
                 setStatus(Status.CANCELLED);
@@ -101,6 +105,13 @@ public abstract class AbstractTask<T> implements ITask<T> {
             setPause(false);
         }
         return future.cancel(mayInterruptIfRunning);
+    }
+    
+    /**
+     * Возвращает признак того что задача была завершена с ошибкой.
+     */
+    public final boolean isFailed() {
+        return status == Status.FAILED;
     }
 
     /**
