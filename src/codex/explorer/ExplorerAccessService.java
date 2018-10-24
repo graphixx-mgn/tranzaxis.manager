@@ -44,7 +44,7 @@ public class ExplorerAccessService implements IExplorerAccessService {
         return getRoot()
                 .flattened()
                 .filter((node) -> {
-                    return entityClass.isAssignableFrom(node.getClass()) && ((Entity) node).model.getID() == ID;
+                    return entityClass.isAssignableFrom(node.getClass()) && ((Entity) node).getID() == ID;
                 })
                 .map((node) -> {
                     return (Entity) node;
