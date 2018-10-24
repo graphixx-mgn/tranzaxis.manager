@@ -1,8 +1,8 @@
 package codex.model;
 
 import java.text.MessageFormat;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Реестр изменений свойст модели сущности. Используется для возможности отката
@@ -10,7 +10,7 @@ import java.util.Map;
  */
 final class UndoRegistry {
     
-    private final Map<String, RegistryItem> registry = new HashMap<>();
+    private final Map<String, RegistryItem> registry = new ConcurrentHashMap<>();
     
     /**
      * Актуализировать запись об изменении в реестре:
