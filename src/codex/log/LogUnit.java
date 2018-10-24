@@ -188,7 +188,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
         final GraphicsEnvironment graphEnv = GraphicsEnvironment.getLocalGraphicsEnvironment();
         final GraphicsDevice[] graphDevs = graphEnv.getScreenDevices();
         if (graphDevs.length > 1) {
-            Logger.getLogger().log(Level.INFO, "Detected multi screens configuration. EventLog window moved to 2ND device");
+            Logger.getLogger().info("Detected multi screens configuration. EventLog window moved to 2ND device");
             final Insets scnMax = Toolkit.getDefaultToolkit().getScreenInsets(frame.getGraphicsConfiguration());
             int taskBarSize = scnMax.bottom;
             final Rectangle bounds = graphDevs[1].getDefaultConfiguration().getBounds();
