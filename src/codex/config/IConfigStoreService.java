@@ -20,19 +20,12 @@ public interface IConfigStoreService extends IService {
     public static int RC_DEL_CONSTRAINT = 11;
     
     /**
-     * Перестроение таблицы для актуализации структуры.
-     * @param unusedProperties Список неиспользуемых колонок
-     * @param newProperties Список новых колонок
-     */
-    default public void maintainClassCatalog(Class clazz, List<String> unusedProperties, Map<String, IComplexType> newProperties) {}
-    
-    /**
      * Создать пустую запись в каталоге для модели сушности по её уникальному ключу.
      * @param clazz Класс сущности.
      * @param PID Наименование сущности.
      * @return ID созданной сущности.
      */
-    default Map<String, Integer> initClassInstance(Class clazz, String PID, Map<String, IComplexType> propDefinition, Integer ownerId) {
+    default Map<String, Integer> initClassInstance(Class clazz, String PID, Map<String, IComplexType> propDefinition, Integer ownerId) throws Exception {
         return null;
     };
     
@@ -41,11 +34,8 @@ public interface IConfigStoreService extends IService {
      * @param clazz Класс сущности.
      * @param ID Уникальный числовой идентификатор сущности.
      * @param properties Список имен свойств, которые требуется сохранить.
-     * @return Код результата исполнения.
      */
-    default int updateClassInstance(Class clazz, Integer ID, Map<String, IComplexType> properties) {
-        return RC_SUCCESS;
-    };
+    default void updateClassInstance(Class clazz, Integer ID, Map<String, IComplexType> properties) throws Exception {};
     
     /**Получить список значений свойств сущности.
      * @param clazz Класс сущности.
@@ -75,11 +65,8 @@ public interface IConfigStoreService extends IService {
      * Удалить запись в каталоге по её уникальному ключу.
      * @param clazz Класс сущности.
      * @param ID Уникальный числовой идентификатор сущности.
-     * @return Код результата исполнения.
      */
-    default int removeClassInstance(Class clazz, Integer ID) {
-        return RC_SUCCESS;
-    };
+    default void removeClassInstance(Class clazz, Integer ID) throws Exception {};
 
     /**
      * Поиск ссылок на сущность
@@ -91,10 +78,17 @@ public interface IConfigStoreService extends IService {
     }
     
     /**
+     * Перестроение таблицы для актуализации структуры.
+     * @param unusedProperties Список неиспользуемых колонок
+     * @param newProperties Список новых колонок
+     */
+    default public void maintainClassCatalog(Class clazz, List<String> unusedProperties, Map<String, IComplexType> newProperties) throws Exception {}
+    
+    /**
      * Получение класса владельца сущности
      * @param clazz Класс сущности
      */
-    default public Class getOwnerClass(Class clazz) {
+    default public Class getOwnerClass(Class clazz) throws Exception {
         return null;
     }
     
