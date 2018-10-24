@@ -3,6 +3,8 @@ package codex.editor;
 import codex.component.button.IButton;
 import codex.component.render.GeneralRenderer;
 import codex.explorer.ExplorerAccessService;
+import codex.explorer.tree.INode;
+import codex.explorer.tree.INodeListener;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
@@ -35,7 +37,7 @@ import javax.swing.plaf.basic.BasicComboPopup;
  * Редактор свойств типа {@link EntityRef}, представляет собой выпадающий список
  * сущностей, найденный по классу и с учетом фильтра указанных в свойстве.
  */
-public class EntityRefEditor extends AbstractEditor implements ActionListener {
+public class EntityRefEditor extends AbstractEditor implements ActionListener, INodeListener {
     
     private final static ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
     
@@ -89,7 +91,27 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
 
     @Override
     public Box createEditor() {        
-        comboBox = new JComboBox();
+        comboBox = new JComboBox() {
+            @Override
+            public void removeAllItems() {
+                for (int i = 0; i < getItemCount(); i++) {
+                    Object item = getItemAt(i);
+                    if (item instanceof Entity) {
+                        ((Entity) item).removeNodeListener(EntityRefEditor.this);
+                    }
+                }
+                super.removeAllItems();
+            }
+
+            @Override
+            public void addItem(Object item) {
+                super.addItem(item);
+                if (item instanceof Entity) {
+                    ((Entity) item).addNodeListener(EntityRefEditor.this);
+                }
+            }
+            
+        };
         comboBox.addItem(new NullValue());
         
         UIManager.put("ComboBox.border", new BorderUIResource(
@@ -158,7 +180,7 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
         comboBox.addItem(new NullValue());
         for (Object item : values) {
             if (propHolder.getPropValue().getValue() != null && 
-                ((Entity) item).model.getPID().equals(((Entity) propHolder.getPropValue().getValue()).model.getPID())) 
+                ((Entity) item).getPID().equals(((Entity) propHolder.getPropValue().getValue()).getPID())) 
             {
                 comboBox.addItem(propHolder.getPropValue().getValue());
                 setValue(propHolder.getPropValue().getValue());
@@ -222,6 +244,14 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener {
     @Override
     public Component getFocusTarget() {
         return comboBox;
+    }
+
+    @Override
+    public void childChanged(INode node) {
+        if (comboBox.getSelectedItem() == node) {
+            comboBox.revalidate();
+            comboBox.repaint();
+        }
     }
     
 }
