@@ -1,11 +1,10 @@
 package codex.presentation;
 
-import codex.command.ICommand;
+import codex.command.EditorCommand;
 import codex.component.border.RoundedBorder;
 import codex.editor.IEditor;
 import codex.model.AbstractModel;
 import codex.model.Access;
-import codex.property.PropertyHolder;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -54,7 +53,7 @@ public final class EditorPage extends JPanel {
         for (String propName : properties) {
             IEditor propEditor = model.getEditor(propName);
             /* Нужно перерисовать компонент на случай если уже было обращение к нему
-             * на ранней стадии инициализации сухности */
+             * на ранней стадии инициализации сущности */
             ((JComponent) propEditor).updateUI();
             if (propEditor.getFocusTarget() != null && propEditor.isEditable()) {
                 focusOrder.add(propEditor.getFocusTarget());
@@ -73,7 +72,7 @@ public final class EditorPage extends JPanel {
             container.add(editor);
             container.add(Box.createRigidArea(new Dimension(1, 28)));
 
-            ((List<ICommand<PropertyHolder>>) propEditor.getCommands()).stream().forEach((command) -> {
+            ((List<EditorCommand>) propEditor.getCommands()).stream().forEach((command) -> {
                 editor.add((JComponent) command.getButton());
             });
             String propGroup = model.getPropertyGroup(propName);
