@@ -1,5 +1,6 @@
 package codex.editor;
 
+import codex.command.EditorCommand;
 import codex.command.ICommand;
 import codex.property.PropertyHolder;
 import codex.type.Iconified;
@@ -36,7 +37,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     private boolean      locked   = false;
     
     protected final PropertyHolder propHolder;
-    protected final List<ICommand<PropertyHolder>> commands = new LinkedList<>();
+    protected final List<ICommand<PropertyHolder, PropertyHolder>> commands = new LinkedList<>();
 
     /**
      * Конструктор редактора.
@@ -172,18 +173,18 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     };
 
     @Override
-    public void addCommand(ICommand command) {
+    public void addCommand(EditorCommand command) {
         commands.add(command);
         command.getButton().addActionListener((e) -> {
             SwingUtilities.invokeLater(() -> {
                 updateUI();
             });
         });
-        ((ICommand<PropertyHolder>)command).setContext(propHolder);
+        command.setContext(propHolder);
     }
     
     @Override
-    public List<ICommand<PropertyHolder>> getCommands() {
+    public List<ICommand<PropertyHolder, PropertyHolder>> getCommands() {
         return new LinkedList<>(commands);
     }
 
