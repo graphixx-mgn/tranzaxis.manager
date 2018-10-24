@@ -4,6 +4,7 @@ import codex.editor.BoolEditor;
 import codex.editor.IEditorFactory;
 import codex.mask.IMask;
 import codex.property.PropertyHolder;
+import java.text.MessageFormat;
 
 /**
  * Тип-обертка {@link IComplexType} для класса Boolean.
@@ -47,6 +48,11 @@ public class Bool implements IComplexType<Boolean, IMask<Boolean>> {
     @Override
     public void valueOf(String value) {
         setValue("1".equals(value));
+    }
+    
+    @Override
+    public String getQualifiedValue(Boolean val) {
+        return val == null ? "<NULL>" : MessageFormat.format("<{0}>", val == true ? "TRUE" : "FALSE");
     }
     
 }

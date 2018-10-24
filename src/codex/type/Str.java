@@ -4,6 +4,7 @@ import codex.editor.IEditorFactory;
 import codex.editor.StrEditor;
 import codex.mask.IMask;
 import codex.property.PropertyHolder;
+import java.text.MessageFormat;
 
 /**
  * Тип-обертка {@link IComplexType} для класса String.
@@ -71,6 +72,11 @@ public class Str implements IComplexType<String, IMask<String>> {
     @Override
     public void valueOf(String value) {
         setValue((value == null || value.isEmpty()) ? null : value);
+    }
+
+    @Override
+    public String getQualifiedValue(String val) {
+        return val == null ? "<NULL>" : MessageFormat.format("\"{0}\"", val);
     }
     
 }

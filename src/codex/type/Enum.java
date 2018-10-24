@@ -22,6 +22,9 @@ public class Enum implements IComplexType<java.lang.Enum, IMask<java.lang.Enum>>
      * @param value Внутреннее хранимое значение.
      */
     public Enum(java.lang.Enum value) {
+        if (value == null) {
+            throw new IllegalStateException(MessageFormat.format("Type ''{0}'' does not support NULL value", this.getClass().getName()));
+        }
         this.value = value;
     }
 
@@ -50,8 +53,12 @@ public class Enum implements IComplexType<java.lang.Enum, IMask<java.lang.Enum>>
     
     @Override
     public void valueOf(String value) {
-        //Enum.valueOf(((java.lang.Enum) propValue.getValue()).getClass(), (String) value);
         setValue(java.lang.Enum.valueOf(this.value.getClass(), value));
+    }
+    
+    @Override
+    public String getQualifiedValue(java.lang.Enum val) {
+        return val.name();
     }
 
 }

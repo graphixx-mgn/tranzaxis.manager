@@ -6,6 +6,7 @@ import codex.mask.IPathMask;
 import codex.property.PropertyHolder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.MessageFormat;
 
 /**
  * Тип-обертка {@link IComplexType} для интерфейса Path.
@@ -67,6 +68,11 @@ public class FilePath implements IComplexType<Path, IPathMask>  {
     @Override
     public void valueOf(String value) {
         setValue(Paths.get(value));
+    }
+    
+    @Override
+    public String getQualifiedValue(Path val) {
+        return val == null ? "<NULL>" : MessageFormat.format("file://{0}", val);
     }
     
 }

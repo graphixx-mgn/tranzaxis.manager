@@ -84,7 +84,15 @@ public interface IComplexType<T, M extends IMask<T>> extends Serializable {
         };
     }
     
+    /**
+     * Создание значения типа из строкового представления.
+     */
     public void valueOf(String value);
+    
+    /**
+     * Возврашает строковое представление для использования при логировании.
+     */
+    abstract String getQualifiedValue(T val);
     
     /**
      * Аналог функции COALESCE (расширенная версия NVL) в Oracle, перебирает 

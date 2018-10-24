@@ -93,6 +93,11 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
         setValue(parse(value));
     }
     
+    @Override
+    public String getQualifiedValue(List<String> val) {
+        return val == null ? "<NULL>" :  MessageFormat.format("({0})'", val);
+    }
+    
     public static String merge(List<String> values) {
         if (values == null || values.isEmpty()) {
             return "";

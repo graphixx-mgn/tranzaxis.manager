@@ -49,4 +49,9 @@ public class Int implements IComplexType<Integer, IMask<Integer>> {
         setValue(value == null || value.isEmpty() ? null : Integer.valueOf(value));
     }
     
+    @Override
+    public String getQualifiedValue(Integer val) {
+        return val == null ? "<NULL>" : val.toString();
+    }
+    
 }
