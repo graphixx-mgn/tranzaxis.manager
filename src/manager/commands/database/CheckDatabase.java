@@ -1,7 +1,6 @@
-package manager.commands;
+package manager.commands.database;
 
 import codex.command.EntityCommand;
-import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
@@ -14,7 +13,7 @@ import java.util.regex.Pattern;
 import javax.swing.ImageIcon;
 import manager.nodes.Database;
 
-public class CheckDatabase extends EntityCommand {
+public class CheckDatabase extends EntityCommand<Database> {
     
     private final static Pattern   SPLIT   = Pattern.compile("([\\d\\.]+|[^\\s]+):(\\d+)/");
     private final static ImageIcon WARN    = ImageUtils.resize(ImageUtils.getByPath("/images/unavailable.png"),  28, 28);
@@ -25,9 +24,9 @@ public class CheckDatabase extends EntityCommand {
         super("activity", null, PASSIVE, Language.get(Database.class.getSimpleName(), "command@activity"), null);
         getButton().setInactive(true);
         
-        activator = (entities) -> {
-            if (entities != null && entities.length > 0 && !(entities.length > 1 && !multiContextAllowed())) {
-                String dbUrl = (String) entities[0].model.getValue("dbUrl");
+        activator = (databases) -> {
+            if (databases != null && databases.size() > 0 && !(databases.size() > 1 && !multiContextAllowed())) {
+                String dbUrl = databases.get(0).getDatabaseUrl(true);
                 if (dbUrl != null) {
                     if (checkUrlPort(dbUrl)) {
                         getButton().setIcon(ACTIVE);
@@ -46,7 +45,7 @@ public class CheckDatabase extends EntityCommand {
     }
 
     @Override
-    public void execute(Entity entity, Map<String, IComplexType> params) {
+    public void execute(Database database, Map<String, IComplexType> params) {
         // Do nothing
     }
 
@@ -63,7 +62,7 @@ public class CheckDatabase extends EntityCommand {
     @Override
     public void modelSaved(EntityModel model, List<String> changes) {
         super.modelSaved(model, changes);
-        if (changes.contains("dbUrl")) {
+        if (changes.contains(Database.PROP_BASE_URL)) {
             activate();
         }
     }
