@@ -64,6 +64,13 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     }
     
     /**
+     * Возвращает тип (класс значения) свойства.
+     */
+    public final Class<? extends IComplexType> getType() {
+        return value.getClass();
+    }
+    
+    /**
      * Получить идентификатор свойства.
      */
     public final String getName() {
