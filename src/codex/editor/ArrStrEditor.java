@@ -93,7 +93,7 @@ public class ArrStrEditor extends AbstractEditor {
         
         IArrMask mask = (IArrMask) propHolder.getPropValue().getMask();
         if (mask != null) {
-            addCommand(mask);
+            addCommand((EditorCommand) mask);
         } else {
             addCommand(new ArrStrEditor.ListEditor());
         }

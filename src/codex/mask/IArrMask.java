@@ -10,7 +10,7 @@ import java.util.List;
  * команды редактора. При назначении маски стандартный диалог редактора поля 
  * заменяется на предоставляемый конкретной реализацией маски.
  */
-public interface IArrMask extends IMask<List<String>>, ICommand<PropertyHolder> {
+public interface IArrMask extends IMask<List<String>>, ICommand<PropertyHolder, PropertyHolder> {
     
     /**
      * Формат отображения элементов списка в редакторе и селекторе. Указывается 
