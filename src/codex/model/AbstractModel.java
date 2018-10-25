@@ -74,7 +74,7 @@ public class AbstractModel {
     /**
      * Получить свойство по его имени.
      */
-    final PropertyHolder getProperty(String name) {
+    public final PropertyHolder getProperty(String name) {
         if (!properties.containsKey(name)) {
             throw new NoSuchFieldError(
                     MessageFormat.format("Model does not have property ''{0}''", name)
