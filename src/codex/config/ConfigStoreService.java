@@ -67,7 +67,7 @@ public final class ConfigStoreService implements IConfigStoreService {
                     add("sqlite_sequence");
                 }};
                 
-                try (ResultSet rs = meta.getColumns(null, null, "%", "%")) {
+                try (ResultSet rs = meta.getTables(null, null, "%", new String[] { "TABLE" })) {
                     while (rs.next()) {
                         String tableName = rs.getString("TABLE_NAME");
                         if (!sysTables.contains(tableName)) {
@@ -197,6 +197,7 @@ public final class ConfigStoreService implements IConfigStoreService {
                     .filter((entry) -> {
                         return 
                                 entry.getValue() instanceof EntityRef &&
+                                ((EntityRef) entry.getValue()).getEntityClass() != null &&
                                 !tableRegistry.get(className).refInfos.stream().anyMatch((refInfo) -> {
                                     return refInfo.fkColumn.equals(entry.getKey());
                                 });
@@ -212,7 +213,6 @@ public final class ConfigStoreService implements IConfigStoreService {
                     }).map((columnInfo) -> {
                         return columnInfo.name;
                     }).collect(Collectors.toList());
-            
             Map<String, IComplexType> addedProps = propDefinition.entrySet().stream()
                     .filter((entry) -> {
                         return 
@@ -224,7 +224,6 @@ public final class ConfigStoreService implements IConfigStoreService {
                             (entry) -> entry.getKey(), 
                             (entry) -> entry.getValue()
                     ));
-            
             if (!deleteProps.isEmpty() || !addedProps.keySet().isEmpty()) {
                 maintainClassCatalog(clazz, deleteProps, addedProps);
             }
