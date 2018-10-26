@@ -2,6 +2,7 @@ package codex.database;
 
 import codex.service.IService;
 import codex.type.IComplexType;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
@@ -22,6 +23,7 @@ public interface IDatabaseAccessService extends IService {
      * @param url Адрес БД в формате JDBC для конкретного драйвера.
      * @param user Имя пользователя.
      * @param password Пароль.
+     * @throws SQLException
      */
     default Integer registerConnection(String url, String user, String password) throws SQLException {
         return null;
@@ -33,6 +35,7 @@ public interface IDatabaseAccessService extends IService {
      * @param query Запрос, при необходимости включающий в себя параметры.
      * @param params Список значений параметров запроса, не указывать если 
      * параметров нет.
+     * @throws SQLException
      */
     default ResultSet select(Integer connectionID, String query, Object... params) throws SQLException {
         return null;
@@ -43,6 +46,12 @@ public interface IDatabaseAccessService extends IService {
         return "Database Access Service";
     }
     
+    /**
+     * Формирование строкового представления SQL, использующихся для
+     * создание параметризированных запросов {@link PreparedStatement}.
+     * @param sql Текст запроса с заместителями (символы "?").
+     * @param values Список параметров запроса.
+     */
     public static String prepareTraceSQL(String sql, Object... values) {
         AtomicInteger index = new AtomicInteger(-1);
         Object[] flattened = flatten(values).toArray();
@@ -67,7 +76,11 @@ public interface IDatabaseAccessService extends IService {
         return MessageFormat.format(pattern, flattened);
     }
     
-    public static Stream<Object> flatten(Object[] array) {
+    /**
+     * Создание плоского массива объектов из матрицы.
+     * @param array Матрица.
+     */
+    static Stream<Object> flatten(Object[] array) {
         return Arrays
                 .stream(array)
                 .flatMap(o -> o instanceof Object[]? flatten((Object[])o): Stream.of(o));

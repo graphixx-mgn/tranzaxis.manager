@@ -22,7 +22,11 @@ import oracle.ucp.jdbc.PoolDataSourceFactory;
 public class OracleAccessService implements IDatabaseAccessService {
     
     private final static OracleAccessService INSTANCE = new OracleAccessService();
+    private static final Boolean DEV_MODE = "1".equals(java.lang.System.getProperty("showSql"));
     
+    /**
+     * Возвращает экземпляр сервиса (синглтон). 
+     */
     public static OracleAccessService getInstance() {
         return INSTANCE;
     } 
@@ -67,10 +71,12 @@ public class OracleAccessService implements IDatabaseAccessService {
     public ResultSet select(Integer connectionID, String query, Object... params) throws SQLException {
         try {
             final RowSet rowSet = prepareSet(connectionID);
-            Logger.getLogger().debug(
-                    "OAS: Select query: {0} (connection #{1})", 
-                    IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
-            );
+            if (DEV_MODE) {
+                Logger.getLogger().debug(
+                        "OAS: Select query: {0} (connection #{1})", 
+                        IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
+                );
+            }
             rowSet.setCommand(query);
             if (params != null) {
                 int paramIdx = 0;
@@ -96,9 +102,7 @@ public class OracleAccessService implements IDatabaseAccessService {
                     if (rowSet.isLast()) {
                         connection.close();
                     }
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+                } catch (SQLException e) {}
             }
         });
         return rowSet;

@@ -35,7 +35,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import javax.swing.FocusManager;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -60,8 +59,18 @@ import javax.swing.table.TableRowSorter;
  */
 public class RowSelector implements IDataSupplier<String> {
     
+    /**
+     * Способ передачи выбранного значения из поставщика.
+     */
     public enum Mode {
+        /**
+         * Единичное значение. Если запись содержит список значений - будет 
+         * возвращено первое из них.
+         */
         Value, 
+        /**
+         * Список значений.
+         */
         Row 
     }
     
@@ -88,13 +97,21 @@ public class RowSelector implements IDataSupplier<String> {
         this.mode = mode;
     }
     
+    /**
+     * Конструктор поставщика.
+     * @param mode Режим возврата значения
+     * @param connectionID Поставщик идентификатора подключения.
+     * @param query Запрос, при необходимости включающий в себя параметры.
+     * @param parameters Список значений параметров запроса, не указывать если 
+     * параметров нет.
+     */
     public RowSelector(Mode mode, Supplier<Integer> connectionID, String query, Supplier<Object[]> parameters) {
         this(connectionID, query, parameters);
         this.mode = mode;
     }
     
     /**
-     * Конструктор поставщика.
+     * Конструктор поставщика (режим возврата значения - {@link Mode#Value}).
      * @param connectionID Поставщик идентификатора подключения.
      * @param query Запрос, при необходимости включающий в себя параметры.
      * @param parameters Список значений параметров запроса, не указывать если 
@@ -191,7 +208,7 @@ public class RowSelector implements IDataSupplier<String> {
                         lookupEditor = new StrEditor(lookupHolder);
                         EditorCommand search = new ApplyFilter();
                         lookupEditor.addCommand(search);
-                        lookupEditor.getEditor().add((JComponent) search.getButton());
+                        lookupEditor.getEditor().add((Component) search.getButton());
                         lookupHolder.addChangeListener((name, oldValue, newValue) -> {
                             search.execute(lookupHolder);
                         });
@@ -258,7 +275,7 @@ public class RowSelector implements IDataSupplier<String> {
     
     private final class HeaderRenderer extends JLabel implements TableCellRenderer {
 
-        public HeaderRenderer() {
+        HeaderRenderer() {
             super();
             setOpaque(true);
             setFont(IEditor.FONT_BOLD);
@@ -286,7 +303,7 @@ public class RowSelector implements IDataSupplier<String> {
     
     private class ApplyFilter extends EditorCommand {
 
-        public ApplyFilter() {
+        ApplyFilter() {
             super(ImageUtils.resize(ImageUtils.getByPath("/images/search.png"), 18, 18), null);
         }
 
