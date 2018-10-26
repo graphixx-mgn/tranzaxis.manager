@@ -43,9 +43,7 @@ public class ValueProvider extends EditorCommand {
                 // Установка значения с вызовом событий
                 context.setValue(nextValue);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        } catch (Exception e) {}
     }
     
 }

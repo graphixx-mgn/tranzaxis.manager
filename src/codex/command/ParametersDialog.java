@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.swing.FocusManager;
-import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
@@ -41,7 +40,7 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
      */
     public ParametersDialog(EntityCommand command, Supplier<PropertyHolder[]> paramProps) {
         dialog = new Dialog(
-                SwingUtilities.getWindowAncestor((JComponent)command.getButton()), 
+                SwingUtilities.getWindowAncestor((Component)command.getButton()), 
                 ImageUtils.getByPath("/images/param.png"), 
                 Language.get(EntityCommand.class.getSimpleName(), "params@title"), 
                 new JPanel(), 
@@ -75,7 +74,7 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
                     for (PropertyHolder propHolder : propHolders) {
                         paramModel.addProperty(propHolder);
                     }
-                    command.preprocessParameters(command.getContext()[0], paramModel);
+                    command.preprocessParameters(paramModel);
                     dialog.setContent(new EditorPage(paramModel));
                     if (Arrays.asList(paramProps.get()).stream().anyMatch((propHolder) -> {
                         return !Bool.class.isAssignableFrom(propHolder.getPropValue().getClass());
@@ -97,7 +96,7 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
     public Map<String, IComplexType> call() throws Exception {
         dialog.setLocationRelativeTo(null);
         dialog.setVisible(true);
-        return data;
+        return new LinkedHashMap<>(data);
     }
     
 }

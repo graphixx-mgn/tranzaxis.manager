@@ -6,6 +6,7 @@ import codex.log.Logger;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.model.IModelListener;
+import codex.model.ParamModel;
 import codex.presentation.CommitEntity;
 import codex.presentation.RollbackEntity;
 import codex.property.PropertyHolder;
@@ -17,6 +18,7 @@ import codex.task.TaskManager;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.Language;
+import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -157,6 +159,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     
     /**
      * Добавляет слушатель событий команды.
+     * @param listener Ссылка на слушатель.
      */
     public final void addListener(ICommandListener<V> listener) {
         listeners.add(listener);
@@ -187,9 +190,9 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
      * @param contextItem Сущность контекста команды.
      * @param paramModel Модель набора параметров.
      */
-//    public void preprocessParameters(V contextItem, ParamModel paramModel) {
-//        // Do nothing
-//    }
+    public void preprocessParameters(ParamModel paramModel) {
+        // Do nothing
+    }
     
     /**
      * Установка списка пераметров команды.
@@ -210,13 +213,13 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
         try {
             return paramDialog.call();
         } catch (Exception e) {
-            e.printStackTrace();
             return null;
         }
     }
     
     /**
      * Установка имени группы для команды. Команды одной группы объединяются в меню.
+     * @param groupId Строковый идентификатор.
      */
     public final EntityCommand setGroupId(String groupId) {
         if (groupId != null) {
@@ -238,9 +241,9 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
         if (params != null) {
             SwingUtilities.invokeLater(() -> {
                 Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), getContext());
-                for (V entity : getContext()) {
+                getContext().forEach((entity) -> {
                     execute(entity, params);
-                }
+                });
                 activate();
             });
         }
@@ -301,14 +304,14 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
 
     @Override
     public final List<V> getContext() {
-        return context;
+        return context == null ? null : new LinkedList(context);
     }
     
     /**
      * Привязка команды к комбинации клавиш клавиатуры.
      */
     private void bindKey(KeyStroke key) {
-        InputMap inputMap = ((JComponent) ((JComponent) this.button).getParent()).getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        InputMap inputMap = ((JComponent) ((Component) this.button).getParent()).getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         if (inputMap.get(key) != null && inputMap.get(key) != this) {
             throw new IllegalStateException(MessageFormat.format(
                     "Key [{0}] already used by command ''{1}''", 
@@ -316,7 +319,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
             ));
         } else {
             inputMap.put(key, this);
-            ((JComponent) ((JComponent) this.button).getParent()).getActionMap().put(this, new AbstractAction() {
+            ((JComponent) ((Component) this.button).getParent()).getActionMap().put(this, new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent event) {
                     if (button.isEnabled()) {

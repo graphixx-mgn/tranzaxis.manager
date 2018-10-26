@@ -3,12 +3,12 @@ package codex.command;
 import codex.component.button.CommandButton;
 import codex.component.button.IButton;
 import codex.property.PropertyHolder;
+import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import javax.swing.ImageIcon;
-import javax.swing.JComponent;
 
 /**
  * Абстрактная реализация команд редактора свойств {@link PropertyHolder}.
@@ -71,7 +71,7 @@ public abstract class EditorCommand implements ICommand<PropertyHolder, Property
     @Override
     public void actionPerformed(ActionEvent event) {
         execute(getContext());
-        ((JComponent) button).getParent().getComponent(0).requestFocusInWindow();
+        ((Component) button).getParent().getComponent(0).requestFocusInWindow();
     }
 
     @Override
