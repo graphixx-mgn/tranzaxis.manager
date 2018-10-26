@@ -1,8 +1,7 @@
-package manager.commands;
+package manager.commands.offshoot;
 
 import codex.command.EntityCommand;
 import codex.log.Logger;
-import codex.model.Entity;
 import codex.task.AbstractTask;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
@@ -16,7 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import javax.swing.SwingUtilities;
 import manager.nodes.Offshoot;
-import manager.nodes.Repository;
 import manager.svn.SVN;
 import manager.type.WCStatus;
 import org.tmatesoft.svn.core.SVNCancelException;
@@ -30,7 +28,7 @@ import org.tmatesoft.svn.core.wc.SVNEventAction;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 
 
-public class UpdateWC extends EntityCommand {
+public class UpdateWC extends EntityCommand<Offshoot> {
 
     public UpdateWC() {
         super(
@@ -38,8 +36,8 @@ public class UpdateWC extends EntityCommand {
                 "title", 
                 ImageUtils.resize(ImageUtils.getByPath("/images/update.png"), 28, 28), 
                 Language.get("desc"), 
-                (entity) -> {
-                    return !entity.model.getValue("wcStatus").equals(WCStatus.Invalid);
+                (offshoot) -> {
+                    return !offshoot.getWCStatus().equals(WCStatus.Invalid);
                 }
         );
     }
@@ -50,8 +48,8 @@ public class UpdateWC extends EntityCommand {
     }
 
     @Override
-    public void execute(Entity entity, Map<String, IComplexType> map) {
-        executeTask(entity, new UpdateTask((Offshoot) entity), false);
+    public void execute(Offshoot offshoot, Map<String, IComplexType> map) {
+        executeTask(offshoot, new UpdateTask(offshoot), false);
     }
     
     public class UpdateTask extends AbstractTask<Void> {
@@ -71,11 +69,10 @@ public class UpdateWC extends EntityCommand {
         @Override
         public Void execute() throws Exception {
             String wcPath  = offshoot.getLocalPath();
-            String repoUrl = offshoot.model.getOwner().model.getValue("repoUrl")+"/dev/"+offshoot.model.getPID();
-                      
+            String repoUrl = offshoot.getRemotePath();
+            ISVNAuthenticationManager authMgr = offshoot.getRepository().getAuthManager();
+
             setProgress(0, Language.get(UpdateWC.class.getSimpleName(), "command@calc"));
-            ISVNAuthenticationManager authMgr = ((Repository) offshoot.model.getOwner()).getAuthManager();
-            
             try {
                 Long changes = SVN.diff(wcPath, repoUrl, SVNRevision.HEAD, authMgr, new ISVNEventHandler() {
                     @Override
@@ -90,8 +87,8 @@ public class UpdateWC extends EntityCommand {
                     }
                 });
                 if (changes > 0) {
-                    offshoot.model.setValue("loaded", false);
-                    offshoot.model.commit();
+                    offshoot.setWCLoaded(false);
+                    offshoot.model.commit(false);
                     
                     Logger.getLogger().info(
                             "UPDATE [{0}] started", 
@@ -151,7 +148,6 @@ public class UpdateWC extends EntityCommand {
                             }
                         }
                     );
-
                     Logger.getLogger().info(
                             "UPDATE [{0}] finished\n"+
                             (added.get()    == 0 ? "" : "                     * Added:    {1}\n")+
@@ -187,11 +183,11 @@ public class UpdateWC extends EntityCommand {
         @Override
         public void finished(Void res) {
             SwingUtilities.invokeLater(() -> {
-                WCStatus status = offshoot.getStatus();
-                offshoot.model.setValue("wcStatus", status);
-                offshoot.model.setValue("loaded",  !status.equals(WCStatus.Absent));
-                offshoot.model.commit();
-                offshoot.model.updateDynamicProp("wcRev");
+                offshoot.model.updateDynamicProps();
+                offshoot.setWCLoaded(offshoot.getWCStatus().equals(WCStatus.Succesfull));
+                try {
+                    offshoot.model.commit(false);
+                } catch (Exception e) {}
             });
         }
     

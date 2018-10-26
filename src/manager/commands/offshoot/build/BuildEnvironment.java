@@ -1,4 +1,4 @@
-package manager.commands.build;
+package manager.commands.offshoot.build;
 
 import java.util.EnumSet;
 import java.util.LinkedList;

@@ -1,10 +1,9 @@
 
-package manager.commands;
+package manager.commands.offshoot;
 
 import codex.command.EntityCommand;
 import codex.command.ParametersDialog;
 import codex.log.Logger;
-import codex.model.Entity;
 import codex.property.PropertyHolder;
 import codex.task.AbstractTask;
 import codex.task.ExecuteException;
@@ -37,16 +36,16 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import javax.swing.SwingUtilities;
-import manager.commands.build.BuildingNotifier;
-import manager.commands.build.IBuildingNotifier;
-import manager.commands.build.KernelBuilder;
-import manager.commands.build.SourceBuilder;
+import manager.commands.offshoot.build.BuildingNotifier;
+import manager.commands.offshoot.build.IBuildingNotifier;
+import manager.commands.offshoot.build.KernelBuilder;
+import manager.commands.offshoot.build.SourceBuilder;
 import manager.nodes.Offshoot;
 import manager.type.BuildStatus;
 import manager.type.WCStatus;
 import org.apache.tools.ant.util.DateUtils;
 
-public class BuildWC extends EntityCommand {
+public class BuildWC extends EntityCommand<Offshoot> {
     
     public  static final Integer    RMI_PORT = 2099;  
     private static Registry         RMI_REGISTRY;
@@ -70,8 +69,8 @@ public class BuildWC extends EntityCommand {
                 "title", 
                 ImageUtils.resize(ImageUtils.getByPath("/images/build.png"), 28, 28), 
                 Language.get("desc"), 
-                (entity) -> {
-                    return entity.model.getValue("wcStatus").equals(WCStatus.Succesfull);
+                (offshoot) -> {
+                    return offshoot.getWCStatus().equals(WCStatus.Succesfull);
                 }
         );
         setParameters(params);
@@ -79,7 +78,7 @@ public class BuildWC extends EntityCommand {
     
     @Override
     public void actionPerformed(ActionEvent event) {
-        if (getContext().length == 1) {
+        if (getContext().size() == 1) {
             super.actionPerformed(event);
         } else {
             ParametersDialog paramDialog = new ParametersDialog(this, () -> {
@@ -102,27 +101,27 @@ public class BuildWC extends EntityCommand {
                 }
                 if (paramValues.get("sequence").getValue() == Boolean.TRUE) {
                     final List<ITask> sequence = new LinkedList<>();
-                    for (Entity entity : getContext()) {
+                    for (Offshoot offshoot : getContext()) {
                         ITaskListener unlocker = new ITaskListener() {
                             @Override
                             public void statusChanged(ITask task, Status status) {
                                 if (status.isFinal()) {
-                                    entity.getLock().release();
+                                    offshoot.getLock().release();
                                 }
                             }
                         };
                         
-                        ITask buildKernel = new BuildKernelTask((Offshoot) entity);
-                        ITask buildSource = new BuildSourceTask((Offshoot) entity, paramValues.get("clean").getValue() == Boolean.TRUE);
+                        ITask buildKernel = new BuildKernelTask(offshoot);
+                        ITask buildSource = new BuildSourceTask(offshoot, paramValues.get("clean").getValue() == Boolean.TRUE);
                         ITask buildGroup  = new GroupTask<>(
-                                Language.get("title") + ": "+((Offshoot) entity).getLocalPath(),
+                                Language.get("title") + ": "+(offshoot).getLocalPath(),
                                 buildKernel,
                                 buildSource
                         );
                         
                         buildGroup.addListener(unlocker);
                         sequence.add(buildGroup);
-                        entity.getLock().acquire();
+                        offshoot.getLock().acquire();
                     }
                     executeTask(
                             null,
@@ -134,10 +133,10 @@ public class BuildWC extends EntityCommand {
                     );
                 } else {
                     SwingUtilities.invokeLater(() -> {
-                        Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
-                        for (Entity entity : getContext()) {
+                        Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), getContext());
+                        getContext().forEach((entity) -> {
                             execute(entity, paramValues);
-                        }
+                        });
                     });
                 }
             } catch (Exception e) {
@@ -152,13 +151,13 @@ public class BuildWC extends EntityCommand {
     }
     
     @Override
-    public void execute(Entity entity, Map<String, IComplexType> map) {
+    public void execute(Offshoot offshoot, Map<String, IComplexType> map) {
         executeTask(
-                entity,
+                offshoot,
                 new GroupTask<>(
-                        Language.get("title") + ": \""+((Offshoot) entity).getLocalPath()+"\"",
-                        new BuildKernelTask((Offshoot) entity),
-                        new BuildSourceTask((Offshoot) entity, map.get("clean").getValue() == Boolean.TRUE)
+                        Language.get("title") + ": \""+(offshoot).getLocalPath()+"\"",
+                        new BuildKernelTask(offshoot),
+                        new BuildSourceTask(offshoot, map.get("clean").getValue() == Boolean.TRUE)
                 ),
                 false
         );
@@ -275,7 +274,7 @@ public class BuildWC extends EntityCommand {
                                         Language.get(BuildWC.class.getSimpleName(), "command@seelog"), 
                                         offshoot.getLocalPath()+File.separator+"build-kernel.log"
                                 ),
-                                message+"\n                     "+ex.getMessage().replaceAll("\n", "\n                     ")
+                                message+"\n"+ex.getMessage()
                         ));
                     }
 
@@ -415,7 +414,7 @@ public class BuildWC extends EntityCommand {
                         );
                         errorRef.set(new ExecuteException(
                                 message,
-                                message+"\n                     "+ex.getMessage().replaceAll("\n", "\n                     ")
+                                message+"\n".concat(ex.getMessage())
                         ));
                     }
 
@@ -445,8 +444,10 @@ public class BuildWC extends EntityCommand {
                 process.waitFor();
                 
                 if (errorRef.get() != null) {
-                    offshoot.model.setValue("built", new BuildStatus(offshoot.getRevision(false).getNumber(), true));
-                    offshoot.model.commit();
+                    offshoot.setBuiltStatus(new BuildStatus(offshoot.getWorkingCopyRevision(false).getNumber(), true));
+                    try {
+                        offshoot.model.commit(false);
+                    } catch (Exception e) {}
                     throw (Exception) errorRef.get();
                 }
             } finally {
@@ -457,9 +458,13 @@ public class BuildWC extends EntityCommand {
         }
 
         @Override
-        public void finished(Error e) {
-            offshoot.model.setValue("built", new BuildStatus(offshoot.getRevision(false).getNumber(), false));
-            offshoot.model.commit();
+        public void finished(Error err) {
+            if (!isCancelled()) {
+                offshoot.setBuiltStatus(new BuildStatus(offshoot.getWorkingCopyRevision(false).getNumber(), false));
+                try {
+                    offshoot.model.commit(false);
+                } catch (Exception e) {}
+            }
         }
     }
     

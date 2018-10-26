@@ -1,15 +1,10 @@
-package manager.commands;
+package manager.commands.offshoot;
 
 import codex.command.EntityCommand;
 import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
-import codex.config.ConfigStoreService;
-import codex.config.IConfigStoreService;
-import codex.explorer.tree.INode;
 import codex.log.Logger;
-import codex.model.Entity;
-import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
@@ -26,26 +21,24 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.MessageFormat;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.SwingUtilities;
 import manager.nodes.Offshoot;
-import manager.type.BuildStatus;
 import manager.type.WCStatus;
 import org.apache.commons.io.FileDeleteStrategy;
 
 
-public class DeleteWC extends EntityCommand {
+public class DeleteWC extends EntityCommand<Offshoot> {
     
     public DeleteWC() {
         super(
                 "clean", 
                 "title", 
                 ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28), 
-                Language.get("desc"), 
-                (entity) -> {
-                    return !entity.model.getValue("wcStatus").equals(WCStatus.Absent);
+                Language.get("desc"),
+                (offshoot) -> {
+                    return !offshoot.getWCStatus().equals(WCStatus.Absent);
                 }
         );
     }
@@ -56,22 +49,22 @@ public class DeleteWC extends EntityCommand {
     }
 
     @Override
-    public void execute(Entity entity, Map<String, IComplexType> map) {
-        executeTask(entity, new DeleteTask((Offshoot) entity), true);
+    public void execute(Offshoot offshoot, Map<String, IComplexType> map) {
+        executeTask(offshoot, new DeleteTask(offshoot), true);
     }
 
     @Override
     public void actionPerformed(ActionEvent event) {
         SwingUtilities.invokeLater(() -> {
             String message; 
-            if (getContext().length == 1) {
+            if (getContext().size() == 1) {
                 message = MessageFormat.format(
                         Language.get("confirm@clean.single"), 
-                        getContext()[0]
+                        getContext().get(0)
                 );
             } else {
                 StringBuilder entityList = new StringBuilder();
-                Arrays.asList(getContext()).forEach((entity) -> {
+                getContext().forEach((entity) -> {
                     entityList.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(entity.toString());
                 });
                 message = MessageFormat.format(
@@ -83,12 +76,12 @@ public class DeleteWC extends EntityCommand {
                     MessageType.CONFIRMATION, null, message,
                     (close) -> {
                         if (close.getID() == Dialog.OK) {
-                            Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
-                            for (Entity entity : getContext()) {
-                                if (!entity.model.existReferencies()) {
-                                    execute(entity, null);
-                                }
-                            }
+                            Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), getContext());
+                            getContext().stream()
+                                    .filter((offshoot) -> (!offshoot.model.existReferencies()))
+                                    .forEachOrdered((offshoot) -> {
+                                        execute(offshoot, null);
+                                    });
                         }
                     }
             );
@@ -117,13 +110,15 @@ public class DeleteWC extends EntityCommand {
         @Override
         public Void execute() throws Exception {
             String wcPath = offshoot.getLocalPath();
-
+            offshoot.setWCLoaded(false);
+            offshoot.model.commit(false);
+            
             setProgress(0, Language.get(DeleteWC.class.getSimpleName(), "command@calc"));
             long totalFiles = Files.walk(Paths.get(wcPath)).count();
 
             AtomicInteger processed = new AtomicInteger(0);
             Files.walkFileTree(Paths.get(wcPath), new SimpleFileVisitor<Path>() {
-                
+
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                     return processPath(file);
@@ -147,7 +142,7 @@ public class DeleteWC extends EntityCommand {
                     try {
                         FileDeleteStrategy.NORMAL.delete(path.toFile());
                         processed.addAndGet(1);
-                        String fileName = path.toString().replace(wcPath+File.separator, "");
+                        String fileName = path.toString().replace(wcPath + File.separator, "");
                         setProgress(
                                 (int) (processed.get() * 100 / totalFiles),
                                 MessageFormat.format(
@@ -167,27 +162,17 @@ public class DeleteWC extends EntityCommand {
                     FileDeleteStrategy.NORMAL.delete(new File(wcPath).getParentFile());
                 }
             }
-            
             return null;
         }
 
         @Override
         public void finished(Void t) {
             SwingUtilities.invokeLater(() -> {
-                WCStatus status = offshoot.getStatus();
-                offshoot.model.setValue("wcStatus", status);
-                if (!isCancelled() && status == WCStatus.Absent) {
-                    offshoot.model.setValue("built", new BuildStatus());
+                if (!isCancelled() && offshoot.getWorkingCopyStatus() == WCStatus.Absent) {
+                    offshoot.model.remove();
+                } else {
+                    offshoot.model.read();
                 }
-                offshoot.model.commit();
-                if (!isCancelled() && status == WCStatus.Absent) {
-                    if (offshoot.model.getID() != null) {
-                        ((IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class)).removeClassInstance(
-                                offshoot.getClass(), offshoot.model.getID()
-                        );
-                    }
-                }
-                offshoot.setMode(INode.MODE_SELECTABLE + (status.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
             });
         }
     

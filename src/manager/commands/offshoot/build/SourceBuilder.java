@@ -1,4 +1,4 @@
-package manager.commands.build;
+package manager.commands.offshoot.build;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,7 +25,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import manager.Manager;
-import manager.commands.BuildWC;
+import manager.commands.offshoot.BuildWC;
 import manager.type.Locale;
 import org.radixware.kernel.common.builder.BuildActionExecutor;
 import org.radixware.kernel.common.builder.RadixObjectsProcessor;

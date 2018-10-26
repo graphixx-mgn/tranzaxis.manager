@@ -1,18 +1,12 @@
-package manager.commands;
+package manager.commands.repository;
 
 import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.explorer.tree.INode;
 import codex.log.Logger;
-import codex.model.Access;
 import codex.model.Catalog;
-import codex.model.Entity;
-import codex.model.EntityModel;
-import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
-import codex.task.ITaskExecutorService;
-import codex.task.TaskManager;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -22,21 +16,20 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
 import manager.nodes.Development;
 import manager.nodes.ReleaseList;
 import manager.nodes.Repository;
+import static manager.nodes.Repository.*;
 import manager.svn.SVN;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 
 
-public class LoadWC extends EntityCommand {
+public class LoadWC extends EntityCommand<Repository> {
     
-    private final static ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class);
     private final static ImageIcon ENABLED  = ImageUtils.resize(ImageUtils.getByPath("/images/switch_on.png"),  28, 28);
     private final static ImageIcon DISABLED = ImageUtils.resize(ImageUtils.getByPath("/images/switch_off.png"), 28, 28);
     private final static List<String> DIRS  = Arrays.asList(new String[] {"releases", "dev"});
@@ -50,9 +43,8 @@ public class LoadWC extends EntityCommand {
                 null
         );
         activator = (entities) -> {
-            if (entities != null && entities.length > 0 && !(entities.length > 1 && !multiContextAllowed())) {
-                boolean locked = entities[0].model.getUnsavedValue("locked") == Boolean.TRUE;
-                getButton().setIcon(locked ? ENABLED : DISABLED);
+            if (entities != null && entities.size() > 0 && !(entities.size() > 1 && !multiContextAllowed())) {
+                getButton().setIcon(entities.get(0).isLocked(true) ? ENABLED : DISABLED);
                 getButton().setEnabled(true);
             } else {
                 getButton().setIcon(ENABLED);
@@ -62,79 +54,69 @@ public class LoadWC extends EntityCommand {
     }
 
     @Override
-    public void execute(Entity entity, Map<String, IComplexType> map) {      
-        AtomicBoolean locked = new AtomicBoolean(((Repository) entity).model.getValue("locked") == Boolean.TRUE);
-        if (getContext() == null) {
-            locked.set(!locked.get());
-        }
-        entity.model.getProperties(Access.Edit).stream()
-                .filter((propName) -> {
-                    return !propName.equals(EntityModel.PID);
-                }).forEach((propName) -> {
-                    entity.model.getEditor(propName).setEditable(locked.get());
-                });
-        if (!locked.get()) {
-            load(entity);
+    public void execute(Repository repository, Map<String, IComplexType> map) {
+        boolean load = getContext() == null ? 
+                repository.isLocked(true) : 
+                !repository.isLocked(true);
+        if (load) {
+            load(repository);
         } else {
-            unload(entity);
+            unload(repository);
         }
     }
     
-    private void load(Entity entity) {
-        if (getContext() == null) {
-            TES.quietTask(new LoadTask((Repository) entity));
-        } else {
-            TES.enqueueTask(new LoadTask((Repository) entity));
-        }
+    private void load(Repository repository) {
+        executeTask(repository, new LoadTask(repository), getContext() != null);
     }
     
-    private void unload(Entity entity) {
-        new LinkedList<>(entity.childrenList()).forEach((child) -> {
-            entity.delete(child);
+    private void unload(Repository repository) {
+        new LinkedList<>(repository.childrenList()).forEach((child) -> {
+            repository.delete(child);
         });
-        switchLock(entity, false);
+        switchLock(repository, false);
     }
     
-    private void switchLock(Entity entity, boolean locked) {
-        entity.setMode((locked ? INode.MODE_ENABLED : INode.MODE_NONE) + INode.MODE_SELECTABLE);
-        entity.model.getProperties(Access.Edit).stream()
-                .filter((propName) -> {
-                    return !propName.equals(EntityModel.PID);
-                }).forEach((propName) -> {
-                    entity.model.getEditor(propName).setEditable(!locked);
-                });
-        entity.model.setValue("locked", locked);
-        entity.model.commit();
-        entity.getLock().release();
+    private void switchLock(Repository repository, boolean locked) {
+        repository.setMode((locked ? INode.MODE_ENABLED : INode.MODE_NONE) + INode.MODE_SELECTABLE);
+        
+        repository.model.getEditor(PROP_REPO_URL).setEditable(!locked);
+        repository.model.getEditor(PROP_AUTH_MODE).setEditable(!locked);
+        repository.model.getEditor(PROP_SVN_USER).setEditable(!locked);
+        repository.model.getEditor(PROP_SVN_PASS).setEditable(!locked);
+
+        repository.setLocked(locked);
+        try {
+            repository.model.commit(false);
+        } catch (Exception e) {}
     }
     
     private class LoadTask extends AbstractTask<Boolean> {
         
-        final Repository repo;
+        final Repository repository;
 
-        public LoadTask(Repository repo) {
+        public LoadTask(Repository repository) {
             super(MessageFormat.format(
                     Language.get(Catalog.class.getSimpleName(), "task@load"),
-                    repo.getPathString()
+                    repository.getPathString()
             ));
-            this.repo = repo;
+            this.repository = repository;
         }
 
         @Override
         public Boolean execute() throws Exception {
-            String rootUrl = (String) repo.model.getValue("repoUrl");
-            ISVNAuthenticationManager authMgr = repo.getAuthManager();
+            String rootUrl = repository.getRepoUrl();
+            ISVNAuthenticationManager authMgr = repository.getAuthManager();
             try {
                 if (SVN.checkConnection(rootUrl, authMgr)) {
                     boolean valid = SVN.list(rootUrl, authMgr).stream().map((entry) -> {
                         return entry.getName();
                     }).collect(Collectors.toList()).containsAll(DIRS);
-                
+
                     if (!valid) {
-                        MessageBox.show(MessageType.ERROR, 
+                        MessageBox.show(MessageType.ERROR,
                                 MessageFormat.format(
                                         Language.get(Repository.class.getSimpleName(), "error@message"),
-                                        repo.model.getPID(),
+                                        repository.getPID(),
                                         MessageFormat.format(
                                             Language.get(Repository.class.getSimpleName(), "error@invalid"),
                                             DIRS.stream().collect(Collectors.joining(", "))
@@ -143,22 +125,22 @@ public class LoadWC extends EntityCommand {
                         );
                         return false;
                     } else {
-                        repo.insert(new Development(repo.toRef()));
-                        repo.insert(new ReleaseList(repo.toRef()));
-                        Logger.getLogger().info("Repository ''{0}'' loaded in ONLINE mode", repo);
+                        repository.insert(new Development(repository.toRef()));
+                        repository.insert(new ReleaseList(repository.toRef()));
+                        Logger.getLogger().info("Repository ''{0}'' loaded in ONLINE mode", repository);
                         return true;
                     }
                 } else {
                     if (getContext() == null) {
                         Logger.getLogger().warn(
-                                "Repository ''{0}'' not loaded. Reason: {1}", repo, 
+                                "Repository ''{0}'' not loaded. Reason: {1}", repository, 
                                 Language.get(Repository.class.getSimpleName(), "error@auth", Locale.US)
                         );
                     } else {
                         MessageBox.show(MessageType.WARNING, 
                                 MessageFormat.format(
                                         Language.get(Repository.class.getSimpleName(), "error@message"),
-                                        repo.model.getPID(),
+                                        repository.getPID(),
                                         Language.get(Repository.class.getSimpleName(), "error@auth")
                                 )
                         );
@@ -168,17 +150,17 @@ public class LoadWC extends EntityCommand {
             } catch (SVNException e) {
                 SVNErrorCode code = e.getErrorMessage().getErrorCode();
                 if (code == SVNErrorCode.RA_SVN_IO_ERROR || code == SVNErrorCode.RA_SVN_MALFORMED_DATA) {
-                    repo.insert(new Development(repo.toRef()));
-                    Logger.getLogger().warn("Repository ''{0}'' loaded in OFFLINE mode", repo);
+                    repository.insert(new Development(repository.toRef()));
+                    Logger.getLogger().warn("Repository ''{0}'' loaded in OFFLINE mode", repository);
                     return true;
                 } else {
                     if (getContext() == null) {
-                        Logger.getLogger().warn("Repository ''{0}'' not loaded. Reason: {1}", repo, e.getErrorMessage().getMessage());
+                        Logger.getLogger().warn("Repository ''{0}'' not loaded. Reason: {1}", repository, e.getErrorMessage().getMessage());
                     } else {
                         MessageBox.show(MessageType.ERROR, 
                                 MessageFormat.format(
                                         Language.get(Repository.class.getSimpleName(), "error@message"),
-                                        repo.model.getPID(),
+                                        repository.getPID(),
                                         e.getMessage()
                                 )
                         );
@@ -190,7 +172,7 @@ public class LoadWC extends EntityCommand {
 
         @Override
         public void finished(Boolean result) {
-            switchLock(repo, result);
+            switchLock(repository, result);
         }
     
     }

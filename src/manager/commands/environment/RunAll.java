@@ -1,9 +1,8 @@
-package manager.commands;
+package manager.commands.environment;
 
 import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
-import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.task.ITaskExecutorService;
 import codex.task.TaskManager;
@@ -26,7 +25,7 @@ import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 
 
-public class RunAll extends EntityCommand {
+public class RunAll extends EntityCommand<Environment> {
     
     private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
 
@@ -36,26 +35,25 @@ public class RunAll extends EntityCommand {
                 Language.get("RunTX", "whole@title"), 
                 ImageUtils.resize(ImageUtils.getByPath("/images/start.png"), 28, 28), 
                 Language.get("RunTX", "whole@title"), 
-                (entity) -> {
-                    return ((Environment) entity).canStartServer() && ((Environment) entity).canStartExplorer();
+                (environment) -> {
+                    return environment.canStartServer() && environment.canStartExplorer();
                 }
         );
     }
 
     @Override
-    public void execute(Entity entity, Map<String, IComplexType> map) {
-        BinarySource source = (BinarySource) entity.model.getValue("binaries");
+    public void execute(Environment environment, Map<String, IComplexType> map) {
+        BinarySource source = environment.getBinaries();
         if (source instanceof Release) {
             Thread checker = new Thread(() -> {
                 try {
                     source.getLock().acquire();
                 } catch (InterruptedException e) {}
                 
-                Release release = (Release) source;
-                String  topLayer = entity.model.getValue("layerURI").toString();
-                
-                String rootUrl = release.getRemotePath();
-                ISVNAuthenticationManager authMgr = ((Repository) release.model.getOwner()).getAuthManager();
+                Release release  = (Release) source;
+                String  topLayer = environment.getLayerUri(false);
+                String  rootUrl  = release.getRemotePath();
+                ISVNAuthenticationManager authMgr = release.getRepository().getAuthManager();
                 boolean online = false;
                 try {
                     if (SVN.checkConnection(rootUrl, authMgr)) {
@@ -67,7 +65,7 @@ public class RunAll extends EntityCommand {
                         MessageBox.show(MessageType.ERROR, 
                                 MessageFormat.format(
                                         Language.get(Repository.class.getSimpleName(), "error@message"),
-                                        ((Release) source).model.getOwner().model.getPID(),
+                                        release.getRepository().getPID(),
                                         e.getMessage()
                                 )
                         );
@@ -111,8 +109,8 @@ public class RunAll extends EntityCommand {
                                 super.finished(t);
                                 if (!isCancelled()) {
                                     SwingUtilities.invokeLater(() -> {
-                                        TES.enqueueTask(((RunServer) entity.getCommand("server")).new RunServerTask((Environment) entity));
-                                        TES.enqueueTask(((RunExplorer) entity.getCommand("explorer")).new RunExplorerTask((Environment) entity));
+                                        TES.enqueueTask(((RunServer)   environment.getCommand("server")).new RunServerTask(environment));
+                                        TES.enqueueTask(((RunExplorer) environment.getCommand("explorer")).new RunExplorerTask(environment));
                                     });
                                 }
                             }
@@ -122,15 +120,15 @@ public class RunAll extends EntityCommand {
                 } else {
                     source.getLock().release();
                     SwingUtilities.invokeLater(() -> {
-                        TES.enqueueTask(((RunServer) entity.getCommand("server")).new RunServerTask((Environment) entity));
-                        TES.enqueueTask(((RunExplorer) entity.getCommand("explorer")).new RunExplorerTask((Environment) entity));
+                        TES.enqueueTask(((RunServer)   environment.getCommand("server")).new RunServerTask(environment));
+                        TES.enqueueTask(((RunExplorer) environment.getCommand("explorer")).new RunExplorerTask(environment));
                     });
                 }
             });
             checker.start();
         } else {
-            TES.enqueueTask(((RunServer) entity.getCommand("server")).new RunServerTask((Environment) entity));
-            TES.enqueueTask(((RunExplorer) entity.getCommand("explorer")).new RunExplorerTask((Environment) entity));
+            TES.enqueueTask(((RunServer)   environment.getCommand("server")).new RunServerTask(environment));
+            TES.enqueueTask(((RunExplorer) environment.getCommand("explorer")).new RunExplorerTask(environment));
         }
     }
     

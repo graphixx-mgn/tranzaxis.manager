@@ -1,4 +1,4 @@
-package manager.commands.build;
+package manager.commands.offshoot.build;
 
 import org.radixware.kernel.common.builder.api.IBuildDisplayer;
 import org.radixware.kernel.common.builder.api.IDialogUtils;

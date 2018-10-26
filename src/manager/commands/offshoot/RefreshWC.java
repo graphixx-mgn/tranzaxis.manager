@@ -1,7 +1,6 @@
-package manager.commands;
+package manager.commands.offshoot;
 
 import codex.command.EntityCommand;
-import codex.model.Entity;
 import codex.property.PropertyHolder;
 import codex.task.GroupTask;
 import codex.type.Bool;
@@ -13,7 +12,7 @@ import manager.nodes.Offshoot;
 import manager.type.WCStatus;
 
 
-public class RefreshWC extends EntityCommand {
+public class RefreshWC extends EntityCommand<Offshoot> {
 
     public RefreshWC() {
         super(
@@ -21,8 +20,8 @@ public class RefreshWC extends EntityCommand {
                 "title", 
                 ImageUtils.resize(ImageUtils.getByPath("/images/rebuild.png"), 28, 28), 
                 Language.get("desc"), 
-                (entity) -> {
-                    return !entity.model.getValue("wcStatus").equals(WCStatus.Invalid);
+                (offshoot) -> {
+                    return !offshoot.getWCStatus().equals(WCStatus.Invalid);
                 }
         );
         setParameters(
@@ -36,14 +35,14 @@ public class RefreshWC extends EntityCommand {
     }
 
     @Override
-    public void execute(Entity entity, Map<String, IComplexType> map) {
+    public void execute(Offshoot offshoot, Map<String, IComplexType> map) {
         executeTask(
-                entity, 
+                offshoot, 
                 new GroupTask<>(
-                        Language.get("title") + ": "+((Offshoot) entity).getLocalPath(),
-                        ((UpdateWC) entity.getCommand("update")).new UpdateTask((Offshoot) entity),
-                        ((BuildWC)  entity.getCommand("build")).new BuildKernelTask((Offshoot) entity),
-                        ((BuildWC)  entity.getCommand("build")).new BuildSourceTask((Offshoot) entity, map.get("clean").getValue() == Boolean.TRUE)
+                        Language.get("title") + ": "+(offshoot).getLocalPath(),
+                        ((UpdateWC) offshoot.getCommand("update")).new UpdateTask(offshoot),
+                        ((BuildWC)  offshoot.getCommand("build")).new BuildKernelTask(offshoot),
+                        ((BuildWC)  offshoot.getCommand("build")).new BuildSourceTask(offshoot, map.get("clean").getValue() == Boolean.TRUE)
                 ), 
                 false
         );

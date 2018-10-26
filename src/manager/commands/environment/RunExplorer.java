@@ -1,10 +1,9 @@
-package manager.commands;
+package manager.commands.environment;
 
 import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.log.Logger;
-import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.task.ITask;
@@ -20,12 +19,11 @@ import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 import javax.swing.SwingUtilities;
 import manager.nodes.BinarySource;
-import manager.nodes.Database;
 import manager.nodes.Environment;
 import manager.nodes.Release;
 import manager.nodes.Repository;
@@ -35,25 +33,25 @@ import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 
 
-public class RunServer extends EntityCommand {
+public class RunExplorer extends EntityCommand<Environment> {
     
-    private static final ITaskExecutorService   TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
+    private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
 
-    public RunServer() {
+    public RunExplorer() {
         super(
-                "server", 
-                Language.get("RunTX", "server@title"), 
-                ImageUtils.resize(ImageUtils.getByPath("/images/server.png"), 28, 28), 
-                Language.get("RunTX", "server@title"), 
-                (entity) -> {
-                    return ((Environment) entity).canStartServer();
+                "explorer", 
+                Language.get("RunTX", "explorer@title"), 
+                ImageUtils.resize(ImageUtils.getByPath("/images/explorer.png"), 28, 28), 
+                Language.get("RunTX", "explorer@title"), 
+                (environment) -> {
+                    return environment.canStartExplorer();
                 }
         );
     }
 
     @Override
-    public void execute(Entity entity, Map<String, IComplexType> map) {
-        BinarySource source = (BinarySource) entity.model.getValue("binaries");
+    public void execute(Environment environment, Map<String, IComplexType> map) {
+        BinarySource source = environment.getBinaries();
         if (source instanceof Release) {
             Thread checker = new Thread(() -> {
                 try {
@@ -61,10 +59,9 @@ public class RunServer extends EntityCommand {
                 } catch (InterruptedException e) {}
                 
                 Release release  = (Release) source;
-                String  topLayer = (String) entity.model.getValue("layerURI");
-                
-                String rootUrl = release.getRemotePath();
-                ISVNAuthenticationManager authMgr = ((Repository) release.model.getOwner()).getAuthManager();
+                String  topLayer = environment.getLayerUri(false);
+                String  rootUrl  = release.getRemotePath();
+                ISVNAuthenticationManager authMgr = release.getRepository().getAuthManager();
                 boolean online = false;
                 try {
                     if (SVN.checkConnection(rootUrl, authMgr)) {
@@ -76,7 +73,7 @@ public class RunServer extends EntityCommand {
                         MessageBox.show(MessageType.ERROR, 
                                 MessageFormat.format(
                                         Language.get(Repository.class.getSimpleName(), "error@message"),
-                                        ((Release) source).model.getOwner().model.getPID(),
+                                        release.getRepository().getPID(),
                                         e.getMessage()
                                 )
                         );
@@ -120,7 +117,7 @@ public class RunServer extends EntityCommand {
                                 super.finished(t);
                                 if (!isCancelled()) {
                                     SwingUtilities.invokeLater(() -> {
-                                        TES.enqueueTask(new RunServerTask((Environment) entity));
+                                        TES.enqueueTask(new RunExplorerTask(environment));
                                     });
                                 }
                             }
@@ -129,41 +126,39 @@ public class RunServer extends EntityCommand {
                     }
                 } else {
                     source.getLock().release();
-                    TES.enqueueTask(new RunServerTask((Environment) entity));
+                    TES.enqueueTask(new RunExplorerTask(environment));
                 }
             });
             checker.start();
         } else {
             TES.enqueueTask(
-                new RunServerTask((Environment) entity)
+                new RunExplorerTask(environment)
             );
         }
     }
     
-    class RunServerTask extends AbstractTask<Void> {
+    class RunExplorerTask extends AbstractTask<Void> {
 
         private final Environment env;
         Process process;
         
-        public RunServerTask(Environment env) {
+        public RunExplorerTask(Environment env) {
             super(MessageFormat.format(
-                    Language.get("RunTX", "server@task"),
+                    Language.get("RunTX", "explorer@task"),
                     env, 
-                    ((Entity) env.model.getValue("binaries")).model.getPID(),
-                    env.model.getValue("database")
+                    env.getBinaries().getPID()
             ));
             this.env = env;
         }
 
         @Override
         public Void execute() throws Exception {
-            Database     database = (Database) env.model.getValue("database");
-            BinarySource source   = (BinarySource) env.model.getValue("binaries");
+            BinarySource source = env.getBinaries();
 
             final ArrayList<String> command = new ArrayList<>();
             command.add("java");
 
-            command.addAll((List<String>) env.model.getValue("jvmServer"));
+            command.addAll(env.getJvmExplorer());
             command.add("-jar");
 
             StringJoiner starterPath = new StringJoiner(File.separator);
@@ -177,36 +172,27 @@ public class RunServer extends EntityCommand {
             command.add(starterPath.toString());
 
             // Starter arguments
-            command.add("-workDir="+source.getLocalPath());
-            command.add("-topLayerUri="+env.model.getValue("layerURI"));
-            command.add("-disableHardlinks");
-            command.add("-showSplashScreen=Server: "+env+" ("+source.model.getPID()+")");
-            command.add("org.radixware.kernel.server.Server");
+            command.add("\n -workDir="+source.getLocalPath());
+            command.add("\n -topLayerUri="+env.getLayerUri(false));
+            command.add("\n -showSplashScreen=Server: "+env);
+            command.add("\n -disableHardlinks");
+            command.add("\norg.radixware.kernel.explorer.Explorer");
 
-            // Server arguments
-            command.add("-dbUrl");
-            command.add("jdbc:oracle:thin:@"+database.model.getValue("dbUrl").toString());
-            command.add("-user");
-            command.add(database.model.getValue("dbSchema").toString());
-            command.add("-pwd");
-            command.add(database.model.getValue("dbPass").toString());
-            command.add("-dbSchema");
-            command.add(database.model.getValue("dbSchema").toString());
-            command.add("-instance");
-            command.add(((List<String>) env.model.getValue("instanceId")).get(0));
-            command.add("-development");
-            command.add("-autostart");
-            command.add("-switchEasVerChecksOff");
-            command.add("-useLocalJobExecutor");
-            command.add("-ignoreDdsWarnings");
+            // Explorer arguments
+            command.add("\n -language=en");
+            command.add("\n -development");
 
-            Logger.getLogger().debug("Start server command:\n{0}", String.join(" ", command));
+            Logger.getLogger().debug("Start explorer command:\n{0}", String.join(" ", command));
 
-            final ProcessBuilder builder = new ProcessBuilder(command);
+            final ProcessBuilder builder = new ProcessBuilder(
+                    command.stream().map((item) -> {
+                        return item.trim();
+                    }).collect(Collectors.toList())
+            );
             builder.redirectInput(ProcessBuilder.Redirect.INHERIT);
             builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
             builder.redirectError(ProcessBuilder.Redirect.INHERIT);
-            
+
             File logDir = new File(source.getLocalPath()+File.separator+"logs");
             if (!logDir.exists()) {
                 logDir.mkdirs();

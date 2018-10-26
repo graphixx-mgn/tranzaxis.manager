@@ -1,4 +1,4 @@
-package manager.commands.build;
+package manager.commands.offshoot.build;
 
 import codex.utils.Language;
 import java.io.File;
@@ -12,7 +12,7 @@ import java.rmi.registry.Registry;
 import java.util.StringJoiner;
 import java.util.prefs.Preferences;
 import manager.Manager;
-import manager.commands.BuildWC;
+import manager.commands.offshoot.BuildWC;
 import manager.type.Locale;
 import manager.xml.FilelistDocument;
 import manager.xml.ProjectDocument;

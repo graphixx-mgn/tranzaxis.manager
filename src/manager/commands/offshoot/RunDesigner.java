@@ -1,8 +1,7 @@
-package manager.commands;
+package manager.commands.offshoot;
 
 import codex.command.EntityCommand;
 import codex.log.Logger;
-import codex.model.Entity;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -20,7 +19,7 @@ import manager.type.WCStatus;
  *
  * @author igredyaev
  */
-public class RunDesigner extends EntityCommand {
+public class RunDesigner extends EntityCommand<Offshoot> {
 
     public RunDesigner() {
         super(
@@ -28,17 +27,17 @@ public class RunDesigner extends EntityCommand {
                 "title", 
                 ImageUtils.resize(ImageUtils.getByPath("/images/designer.png"), 28, 28), 
                 Language.get("desc"), 
-                (entity) -> {
-                    return entity.model.getValue("wcStatus").equals(WCStatus.Succesfull);
+                (offshoot) -> {
+                    return offshoot.getWCStatus().equals(WCStatus.Succesfull);
                 }
         );
     }
 
     @Override
-    public void execute(Entity entity, Map<String, IComplexType> map) {
+    public void execute(Offshoot offshoot, Map<String, IComplexType> map) {
         try {
             boolean is64Bits = System.getProperty("sun.cpu.isalist").contains("64");
-            String localPath = ((Offshoot) entity).getLocalPath();
+            String localPath = offshoot.getLocalPath();
             
             StringJoiner designerPath = new StringJoiner(File.separator);
             designerPath.add(localPath);

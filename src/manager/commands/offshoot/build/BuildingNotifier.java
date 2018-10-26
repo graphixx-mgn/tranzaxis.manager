@@ -1,4 +1,4 @@
-package manager.commands.build;
+package manager.commands.offshoot.build;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
