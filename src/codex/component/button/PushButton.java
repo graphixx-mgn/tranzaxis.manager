@@ -56,8 +56,8 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
         add(button);
         
         button.addMouseListener(new MouseAdapter() {
-            BalloonTip tooltipBalloon;
-            Timer delayTimer = new Timer(1000, (ActionEvent event) -> {
+            private BalloonTip tooltipBalloon;
+            private final Timer delayTimer = new Timer(1000, (ActionEvent event) -> {
                 if (hint != null && tooltipBalloon == null) {
                     tooltipBalloon = new BalloonTip(
                             button, 

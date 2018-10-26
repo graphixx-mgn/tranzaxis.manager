@@ -12,7 +12,6 @@ import javax.swing.BoxLayout;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
@@ -67,11 +66,8 @@ public final class GroupButton extends JPanel implements IButton, MouseListener,
         menu.setForeground(Color.BLACK);
         menu.addPopupMenuListener(this);
         
-        popup.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ev) {
-                menu.show(button, button.getBounds().x - 2 , button.getBounds().y  + button.getBounds().height + 1);
-            }
+        popup.addActionListener((ActionEvent ev) -> {
+            menu.show(button, button.getBounds().x - 2 , button.getBounds().y  + button.getBounds().height + 1);
         });
         
         setIcon(icon);
@@ -110,7 +106,7 @@ public final class GroupButton extends JPanel implements IButton, MouseListener,
     public void setHint(String text) {
         if (text != null) {
             BalloonTip tooltipBalloon = new BalloonTip(
-                    (JComponent) this.button, 
+                    this.button, 
                     new JLabel(
                             text,
                             ImageUtils.resize(

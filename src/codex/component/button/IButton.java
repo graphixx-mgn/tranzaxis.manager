@@ -91,6 +91,7 @@ public interface IButton {
     
     /**
      * Отключает обработчики нажатия.
+     * @param inactive Если true - кнопка не активна.
      */
     public void setInactive(boolean inactive);
     
@@ -99,6 +100,9 @@ public interface IButton {
      */
     public boolean isInactive();
     
+    /**
+     * Программная эмуляция нажатия кнопки.
+     */
     public void click();
     
 }
