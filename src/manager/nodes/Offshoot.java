@@ -11,19 +11,18 @@ import codex.type.Enum;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import java.io.File;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.StringJoiner;
-import manager.commands.BuildWC;
-import manager.commands.DeleteWC;
-import manager.commands.RefreshWC;
-import manager.commands.RunDesigner;
-import manager.commands.UpdateWC;
+import manager.commands.offshoot.BuildWC;
+import manager.commands.offshoot.DeleteWC;
+import manager.commands.offshoot.RefreshWC;
+import manager.commands.offshoot.RunDesigner;
+import manager.commands.offshoot.UpdateWC;
 import manager.svn.SVN;
 import manager.type.BuildStatus;
 import manager.type.WCStatus;
-import org.radixware.kernel.common.repository.Branch;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.wc.SVNInfo;
 import org.tmatesoft.svn.core.wc.SVNRevision;
@@ -32,31 +31,39 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 public class Offshoot extends BinarySource {
     
+    public final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
     public final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm");
+    
+    public final static String PROP_VERSION     = "version";
+    public final static String PROP_WC_STATUS   = "wcStatus";
+    public final static String PROP_WC_REVISION = "wcRevision";
+    public final static String PROP_WC_BUILT    = "built";
+    public final static String PROP_WC_LOADED   = "loaded";
 
-    public Offshoot(EntityRef parent, String title) {
-        super(parent, ImageUtils.getByPath("/images/branch.png"), title);
+    public Offshoot(EntityRef owner, String title) {
+        super(owner, ImageUtils.getByPath("/images/branch.png"), title);
         
         // Properties
-        model.addDynamicProp("version", new Str(null), null, () -> {
-            return model.getPID();
+        model.addDynamicProp(PROP_VERSION,     new Str(null), null, () -> {
+            return getPID();
         });
-        model.addDynamicProp("wcStatus", new Enum(WCStatus.Absent), Access.Edit, () -> {
-            if (this.model.getOwner() != null) {
-                return getStatus();
+        model.addDynamicProp(PROP_WC_STATUS,   new Enum(WCStatus.Absent), Access.Edit, () -> {
+            if (this.getOwner() != null) {
+                return getWorkingCopyStatus();
             } else {
                 return WCStatus.Absent;
             }
         });
-        model.addDynamicProp("wcRev", new Str(null), null, () -> {
-            if (this.model.getOwner() != null && getStatus().equals(WCStatus.Succesfull)) {
-                return getRevision(false).getNumber()+" / "+DATE_FORMAT.format(getRevisionDate(false));
+        model.addDynamicProp(PROP_WC_REVISION, new Str(null), null, () -> {
+            if (this.getOwner() != null && getWCStatus().equals(WCStatus.Succesfull)) {
+                return getWorkingCopyRevision(false).getNumber()+" / "+DATE_FORMAT.format(getWorkingCopyRevisionDate(false));
             } else {
                 return null;
             }
-        }, "wcStatus");
-        model.addUserProp("loaded", new Bool(null), false, Access.Any);
-        model.addUserProp("built", new BuildStatus(), false, null);
+        }, PROP_WC_STATUS);
+
+        model.addUserProp(PROP_WC_BUILT,       new BuildStatus(), false, null);
+        model.addUserProp(PROP_WC_LOADED,      new Bool(null), false, Access.Any);
         
         // Commands
         addCommand(new DeleteWC());
@@ -65,52 +72,72 @@ public class Offshoot extends BinarySource {
         addCommand(new BuildWC().setGroupId("update"));
         addCommand(new RunDesigner());
     }
-
-    @Override
-    public void setParent(INode parent) {
-        super.setParent(parent);
-        setMode(INode.MODE_SELECTABLE + (getStatus().equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
+    
+    public final String getVersion() {
+        return (String) model.getValue(PROP_VERSION);
     }
     
-    @Override
-    public Class getChildClass() {
+    public final WCStatus getWCStatus() {
+        return (WCStatus) model.getValue(PROP_WC_STATUS);
+    }
+    
+    public final boolean isWCLoaded() {
+        return model.getValue(PROP_WC_LOADED) == Boolean.TRUE;
+    }
+    
+    public final BuildStatus getBuiltStatus() {
+        List<String> value = (List<String>) model.getValue(PROP_WC_BUILT);
+        if (value != null) {
+            BuildStatus status = new BuildStatus();
+            status.setValue(value);
+            return status;
+        }
         return null;
+    }
+    
+    public final Offshoot setBuiltStatus(BuildStatus value) {
+        model.setValue(PROP_WC_BUILT, value);
+        return this;
+    }
+    
+    public final Offshoot setWCLoaded(boolean value) {
+        model.setValue(PROP_WC_LOADED, value);
+        return this;
     }
     
     @Override
     public final String getRemotePath() {
         return new StringJoiner("/")
-            .add((String) this.model.getOwner().model.getValue("repoUrl"))
+            .add(getRepository().getRepoUrl())
             .add("dev")
-            .add(model.getPID()).toString();
+            .add(getVersion())
+            .toString();
     }
     
     @Override
     public final String getLocalPath() {
-        IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
-        String workDir = EAS.getRoot().model.getValue("workDir").toString();
-        String repoUrl = (String) this.model.getOwner().model.getValue("repoUrl");
-        
-        StringJoiner wcPath = new StringJoiner(File.separator)
+        String workDir = ((Common) EAS.getRoot()).getWorkDir().toString();
+        String repoUrl = getRepository().getRepoUrl();
+
+        return new StringJoiner(File.separator)
             .add(workDir)
             .add("sources")
             .add(Repository.urlToDirName(repoUrl))
-            .add(model.getPID());
-        
-        return wcPath.toString();
+            .add(getVersion())
+            .toString();
     }
     
-    public final WCStatus getStatus() {
+    public final WCStatus getWorkingCopyStatus() {
         String   wcPath = getLocalPath();
         WCStatus status;
-        
+
         final File localDir = new File(wcPath);
         if (!localDir.exists()) {
             status = WCStatus.Absent;
         } else if (!SVNWCUtil.isVersionedDirectory(localDir)) {
             status = WCStatus.Invalid;
         } else {
-            ISVNAuthenticationManager authMgr = ((Repository) model.getOwner()).getAuthManager();
+            ISVNAuthenticationManager authMgr = getRepository().getAuthManager();
             SVNInfo info = SVN.info(wcPath, false, authMgr);
             if (
                     info == null || 
@@ -127,27 +154,18 @@ public class Offshoot extends BinarySource {
         return status;
     }
     
-    public final SVNRevision getRevision(boolean remote) {
+    public final SVNRevision getWorkingCopyRevision(boolean remote) {
         String wcPath = remote ? getRemotePath(): getLocalPath();
-        ISVNAuthenticationManager authMgr = ((Repository) model.getOwner()).getAuthManager();
+        ISVNAuthenticationManager authMgr = getRepository().getAuthManager();
         SVNInfo info = SVN.info(wcPath, remote, authMgr);
         return info.getCommittedRevision();
     }
     
-    public final Date getRevisionDate(boolean remote) {
+    public final Date getWorkingCopyRevisionDate(boolean remote) {
         String wcPath = remote ? getRemotePath() : getLocalPath();
-        ISVNAuthenticationManager authMgr = ((Repository) model.getOwner()).getAuthManager();
+        ISVNAuthenticationManager authMgr = getRepository().getAuthManager();
         SVNInfo info = SVN.info(wcPath, remote, authMgr);
         return info.getCommittedDate();
-    }
-    
-    public final String getBaseDevUri() {
-        try {
-            Branch branch = Branch.Factory.loadFromDir(new File(getLocalPath()));
-            return branch.getBaseDevelopmentLayerUri();
-        } catch (IOException e) {
-            return null;
-        }
     }
     
 }
