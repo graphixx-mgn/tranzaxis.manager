@@ -13,14 +13,32 @@ import javax.swing.border.EmptyBorder;
  */
 public final class MessageBox extends Dialog {
     
+    /**
+     * Отобразить окно сообщения.
+     * @param type Тип сообщения {@link MessageType}
+     * @param text Текст сообщения.
+     */
     public static void show(MessageType type, String text) {
         new MessageBox(type, null, text, null).setVisible(true);
     }
     
+    /**
+     * Отобразить окно сообщения.
+     * @param type Тип сообщения {@link MessageType}
+     * @param title Текст заголовка окна.
+     * @param text Текст сообщения.
+     */
     public static void show(MessageType type, String title, String text) {
         new MessageBox(type, title, text, null).setVisible(true);
     }
     
+    /**
+     * Отобразить окно сообщения.
+     * @param type Тип сообщения {@link MessageType}
+     * @param title Текст заголовка окна.
+     * @param text Текст сообщения.
+     * @param close Обработчик закрытия окна или нажатия кнопок.
+     */
     public static void show(MessageType type, String title, String text, ActionListener close) {
         new MessageBox(type, title, text, close).setVisible(true);
     }
@@ -46,7 +64,7 @@ public final class MessageBox extends Dialog {
         setResizable(false);
     }
     
-    static final Dialog.Default[] buttonSet(MessageType type) {
+    private static Dialog.Default[] buttonSet(MessageType type) {
         switch (type) {
             case INFORMATION:
                 return new Dialog.Default[]{Dialog.Default.BTN_OK};
@@ -57,9 +75,9 @@ public final class MessageBox extends Dialog {
         }
     }
     
-    static final class MessagePanel extends JPanel {
+    private static final class MessagePanel extends JPanel {
     
-        public MessagePanel(MessageType type, String text) {
+        MessagePanel(MessageType type, String text) {
             setLayout(new BorderLayout(0, 10));
             setBorder(new EmptyBorder(10, 20, 10, 20));
 
