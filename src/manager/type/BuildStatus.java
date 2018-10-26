@@ -11,6 +11,7 @@ import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.BorderLayout;
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -21,7 +22,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
-import manager.commands.BuildWC;
+import manager.commands.offshoot.BuildWC;
 
 public final class BuildStatus extends ArrStr {
     
@@ -38,6 +39,8 @@ public final class BuildStatus extends ArrStr {
     public void setValue(List<String> value) {
         if (value != null) {
             this.value = new StatusHolder(value);
+        } else {
+            this.value = null;
         }
     }
     
@@ -49,6 +52,11 @@ public final class BuildStatus extends ArrStr {
     @Override
     public String toString() {
         return merge(value);
+    }
+    
+    @Override
+    public String getQualifiedValue(List<String> val) {
+        return val == null ? "<NULL>" :  MessageFormat.format("({0})'", val);
     }
     
     @Override
