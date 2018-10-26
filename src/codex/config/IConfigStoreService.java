@@ -15,15 +15,14 @@ import java.util.Map;
  */
 public interface IConfigStoreService extends IService {
     
-    public static int RC_SUCCESS        = 0;
-    public static int RC_ERROR          = 10;
-    public static int RC_DEL_CONSTRAINT = 11;
-    
     /**
      * Создать пустую запись в каталоге для модели сушности по её уникальному ключу.
      * @param clazz Класс сущности.
      * @param PID Наименование сущности.
+     * @param propDefinition Карта свойств сущности.
+     * @param ownerId Идентификатор владельца сущности.
      * @return ID созданной сущности.
+     * @throws Exception
      */
     default Map<String, Integer> initClassInstance(Class clazz, String PID, Map<String, IComplexType> propDefinition, Integer ownerId) throws Exception {
         return null;
@@ -34,6 +33,7 @@ public interface IConfigStoreService extends IService {
      * @param clazz Класс сущности.
      * @param ID Уникальный числовой идентификатор сущности.
      * @param properties Список имен свойств, которые требуется сохранить.
+     * @throws Exception
      */
     default void updateClassInstance(Class clazz, Integer ID, Map<String, IComplexType> properties) throws Exception {};
     
@@ -48,6 +48,7 @@ public interface IConfigStoreService extends IService {
     /**Получить список значений свойств сущности.
      * @param clazz Класс сущности.
      * @param PID Наименование сущности.
+     * @param ownerId Идентификатор владельца сущности.
      */
     default Map<String, String> readClassInstance(Class clazz, String PID, Integer ownerId) {
         return new HashMap<>();
@@ -55,6 +56,7 @@ public interface IConfigStoreService extends IService {
     
     /**
      * Получить список (ID, PID) всех записей каталога.
+     * @param ownerId Идентификатор владельца сущности.
      * @param clazz Класс сущности.
      */
     default Map<Integer, String> readCatalogEntries(Integer ownerId, Class clazz) {
@@ -65,6 +67,7 @@ public interface IConfigStoreService extends IService {
      * Удалить запись в каталоге по её уникальному ключу.
      * @param clazz Класс сущности.
      * @param ID Уникальный числовой идентификатор сущности.
+     * @throws Exception
      */
     default void removeClassInstance(Class clazz, Integer ID) throws Exception {};
 
@@ -79,14 +82,17 @@ public interface IConfigStoreService extends IService {
     
     /**
      * Перестроение таблицы для актуализации структуры.
+     * @param clazz Класс сущности.
      * @param unusedProperties Список неиспользуемых колонок
      * @param newProperties Список новых колонок
+     * @throws Exception
      */
     default public void maintainClassCatalog(Class clazz, List<String> unusedProperties, Map<String, IComplexType> newProperties) throws Exception {}
     
     /**
      * Получение класса владельца сущности
      * @param clazz Класс сущности
+     * @throws Exception
      */
     default public Class getOwnerClass(Class clazz) throws Exception {
         return null;
@@ -97,12 +103,34 @@ public interface IConfigStoreService extends IService {
         return "Configuration Access Service";
     }
     
+    /**
+     * Класс содержащий основную информацию о ссылке.
+     */
     public class ForeignLink { 
+        /**
+         * Класс сущности.
+         */
         public final String  entryClass;
+        /**
+         * Идентификатор сущности.
+         */
         public final Integer entryID;
+        /**
+         * Наименование сущности.
+         */
         public final String  entryPID;
+        /**
+         * Признак входящей ссылки.
+         */
         public final Boolean isIncoming;
         
+        /**
+         * Конструктор ссылки.
+         * @param entryClass Класс сущности.
+         * @param entryID Идентификатор сущности.
+         * @param entryPID Наименование сущности.
+         * @param incoming Признак входящей ссылки.
+         */
         public ForeignLink(String  entryClass, Integer entryID, String entryPID, boolean incoming) {
             this.entryClass = entryClass;
             this.entryID    = entryID;

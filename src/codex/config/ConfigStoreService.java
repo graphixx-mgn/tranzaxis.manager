@@ -478,10 +478,12 @@ public final class ConfigStoreService implements IConfigStoreService {
         String PID = readClassInstance(clazz, ID).get("PID");
         final String deleteSQL = MessageFormat.format("DELETE FROM {0} WHERE ID = ?", className);
         
-        Logger.getLogger().debug(
-                "CAS: Delete query: {0}", 
-                IDatabaseAccessService.prepareTraceSQL(deleteSQL, ID)
-        );
+        if (DEV_MODE) {
+            Logger.getLogger().debug(
+                    "CAS: Delete query: {0}", 
+                    IDatabaseAccessService.prepareTraceSQL(deleteSQL, ID)
+            );
+        }
         
         Savepoint savepoint = connection.setSavepoint(className);
         try (
@@ -773,11 +775,11 @@ public final class ConfigStoreService implements IConfigStoreService {
     
     private class TableInfo {
         
-        private final String name;
-        private final String pkey;
-        private final List<ColumnInfo>    columnInfos;
-        private final List<IndexInfo>     indexInfos;
-        private final List<ReferenceInfo> refInfos;
+        final String name;
+        final String pkey;
+        final List<ColumnInfo>    columnInfos;
+        final List<IndexInfo>     indexInfos;
+        final List<ReferenceInfo> refInfos;
         
         TableInfo(String tableName) throws Exception {
             this.name = tableName;
@@ -934,9 +936,9 @@ public final class ConfigStoreService implements IConfigStoreService {
     
     private class ColumnInfo {
         
-        private final String  name;
-        private final String  type;
-        private final Boolean nullable;
+        final String  name;
+        final String  type;
+        final Boolean nullable;
         
         ColumnInfo(String name, String type, Boolean nullable) {
             this.name = name;
@@ -948,8 +950,8 @@ public final class ConfigStoreService implements IConfigStoreService {
     
     private class IndexInfo {
         
-        private final String name;
-        private final List<String> columns = new LinkedList<>();
+        final String name;
+        final List<String> columns = new LinkedList<>();
         
         IndexInfo(String name) {
             this.name = name;
@@ -963,9 +965,9 @@ public final class ConfigStoreService implements IConfigStoreService {
     
     private class ReferenceInfo {
         
-        private final String pkTable;
-        private final String pkColumn;
-        private final String fkColumn;
+        final String pkTable;
+        final String pkColumn;
+        final String fkColumn;
         
         ReferenceInfo(String pkTable, String pkColumn, String fkColumn) {
             this.pkTable  = pkTable;
@@ -975,14 +977,14 @@ public final class ConfigStoreService implements IConfigStoreService {
         
     }
 
-    private enum  TriggerKind {
+    private enum TriggerKind {
         
         Before_Insert("BEFORE INSERT"), 
         Before_Update("BEFORE UPDATE");
         
-        private final String value;
+        final String value;
         
-        private TriggerKind(String value) {
+        TriggerKind(String value) {
             this.value = value;
         }
     }
