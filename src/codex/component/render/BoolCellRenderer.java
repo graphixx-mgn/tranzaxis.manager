@@ -5,9 +5,10 @@ import codex.type.Bool;
 import codex.utils.ImageUtils;
 import java.awt.Color;
 import java.awt.Dimension;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
+import java.awt.FlowLayout;
 import javax.swing.JCheckBox;
+import javax.swing.JPanel;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
@@ -15,7 +16,7 @@ import javax.swing.border.LineBorder;
  * Реализация рендерера ячеек {@link SelectorTableModel} для типа {@link Bool} в
  * виде флажка в ячейке.
  */
-class BoolCellRenderer extends CellRenderer<Boolean> {
+final class BoolCellRenderer extends CellRenderer<Boolean> {
     
     private final static BoolCellRenderer INSTANCE = new BoolCellRenderer();
     
@@ -23,26 +24,30 @@ class BoolCellRenderer extends CellRenderer<Boolean> {
         return INSTANCE;
     }
         
-    final JCheckBox checkBox = new JCheckBox();
+    final JCheckBox checkBox = new JCheckBox() {{
+        setOpaque(false);
+        setBorderPainted(true);
+        setBorder(new CompoundBorder(
+                new LineBorder(Color.GRAY, 1),
+                new EmptyBorder(1, 1, 1, 1)
+        ));
+        setIcon(ImageUtils.resize(ImageUtils.getByPath("/images/unchecked.png"), 19, 19));
+        setSelectedIcon(ImageUtils.resize(ImageUtils.getByPath("/images/checked.png"), 19, 19));
+    }};
 
     private BoolCellRenderer() {
-        super(BoxLayout.PAGE_AXIS);
-        Box container = new Box(BoxLayout.X_AXIS);
-        container.setBorder(new LineBorder(Color.GRAY, 1));
-
-        checkBox.setOpaque(true);
-        checkBox.setBackground(Color.WHITE);
-        checkBox.setBorder(new EmptyBorder(0, 1, 1, 1));
-        checkBox.setIcon(ImageUtils.resize(ImageUtils.getByPath("/images/unchecked.png"), 19, 19));
-        checkBox.setSelectedIcon(ImageUtils.resize(ImageUtils.getByPath("/images/checked.png"), 19, 19));
-
-        add(container);
+        super();
+        setOpaque(true);
+        JPanel container = new JPanel();
+        container.setOpaque(false);
+        container.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 2));
         container.add(checkBox);
+        add(container);
     }
 
     @Override
     public void setValue(Boolean value) {
-        checkBox.setSelected(value != null && value);
+        checkBox.setSelected(Boolean.TRUE.equals(value));
     }
 
     @Override
