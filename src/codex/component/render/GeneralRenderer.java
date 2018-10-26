@@ -35,6 +35,8 @@ import javax.swing.tree.TreeCellRenderer;
  */
 public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCellRenderer, TreeCellRenderer {
     
+    private static final Boolean DEV_MODE = "1".equals(java.lang.System.getProperty("showHashes"));
+    
     private static final ImageIcon ICON_INVALID = ImageUtils.getByPath("/images/warn.png");
     private static final ImageIcon ICON_LOCKED  = ImageUtils.getByPath("/images/lock.png");
     private static final ImageIcon ICON_ERROR   = ImageUtils.getByPath("/images/red.png");
@@ -52,6 +54,9 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
         return new Color((int) r, (int) g, (int) b, (int) a);
     }
     
+    /**
+     * Конструктор универсального рендерера.
+     */
     public GeneralRenderer() {}
 
     /**
@@ -67,18 +72,24 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
      */
     @Override
     public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean hasFocus) {
-        JLabel label = new JLabel(value.toString()) {{
+        JLabel label = new JLabel(
+                value.toString().concat(DEV_MODE && !(value instanceof AbstractEditor.NullValue) ? ", hash="+value.hashCode() : "")
+        ) {{
             setOpaque(true);
             setIconTextGap(6);
             setVerticalAlignment(CENTER);
-            setText(value.toString());
             setFont(IEditor.FONT_VALUE);
             setBackground(isSelected ? IButton.PRESS_COLOR : list.getBackground());
             if (Iconified.class.isAssignableFrom(value.getClass())) {
                 if (value instanceof Entity && !((Entity) value).model.isValid()) {
                     setIcon(ImageUtils.resize(ImageUtils.combine(
-                        ((Entity) value).getIcon(),
+                        ((Iconified) value).getIcon(),
                         ICON_INVALID  
+                    ), 17, 17));
+                } else if (value instanceof Entity && ((Entity) value).islocked()) {
+                    setIcon(ImageUtils.resize(ImageUtils.combine(
+                        ((Iconified) value).getIcon(),
+                        ICON_LOCKED  
                     ), 17, 17));
                 } else {
                     setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 17, 17));
@@ -138,10 +149,10 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
             
             switch (propState) {
                 case Error: 
-                    ((ComplexCellRenderer) cellBox).state.setIcon(ICON_ERROR);
+                    cellBox.state.setIcon(ICON_ERROR);
                     break;
                 default:
-                    ((ComplexCellRenderer) cellBox).state.setIcon(null);
+                    cellBox.state.setIcon(null);
             }
             
             if (isEntityLocked) {
@@ -173,23 +184,18 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
             if (column == 0) {
                 int iconSize = table.getRowHeight() - 6;
                 if (isEntityLocked) {
-                    ((ComplexCellRenderer) cellBox).label.setIcon(
+                    cellBox.setIcon(
                         ImageUtils.resize(ICON_LOCKED, iconSize, iconSize)
                     );
                 } else if (isEntityInvalid) {
-                    ((ComplexCellRenderer) cellBox).label.setIcon(
+                    cellBox.setIcon(
                         ImageUtils.resize(ICON_INVALID, iconSize, iconSize)
                     );
                 }
             }
-            
-            ((ComplexCellRenderer) cellBox).label.setBorder(new CompoundBorder(
+            cellBox.setBorder(new CompoundBorder(
                     new MatteBorder(0, 0, 1, column == table.getColumnCount()-1 ? 0 : 1, Color.LIGHT_GRAY), 
-                    new EmptyBorder(1, 6, 0, 6)
-            ));
-            ((ComplexCellRenderer) cellBox).state.setBorder(new CompoundBorder(
-                    new MatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY), 
-                    new EmptyBorder(0, 0, 0, 0)
+                    new EmptyBorder(0, 6, 0, 0)
             ));
             return cellBox;
         }
@@ -209,7 +215,7 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
     @Override
     public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) {
         Entity entity = (Entity) value;
-        int iconSize = tree.getRowHeight()-2;
+        int iconSize  = tree.getRowHeight()-2;
         ImageIcon icon;
         if (entity.islocked()) {
             icon = ImageUtils.resize(ImageUtils.combine(
@@ -224,7 +230,7 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
         } else {
             icon = ImageUtils.resize(entity.getIcon(), iconSize, iconSize);
         }
-        JLabel label = new JLabel(entity.toString()) {{
+        JLabel label = new JLabel(entity.toString().concat(DEV_MODE ? ", hash="+entity.hashCode() : "")) {{
             setOpaque(true);
             setIconTextGap(6);
             setVerticalAlignment(CENTER);
