@@ -5,14 +5,15 @@ import codex.database.IDatabaseAccessService;
 import codex.database.OracleAccessService;
 import codex.database.RowSelector;
 import codex.editor.AbstractEditor;
-import codex.explorer.ExplorerAccessService;
-import codex.explorer.IExplorerAccessService;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.log.Logger;
 import codex.mask.DataSetMask;
+import codex.mask.IArrMask;
 import codex.model.Access;
 import codex.model.Entity;
+import codex.model.EntityModel;
+import codex.model.IModelListener;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.supplier.IDataSupplier;
@@ -23,39 +24,51 @@ import codex.type.IComplexType;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import javax.swing.ImageIcon;
-import javax.swing.SwingUtilities;
-import manager.commands.RunAll;
-import manager.commands.RunExplorer;
-import manager.commands.RunServer;
-import manager.type.WCStatus;
+import manager.commands.environment.RunAll;
+import manager.commands.environment.RunExplorer;
+import manager.commands.environment.RunServer;
 
 public class Environment extends Entity implements INodeListener {
     
-    private final static IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
-    private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+    public final static String PROP_JVM_SERVER   = "jvmServer";
+    public final static String PROP_JVM_EXPLORER = "jvmExplorer";
+    public final static String PROP_LAYER_URI    = "layerURI";
+    public final static String PROP_DATABASE     = "database";
+    public final static String PROP_VERSION      = "version";
+    public final static String PROP_INSTANCE_ID  = "instanceId";
+    public final static String PROP_REPOSITORY   = "repository";
+    public final static String PROP_BINARIES     = "binaries";
+    public final static String PROP_OFFSHOOT     = "offshoot";
+    public final static String PROP_RELEASE      = "release";
+    public final static String PROP_USER_NOTE    = "userNote";
     
+    public final static String PROP_AUTO_RELEASE = "autoRelease";
+    
+    private final static IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
+
     private final IDataSupplier<String> layerSupplier = new RowSelector(
             RowSelector.Mode.Value, () -> {
-                return ((Database) model.getUnsavedValue("database")).getConnectionID(true);
+                return getDataBase(true).getConnectionID(true);
             }, 
             "SELECT LAYERURI, VERSION, UPGRADEDATE FROM RDX_DDSVERSION"
     ) {
         @Override
         public boolean isReady() {
-            return model.getUnsavedValue("database") != null;
+            return getDataBase(true) != null;
         } 
     };
 
     private final IDataSupplier<String> versionSupplier = new IDataSupplier<String>() {
         @Override
         public String call() throws Exception {
-            Database database = (Database) model.getUnsavedValue("database");
-            String   layerUri = (String) model.getUnsavedValue("layerURI");
+            Database database = getDataBase(true);
+            String   layerUri = getLayerUri(true);
             if (IComplexType.notNull(database, layerUri)) {
                 ResultSet rs = DAS.select(database.getConnectionID(false), "SELECT VERSION FROM RDX_DDSVERSION WHERE LAYERURI = ?", layerUri);
                 if (rs.next()) {
@@ -68,138 +81,134 @@ public class Environment extends Entity implements INodeListener {
     
     private final IDataSupplier<String> instanceSupplier = new RowSelector(
             RowSelector.Mode.Row, () -> {
-                return ((Database) model.getUnsavedValue("database")).getConnectionID(true);
+                return getDataBase(true).getConnectionID(true);
             }, 
             "SELECT ID, TITLE FROM RDX_INSTANCE ORDER BY ID"
-    );
+    ) {
+        @Override
+        public boolean isReady() {
+            return getDataBase(true) != null;
+        } 
+    };
     
     private final EditorCommand layerSelector = new DataSetMask(null, layerSupplier);
+    private final IArrMask instanceSelector = new DataSetMask("{0} - {1}", instanceSupplier);
     
     public Environment(EntityRef parent, String title) {
         super(parent, ImageUtils.getByPath("/images/instance.png"), title, null);
-
-        MutablePropHolder offshoot = new MutablePropHolder("offshoot", new EntityRef(
-                Offshoot.class, 
-                (entity) -> {
-                    return
-                            entity.getParent().getParent().equals(model.getUnsavedValue("repository")) && 
-                            entity.model.getValue("built") != null && 
-                            ((Offshoot) entity).getStatus() == WCStatus.Succesfull;
-                },
-                (entity) -> {
-                    if (model.getUnsavedValue("layerURI") == null) 
-                        return EntityRef.Match.Unknown;
-
-                    String version = (String) model.getUnsavedValue("version");
-                    if (version == null || version.isEmpty())
-                        return EntityRef.Match.Unknown;
-
-                    String entityVersion = entity.model.getPID();
-                    return entityVersion.equals(version.substring(0, version.lastIndexOf("."))) ? EntityRef.Match.Exact : EntityRef.Match.None;
-                }
-        ), true);
-        
-        MutablePropHolder release = new MutablePropHolder("release", new EntityRef(
-                Release.class, 
-                (entity) -> {
-                    return entity.getParent().getParent().equals(model.getUnsavedValue("repository"));
-                },
-                (entity) -> {
-                    String version = (String) model.getUnsavedValue("version");
-                    if (version == null || version.isEmpty())
-                        return EntityRef.Match.Unknown;
-
-                    String entityVersion = entity.model.getPID();
-                    return entityVersion.equals(version) ? EntityRef.Match.Exact : (
-                                entityVersion.substring(0, entityVersion.lastIndexOf(".")).equals(
-                                        version.substring(0, version.lastIndexOf("."))
-                                ) ? EntityRef.Match.About : EntityRef.Match.None
-                           );
-                }
-        ), true);
         
         // Properties
-        model.addUserProp("jvmServer",   new ArrStr(new ArrayList<>()),   false, Access.Select);
-        model.addUserProp("jvmExplorer", new ArrStr(new ArrayList<>()),   false, Access.Select);
-        model.addUserProp("layerURI",    new Str(null),                   true,  Access.Select);
-        
-        model.addUserProp("database",    new EntityRef(Database.class),   false, null);
-        model.addDynamicProp("version",  new Str(null), Access.Select, () -> {
+        model.addUserProp(PROP_JVM_SERVER,   new ArrStr(new ArrayList<>()),   false, Access.Select);
+        model.addUserProp(PROP_JVM_EXPLORER, new ArrStr(new ArrayList<>()),   false, Access.Select);
+        model.addUserProp(PROP_LAYER_URI,    new Str(null),                   true,  Access.Select);
+        model.addUserProp(PROP_DATABASE,     new EntityRef(Database.class),   false, null);
+        model.addDynamicProp(PROP_VERSION,   new Str(null), Access.Select, () -> {
             Thread thread = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    updateVersion();
+                    setVersion(getLayerVersion());
                 }
             });
             thread.start();
-            return model.getValue("version");
+            return getVersion();
         });
-        model.addUserProp("instanceId", new ArrStr().setMask(new DataSetMask(
-                "{0} - {1}", instanceSupplier
-        )), false, Access.Select);
+        model.addUserProp(PROP_INSTANCE_ID,  new ArrStr().setMask(instanceSelector), false, Access.Select);
+        model.addUserProp(PROP_REPOSITORY,   new EntityRef(Repository.class), true, Access.Select);
+        model.addUserProp(PROP_OFFSHOOT,     new EntityRef(
+                Offshoot.class, 
+                (entity) -> {
+                    Offshoot offshoot = (Offshoot) entity;
+                    return 
+                        offshoot.getRepository()  == getRepository(true) &&
+                        offshoot.getBuiltStatus() != null &&
+                        offshoot.isWCLoaded();
+                },
+                (entity) -> {
+                    String layerVersion = getVersion();
+                    if (layerVersion == null || layerVersion.isEmpty())
+                        return EntityRef.Match.Unknown;
+
+                    String offshootVersion = ((Offshoot) entity).getVersion();
+                    layerVersion = layerVersion.substring(0, layerVersion.lastIndexOf("."));
+                    return offshootVersion.equals(layerVersion) ? EntityRef.Match.Exact : EntityRef.Match.None;
+                }
+        ), true, Access.Select);
+        model.addUserProp(PROP_RELEASE,      new EntityRef(
+                Release.class, 
+                (entity) -> {
+                    return ((Release) entity).getRepository()  == getRepository(true);
+                },
+                (entity) -> {
+                    String layerVersion = getVersion();
+                    if (layerVersion == null || layerVersion.isEmpty())
+                        return EntityRef.Match.Unknown;
+
+                    String releaseVersion = ((Release) entity).getVersion();
+                    return releaseVersion.equals(layerVersion) ? EntityRef.Match.Exact : (
+                                releaseVersion.substring(0, releaseVersion.lastIndexOf(".")).equals(
+                                        layerVersion.substring(0, layerVersion.lastIndexOf("."))
+                                ) ? EntityRef.Match.About : EntityRef.Match.None
+                           );
+                }
+        ), true, Access.Select);
         
-        model.addUserProp("repository",  new EntityRef(Repository.class), true,  Access.Select);
-        model.addUserProp(offshoot,      Access.Select);
-        model.addUserProp(release,       Access.Select);
-        model.addUserProp("autoRelease", new Bool(false), false, Access.Any);
-        model.addDynamicProp("binaries", new EntityRef(BinarySource.class), Access.Edit, () -> {
-            return IComplexType.coalesce(model.getValue("offshoot"), model.getValue("release"));
-        }, "offshoot", "release", "repository");
-        model.addUserProp("userNote",    new Str(null), false, null);
+        model.addDynamicProp(PROP_BINARIES,  new EntityRef(BinarySource.class), Access.Edit, () -> {
+            return IComplexType.coalesce(getOffshoot(true), getRelease(true));
+        }, PROP_OFFSHOOT, PROP_RELEASE, PROP_REPOSITORY);
+        model.addUserProp(PROP_USER_NOTE,    new Str(null), false, null);
+        
+        model.addUserProp(PROP_AUTO_RELEASE, new Bool(false), false, Access.Any);
         
         // Property settings
-        release.setMandatory(model.getValue("offshoot") == null);
-        offshoot.setMandatory(model.getValue("release") == null);
-        if (model.getValue("release") != null) {
-            ((Entity) model.getValue("release")).addNodeListener(this);
+        model.getProperty(PROP_RELEASE).setRequired(getOffshoot(true) == null);
+        model.getProperty(PROP_OFFSHOOT).setRequired(getRelease(true) == null);
+        if (getRelease(false) != null) {
+            getRelease(false).addNodeListener(this);
         }
         
         // Editor settings
-        model.addPropertyGroup(Language.get("group@database"), "database", "instanceId", "version");
-        model.addPropertyGroup(Language.get("group@binaries"), "repository", "offshoot", "release");
-        model.getEditor("layerURI").addCommand(layerSelector);
+        model.addPropertyGroup(Language.get("group@database"), PROP_DATABASE, PROP_INSTANCE_ID, PROP_VERSION);
+        model.addPropertyGroup(Language.get("group@binaries"), PROP_REPOSITORY, PROP_OFFSHOOT, PROP_RELEASE);
+        model.getEditor(PROP_LAYER_URI).addCommand(layerSelector);
+        model.getEditor(PROP_RELEASE).setVisible(getRepository(true)     != null);
+        model.getEditor(PROP_OFFSHOOT).setVisible(getRepository(true)    != null);
+        model.getEditor(PROP_INSTANCE_ID).setVisible(getRepository(true) != null);
+        model.getEditor(PROP_VERSION).setVisible(getRepository(true)     != null);
         
-        EditorCommand synkRelease = new SynkRelease();
-        ((AbstractEditor) model.getEditor("release")).addCommand(synkRelease);
-        model.getEditor("release").setVisible(model.getValue("repository")  != null);
-        model.getEditor("offshoot").setVisible(model.getValue("repository") != null);
-        model.getEditor("instanceId").setVisible(model.getValue("database") != null);
-        model.getEditor("version").setVisible(model.getValue("database")    != null);
+        SynkRelease synkRelease = new SynkRelease();
+        model.addModelListener(synkRelease);
+        ((AbstractEditor) model.getEditor(PROP_RELEASE)).addCommand(synkRelease);
         
         // Handlers
         model.addChangeListener((name, oldValue, newValue) -> {
             switch (name) {
-                case "database":
+                case PROP_DATABASE:
                     layerSelector.activate();
-                    SwingUtilities.invokeLater(() -> {
-                        model.updateDynamicProp("version");
-                    });
-                    model.setValue("instanceId", null);
-                    model.getEditor("instanceId").setVisible(newValue != null);
-                    model.getEditor("version").setVisible(newValue    != null);
+                    model.updateDynamicProps(PROP_VERSION);
+                    model.getEditor(PROP_INSTANCE_ID).setVisible(newValue != null);
+                    model.getEditor(PROP_VERSION).setVisible(newValue     != null);
+                    setInstanceId(null);
                     break;
                     
-                case "layerURI":
-                    SwingUtilities.invokeLater(() -> {
-                        model.updateDynamicProp("version");
-                    });
+                case PROP_LAYER_URI:
+                    model.updateDynamicProps(PROP_VERSION);
                     break;
                     
-                case "version":
-                    ((AbstractEditor) model.getEditor("release")).updateUI();
-                    ((AbstractEditor) model.getEditor("offshoot")).updateUI();
+                case PROP_VERSION:
+                    ((AbstractEditor) model.getEditor(PROP_RELEASE)).updateUI();
+                    ((AbstractEditor) model.getEditor(PROP_OFFSHOOT)).updateUI();
                     synkRelease.activate();
                     break;
                     
-                case "repository":
-                    model.setValue("release",  null);
-                    model.setValue("offshoot", null);
-                    model.getEditor("release").setVisible(newValue  != null);
-                    model.getEditor("offshoot").setVisible(newValue != null);
+                case PROP_REPOSITORY:
+                    setOffshoot(null);
+                    setRelease(null);
+                    model.getEditor(PROP_RELEASE).setVisible(newValue  != null);
+                    model.getEditor(PROP_OFFSHOOT).setVisible(newValue != null);
                     synkRelease.activate();
                     break;
                     
-                case "release":
+                case PROP_RELEASE:
                     Release oldRelease = (Release) oldValue;
                     Release newRelease = (Release) newValue;
                     if (oldValue != null) {
@@ -209,7 +218,7 @@ public class Environment extends Entity implements INodeListener {
                         }
                     }
                     if (newValue != null) {
-                        model.setValue("offshoot", null);
+                        setOffshoot(null);
                         newRelease.addNodeListener(this);
                         if (newRelease.islocked()) {
                             try {
@@ -217,16 +226,16 @@ public class Environment extends Entity implements INodeListener {
                             } catch (InterruptedException e) {}
                         }
                     }
-                    offshoot.setMandatory(newValue == null);
+                    model.getProperty(PROP_OFFSHOOT).setRequired(newValue == null);
                     break;
                     
-                case "offshoot":
+                case PROP_OFFSHOOT:
                     if (newValue != null) {
-                        model.setValue("autoRelease", false);
-                        model.setValue("release", null);
+                        setRelease(null);
+                        setAutoRelease(false);
                         synkRelease.activate();
                     }
-                    release.setMandatory(newValue == null);
+                    model.getProperty(PROP_RELEASE).setRequired(newValue == null);
                     break;
             }
         });
@@ -234,45 +243,153 @@ public class Environment extends Entity implements INodeListener {
         // Commands
         addCommand(new RunAll() {
             @Override
-            public void execute(Entity entity, Map<String, IComplexType> map) {
-                updateVersion();
-                super.execute(entity, map);
+            public void execute(Environment environment, Map<String, IComplexType> map) {
+                setVersion(getLayerVersion());
+                super.execute(environment, map);
             }
         });
         addCommand(new RunServer() {
             @Override
-            public void execute(Entity entity, Map<String, IComplexType> map) {
-                updateVersion();
-                super.execute(entity, map);
+            public void execute(Environment environment, Map<String, IComplexType> map) {
+                setVersion(getLayerVersion());
+                super.execute(environment, map);
             }
         });
         addCommand(new RunExplorer() {
             @Override
-            public void execute(Entity entity, Map<String, IComplexType> map) {
-                updateVersion();
-                super.execute(entity, map);
+            public void execute(Environment environment, Map<String, IComplexType> map) {
+                setVersion(getLayerVersion());
+                super.execute(environment, map);
             }
         });
     }
     
-    private final void updateVersion() {
+    public final List<String> getJvmServer() {
+        return (List<String>) model.getValue(PROP_JVM_SERVER);
+    }
+    
+    public final List<String> getJvmExplorer() {
+        return (List<String>) model.getValue(PROP_JVM_EXPLORER);
+    }
+    
+    public String getLayerUri(boolean unsaved) {
+        return (String) (unsaved ? model.getUnsavedValue(PROP_LAYER_URI) : model.getValue(PROP_LAYER_URI));
+    }
+    
+    public final Database getDataBase(boolean unsaved) {
+        return (Database) (unsaved ? model.getUnsavedValue(PROP_DATABASE) : model.getValue(PROP_DATABASE));
+    }
+    
+    public String getVersion() {
+        return (String) model.getValue(PROP_VERSION);
+    }
+    
+    public Integer getInstanceId() {
+        List<String> value =  (List<String>) model.getValue(PROP_INSTANCE_ID);
+        if (value != null && value.size() > 0) {
+            return Integer.valueOf(value.get(0));
+        }
+        return null;
+    }
+    
+    public final Repository getRepository(boolean unsaved) {
+        return (Repository) (unsaved ? model.getUnsavedValue(PROP_REPOSITORY) : model.getValue(PROP_REPOSITORY));
+    }
+    
+    public final BinarySource getBinaries() {
+        return (BinarySource) model.getValue(PROP_BINARIES);
+    }
+    
+    public final Offshoot getOffshoot(boolean unsaved) {
+        return (Offshoot) (unsaved ? model.getUnsavedValue(PROP_OFFSHOOT) : model.getValue(PROP_OFFSHOOT));
+    }
+    
+    public final Release getRelease(boolean unsaved) {
+        return (Release) (unsaved ? model.getUnsavedValue(PROP_RELEASE) : model.getValue(PROP_RELEASE));
+    }
+    
+    public String getUserNote() {
+        return (String) model.getValue(PROP_USER_NOTE);
+    }
+    
+    public boolean getAutoRelease(boolean unsaved) {
+        return (unsaved ? model.getUnsavedValue(PROP_AUTO_RELEASE) : model.getValue(PROP_AUTO_RELEASE)) == Boolean.TRUE;
+    }
+    
+    public final void setJvmServer(List<String> value) {
+        model.setValue(PROP_JVM_SERVER, value);
+    }
+    
+    public final void setJvmExplorer(List<String> value) {
+        model.setValue(PROP_JVM_EXPLORER, value);
+    }
+    
+    public final void setLayerUri(String value) {
+        model.setValue(PROP_LAYER_URI, value);
+    }
+    
+    public final void setDatabase(Database value) {
+        model.setValue(PROP_DATABASE, value);
+    }
+    
+    public final void setVersion(String value) {
+        model.setValue(PROP_VERSION, value);
+    }
+    
+    public final void setInstanceId(Integer value) {
+        if (value == null) {
+            model.setValue(PROP_INSTANCE_ID, value);
+        } else {
+            model.setValue(
+                    PROP_INSTANCE_ID, 
+                    new LinkedList() {{
+                        add(value.toString());
+                        add("<?>");
+                    }}
+            );
+        }
+    }
+    
+    public final void setRepository(Repository value) {
+        model.setValue(PROP_REPOSITORY, value);
+    }
+    
+    public final void setOffshoot(Offshoot value) {
+        model.setValue(PROP_OFFSHOOT, value);
+    }
+    
+    public final void setRelease(Release value) {
+        model.setValue(PROP_RELEASE, value);
+    }
+    
+    public final void setUserNote(String value) {
+        model.setValue(PROP_USER_NOTE, value);
+    }
+    
+    public final void setAutoRelease(Boolean value) {
+        model.setValue(PROP_AUTO_RELEASE, value);
+    }
+    
+    private String getLayerVersion() {
         try {
-            model.setValue("version", versionSupplier.call());
-        } catch (Exception e) {}
+            return versionSupplier.call();
+        } catch (Exception e) {
+            return null;
+        }
     }
     
     public boolean canStartServer() {
         return IComplexType.notNull(
-                model.getValue("binaries"),
-                model.getValue("layerURI"),
-                model.getValue("instanceId")
+                getBinaries(),
+                getLayerUri(false),
+                getInstanceId()
         );
     }
     
     public boolean canStartExplorer() {
         return IComplexType.notNull(
-                model.getValue("binaries"),
-                model.getValue("layerURI")
+                getBinaries(),
+                getLayerUri(false)
         );
     }
 
@@ -289,33 +406,11 @@ public class Environment extends Entity implements INodeListener {
         }
     }
     
-    private class MutablePropHolder extends PropertyHolder {
-    
-        public MutablePropHolder(String name, IComplexType value, boolean require) {
-            super(name, value, require);
-        }
-
-        public MutablePropHolder(String name, String title, String desc, IComplexType value, boolean require) {
-            super(name, title, desc, value, require);
-        }
-        
-        public void setMandatory(boolean mandatory) {
-            try {
-                Field require = PropertyHolder.class.getDeclaredField("require");
-                require.setAccessible(true);
-                require.set(this, mandatory);
-                ((AbstractEditor) model.getEditor(getName())).updateUI();
-            } catch (NoSuchFieldException | SecurityException | IllegalAccessException e) {
-                e.printStackTrace();
-            }
-        }
-    
-    }
-    
     private final static ImageIcon UNKNOWN   = ImageUtils.resize(ImageUtils.getByPath("/images/unavailable.png"), 20, 20);
     private final static ImageIcon CHECKED   = ImageUtils.resize(ImageUtils.getByPath("/images/update.png"), 20, 20);
     private final static ImageIcon UNCHECKED = ImageUtils.resize(ImageUtils.combine(CHECKED, UNKNOWN), 20, 20);
-    private class SynkRelease extends EditorCommand {
+    
+    private class SynkRelease extends EditorCommand implements IModelListener {
 
         public SynkRelease() {
             super(
@@ -324,27 +419,29 @@ public class Environment extends Entity implements INodeListener {
                 null
             );
             activator = (holders) -> {
-                String foundVersion = (String) Environment.this.model.getValue("version");
-                Entity usedRelease  = (Entity) Environment.this.model.getValue("release");
-                String usedVersion  = usedRelease == null ? null : usedRelease.model.getPID();
-                boolean autoRelease = Environment.this.model.getUnsavedValue("autoRelease") == Boolean.TRUE;
+                String  foundVersion = Environment.this.getVersion();
+                Release usedRelease  = Environment.this.getRelease(false);
+                String  usedVersion  = usedRelease == null ? null : usedRelease.getVersion();
+                boolean autoRelease  = Environment.this.getAutoRelease(true);
                 
                 button.setEnabled(foundVersion != null);
                 button.setIcon(autoRelease ? CHECKED : UNCHECKED);
                 
-                AbstractEditor releaseEditor = (AbstractEditor) model.getEditor("release");
+                AbstractEditor releaseEditor = (AbstractEditor) model.getEditor(PROP_RELEASE);
                 releaseEditor.setEditable(!autoRelease || foundVersion == null);
-                
+
                 if (foundVersion != null && autoRelease && !foundVersion.equals(usedVersion)) {
                     Entity newValue = findEntity(foundVersion);
                     if (newValue != null) {
-                        Environment.this.model.setValue("release", newValue);
-                        if (Environment.this.model.getID() != null) {
-                            Environment.this.model.commit();
+                        Environment.this.setRelease((Release) newValue);
+                        if (Environment.this.getID() != null) {
+                            try {
+                                Environment.this.model.commit(true);
+                            } catch (Exception e) {}
                         }
                         Logger.getLogger().info(
                                 "Environment ''{0}'' release has been updated automatically to ''{1}''",
-                                Environment.this.model.getPID(), newValue
+                                Environment.this.getPID(), newValue
                         );
                         releaseEditor.updateUI();
                     }
@@ -354,36 +451,33 @@ public class Environment extends Entity implements INodeListener {
 
         @Override
         public void execute(PropertyHolder context) {
-            Boolean autoRelease = Environment.this.model.getUnsavedValue("autoRelease") == Boolean.TRUE;
-            Environment.this.model.setValue("autoRelease", !autoRelease);
-            if (Environment.this.model.getID() != null) {
-                Environment.this.model.commit();
+            Environment.this.setAutoRelease(!getAutoRelease(true));
+            if (Environment.this.getID() != null) {
+                try {
+                    Environment.this.model.commit(true);
+                } catch (Exception e) {}
             }
             activate();
         }
         
         private Entity findEntity(String version) {
-            Entity repo  = (Entity) Environment.this.model.getUnsavedValue("repository");
-            Entity found = EAS.getEntitiesByClass(Release.class).stream()
-                .filter((entity) -> {
-                    return entity.getParent().getParent() == repo && entity.model.getPID().equals(version);
-                })
-                .findFirst().orElse(null);
-            if (found == null && repo != null) {
-                EntityRef repoRef = new EntityRef(Repository.class);
-                repoRef.valueOf(repo.model.getID().toString());
-                found = Entity.newInstance(
-                        Release.class, 
-                        repoRef, 
-                        version
-                );
+            Entity repository  = (Entity) Environment.this.getRepository(true);
+            if (repository != null) {
+                return Entity.newInstance(Release.class, repository.toRef(), version);
             }
-            return found;
+            return null;
         }
 
         @Override
         public boolean disableWithContext() {
             return false;
+        }
+
+        @Override
+        public void modelRestored(EntityModel model, List<String> changes) {
+            if (changes.contains(PROP_AUTO_RELEASE)) {
+                activate();
+            }
         }
         
     }
