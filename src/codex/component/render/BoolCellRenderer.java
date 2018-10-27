@@ -46,7 +46,7 @@ final class BoolCellRenderer extends CellRenderer<Boolean> {
     }
 
     @Override
-    public void setValue(Boolean value) {
+    public void setValue(Boolean value, String placeholder) {
         checkBox.setSelected(Boolean.TRUE.equals(value));
     }
 

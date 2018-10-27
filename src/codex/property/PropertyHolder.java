@@ -1,5 +1,6 @@
 package codex.property;
 
+import codex.editor.IEditor;
 import codex.mask.IMask;
 import codex.model.AbstractModel;
 import codex.type.EntityRef;
@@ -20,6 +21,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     private final String  name;
     private final String  title;
     private final String  desc;
+    private final String  placeholder;
     private       boolean require;
     private IComplexType<V, ?>   value;
     private PropertyHolder<T, V> inherit;
@@ -61,6 +63,14 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
         this.desc    = desc;
         this.require = require;
         this.value   = value;
+        
+        String propPlaceHolder = Language.lookup(getOwners(), name+".placeholder");
+        String typePlaceHolder = Language.lookup(getTypes(getType()), "placeholder");
+        
+        this.placeholder = 
+                Language.NOT_FOUND.equals(propPlaceHolder) ? (
+                    Language.NOT_FOUND.equals(typePlaceHolder) ? IEditor.NOT_DEFINED : typePlaceHolder 
+                ): propPlaceHolder;
     }
     
     /**
@@ -89,6 +99,16 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
      */
     public final String getDescriprion() { 
         return desc; 
+    }
+    
+    /**
+     * Получить строку-заменитель значения (когда значение свойства не задано).
+     * Свойство автоматически ищет заменитель в локализующих ресурсах класса сущности,
+     * которая владеет свойством по имени "{name}.placeholder", если не удалось
+     * найти - ищет в ресурсах класса типа данного свойства по имени "placeholder".
+     */
+    public final String getPlaceholder() { 
+        return placeholder;
     }
     
     /**
@@ -264,6 +284,19 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
                     return !className.equals(PropertyHolder.class.getSimpleName());
                 })
                 .collect(Collectors.toList());
+    }
+    
+    private static List<String> getTypes(Class type) {
+        List<String> list = new LinkedList<>();
+        if (type != null) {
+            if (!(type.isAnonymousClass()|| type.equals(Object.class))) {
+                list.add(type.getSimpleName());
+            }
+            if (!type.equals(Object.class)) {
+                list.addAll(getTypes(type.getSuperclass()));
+            }
+        }
+        return list;
     }
     
 }

@@ -12,7 +12,7 @@ interface ICellRenderer<T> {
     /**
      * Установить значение рендерера перед отрисовкой.
      */
-    void setValue(T value);
+    void setValue(T value, String placeholder);
     
     Dimension getPreferredSize();
     

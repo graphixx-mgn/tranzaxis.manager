@@ -210,7 +210,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         
         @Override
         public String toString() {
-            return NOT_DEFINED;
+            return propHolder.getPlaceholder();
         }
     }
 

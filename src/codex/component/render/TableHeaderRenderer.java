@@ -27,7 +27,7 @@ final class TableHeaderRenderer extends JLabel implements ICellRenderer<String> 
     }
 
     @Override
-    public void setValue(String value) {
+    public void setValue(String value, String placeholder) {
         setText(value);
     }
     

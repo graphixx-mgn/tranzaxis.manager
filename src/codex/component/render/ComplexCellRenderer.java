@@ -31,7 +31,7 @@ final class ComplexCellRenderer extends CellRenderer<Object> {
     }
 
     @Override
-    public void setValue(Object value) {
+    public void setValue(Object value, String placeholder) {
         ImageIcon icon;
         
         if (value != null && Iconified.class.isAssignableFrom(value.getClass())) {
@@ -44,7 +44,7 @@ final class ComplexCellRenderer extends CellRenderer<Object> {
             icon = null;
         }
         setIcon(icon);
-        setText(value != null ? value.toString() : IEditor.NOT_DEFINED);
+        setText(value != null ? value.toString() : placeholder);
     }
     
     @Override

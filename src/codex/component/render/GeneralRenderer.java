@@ -120,7 +120,7 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
         CellRenderer cellBox;
         if (row == TableModelEvent.HEADER_ROW) {
             TableHeaderRenderer cellHead = TableHeaderRenderer.getInstance();
-            cellHead.setValue((String) value);
+            cellHead.setValue((String) value, null);
             cellHead.setBorder(new CompoundBorder(
                     new MatteBorder(0, 0, 1, column == table.getColumnCount()-1 ? 0 : 1, Color.GRAY),
                     new EmptyBorder(1, 6, 0, 6)
@@ -132,19 +132,16 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
             } else {
                 cellBox = ComplexCellRenderer.getInstance();
             }
-            cellBox.setValue(value);
+            SelectorTableModel selectorModel = (SelectorTableModel) table.getModel();
+            Entity entity = selectorModel.getEntityAt(row);
+            String propName = entity.model.getProperties(Access.Select).get(column);
             
-            boolean isEntityInvalid = false;
-            boolean isEntityLocked  = false;
-            PropertyState propState = PropertyState.Good;
+            cellBox.setValue(value, entity.model.getProperty(propName).getPlaceholder());
             
-            if (table.getModel() instanceof SelectorTableModel) {
-                EntityModel model = ((SelectorTableModel) table.getModel()).getEntityAt(row).model;
-                
-                isEntityInvalid = !((SelectorTableModel) table.getModel()).getEntityAt(row).model.isValid();
-                isEntityLocked  = ((SelectorTableModel) table.getModel()).getEntityAt(row).islocked();
-                propState = model.getPropState(model.getProperties(Access.Select).get(column));
-            }
+            boolean isEntityInvalid = !entity.model.isValid();
+            boolean isEntityLocked  = entity.islocked();
+            PropertyState propState = entity.model.getPropState(propName);
+            
             cellBox.setEnabled(!isEntityLocked);
             
             switch (propState) {
