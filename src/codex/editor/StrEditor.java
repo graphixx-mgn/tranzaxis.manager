@@ -118,7 +118,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
             }
         });
         
-        PlaceHolder placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.FOCUS_LOST);
+        PlaceHolder placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField, PlaceHolder.Show.FOCUS_LOST);
         placeHolder.setBorder(textField.getBorder());
         placeHolder.changeAlpha(100);
         

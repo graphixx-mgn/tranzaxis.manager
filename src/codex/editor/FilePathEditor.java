@@ -41,7 +41,7 @@ public class FilePathEditor extends AbstractEditor {
         textField.setBorder(new EmptyBorder(0, 3, 0, 3));
         textField.setEditable(false);
         
-        PlaceHolder placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.ALWAYS);
+        PlaceHolder placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField, PlaceHolder.Show.ALWAYS);
         placeHolder.setBorder(textField.getBorder());
         placeHolder.changeAlpha(100);
         
