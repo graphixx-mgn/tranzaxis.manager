@@ -77,6 +77,7 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
     
     /**
      * Добавление слушателя события смены активного узла дерева.
+     * @param listener Слушатель.
      */
     public void addNavigateListener(INavigateListener listener) {
         listeners.add(listener);
@@ -90,7 +91,7 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
             INode node;
             while (it.hasNext()) {
                 node = it.next();
-                setToolTip(new TreePath(((NodeTreeModel) model).getPathToRoot(node)), node);
+                setToolTip(new TreePath(((DefaultTreeModel) model).getPathToRoot(node)), node);
                 node.addNodeListener(this);
                 ((Entity) node).model.addModelListener(this);
             }
@@ -121,21 +122,21 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
 
     @Override
     public void modelRestored(EntityModel model, List<String> changes) {
-        Optional<INode> update = ((Entity) ((NodeTreeModel) getModel()).getRoot()).flattened().filter((node) -> {
+        Optional<INode> update = ((INode) (getModel()).getRoot()).flattened().filter((node) -> {
            return ((Entity) node).model == model;
         }).findFirst();
         if (update.isPresent()) {
-            ((NodeTreeModel) getModel()).nodeChanged(update.get());
+            ((DefaultTreeModel) getModel()).nodeChanged(update.get());
         }
     }
 
     @Override
     public void modelSaved(EntityModel model, List<String> changes) {
-        Optional<INode> update = ((Entity) ((NodeTreeModel) getModel()).getRoot()).flattened().filter((node) -> {
+        Optional<INode> update = ((INode) (getModel()).getRoot()).flattened().filter((node) -> {
            return ((Entity) node).model == model;
         }).findFirst();
         if (update.isPresent()) {
-            ((NodeTreeModel) getModel()).nodeChanged(update.get());
+            ((DefaultTreeModel) getModel()).nodeChanged(update.get());
         }
     }
     

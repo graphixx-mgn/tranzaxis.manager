@@ -29,6 +29,7 @@ public final class Browser extends JPanel {
     
     /**
      * Загружает указанный узел в панель просмотра.
+     * @param node Ссылка на узел.
      */
     public void browse(INode node) {
         editorPanel.removeAll();

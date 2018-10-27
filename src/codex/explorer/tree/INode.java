@@ -12,8 +12,17 @@ import javax.swing.tree.TreeNode;
  */
 public interface INode extends TreeNode {
     
+    /**
+     * Узел не может быть выбран и не активен.
+     */
     public static final int MODE_NONE       = 0;
+    /**
+     * Узел активен.
+     */
     public static final int MODE_ENABLED    = 1;
+    /**
+     * Узел может быть выбран.
+     */
     public static final int MODE_SELECTABLE = 2;
     
     /**
@@ -23,6 +32,8 @@ public interface INode extends TreeNode {
     
     /**
      * Устанавливает режим отображения узла. 
+     * @param mode Режим отображения узла 
+     * (см. {@link INode#MODE_NONE}, {@link INode#MODE_ENABLED}, {@link INode#MODE_SELECTABLE})
      */
     void setMode(int mode);
     
@@ -38,18 +49,26 @@ public interface INode extends TreeNode {
     
     /**
      * Установить родительский узел.
+     * @param parent Ссылка на родительский узел.
      */
     void setParent(INode parent);
     
     /**
      * Вставить дочерний узел.
+     * @param child Ссылка на дочерний узел.
      */
     void insert(INode child);
     
+    /**
+     * Перемещение дочернего узла.
+     * @param child Ссылка на дочерний узел.
+     * @param position Индекс новой позиции.
+     */
     void move(INode child, int position);
     
     /**
      * Удалить дочерний узел.
+     * @param child Ссылка на дочерний узел.
      */
     void delete(INode child);
     
@@ -96,6 +115,7 @@ public interface INode extends TreeNode {
     
     /**
      * Возвращает потомка узла по его индексу.
+     * @param childIndex Индекс дочернего узла.
      */
     @Override
     default INode getChildAt(int childIndex) {
@@ -110,6 +130,7 @@ public interface INode extends TreeNode {
     
     /**
      * Возвращает индекс потомка узла.
+     * @param node Ссылк на дочерний узед.
      */
     @Override
     default int getIndex(TreeNode node) {
@@ -146,7 +167,15 @@ public interface INode extends TreeNode {
      */
     public Stream<INode> flattened();
     
+    /**
+     * Добавить слушатель событий узла {@link INodeListener}.
+     * @param listener Слушатель.
+     */
     void addNodeListener(INodeListener listener);
+    /**
+     * Удалить слушатель событий узла {@link INodeListener}.
+     * @param listener Слушатель.
+     */
     void removeNodeListener(INodeListener listener);
     
 }

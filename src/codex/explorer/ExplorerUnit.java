@@ -13,8 +13,12 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 
+/**
+ * Модуль навигации по древовидной структуре сущностей.
+ */
 public final class ExplorerUnit extends AbstractUnit {
     
     private JPanel      browsePanel;
@@ -24,6 +28,10 @@ public final class ExplorerUnit extends AbstractUnit {
     private final Navigator     navigator;
     private final Browser       browser;
     
+    /**
+     * Конструктор модуля.
+     * @param treeModel Модель дерева объектов.
+     */
     public ExplorerUnit(NodeTreeModel treeModel) {
         Logger.getLogger().debug("Initialize unit: Explorer");
         ServiceRegistry.getInstance().registerService(new ExplorerAccessService(treeModel));
@@ -66,7 +74,7 @@ public final class ExplorerUnit extends AbstractUnit {
     public void viewportBound() {
         navigatePanel.setViewportView(navigator);
         browsePanel.add(browser, BorderLayout.CENTER);
-        navigator.expandPath(new TreePath(treeModel.getPathToRoot((INode) treeModel.getRoot())));
+        navigator.expandPath(new TreePath(treeModel.getPathToRoot((TreeNode) treeModel.getRoot())));
     }
     
 }

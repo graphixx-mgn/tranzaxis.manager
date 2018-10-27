@@ -46,6 +46,9 @@ public abstract class AbstractNode implements INode {
         fireChangeEvent();
     };
     
+    /**
+     * Гнерирует событие изменения узла.
+     */
     protected final void fireChangeEvent() {
         new LinkedList<>(nodeListeners).forEach((listener) -> {
             listener.childChanged(this);
@@ -118,6 +121,9 @@ public abstract class AbstractNode implements INode {
     };
     
     private Semaphore lock;
+    /**
+     * Возвращает объект блокировки сущности.
+     */
     public final Semaphore getLock() {
         if (lock == null) {
             lock = new Semaphore(1, true) {
@@ -140,6 +146,9 @@ public abstract class AbstractNode implements INode {
         return lock;
     }
     
+    /**
+     * Возвращает признак блокировки сущности.
+     */
     public final boolean islocked() {
         return getLock().availablePermits() == 0;
     }

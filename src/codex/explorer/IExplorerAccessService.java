@@ -18,6 +18,7 @@ public interface IExplorerAccessService extends IService {
     
     /**
      * Возвращает список сущностей с заданным классом.
+     * @param entityClass Класс сущности.
      */
     default List<Entity> getEntitiesByClass(Class entityClass) {
         return null;
@@ -25,6 +26,8 @@ public interface IExplorerAccessService extends IService {
     
     /**
      * Возвращает сущность заданного класса по её ID.
+     * @param entityClass Класс сущности.
+     * @param ID Идентификатор сущности.
      */
     default Entity getEntity(Class entityClass, Integer ID) {
         return null;
