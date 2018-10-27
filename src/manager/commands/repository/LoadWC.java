@@ -55,7 +55,7 @@ public class LoadWC extends EntityCommand<Repository> {
 
     @Override
     public void execute(Repository repository, Map<String, IComplexType> map) {
-        boolean load = getContext() == null ? 
+        boolean load = getContext().isEmpty() ? 
                 repository.isLocked(true) : 
                 !repository.isLocked(true);
         if (load) {
@@ -66,7 +66,7 @@ public class LoadWC extends EntityCommand<Repository> {
     }
     
     private void load(Repository repository) {
-        executeTask(repository, new LoadTask(repository), getContext() != null);
+        executeTask(repository, new LoadTask(repository), !getContext().isEmpty());
     }
     
     private void unload(Repository repository) {
