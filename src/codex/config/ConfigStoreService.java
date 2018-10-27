@@ -338,7 +338,17 @@ public final class ConfigStoreService implements IConfigStoreService {
     }
     
     @Override
-    public Map<String,  String> readClassInstance(Class clazz, Integer ID) {
+    public boolean isInstanceExists(Class clazz, Integer ID) {
+        return !readClassInstance(clazz, ID).isEmpty();
+    }
+    
+    @Override
+    public boolean isInstanceExists(Class clazz, String PID, Integer ownerId) {
+        return !readClassInstance(clazz, PID, ownerId).isEmpty();
+    }
+    
+    @Override
+    public Map<String, String> readClassInstance(Class clazz, Integer ID) {
         Map<String, String> rowData = new LinkedHashMap<>();
         final String className = clazz.getSimpleName().toUpperCase();
         if (tableRegistry.containsKey(className)) {
@@ -363,7 +373,7 @@ public final class ConfigStoreService implements IConfigStoreService {
     }
     
     @Override
-    public Map<String,  String> readClassInstance(Class clazz, String PID, Integer ownerId) {
+    public Map<String, String> readClassInstance(Class clazz, String PID, Integer ownerId) {
         Map<String, String> rowData = new LinkedHashMap<>();
         final String className = clazz.getSimpleName().toUpperCase();
         if (tableRegistry.containsKey(className)) {

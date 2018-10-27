@@ -37,6 +37,14 @@ public interface IConfigStoreService extends IService {
      */
     default void updateClassInstance(Class clazz, Integer ID, Map<String, IComplexType> properties) throws Exception {};
     
+    default boolean isInstanceExists(Class clazz, Integer ID) {
+        return false;
+    }
+    
+    default boolean isInstanceExists(Class clazz, String PID, Integer ownerId) {
+        return false;
+    }
+    
     /**Получить список значений свойств сущности.
      * @param clazz Класс сущности.
      * @param ID Уникальный числовой идентификатор сущности.
