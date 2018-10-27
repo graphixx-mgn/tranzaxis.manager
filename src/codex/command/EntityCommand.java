@@ -23,6 +23,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +70,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     private KeyStroke key;
     private String    name;
     private String    title;
-    private List<V>   context;
+    private List<V>   context = new LinkedList<>();
     private IButton   button; 
     private String    groupId;
     private final List<ICommandListener<V>> listeners = new LinkedList<>();
@@ -167,21 +168,21 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
 
     @Override
     public final void setContext(List<V> context) {
-        if (this.context != null) {
-            this.context.forEach((contextItem) -> {
-                contextItem.model.removeModelListener(this);
-            });
-        }
+        this.context.forEach((contextItem) -> {
+            contextItem.model.removeModelListener(this);
+        });
         this.context = context;
         listeners.forEach((listener) -> {
             listener.contextChanged(context);
         });
-        if (this.context != null) {
-            this.context.forEach((contextItem) -> {
-                contextItem.model.addModelListener(this);
-            });
-        }
+        this.context.forEach((contextItem) -> {
+            contextItem.model.addModelListener(this);
+        });
         activate();
+    }
+    
+    public final void setContext(V context) {
+        setContext(Arrays.asList(context));
     }
     
     /**
