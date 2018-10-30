@@ -48,8 +48,7 @@ import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
 /**
- *
- * @author igredyaev
+ * Древовидный селектор сущностей.
  */
 public class EntityRefTreeEditor extends AbstractEditor {
     
@@ -94,7 +93,7 @@ public class EntityRefTreeEditor extends AbstractEditor {
             @Override
             public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean hasFocus) {
                 if (!(value instanceof NullValue)) {
-                    Entity owner = ((Entity) value).model.getOwner();
+                    Entity owner = ((Entity) value).getOwner();
                     if (owner != null) {
                         JPanel compPanel = new JPanel();
                         compPanel.setLayout(new BoxLayout(compPanel, BoxLayout.X_AXIS));
@@ -175,7 +174,7 @@ public class EntityRefTreeEditor extends AbstractEditor {
     
     private class EntitySelector extends EditorCommand {
 
-        public EntitySelector() {
+        private EntitySelector() {
             super(ImageUtils.resize(ImageUtils.getByPath("/images/hierachy.png"), 18, 18), Language.get("title"));
         }
 

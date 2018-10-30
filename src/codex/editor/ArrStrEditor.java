@@ -160,7 +160,7 @@ public class ArrStrEditor extends AbstractEditor {
     
     private class ListEditor extends EditorCommand {
 
-        public ListEditor() {
+        private ListEditor() {
             super(EDIT_ICON, Language.get("title"));
             this.button = new CommandButton(EDIT_ICON) {
                 @Override

@@ -55,9 +55,9 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener, I
                 comboBox.removeAllItems();
                 
                 comboBox.addItem(new NullValue());
-                for (Object item : getValues()) {
+                getValues().forEach((item) -> {
                     comboBox.addItem(item);
-                }
+                });
                 comboBox.setSelectedItem(comboBox.getItemAt(0));
                 
                 comboBox.addActionListener(this);
@@ -178,16 +178,16 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener, I
         List<Object> values = getValues();
 
         comboBox.addItem(new NullValue());
-        for (Object item : values) {
-            if (propHolder.getPropValue().getValue() != null && 
-                ((Entity) item).getPID().equals(((Entity) propHolder.getPropValue().getValue()).getPID())) 
+        values.forEach((item) -> {
+            if (propHolder.getPropValue().getValue() != null &&
+                    ((Entity) item).getPID().equals(((Entity) propHolder.getPropValue().getValue()).getPID())) 
             {
                 comboBox.addItem(propHolder.getPropValue().getValue());
                 setValue(propHolder.getPropValue().getValue());
             } else {
                 comboBox.addItem(item);
             }
-        }
+        });
         if (propHolder.getPropValue().getValue() != null && !values.contains(propHolder.getPropValue().getValue())) {
             comboBox.addItem(propHolder.getPropValue().getValue());
             setValue(propHolder.getPropValue().getValue());

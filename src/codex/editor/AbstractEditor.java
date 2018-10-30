@@ -49,8 +49,8 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         this.editor = createEditor();
         
         label.addMouseListener(new MouseAdapter() {
-            BalloonTip tooltipBalloon;
-            Timer delayTimer = new Timer(1000, (ActionEvent e1) -> {
+            private BalloonTip tooltipBalloon;
+            private final Timer delayTimer = new Timer(1000, (ActionEvent e1) -> {
                 if (tooltipBalloon == null) {
                     tooltipBalloon = new BalloonTip(
                             label, 
@@ -134,6 +134,11 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         setBorder(BORDER_NORMAL);
     }
     
+    /**
+     * Переключение состояние блокировки редактора - временная недоступность
+     * пока сущность заблокирована.
+     * @param locked Если TRUE - значение редактировать невозможно.
+     */
     public void setLocked(boolean locked) {
         this.locked = locked;
         setEditable(isEditable());
@@ -199,9 +204,12 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         label.setFont((propHolder.isValid() ? IEditor.FONT_NORMAL : IEditor.FONT_BOLD));
     }
     
+    /**
+     * Класс, используемый при отрисовке NULL значения в списках. 
+     */
     public class NullValue implements Iconified {
         
-        ImageIcon ICON = ImageUtils.getByPath("/images/clearval.png");
+        private final ImageIcon ICON = ImageUtils.getByPath("/images/clearval.png");
 
         @Override
         public ImageIcon getIcon() {
