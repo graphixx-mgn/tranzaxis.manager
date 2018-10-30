@@ -25,7 +25,7 @@ import javax.swing.border.TitledBorder;
 /**
  * Реализация команды создания новой секции ярлыков.
  */
-class CreateSection extends EntityCommand {
+class CreateSection extends EntityCommand<Entity> {
 
     /**
      * Конструктор команды.
@@ -55,7 +55,7 @@ class CreateSection extends EntityCommand {
     @Override
     public void execute(Entity context, Map<String, IComplexType> params) {
         Entity newEntity = Entity.newInstance(ShortcutSection.class, null, null);
-        
+
         DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
         DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
 
@@ -74,8 +74,10 @@ class CreateSection extends EntityCommand {
             Language.get("title"), page,
             (event) -> {
                 if (event.getID() == Dialog.OK) {
-                    newEntity.model.commit();
-                    boundView((ShortcutSection) newEntity);
+                    try {
+                        newEntity.model.commit(true);
+                        boundView((ShortcutSection) newEntity);
+                    } catch (Exception e) {}
                 }
             },
             confirmBtn, declineBtn

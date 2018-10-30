@@ -10,6 +10,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.text.MessageFormat;
 import javax.swing.Icon;
 import javax.swing.JButton;
@@ -25,7 +26,7 @@ abstract class LaunchButton extends JButton {
     public static final Border NORMAL_BORDER   = new RoundedBorder(new LineBorder(Color.decode("#CCCCCC"), 1), 18);
     public static final Border HOVER_BORDER    = new RoundedBorder((LineBorder) IEditor.BORDER_ACTIVE, 18);
     public static final Border ERROR_BORDER    = new RoundedBorder((LineBorder) IEditor.BORDER_ERROR,  18);
-    public static final Border INACTIVE_BORDER = new RoundedBorder(new LineBorder(Color.decode("#999999"), 2), 18);
+    public static final Border INACTIVE_BORDER = new RoundedBorder(new LineBorder(Color.decode("#999999"), 1), 18);
     
     private float opacity = 1;
     
@@ -47,14 +48,18 @@ abstract class LaunchButton extends JButton {
         setBorder(NORMAL_BORDER);
         
         addMouseListener(new MouseAdapter() {
-
+            
             @Override
-            public void mouseExited(MouseEvent e) {
-                stateChanged();
+            public void mouseEntered(MouseEvent event) {
+                if (event.getModifiers() != MouseEvent.BUTTON1_MASK) {
+                    getModel().setRollover(true);
+                    stateChanged();
+                }
             }
-
+            
             @Override
-            public void mouseEntered(MouseEvent e) {
+            public void mouseExited(MouseEvent event) {
+                getModel().setRollover(false);
                 stateChanged();
             }
         });
@@ -76,5 +81,54 @@ abstract class LaunchButton extends JButton {
     protected void stateChanged() {
         setBorder(getModel().isRollover() ? HOVER_BORDER : NORMAL_BORDER);
     }
-
+    
+    @Override
+    public final void setFont(Font font) {
+        super.setFont(font);
+    }
+    
+    @Override
+    public final void setVerticalAlignment(int alignment) {
+        super.setVerticalAlignment(alignment);
+    }
+    
+    @Override
+    public final void setPreferredSize(Dimension dim) {
+        super.setPreferredSize(dim);
+    }
+    
+    @Override
+    public final void setHorizontalTextPosition(int position) {
+        super.setHorizontalTextPosition(position);
+    }
+    
+    @Override
+    public final void setVerticalTextPosition(int position) {
+        super.setVerticalTextPosition(position);
+    }
+    
+    @Override
+    public final void setContentAreaFilled(boolean value) {
+        super.setContentAreaFilled(value);
+    }
+    
+    @Override
+    public final void setFocusPainted(boolean value) {
+        super.setFocusPainted(value);
+    }
+    
+    @Override
+    public final void setOpaque(boolean value) {
+        super.setOpaque(value);
+    }
+    
+    @Override
+    public final void setBorder(Border border) {
+        super.setBorder(border);
+    }
+    
+    @Override
+    public final void addMouseListener(MouseListener listener) {
+        super.addMouseListener(listener);
+    }
 }

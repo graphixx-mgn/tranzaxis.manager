@@ -4,8 +4,8 @@ import codex.component.border.DashBorder;
 import codex.component.border.RoundedBorder;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
+import codex.log.Logger;
 import codex.model.Entity;
-import codex.model.EntityModel;
 import codex.presentation.CommandPanel;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
@@ -41,7 +41,7 @@ public final class LauncherUnit extends AbstractUnit {
     private final static ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class);
     
     private final SectionContainer shortcutPanel = new SectionContainer();
-    private final DragHandler   dragHandler = new DragHandler();
+    private final DragHandler      dragHandler = new DragHandler();
 
     @Override
     public JComponent createViewport() {
@@ -74,13 +74,17 @@ public final class LauncherUnit extends AbstractUnit {
     @Override
     public void viewportBound() {
         if (CAS.readCatalogEntries(null, ShortcutSection.class).isEmpty()) {
-            CAS.initClassInstance(ShortcutSection.class, ShortcutSection.DEFAULT, new HashMap<>(), null);
+            try {
+                CAS.initClassInstance(ShortcutSection.class, ShortcutSection.DEFAULT, new HashMap<>(), null);
+            } catch (Exception e) {
+                Logger.getLogger().error("Unable to create default section", e);
+            }
         }
         TES.quietTask(new LoadSections());
     }
     
     private void addSection(ShortcutSection section) {
-        if (section.model.getPID().equals(ShortcutSection.DEFAULT)) {
+        if (section.getPID().equals(ShortcutSection.DEFAULT)) {
             shortcutPanel.add(section.getView(), 0);
         } else {
             shortcutPanel.add(section.getView());
@@ -96,7 +100,7 @@ public final class LauncherUnit extends AbstractUnit {
     
     private class LoadSections extends AbstractTask<Void> {
 
-        public LoadSections() {
+        private LoadSections() {
             super("Load sections");
         }
 
@@ -113,13 +117,13 @@ public final class LauncherUnit extends AbstractUnit {
                 addSection(section);
                 shortcutData.values().stream()
                         .filter((values) -> {
-                            return  section.model.getID().toString().equals(values.get("section")) || (
-                                        values.get("section") == null && section.model.getPID().equals(ShortcutSection.DEFAULT)
+                            return  section.getID().toString().equals(values.get("section")) || (
+                                        values.get("section") == null && section.getPID().equals(ShortcutSection.DEFAULT)
                                     );
                         }).forEach((values) -> {
                             addShortcut(
                                     section,
-                                    (Shortcut) Entity.newInstance(Shortcut.class, null, values.get(EntityModel.PID))
+                                    (Shortcut) Entity.newInstance(Shortcut.class, null, values.get("PID"))
                             );
                         });
             });
@@ -141,7 +145,7 @@ public final class LauncherUnit extends AbstractUnit {
         private Point          dragStartPoint;
         private boolean        dragEnabled = false;
         
-        public DragHandler() {
+        private DragHandler() {
             cursor = Box.createHorizontalBox();
             cursor.setBackground(Color.decode("#3399FF"));
             cursor.setOpaque(true);
@@ -191,6 +195,7 @@ public final class LauncherUnit extends AbstractUnit {
             
             dragEnabled = true;
             sourceLauncher.setEnabled(false);
+            sourceLauncher.setBorder(new RoundedBorder(new DashBorder(Color.RED, 5, 1), 18));
             ghostLauncher.setVisible(true);
             ghostLauncher.setLocation(e.getLocationOnScreen());
 
@@ -221,6 +226,7 @@ public final class LauncherUnit extends AbstractUnit {
             dragEnabled = false;
             if (sourceLauncher != null) {
                 sourceLauncher.setEnabled(true);
+                sourceLauncher.stateChanged();
             }
             if (ghostLauncher.isVisible()) {
                 ghostLauncher.dispose();

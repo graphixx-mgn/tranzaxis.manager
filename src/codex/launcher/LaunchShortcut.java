@@ -1,8 +1,6 @@
 package codex.launcher;
 
 import codex.command.EntityCommand;
-import codex.component.border.DashBorder;
-import codex.component.border.RoundedBorder;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.log.Logger;
@@ -31,20 +29,20 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
 
 /**
  * Ярлык запуска команды с панели быстрого доступа {@link LauncherUnit}.
  */
-class LaunchShortcut extends LaunchButton implements IModelListener, INodeListener {
+final class LaunchShortcut extends LaunchButton implements IModelListener, INodeListener {
     
     private final static ImageIcon TILE = ImageUtils.getByPath("/images/strips_red.png");
     private final static ImageIcon LOST = ImageUtils.resize(ImageUtils.getByPath("/images/close.png"), 20, 20);
     private final static ImageIcon LOCK = ImageUtils.resize(ImageUtils.getByPath("/images/lock.png"),  28, 28);
+    private final static ImageIcon NONE = ImageUtils.resize(ImageUtils.getByPath("/images/unavailable.png"),  28, 28);
     private final static ImageIcon CMD  = ImageUtils.getByPath("/images/command.png");
     private final static ImageIcon MOVE = ImageUtils.resize(ImageUtils.getByPath("/images/close.png"), 28, 28);
     
-    public enum Status {
+    private enum Status {
         UNKNOWN, 
         AVAILABLE, 
         DISABLED,
@@ -53,9 +51,10 @@ class LaunchShortcut extends LaunchButton implements IModelListener, INodeListen
         LOST_ENTITY;
     }
     
-    private final JPanel   controls;
-    private final Shortcut shortcut;
-    private       Status   status = Status.UNKNOWN;
+    private final JPanel    controls;
+    private final Shortcut  shortcut;
+    private final ImageIcon entityIcon;
+    private       Status    status = Status.UNKNOWN;
     
     /**
      * Конструктор ярлыка.
@@ -63,10 +62,10 @@ class LaunchShortcut extends LaunchButton implements IModelListener, INodeListen
      * @param command Ссылка на команду, доступную для класса сущности.
      */
     LaunchShortcut(Shortcut shortcut) {
-        super(shortcut.model.getPID(), LOCK);
+        super(shortcut.getPID(), LOCK);
         this.shortcut = shortcut;
+        this.entityIcon = IComplexType.coalesce(shortcut.getEntity(), Entity.newPrototype(shortcut.getEntityClass())).getIcon();
         setLayout(null);
-        updateStatus();
 
         JLabel signDelete = new JLabel(ImageUtils.resize(ImageUtils.getByPath("/images/clearval.png"), 18, 18));
         signDelete.setBorder(new EmptyBorder(2, 3, 2, 3));
@@ -96,14 +95,15 @@ class LaunchShortcut extends LaunchButton implements IModelListener, INodeListen
                 controls.getPreferredSize().width, 
                 controls.getPreferredSize().height
         );
+        updateStatus();
         
         addActionListener((event) -> {
             if (status == Status.AVAILABLE) {
                 SwingUtilities.invokeLater(() -> {
-                    Entity entity = (Entity) shortcut.model.getValue("entity");
-                    EntityCommand command = entity.getCommand((String) shortcut.model.getValue("command"));
+                    Entity entity = shortcut.getEntity();
+                    EntityCommand command = entity.getCommand(shortcut.getCommand());
                     
-                    Entity[] prevContext = command.getContext();
+                    List<Entity> prevContext = command.getContext();
                     Map<String, IComplexType> params;
                     try {
                         command.setContext(entity);
@@ -111,17 +111,19 @@ class LaunchShortcut extends LaunchButton implements IModelListener, INodeListen
                         if (params != null) {
                             Logger.getLogger().debug("Perform command [{0}]. Context: {1}", command.getName(), entity);
                             command.execute(entity, params);
-                            updateStatus();
                         }
                     } finally {
                         command.setContext(prevContext);
+                        updateStatus();
+                        revalidate();
+                        repaint();
                     }
                 });
             }
         });
 
         if (status != Status.LOST_ENTITY) {
-            Entity entity = (Entity) shortcut.model.getValue("entity");
+            Entity entity = shortcut.getEntity();
             entity.addNodeListener(this);
             entity.model.addModelListener(this);
         }
@@ -158,33 +160,34 @@ class LaunchShortcut extends LaunchButton implements IModelListener, INodeListen
     
     @Override
     public void setEnabled(boolean enabled)  {
-        super.setEnabled(enabled);
         setOpacity(enabled ? 1 : 0.7f);
         setDisabledIcon(ImageUtils.combine(
                 ImageUtils.grayscale((ImageIcon) getIcon()), 
                 MOVE)
         );
-        setBorder(new RoundedBorder(new DashBorder(Color.RED, 5, 1), 18));
-        stateChanged();
+        controls.setVisible(enabled && getModel().isRollover());
+        super.setEnabled(enabled);
     }
     
-    protected void updateStatus() {
-        Status newStatus = status;
-        Entity entity  = (Entity) shortcut.model.getValue("entity");
-        String cmdName = (String) shortcut.model.getValue("command");
-        
-        boolean cmdExist = entity.getCommands().stream().anyMatch((command) -> {
-            return command.getName().equals(cmdName);
-        });
-        if (entity.model.getID() == null) {
+    private void updateStatus() {
+        Status newStatus;
+        Entity entity    = shortcut.getEntity();
+        String cmdName   = shortcut.getCommand();
+
+        if (entity == null) {
             newStatus = Status.LOST_ENTITY;
-        } else if (!cmdExist) {
+        } else if (
+            !entity.getCommands().stream().anyMatch((command) -> {
+                return command.getName().equals(cmdName);
+            })
+        ) {
             newStatus = Status.LOST_COMMAND;
         } else if (entity.islocked()) {
             newStatus = Status.LOCKED;
         } else {
+            newStatus = Status.AVAILABLE;
             EntityCommand command = entity.getCommand(cmdName);            
-            Entity[] prevContext = command.getContext();
+            List<Entity> prevContext = command.getContext();
             try {
                 command.setContext(entity);
                 newStatus = command.getButton().isEnabled() ? Status.AVAILABLE : Status.DISABLED;
@@ -200,47 +203,47 @@ class LaunchShortcut extends LaunchButton implements IModelListener, INodeListen
         updateView();
     }
     
-    protected void updateView() {
-        if (isEnabled()) {
-            switch (status) {
-                case LOST_ENTITY:
-                    setIcon(ImageUtils.combine(((Entity) shortcut.model.getValue("entity")).getIcon(), LOST));
-                    setBorder(ERROR_BORDER);
-                    setForeground(Color.decode("#DE5347"));
-                    break;
+    private void updateView() {
+        switch (status) {
+            case LOST_ENTITY:
+                setIcon(ImageUtils.combine(entityIcon, LOST));
+                setBorder(ERROR_BORDER);
+                setForeground(Color.decode("#DE5347"));
+                break;
 
-                case LOST_COMMAND:
-                    setIcon(ImageUtils.combine(CMD, LOST));
-                    setBorder(ERROR_BORDER);
-                    setForeground(Color.decode("#DE5347"));
-                    break;
+            case LOST_COMMAND:
+                setIcon(ImageUtils.combine(CMD, LOST));
+                setBorder(ERROR_BORDER);
+                setForeground(Color.decode("#DE5347"));
+                break;
 
-                case LOCKED:
-                    setIcon(ImageUtils.combine(getCommandIcon(), LOCK));
-                    setBorder(NORMAL_BORDER);
-                    setForeground(Color.GRAY);
-                    break;
+            case LOCKED:
+                setIcon(ImageUtils.combine(getCommandIcon(), LOCK));
+                setBorder(NORMAL_BORDER);
+                setForeground(Color.BLACK);
+                break;
 
-                case DISABLED: 
-                    setIcon(ImageUtils.grayscale(getCommandIcon()));
-                    setBorder(NORMAL_BORDER);
-                    setForeground(Color.GRAY);
-                    break;
+            case DISABLED:
+                setIcon(ImageUtils.combine(ImageUtils.grayscale(getCommandIcon()), NONE));
+                setBorder(NORMAL_BORDER);
+                setForeground(Color.GRAY);
+                break;
 
-                case AVAILABLE:
-                    setIcon(getCommandIcon());
-                    setBorder(NORMAL_BORDER);
-                    setForeground(Color.BLACK);
-                    break;
-            }
-            repaint();
+            case AVAILABLE:
+                setIcon(getCommandIcon());
+                setBorder(NORMAL_BORDER);
+                setForeground(Color.BLACK);
+                break;
         }
+        controls.setBackground(
+                status == Status.AVAILABLE ? Color.decode("#3399FF") : getForeground()
+        );
     }
     
     private ImageIcon getCommandIcon() {
-        Entity entity = (Entity) shortcut.model.getValue("entity");
-        EntityCommand command = entity.getCommand((String) shortcut.model.getValue("command"));
-        Entity[] prevContext = command.getContext();
+        Entity entity = shortcut.getEntity();
+        EntityCommand command = entity.getCommand(shortcut.getCommand());
+        List<Entity> prevContext = command.getContext();
         try {
             command.setContext(entity);
             return (ImageIcon) command.getButton().getIcon();
@@ -251,15 +254,16 @@ class LaunchShortcut extends LaunchButton implements IModelListener, INodeListen
     
     @Override
     protected void stateChanged() {
-        if (isEnabled()) {
-            if (status == Status.AVAILABLE) {
-                super.stateChanged();
-            } else if (status == Status.LOCKED) {
-                setBorder(getModel().isRollover() ? new RoundedBorder(new LineBorder(Color.GRAY, 1), 18) : NORMAL_BORDER);
-            }
-            controls.setBackground(
-                    status == Status.LOST_ENTITY || status == Status.LOST_COMMAND ? getForeground() : Color.decode("#3399FF")
-            );
+        switch (status) {
+            case AVAILABLE:
+                setBorder(getModel().isRollover() ? HOVER_BORDER : NORMAL_BORDER);
+                break;
+            case LOCKED:
+            case DISABLED:
+                setBorder(getModel().isRollover() ? INACTIVE_BORDER : NORMAL_BORDER);
+                break;
+            default:
+                updateView();
         }
         controls.setVisible(getModel().isRollover() && isEnabled());
     }
@@ -290,14 +294,16 @@ class LaunchShortcut extends LaunchButton implements IModelListener, INodeListen
             Insets ins = getInsets();
             for (int y = 2; y < getHeight()-4; y += tileHeight) {
                 for (int x = 2; x < getWidth()-4; x += tileWidth) {
-                    g2d.drawImage(TILE.getImage(), x, y, this);
+                    g2d.drawImage(
+                            (isEnabled() ? TILE : ImageUtils.grayscale(TILE)).getImage(), x, y, this
+                    );
                 }
             }
             g2d.dispose();
         }
     }
     
-    class TopEnd extends Path2D.Float {
+    private class TopEnd extends Path2D.Float {
 
         TopEnd(float width, float height, float radius) {
             moveTo(0, height);

@@ -21,20 +21,26 @@ import codex.type.IComplexType;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
 /**
  * Реализация команды создания нового ярлыка.
  */
-class CreateShortcut extends EntityCommand {
+class CreateShortcut extends EntityCommand<Entity> {
+    
+    private static final String PARAM_SECTION = "section";
+    private static final String PARAM_CATALOG = "catalog";
+    private static final String PARAM_ENTITY  = "entity";
+    private static final String PARAM_COMMAND = "command";
+    private static final String PARAM_TITLE   = "title";
         
     private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private final CreateSection proxyCommand;
@@ -61,17 +67,19 @@ class CreateShortcut extends EntityCommand {
      * @param entity Ссылка на сущность
      * @param command Имя конманды.
      */
-    private Shortcut newShortcut(String PID, Entity section, Entity entity, String command) {
-        Entity shortcut = Entity.newInstance(Shortcut.class, null, PID);
-        shortcut.model.setValue("section", 
-                section != null ? section :
-                Entity.newInstance(ShortcutSection.class, null, ShortcutSection.DEFAULT)
-        );
-        shortcut.model.setValue("class",   entity.getClass().getCanonicalName());
-        shortcut.model.setValue("entity",  entity);
-        shortcut.model.setValue("command", command);
-        shortcut.model.commit();
-        return (Shortcut) shortcut;
+    private Shortcut newShortcut(String PID, ShortcutSection section, Entity entity, String command) {
+        Shortcut shortcut = (Shortcut) Entity.newInstance(Shortcut.class, null, PID);
+        shortcut
+                .setSection(
+                        section != null ? section :
+                        (ShortcutSection) Entity.newInstance(ShortcutSection.class, null, ShortcutSection.DEFAULT)
+                )
+                .setEntity(entity)
+                .setCommand(command);
+        try {
+            shortcut.model.commit(true);
+        } catch (Exception e) {}
+        return shortcut;
     }
     
     /**
@@ -88,7 +96,6 @@ class CreateShortcut extends EntityCommand {
 
     @Override
     public void execute(Entity context, Map<String, IComplexType> params) {
-        
         final DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
 
         final EntityRef sectionRef = new EntityRef(ShortcutSection.class) {
@@ -139,31 +146,31 @@ class CreateShortcut extends EntityCommand {
         };
 
         ParamModel paramModel = new ParamModel();
-        paramModel.addProperty("section",  sectionRef, false);
-        paramModel.addProperty("catalog",  catalogRef, true);
-        paramModel.addProperty("entity",   new EntityRef(null), true);
-        paramModel.addProperty("command",  commandRef, true);
-        paramModel.addProperty("linkname", new Str(null), true);
+        paramModel.addProperty(PARAM_SECTION,  sectionRef, false);
+        paramModel.addProperty(PARAM_CATALOG,  catalogRef, true);
+        paramModel.addProperty(PARAM_ENTITY,   new EntityRef(null), true);
+        paramModel.addProperty(PARAM_COMMAND,  commandRef, true);
+        paramModel.addProperty(PARAM_TITLE,    new Str(null), true);
         
         paramModel.addChangeListener((String name, Object oldValue, Object newValue) -> {
             if (name != null) {
                 switch (name) {
-                    case "catalog":
+                    case PARAM_CATALOG:
                         Class entityClass = newValue != null ? ((Catalog) newValue).getChildClass() : null;
                         EntityRef entityRef;
                         if (entityClass != null) {
                             entityRef = new EntityRef(entityClass, (entity) -> {
-                                return entity.model.getID() != null && entity.getParent().equals(newValue);
+                                return entity.getID() != null && entity.getParent().equals(newValue);
                             });
                             entityRef.setValue(null);
                         } else {
                             entityRef = null;
                         }
-                        paramModel.setValue("entity", entityRef);
+                        paramModel.setValue(PARAM_ENTITY, entityRef);
                         break;
 
-                    case "entity":
-                        CommandChooser commandEditor = (CommandChooser) paramModel.getEditor("command");
+                    case PARAM_ENTITY:
+                        CommandChooser commandEditor = (CommandChooser) paramModel.getEditor(PARAM_COMMAND);
                         if (newValue != null) {
                             if (newValue instanceof EntityRef) {
                                 commandEditor.setEntity(((EntityRef) newValue).getValue());
@@ -175,28 +182,28 @@ class CreateShortcut extends EntityCommand {
                         }
                         break;
                         
-                    case "command":
-                        Entity entity = (Entity) paramModel.getValue("entity");
+                    case PARAM_COMMAND:
+                        Entity entity = (Entity) paramModel.getValue(PARAM_ENTITY);
                         if (entity != null && newValue != null) {
-                            String commandName = (String) paramModel.getValue("command");
+                            String commandName = (String) paramModel.getValue(PARAM_COMMAND);
                             if (commandName != null) {
                                 EntityCommand command = entity.getCommand(commandName);
-                                paramModel.setValue("linkname", MessageFormat.format("{0} ({1})", command.toString(), entity));
+                                paramModel.setValue(PARAM_TITLE, MessageFormat.format("{0} ({1})", command.toString(), entity));
                             }
                         } else {
-                            paramModel.setValue("linkname", null);
+                            paramModel.setValue(PARAM_TITLE, null);
                         }
                         break;
                 }
             }
             
-            paramModel.getEditor("entity").setEditable(paramModel.getValue("catalog")   != null); 
-            paramModel.getEditor("command").setEditable(paramModel.getValue("entity")   != null); 
-            paramModel.getEditor("linkname").setEditable(paramModel.getValue("command") != null);
-            confirmBtn.setEnabled(paramModel.getValue("command") != null);
+            paramModel.getEditor(PARAM_ENTITY).setEditable(paramModel.getValue(PARAM_CATALOG) != null); 
+            paramModel.getEditor(PARAM_COMMAND).setEditable(paramModel.getValue(PARAM_ENTITY) != null); 
+            paramModel.getEditor(PARAM_TITLE).setEditable(paramModel.getValue(PARAM_COMMAND)  != null);
+            confirmBtn.setEnabled(paramModel.getValue(PARAM_COMMAND) != null);
         });
         
-        AbstractEditor sectionEditor = (AbstractEditor) paramModel.getEditor("section");
+        AbstractEditor sectionEditor = (AbstractEditor) paramModel.getEditor(PARAM_SECTION);
         sectionEditor.addCommand(new AddSection() {
             @Override
             public void execute(PropertyHolder context) {
@@ -212,17 +219,17 @@ class CreateShortcut extends EntityCommand {
         });
 
         final Dialog paramDialog = new Dialog(
-            SwingUtilities.getWindowAncestor((JComponent) getButton()), 
+            SwingUtilities.getWindowAncestor((Component) getButton()), 
             ImageUtils.getByPath("/images/linkage.png"), 
             Language.get("title"),
             new JPanel(),
             (event) -> {
                 if (event.getID() == Dialog.OK) {
                     boundView(newShortcut(
-                        (String) paramModel.getValue("linkname"), 
-                        (Entity) paramModel.getValue("section"), 
-                        (Entity) paramModel.getValue("entity"), 
-                        (String) paramModel.getValue("command")
+                        (String) paramModel.getValue(PARAM_TITLE), 
+                        (ShortcutSection) paramModel.getValue(PARAM_SECTION), 
+                        (Entity) paramModel.getValue(PARAM_ENTITY), 
+                        (String) paramModel.getValue(PARAM_COMMAND)
                     ));
                 }
             },
@@ -241,7 +248,7 @@ class CreateShortcut extends EntityCommand {
     
     private class AddSection extends EditorCommand {
 
-        public AddSection() {
+        private AddSection() {
             super(
                     ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 18, 18), 
                     Language.get(CreateSection.class.getSimpleName(),"title")

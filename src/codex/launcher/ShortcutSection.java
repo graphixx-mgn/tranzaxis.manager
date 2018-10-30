@@ -8,7 +8,6 @@ import codex.editor.EntityRefEditor;
 import codex.editor.IEditor;
 import codex.editor.IEditorFactory;
 import codex.model.Entity;
-import codex.model.EntityModel;
 import codex.model.IModelListener;
 import codex.model.ParamModel;
 import codex.presentation.EditorPage;
@@ -35,6 +34,7 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 import javax.swing.BoxLayout;
 import javax.swing.FocusManager;
+import javax.swing.InputVerifier;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -45,6 +45,8 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 /**
  * Реализация класса сущности - секции ярлыков. Используется для группировки ярлыков.
@@ -58,16 +60,11 @@ public class ShortcutSection extends Entity implements IModelListener {
 
     /**
      * Конструктор сущности.
+     * @param owner Ссылка на владельца. Не используется.
+     * @param PID Имя секции, отображаемое в окне.
      */
-    public ShortcutSection(EntityRef parent, String PID) {
+    public ShortcutSection(EntityRef owner, String PID) {
         super(null, ImageUtils.getByPath("/images/folder.png"), PID, null);
-        model.addChangeListener((name, oldValue, newValue) -> {
-            if (name.equals(EntityModel.PID)) {
-                JPanel container = (JPanel) getView().getComponent(0);
-                TitledBorder border = (TitledBorder) container.getBorder();
-                border.setTitle(newValue.toString());
-            }
-        });
     }
     
     /**
@@ -135,7 +132,7 @@ public class ShortcutSection extends Entity implements IModelListener {
         List<LaunchShortcut> launchers = getLaunchers();
         List<Integer> sequences = launchers.stream()
                 .map((launcher) -> {
-                    return (Integer) launcher.getShortcut().model.getValue(EntityModel.SEQ);
+                    return launcher.getShortcut().getSEQ();
                 })
                 .collect(Collectors.toList());
         
@@ -143,10 +140,12 @@ public class ShortcutSection extends Entity implements IModelListener {
         Iterator<Integer> seqIterator = sequences.iterator();
         
         launchers.forEach((launcher) -> {
-            launcher.getShortcut().model.setValue("section", this);
-            launcher.getShortcut().model.setValue(EntityModel.SEQ, seqIterator.next());
+            launcher.stateChanged();
+            launcher.getShortcut().setSection(this).setSEQ(seqIterator.next());
             if (!launcher.getShortcut().model.getChanges().isEmpty()) {
-                launcher.getShortcut().model.commit();
+                try {
+                    launcher.getShortcut().model.commit(false);
+                } catch (Exception e) {}
             }
         });
     }
@@ -177,7 +176,7 @@ public class ShortcutSection extends Entity implements IModelListener {
             @Override
             public void remove(Component comp) {
                 super.remove(comp);
-                if (model.getPID().equals(DEFAULT) && getComponentCount() == 0) {
+                if (getPID().equals(DEFAULT) && getComponentCount() == 0) {
                     setVisible(false);
                 }
             }
@@ -185,18 +184,18 @@ public class ShortcutSection extends Entity implements IModelListener {
         container.setBorder(
             new TitledBorder(
                 new LineBorder(Color.LIGHT_GRAY, 1),
-                model.getPID().equals(DEFAULT) ? Language.get("default") : model.getPID(),
+                getPID().equals(DEFAULT) ? Language.get("default") : getPID(),
                 TitledBorder.LEFT,
                 TitledBorder.DEFAULT_POSITION,
                 IEditor.FONT_BOLD,
-                model.getPID().equals(DEFAULT) ? Color.GRAY : Color.decode("#3399FF")
+                getPID().equals(DEFAULT) ? Color.GRAY : Color.decode("#3399FF")
             )
         );
         
         JPanel controls = new JPanel();
         controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
         
-        if (!model.getPID().equals(DEFAULT)) {
+        if (!getPID().equals(DEFAULT)) {
             container.addMouseListener(new TitledBorderListener());
             
             JLabel signDelete = new JLabel(ImageUtils.resize(ImageUtils.getByPath("/images/close.png"), 15, 15));
@@ -223,7 +222,7 @@ public class ShortcutSection extends Entity implements IModelListener {
      * Удаление секции и её виджета.
      */
     private void remove() {
-        List<IConfigStoreService.ForeignLink> links = CAS.findReferencedEntries(ShortcutSection.class, model.getID());
+        List<IConfigStoreService.ForeignLink> links = CAS.findReferencedEntries(ShortcutSection.class, getID());
         if (links.isEmpty()) {                    
             if (model.remove()) {
                 Container panel = getView().getParent();
@@ -247,7 +246,7 @@ public class ShortcutSection extends Entity implements IModelListener {
                             protected List<Object> getValues() {
                                 List<Object> values = CAS.readCatalogEntries(null, getEntityClass()).values().stream()
                                         .filter((PID) -> {
-                                            return !PID.equals(ShortcutSection.DEFAULT) && !PID.equals(model.getPID());
+                                            return !PID.equals(ShortcutSection.DEFAULT) && !PID.equals(getPID());
                                         })
                                         .map((PID) -> {
                                             return Entity.newInstance(getEntityClass(), null, PID);
@@ -304,10 +303,10 @@ public class ShortcutSection extends Entity implements IModelListener {
     /**
      * Реализация класса, реализующего переименование секции.
      */
-    class TitledBorderListener extends MouseAdapter {
+    private class TitledBorderListener extends MouseAdapter implements DocumentListener {
     
-        private JPopupMenu editPopup;  
-        private JTextField editTextField;
+        private JPopupMenu   editPopup;  
+        private JTextField   editTextField;
         private TitledBorder titledBorder;
 
         @Override
@@ -332,7 +331,7 @@ public class ShortcutSection extends Entity implements IModelListener {
                     Dimension dim = editTextField.getPreferredSize();
                     dim.width = titleWidth * 2;
                     editPopup.setPreferredSize(dim);
-                    editPopup.show(component, 4, 0);
+                    editPopup.show(component, 4, -2);
 
                     editTextField.selectAll();
                     editTextField.requestFocusInWindow();
@@ -342,28 +341,31 @@ public class ShortcutSection extends Entity implements IModelListener {
 
         private void createEditPopup() {
             editTextField = new JTextField();
-            editTextField.setBorder(new CompoundBorder(
-                    new LineBorder(Color.decode("#3399FF"), 1),
-                    new EmptyBorder(1, 3, 1, 3)
-            ));
-            editTextField.addActionListener((ActionEvent e) -> {
+            editTextField.getDocument().addDocumentListener(this);
+            editTextField.setInputVerifier(new InputVerifier() {
+                @Override
+                public boolean verify(JComponent input) {
+                    String value = ((JTextField) input).getText();
+                    return !(
+                            value.isEmpty() ||
+                            CAS.readCatalogEntries(null, ShortcutSection.class).entrySet().stream().anyMatch((entry) -> {
+                                return 
+                                        entry.getKey() != ShortcutSection.this.getID() &&
+                                        entry.getValue().equals(value);
+                            })
+                    );
+                }
+            });
+            editTextField.addActionListener((ActionEvent event) -> {
                 String value = editTextField.getText();
-                if (CAS.readCatalogEntries(null, ShortcutSection.class).entrySet().stream().anyMatch((entry) -> {
-                    return 
-                            entry.getKey() != ShortcutSection.this.model.getID() &&
-                            entry.getValue().equals(value);
-                })) {
-                    editTextField.setBorder(new CompoundBorder(
-                            new LineBorder(IEditor.COLOR_INVALID, 1),
-                            new EmptyBorder(1, 3, 1, 3)
-                    ));
-                } else {
-                    editTextField.setBorder(new CompoundBorder(
-                            new LineBorder(Color.decode("#3399FF"), 1),
-                            new EmptyBorder(1, 3, 1, 3)
-                    ));
-                    ShortcutSection.this.model.setValue(EntityModel.PID, value);
-                    ShortcutSection.this.model.commit();
+                if (editTextField.getInputVerifier().verify(editTextField)) {
+                    ShortcutSection.this.setPID(value);
+                    try {
+                        ShortcutSection.this.model.commit(true);
+                        titledBorder.setTitle(value);
+                    } catch (Exception e) {
+                        ShortcutSection.this.model.rollback();
+                    }
                     
                     editPopup.setVisible(false);
                     editPopup.getInvoker().revalidate();
@@ -375,5 +377,28 @@ public class ShortcutSection extends Entity implements IModelListener {
             editPopup.setBorder(new EmptyBorder(0, 0, 0, 0));
             editPopup.add(editTextField);
         }
+        
+        private void setEditorBorder(boolean validated) {
+            editTextField.setBorder(new CompoundBorder(
+                    new LineBorder(validated ? Color.decode("#3399FF") : IEditor.COLOR_INVALID, 1),
+                    new EmptyBorder(1, 3, 1, 3)
+            ));
+        }
+
+        @Override
+        public void insertUpdate(DocumentEvent event) {
+            setEditorBorder(editTextField.getInputVerifier().verify(editTextField));
+        }
+
+        @Override
+        public void removeUpdate(DocumentEvent e) {
+            setEditorBorder(editTextField.getInputVerifier().verify(editTextField));
+        }
+
+        @Override
+        public void changedUpdate(DocumentEvent e) {
+            setEditorBorder(editTextField.getInputVerifier().verify(editTextField));
+        }
+        
     }
 }
