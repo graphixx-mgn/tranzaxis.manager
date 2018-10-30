@@ -132,18 +132,26 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
             } else {
                 cellBox = ComplexCellRenderer.getInstance();
             }
-            SelectorTableModel selectorModel = (SelectorTableModel) table.getModel();
-            Entity entity = selectorModel.getEntityAt(row);
-            String propName = entity.model.getProperties(Access.Select).get(column);
             
-            cellBox.setValue(value, entity.model.getProperty(propName).getPlaceholder());
+            boolean isEntityInvalid = false;
+            boolean isEntityLocked  = false;
+            PropertyState propState = PropertyState.Good;
             
-            boolean isEntityInvalid = !entity.model.isValid();
-            boolean isEntityLocked  = entity.islocked();
-            PropertyState propState = entity.model.getPropState(propName);
-            
+            if (table.getModel() instanceof SelectorTableModel) {
+                SelectorTableModel selectorModel = (SelectorTableModel) table.getModel();
+                Entity entity = selectorModel.getEntityAt(row);
+                String propName = entity.model.getProperties(Access.Select).get(column);
+                
+                cellBox.setValue(value, entity.model.getProperty(propName).getPlaceholder());
+                
+                isEntityInvalid = !entity.model.isValid();
+                isEntityLocked  = entity.islocked();
+                propState = entity.model.getPropState(propName);
+            } else {
+                cellBox.setValue(value, IEditor.NOT_DEFINED);
+            }
+
             cellBox.setEnabled(!isEntityLocked);
-            
             switch (propState) {
                 case Error: 
                     cellBox.state.setIcon(ICON_ERROR);
