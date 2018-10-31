@@ -5,7 +5,10 @@ import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
+import codex.task.ITask;
 import codex.task.ITaskExecutorService;
+import codex.task.ITaskListener;
+import codex.task.Status;
 import codex.task.TaskManager;
 import codex.type.EntityRef;
 import codex.utils.Language;
@@ -19,34 +22,44 @@ import javax.swing.ImageIcon;
  */
 public abstract class Catalog extends Entity {
     
-    private final static IConfigStoreService  CSS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private final static IConfigStoreService  CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private final static ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class);
     
-    /**
-     * Конструктор каталога
-     * @param icon Иконка каталога для отображения в дереве проводника.
-     * @param hint Подсказка о назначении каталога.
-     */
-    public Catalog(ImageIcon icon, String hint) {
-        this(icon, "title", hint);
-    }
-    
-    public Catalog(ImageIcon icon, String title, String hint) {
-        super(null, icon, title, hint);
-    }
-    
-    public Catalog(EntityRef parent, ImageIcon icon, String title, String hint) {
-        super(parent, icon, title, hint);
+    public Catalog(EntityRef owner, ImageIcon icon, String title, String hint) {
+        super(owner, icon, title, hint);
     }
     
     @Override
     public void setParent(INode parent) {
         super.setParent(parent);
-        if (getChildClass() != null) {
-            try {
-                getLock().acquire();
-                TES.quietTask(new LoadChildren());
-            } catch (InterruptedException e) {}
+        if (parent == null) return;
+        
+        Collection<String> childrenPIDs;
+        if (getChildClass() != null && !(childrenPIDs = getChildrenPIDs()).isEmpty()) {
+            ITask task = new LoadChildren(childrenPIDs);
+            task.addListener(new ITaskListener() {
+                
+                private int previousMode;
+                
+                @Override
+                public void statusChanged(ITask task, Status status) {
+                    if (!status.isFinal()) {
+                        try {
+                            if (!islocked()) {
+                                previousMode = getMode();
+                                setMode(MODE_NONE);
+                                getLock().acquire();
+                            }
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        getLock().release();
+                        setMode(previousMode);
+                    }
+                }
+            });
+            TES.quietTask(task);
         }
     }
     
@@ -54,39 +67,35 @@ public abstract class Catalog extends Entity {
     public abstract Class getChildClass();
     
     protected Collection<String> getChildrenPIDs() {
-        Entity owner = Entity.getOwner(getParent());
-        return CSS.readCatalogEntries(owner == null ? null : owner.model.getID(), getChildClass()).values();
+        EntityRef owner = Entity.findOwner(this);
+        Integer ownerId = owner == null ? null : owner.getId();
+        return CAS.readCatalogEntries(ownerId, getChildClass()).values();
     }
     
     private class LoadChildren extends AbstractTask<Void> {
+        
+        private final Collection<String> childrenPIDs;
 
-        int previousMode;
-
-        public LoadChildren() {
+        public LoadChildren(Collection<String> childrenPIDs) {
             super(MessageFormat.format(
                     Language.get(Catalog.class.getSimpleName(), "task@load"),
                     Catalog.this.getPathString()
             ));
+            this.childrenPIDs = childrenPIDs;
         }
 
         @Override
         public Void execute() throws Exception {
-            previousMode = getMode();
-            setMode(INode.MODE_NONE);
-            getChildrenPIDs().forEach((PID) -> {
-                Entity instance = Entity.newInstance(getChildClass(), Catalog.this.toRef(), PID);
-                if (instance.getParent() == null) {
-                    insert(instance);
-                }
+            EntityRef ownerRef = Entity.findOwner(Catalog.this);
+            childrenPIDs.forEach((PID) -> {
+                Entity instance = Entity.newInstance(getChildClass(), ownerRef, PID);
+                insert(instance);
             });
             return null;
         }
 
         @Override
-        public void finished(Void result) {
-            setMode(previousMode);
-            getLock().release();
-        }
+        public void finished(Void result) {}
     
     }
 
