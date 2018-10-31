@@ -4,11 +4,8 @@ import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.editor.EntityRefEditor;
 import codex.editor.IEditorFactory;
-import codex.explorer.ExplorerAccessService;
-import codex.explorer.IExplorerAccessService;
 import codex.mask.IMask;
 import codex.model.Entity;
-import codex.model.EntityModel;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import java.util.Map;
@@ -20,11 +17,31 @@ import java.util.function.Predicate;
  */
 public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
     
-    private final static IConfigStoreService    CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
-    private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+    /**
+     * Результат проверки сущностей на предмет соответствия условию.
+     */
+    public enum Match {
+        /**
+         * Точное совпадение.
+         */
+        Exact, 
+        /**
+         * Частичное совпадение.
+         */
+        About, 
+        /**
+         * Не совпадает.
+         */
+        None, 
+        /**
+         * Проверка не может быть выполнена.
+         */
+        Unknown
+    }
+    
+    private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
 
     private Class             entityClass;
-    private Integer           entityID;
     private Entity            entityInstance;
     private Predicate<Entity> entityFilter;
     private Function<Entity, Match> entityMatcher;
@@ -46,6 +63,13 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
         this(entityClass, entityFilter, null);
     }
     
+    /**
+     * Констуктор типа.
+     * @param entityClass Класс сущности для поиска допустимых значений.
+     * @param entityFilter Пользовательский фильтр допустимых значений.
+     * @param entityMatcher Условие соответствия сущности. Используется для 
+     * подсветки цветом в выпадающем списке {@link EntityRefEditor}.
+     */
     public EntityRef(Class entityClass, Predicate<Entity> entityFilter, Function<Entity, Match> entityMatcher) {
         setEntityClass(entityClass, entityFilter, entityMatcher);
     }
@@ -55,6 +79,8 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
      * @param entityClass Класс сущности для поиска допустимых значений.
      * @param entityFilter Опционально - задать фильтр сущностей, если не 
      * требуется - указазать null.
+     * @param entityMatcher Условие соответствия сущности. Используется для 
+     * подсветки цветом в выпадающем списке {@link EntityRefEditor}.
      */
     public final void setEntityClass(Class entityClass, Predicate<Entity> entityFilter, Function<Entity, Match> entityMatcher) {
         this.entityClass  = entityClass;
@@ -80,32 +106,33 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
         return entityFilter;
     }
     
+    /**
+     * Возвращает условие проверки сущностей.
+     */
     public final Function<Entity, Match> getEntityMatcher() {
         return entityMatcher;
     }
 
     @Override
     public Entity getValue() {
-        return entityInstance != null ? entityInstance : entityID != null ? createEntity() : null;
+        return entityInstance;
     }
     
+    /**
+     * Возвращает идентификатор сущности.
+     */
     public Integer getId() {
-        return entityID;
+        return getValue().getID();
     }
 
     @Override
     public void setValue(Entity value) {
-        entityInstance = value == null ? null : value;
-        entityID = value == null ? null : value.model.getID();
+        entityInstance = value;
     }
     
     @Override
     public boolean isEmpty() {
-        return entityID == null && entityInstance == null;
-    }
-    
-    public boolean isLoaded() {
-        return entityInstance != null;
+        return entityInstance == null;
     }
     
     @Override
@@ -117,31 +144,48 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
     
     @Override
     public String toString() {
-        return entityID != null ? 
-                entityID.toString() : (
-                    entityInstance != null ? entityInstance.model.getID().toString() : ""
-                );
+        return entityInstance != null && entityInstance.getID() != null ? entityInstance.getID().toString() : "";
     }
 
     @Override
     public void valueOf(String value) {
         if (value != null && !value.isEmpty()) {
-            entityID = Integer.valueOf(value);
+            entityInstance = build(entityClass, value).getValue();
+        } else {
+            entityInstance = null;
         }
     }
     
-    private Entity createEntity() {
-        Map<String, String> databaseValues = CAS.readClassInstance(entityClass, entityID);
-        EntityRef ownerRef = new EntityRef(CAS.getOwnerClass(entityClass));
-        ownerRef.valueOf(databaseValues.get(EntityModel.OWN));
-        entityInstance = Entity.newInstance(entityClass, ownerRef, databaseValues.get(EntityModel.PID));;
-        return entityInstance;
+    @Override
+    public String getQualifiedValue(Entity val) {
+        return val == null ? "<NULL>" : val.model.getQualifiedName();
     }
     
-    public enum Match {
+    /**
+     * Построение ссылки на сущность.
+     * @param entityClass Класс сущности.
+     * @param entityId Идентификатор сущности в строковом виде.
+     */
+    public final static EntityRef build(Class entityClass, String entityId) {
+        return build(entityClass, entityId == null || entityId.isEmpty() ? null : Integer.valueOf(entityId));
+    }
     
-        Exact, About, None, Unknown
-        
+    /**
+     * Построение ссылки на сущность.
+     * @param entityClass Класс сущности.
+     * @param entityId Идентификатор сущности.
+     */
+    public final static EntityRef build(Class entityClass, Integer entityId) {
+        if (entityClass != null && entityId != null && CAS.isInstanceExists(entityClass, entityId)) {
+            Map<String, String> dbValues = CAS.readClassInstance(entityClass, entityId);
+            
+            EntityRef ownerRef = null;
+            try {
+                ownerRef = build(CAS.getOwnerClass(entityClass), dbValues.get("OWN"));
+            } catch (Exception e) {}
+            return Entity.newInstance(entityClass, ownerRef, dbValues.get("PID")).toRef();
+        }
+        return null;
     }
     
 }
