@@ -18,6 +18,7 @@ import javax.swing.border.EmptyBorder;
  * Фактически является "оберткой" над Java классами и интерфейсами.
  * @param <T> Базовый Java класс или интерфейс на базе которого строится реализация 
  * интерфейса.
+ * @param <M> Тип маски для данного типа.
  */
 public interface IComplexType<T, M extends IMask<T>> extends Serializable {
     

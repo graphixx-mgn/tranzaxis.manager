@@ -39,7 +39,12 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
      * @param value Список строк.
      */
     public ArrStr(List<String> value) {
-        setValue(value);
+        if (value != null && !value.isEmpty()) {
+            // Может быть передан immutable List (Arrays.asList(...)) 
+            this.value = new FormattedList(value);
+        } else {
+            this.value = null;
+        }
     }
 
     @Override
@@ -98,6 +103,10 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
         return val == null ? "<NULL>" :  MessageFormat.format("({0})'", val);
     }
     
+    /**
+     * Преобразование списка строк в строковое представление для записи в БД.
+     * @param values Список строк.
+     */
     public static String merge(List<String> values) {
         if (values == null || values.isEmpty()) {
             return "";
@@ -112,6 +121,10 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
         }
     }
     
+    /**
+     * Преобразование строкового представления массива в объект.
+     * @param asStr Исходная строка.
+     */
     public static List<String> parse(String asStr) throws IllegalStateException {
         List<String> values = new LinkedList();
         int size;
@@ -175,11 +188,11 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
     
     private class FormattedList extends LinkedList<String> {
 
-        public FormattedList() {
+        FormattedList() {
             super();
         }
 
-        public FormattedList(Collection<? extends String> c) {
+        FormattedList(Collection<? extends String> c) {
             super(c);
         }
         
