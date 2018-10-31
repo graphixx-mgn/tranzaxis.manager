@@ -113,7 +113,9 @@ public class Repository extends Entity {
     @Override
     public void setParent(INode parent) {
         super.setParent(parent);
-        getCommand("load").execute(this, null);
+        if (parent != null) {
+            getCommand("load").execute(this, null);
+        }
     }
     
     public ISVNAuthenticationManager getAuthManager() {
