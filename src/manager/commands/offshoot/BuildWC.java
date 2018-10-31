@@ -156,7 +156,7 @@ public class BuildWC extends EntityCommand<Offshoot> {
                 offshoot,
                 new GroupTask<>(
                         Language.get("title") + ": \""+(offshoot).getLocalPath()+"\"",
-                        new BuildKernelTask(offshoot),
+                        //new BuildKernelTask(offshoot),
                         new BuildSourceTask(offshoot, map.get("clean").getValue() == Boolean.TRUE)
                 ),
                 false
@@ -250,7 +250,7 @@ public class BuildWC extends EntityCommand<Offshoot> {
             
             try {
                 long startTime = System.currentTimeMillis();
-                AtomicReference errorRef = new AtomicReference(null);
+                AtomicReference<Exception> errorRef = new AtomicReference(null);
                 
                 BUILD_NOTIFIER.addListener(uid, new IBuildingNotifier.IBuildListener() {
                     @Override
@@ -305,7 +305,7 @@ public class BuildWC extends EntityCommand<Offshoot> {
                 process.waitFor();
                 
                 if (errorRef.get() != null) {
-                    throw (Exception) errorRef.get();
+                    throw errorRef.get();
                 }
             } finally {
                 BUILD_NOTIFIER.removeListener(uid);
@@ -393,7 +393,7 @@ public class BuildWC extends EntityCommand<Offshoot> {
             }
             try {
                 long startTime = System.currentTimeMillis();
-                AtomicReference errorRef = new AtomicReference(null);
+                AtomicReference<Exception> errorRef = new AtomicReference(null);
                 
                 BUILD_NOTIFIER.addListener(uid, new IBuildingNotifier.IBuildListener() {
                     @Override
@@ -448,7 +448,7 @@ public class BuildWC extends EntityCommand<Offshoot> {
                     try {
                         offshoot.model.commit(false);
                     } catch (Exception e) {}
-                    throw (Exception) errorRef.get();
+                    throw errorRef.get();
                 }
             } finally {
                 BUILD_NOTIFIER.removeListener(uid);
