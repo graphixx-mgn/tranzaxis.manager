@@ -34,6 +34,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
+import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -51,6 +52,7 @@ import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
+import javax.swing.WindowConstants;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -92,7 +94,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         }
         entityClass = entity.getChildClass();
         this.entity = entity;
-        Entity prototype = Entity.newPrototype(entityClass);
+        WeakReference<Entity> prototype = new WeakReference<>(Entity.newPrototype(entityClass));
         
         commands.add(new EditEntity());
         if (entity.allowModifyChild()) {
@@ -101,12 +103,12 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             commands.add(new DeleteEntity());
         }
         commandPanel.addCommands(commands.toArray(new EntityCommand[]{}));
-        if (!prototype.getCommands().isEmpty()) {
+        if (!prototype.get().getCommands().isEmpty()) {
             commandPanel.addSeparator();
         }
         
-        commands.addAll(prototype.getCommands());
-        commandPanel.addCommands(prototype.getCommands().toArray(new EntityCommand[]{}));
+        commands.addAll(prototype.get().getCommands());
+        commandPanel.addCommands(prototype.get().getCommands().toArray(new EntityCommand[]{}));
         
         commands.forEach((command) -> {
             if (command instanceof CreateEntity) {
@@ -118,7 +120,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         
         add(commandPanel, BorderLayout.NORTH);
         
-        tableModel = new SelectorTableModel(entity, prototype);
+        tableModel = new SelectorTableModel(entity, prototype.get());
         table = new SelectorTable(tableModel);
         table.getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         
@@ -151,9 +153,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             @Override
             public void mouseClicked(MouseEvent event) {
                 if (event.getClickCount() == 2) {
-                    for (Entity context : commands.get(0).getContext()) {
-                        commands.get(0).execute(context, null);
-                    }
+                    commands.get(0).execute(tableModel.getEntityAt(table.getSelectedRow()), null);
                 }
             }
         });
@@ -185,7 +185,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 context.forEach((contextItem) -> {
                     contextItem.removeNodeListener(this);
                 });
-                command.setContext(context.toArray(new Entity[]{}));
+                command.setContext(context);
                 context.forEach((contextItem) -> {
                     contextItem.addNodeListener(this);
                 });
@@ -200,7 +200,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         });
     }
 
-    class CreateEntity extends EntityCommand {
+    class CreateEntity extends EntityCommand<Entity> {
     
         CreateEntity() {
             super(
@@ -215,15 +215,19 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            Entity newEntity = Entity.newInstance(entityClass, null, null);
-            
+            Entity newEntity = Entity.newInstance(entityClass, Entity.findOwner(context), null);
+                    
             EntityModel parentModel = context.model;
             EntityModel childModel  = newEntity.model;
             
             List<String> overrideProps = parentModel.getProperties(Access.Edit)
                     .stream()
-                    .filter(propName -> childModel.hasProperty(propName) && !EntityModel.SYSPROPS.contains(propName))
-                    .collect(Collectors.toList());
+                    .filter(
+                            propName -> 
+                                    childModel.hasProperty(propName) && 
+                                    !EntityModel.SYSPROPS.contains(propName) &&
+                                    parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
+                    ).collect(Collectors.toList());
             if (!overrideProps.isEmpty()) {
                 overrideProps.forEach((propName) -> {
                     if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
@@ -252,29 +256,43 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     Language.get(SelectorPresentation.class.getSimpleName(), "creator@title"), page,
                     (event) -> {
                         if (event.getID() == Dialog.OK) {
-                            newEntity.setTitle(newEntity.model.getPID());
-                            context.insert(newEntity);
-                            newEntity.model.commit();
+                            try {
+                                newEntity.model.commit(true);
+                                newEntity.setTitle(newEntity.getPID());
+                                context.insert(newEntity);
+                                tableModel.addRow(
+                                        newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
+                                            return newEntity.model.getValue(propName);
+                                        }).toArray()
+                                );
+                                newEntity.model.addModelListener(tableModel);
+                                newEntity.model.addChangeListener((name, oldValue, newValue) -> {
+                                    List<String> selectorProps = childModel.getProperties(Access.Select);
+                                    if (newEntity.model.isPropertyDynamic(name) && selectorProps.contains(name)) {
+                                        final int entityIdx = entity.getIndex(newEntity);
+                                        tableModel.setValueAt(newValue, entityIdx, selectorProps.indexOf(name));
+                                    }
+                                });
+                                newEntity.addNodeListener(new INodeListener() {
+                                    @Override
+                                    public void childChanged(INode node) {
+                                        int rowCount = tableModel.getRowCount();
+                                        for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+                                            if (tableModel.getEntityAt(rowIdx).model.equals(childModel)) {
+                                                tableModel.fireTableRowsUpdated(rowIdx, rowIdx);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                });
 
-                            tableModel.addRow(
-                                    newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
-                                        return newEntity.model.getValue(propName);
-                                    }).toArray()
-                            );
-                            newEntity.model.addModelListener(tableModel);
-                            newEntity.model.addChangeListener((name, oldValue, newValue) -> {
-                                List<String> selectorProps = newEntity.model.getProperties(Access.Select);
-                                if (newEntity.model.isPropertyDynamic(name) && selectorProps.contains(name)) {
-                                    final int entityIdx = tableModel.getRowCount() - 1;
-                                    int propIdx = selectorProps.indexOf(name);
-                                    tableModel.setValueAt(newValue, entityIdx, propIdx);
-                                }
-                            });
-
-                            table.getSelectionModel().setSelectionInterval(
-                                    tableModel.getRowCount() - 1, 
-                                    tableModel.getRowCount() - 1
-                            );
+                                table.getSelectionModel().setSelectionInterval(
+                                        tableModel.getRowCount() - 1, 
+                                        tableModel.getRowCount() - 1
+                                );
+                            } catch (Exception e) {
+                                newEntity.model.rollback();
+                            }
                         }
                     },
                     confirmBtn, declineBtn
@@ -314,13 +332,14 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                         });
                     });
             
+            editor.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
             editor.setResizable(false);
             editor.setVisible(true);
         }
 
     }
     
-    class CloneEntity extends EntityCommand {
+    class CloneEntity extends EntityCommand<Entity> {
         
         CloneEntity() {
             super(
@@ -334,19 +353,23 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            Entity newEntity = Entity.newInstance(context.getParent().getChildClass(), null, null);
+            Entity newEntity = Entity.newInstance(context.getParent().getChildClass(), Entity.findOwner(context.getParent()), null);
             
             EntityModel parentModel = ((Entity) context.getParent()).model;
             EntityModel childModel  = newEntity.model;
             
             List<String> overridableProps = parentModel.getProperties(Access.Edit)
                     .stream()
-                    .filter(propName -> childModel.hasProperty(propName) && !EntityModel.SYSPROPS.contains(propName))
-                    .collect(Collectors.toList());
-            List<String> overriddenProps = (List<String>) context.model.getValue(EntityModel.OVR);
+                    .filter(
+                            propName -> 
+                                    childModel.hasProperty(propName) && 
+                                    !EntityModel.SYSPROPS.contains(propName) &&
+                                    parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
+                    ).collect(Collectors.toList());
+            List<String> overriddenProps = (List<String>) context.getOverride();
 
             context.model.getProperties(Access.Edit).forEach((propName) -> {
-                if (EntityModel.PID.equals(propName)) {
+                if ("PID".equals(propName)) {
                     newEntity.model.setValue(propName, context.model.getValue(propName)+" (1)");
                 } else {
                     if (!newEntity.model.isPropertyDynamic(propName)) {
@@ -356,7 +379,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     }
                 }
             });
-            newEntity.model.setValue(EntityModel.OVR, overriddenProps);
+            newEntity.setOverride(overriddenProps);
 
             if (!overridableProps.isEmpty()) {
                 overridableProps.forEach((propName) -> {
@@ -386,30 +409,43 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     Language.get(SelectorPresentation.class.getSimpleName(), "copier@title"), page,
                     (event) -> {
                         if (event.getID() == Dialog.OK) {
-                            newEntity.setTitle(newEntity.model.getPID());
-                            context.getParent().insert(newEntity);
-                            newEntity.model.commit();
+                            try {
+                                newEntity.model.commit(true);
+                                newEntity.setTitle(newEntity.getPID());
+                                context.getParent().insert(newEntity);
 
-                            tableModel.addRow(
-                                    newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
-                                        return newEntity.model.getValue(propName);
-                                    }).toArray()
-                            );
-                            newEntity.model.addModelListener(tableModel);
-                            newEntity.model.addChangeListener((name, oldValue, newValue) -> {
-                                List<String> selectorProps = newEntity.model.getProperties(Access.Select);
-                                if (newEntity.model.isPropertyDynamic(name) && selectorProps.contains(name)) {
-                                    final int entityIdx = tableModel.getRowCount() - 1;
-                                    int propIdx = selectorProps.indexOf(name);
-                                    System.err.println(newEntity.model.getProperties(Access.Select));
-                                    tableModel.setValueAt(newValue, entityIdx, propIdx);
-                                }
-                            });
-
-                            table.getSelectionModel().setSelectionInterval(
-                                    tableModel.getRowCount() - 1, 
-                                    tableModel.getRowCount() - 1
-                            );
+                                tableModel.addRow(
+                                        newEntity.model.getProperties(Access.Select).stream().map((propName) -> {
+                                            return newEntity.model.getValue(propName);
+                                        }).toArray()
+                                );
+                                newEntity.model.addModelListener(tableModel);
+                                newEntity.model.addChangeListener((name, oldValue, newValue) -> {
+                                    List<String> selectorProps = childModel.getProperties(Access.Select);
+                                    if (newEntity.model.isPropertyDynamic(name) && selectorProps.contains(name)) {
+                                        final int entityIdx = entity.getIndex(newEntity);
+                                        tableModel.setValueAt(newValue, entityIdx, selectorProps.indexOf(name));
+                                    }
+                                });
+                                newEntity.addNodeListener(new INodeListener() {
+                                    @Override
+                                    public void childChanged(INode node) {
+                                        int rowCount = tableModel.getRowCount();
+                                        for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+                                            if (tableModel.getEntityAt(rowIdx).model.equals(childModel)) {
+                                                tableModel.fireTableRowsUpdated(rowIdx, rowIdx);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                });
+                                table.getSelectionModel().setSelectionInterval(
+                                        tableModel.getRowCount() - 1, 
+                                        tableModel.getRowCount() - 1
+                                );
+                            } catch (Exception e) {
+                                newEntity.model.rollback();
+                            }
                         }
                     },
                     confirmBtn, declineBtn
@@ -449,13 +485,14 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                         });
                     });
             
+            editor.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
             editor.setResizable(false);
             editor.setVisible(true);
         }
 
     }
     
-    class EditEntity extends EntityCommand {
+    class EditEntity extends EntityCommand<Entity> {
     
         EditEntity() {
             super(
@@ -465,11 +502,11 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     (entity) -> true
             );
             activator = (entities) -> {
-                if (entities != null && entities.length > 0 && !(entities.length > 1 && !multiContextAllowed())) {
-                    boolean allDisabled = entities[0].model.getProperties(Access.Edit).parallelStream().allMatch((name) -> {
-                        return !entities[0].model.getEditor(name).isEditable();
+                if (entities != null && entities.size() > 0 && !(entities.size() > 1 && !multiContextAllowed())) {
+                    boolean allDisabled = entities.get(0).model.getProperties(Access.Edit).parallelStream().allMatch((name) -> {
+                        return !entities.get(0).model.getEditor(name).isEditable();
                     });
-                    getButton().setIcon(allDisabled || !entity.allowModifyChild() || entities[0].islocked() ? IMAGE_VIEW : IMAGE_EDIT);
+                    getButton().setIcon(allDisabled || !entity.allowModifyChild() || entities.get(0).islocked() ? IMAGE_VIEW : IMAGE_EDIT);
                     getButton().setEnabled(true);
                 } else {
                     getButton().setIcon(entity.allowModifyChild() ? IMAGE_EDIT : IMAGE_VIEW);
@@ -502,10 +539,17 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     page,
                     (event) -> {
                         if (event.getID() == Dialog.OK) {
-                            //TODO: При изменении перекрытия свойств изменений нет - ошибка сохранения
-                            context.model.commit();
+                            if (context.model.hasChanges()) {
+                                try {
+                                    context.model.commit(true);
+                                } catch (Exception e) {
+                                    context.model.rollback();
+                                }
+                            }
                         } else {
-                            context.model.rollback();
+                            if (context.model.hasChanges()) {
+                                context.model.rollback();
+                            }
                         }
                     },
                     confirmBtn, declineBtn
@@ -544,13 +588,14 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                         });
                     });
             
+            editor.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
             editor.setResizable(false);
             editor.setVisible(true);
         }
 
     }
     
-    class DeleteEntity extends EntityCommand {
+    class DeleteEntity extends EntityCommand<Entity> {
     
         DeleteEntity() {
             super(
@@ -566,13 +611,13 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         public void actionPerformed(ActionEvent event) {
             SwingUtilities.invokeLater(() -> {
                 String message; 
-                if (getContext().length == 1) {
+                if (getContext().size() == 1) {
                     message = MessageFormat.format(
                             Language.get(
                                     SelectorPresentation.class.getSimpleName(), 
                                     "confirm@del.single"
                             ), 
-                            getContext()[0]
+                            getContext().get(0)
                     );
                 } else {
                     StringBuilder msgBuilder = new StringBuilder(
@@ -581,7 +626,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                                     "confirm@del.range"
                             )
                     );
-                    Arrays.asList(getContext()).forEach((entity) -> {
+                    getContext().forEach((entity) -> {
                         msgBuilder.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(entity.toString());
                     });
                     message = msgBuilder.toString();
@@ -590,10 +635,10 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                         MessageType.CONFIRMATION, null, message,
                         (close) -> {
                             if (close.getID() == Dialog.OK) {
-                                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), Arrays.asList(getContext()));
-                                for (Entity entity : getContext()) {
+                                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), getContext());
+                                getContext().forEach((entity) -> {
                                     execute(entity, null);
-                                }
+                                });
                                 activate();
                             }
                         }
@@ -603,24 +648,25 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            if (!context.model.remove()) {
-                return;
-            }
-            int rowCount = tableModel.getRowCount();
+            int entityIdx = -1;
+            int rowCount  = tableModel.getRowCount();
             for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
                 if (tableModel.getEntityAt(rowIdx).model.equals(context.model)) {
-                    tableModel.removeRow(rowIdx);
-                    if (rowIdx < tableModel.getRowCount()) {
-                        table.getSelectionModel().setSelectionInterval(rowIdx, rowIdx);
-                    } else if (rowIdx == tableModel.getRowCount()) {
-                        table.getSelectionModel().setSelectionInterval(rowIdx-1, rowIdx-1);
-                    } else {
-                        table.getSelectionModel().clearSelection();
-                    }
+                    entityIdx = rowIdx;
                     break;
                 }
             }
             context.getParent().delete(context);
+            if (context.getParent() == null) {    
+                tableModel.removeRow(entityIdx);
+                if (entityIdx < tableModel.getRowCount()) {
+                    table.getSelectionModel().setSelectionInterval(entityIdx, entityIdx);
+                } else if (entityIdx == tableModel.getRowCount()) {
+                    table.getSelectionModel().setSelectionInterval(entityIdx-1, entityIdx-1);
+                } else {
+                    table.getSelectionModel().clearSelection();
+                }
+            }
         }
 
         @Override
