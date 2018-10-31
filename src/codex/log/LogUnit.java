@@ -244,6 +244,8 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
                     Appender appender;
                     switch (level) {
                         case Debug:
+                            appender = Logger.getRootLogger().getAppender("DEBUG");
+                            break;
                         case Info:
                             appender = Logger.getRootLogger().getAppender("INFO");
                             break;
