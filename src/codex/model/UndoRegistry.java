@@ -68,10 +68,6 @@ final class UndoRegistry {
      */
     private void insert(String key, Object previousValue, Object currentValue) {
         registry.put(key, new RegistryItem(previousValue, currentValue));
-//        Logger.getLogger().debug(
-//                "Property ''{0}'' inserted to undo registry: {1}", 
-//                key, registry.get(key)
-//        );
     }
     
     /**
@@ -79,10 +75,6 @@ final class UndoRegistry {
      */
     private void update(String key, Object value) {
         registry.get(key).currentValue = value;
-//        Logger.getLogger().debug(
-//                "Property ''{0}'' undo registry item altered: {1}", 
-//                key, registry.get(key)
-//        );
     }
     
     /**
@@ -90,7 +82,6 @@ final class UndoRegistry {
      */
     private void delete(String key) {
         registry.remove(key);
-//        Logger.getLogger().debug("Property ''{0}'' dropped from undo registry", key);
     }
     
     /**
