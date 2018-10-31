@@ -5,6 +5,9 @@ package codex.service;
  */
 public interface IService {
 
+    /**
+     * Возвращает имя сервиса.
+     */
     default String getTitle() {
         return "IService interface";
     };
