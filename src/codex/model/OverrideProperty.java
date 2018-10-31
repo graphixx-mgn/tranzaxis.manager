@@ -10,7 +10,6 @@ import codex.service.ServiceRegistry;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -40,31 +39,27 @@ public final class OverrideProperty extends EditorCommand {
         PropertyHolder parentHolder = parentModel.getProperty(propName);
         PropertyHolder childHolder  = childModel.getProperty(propName);
         
-        childModel.getProperty(EntityModel.OVR).addChangeListener(new IPropertyChangeListener() {
-            @Override
-            public void propertyChange(String name, Object oldValue, Object newValue) {
-                boolean newOverride = newValue != null && ((List<String>) newValue).contains(propName);
-                
-                button.setIcon(!newOverride ? INHERIT : OVERRIDE);
-                childHolder.setInherited(newOverride ? null : parentHolder);
-                ((AbstractEditor) childModel.getEditor(propName)).updateUI();
-                
-                boolean oldOverride = ((List<String>) IComplexType.coalesce(
-                        childModel.getValue(EntityModel.OVR),
-                        new LinkedList<>()
-                )).contains(propName);
-                
-                if (oldOverride != newOverride) {
-                    childModel.getEditor(propName).getLabel().setText(childModel.getProperty(propName).getTitle() + " *");
-                }
+        childModel.getProperty(EntityModel.OVR).addChangeListener((String name, Object oldValue, Object newValue) -> {
+            boolean newOverride = newValue != null && ((List<String>) newValue).contains(propName);
+            
+            button.setIcon(!newOverride ? INHERIT : OVERRIDE);
+            childHolder.setInherited(newOverride ? null : parentHolder);
+            ((AbstractEditor) childModel.getEditor(propName)).updateUI();
+            
+            boolean oldOverride = ((List<String>) IComplexType.coalesce(
+                    childModel.getValue(EntityModel.OVR),
+                    new LinkedList<>()
+            )).contains(propName);
+            
+            if (oldOverride != newOverride) {
+                childModel.getEditor(propName).getLabel().setText(childModel.getProperty(propName).getTitle() + " *");
             }
         });
         
-        activator = (holders) -> {
+        activator = (holder) -> {
             button.setEnabled(
-                    holders != null && holders.length > 0 && 
-                    !(holders.length > 1 && !multiContextAllowed()) && (
-                            available == null || Arrays.asList(holders).stream().allMatch(available)
+                    holder != null && (
+                            available == null || available.test(holder)
                     )
             );
         };
