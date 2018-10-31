@@ -20,7 +20,7 @@ class NamingThreadFactory implements ThreadFactory {
      * Конструктор фабрики.
      * @param namePrefix Начальная часть имени потока.
      */
-    public NamingThreadFactory(ThreadPoolKind threadKind) {
+    NamingThreadFactory(ThreadPoolKind threadKind) {
         this.threadKind = threadKind;
     }
 

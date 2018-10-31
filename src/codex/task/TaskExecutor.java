@@ -18,7 +18,7 @@ class TaskExecutor extends ThreadPoolExecutor {
     private final static int QUEUE_SIZE  = 10;
     private final static int DEMAND_SIZE = 25;
     
-    public TaskExecutor(ThreadPoolKind kind) {
+    TaskExecutor(ThreadPoolKind kind) {
         super(
                 kind == ThreadPoolKind.Queued ? QUEUE_SIZE : 0, 
                 kind == ThreadPoolKind.Queued ? QUEUE_SIZE : DEMAND_SIZE,

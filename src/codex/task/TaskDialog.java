@@ -66,11 +66,10 @@ class TaskDialog extends Dialog implements ITaskListener {
         public AbstractTaskView remove(Object key) {
             AbstractTaskView view = super.remove(key);
             SwingUtilities.invokeLater(() -> {
-                setVisible(size() != 0);
+                setVisible(!isEmpty());
             });
             return view;
         }
-        
         
     };
     
@@ -78,7 +77,7 @@ class TaskDialog extends Dialog implements ITaskListener {
      * Конструктор окна.
      * @param closeAction Слушатель события закрытия окна.
      */
-    public TaskDialog(Window parent, ActionListener closeAction) {
+    TaskDialog(Window parent, ActionListener closeAction) {
         super(parent, 
                 ImageUtils.getByPath("/images/progress.png"),
                 Language.get("title"),

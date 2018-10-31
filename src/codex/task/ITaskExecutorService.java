@@ -10,17 +10,20 @@ public interface ITaskExecutorService extends IService {
     /**
      * Незамедлительное исполнение задачи и регистрация в модальном диалоге.
      * При закрытии диалога, все задачи перемещаются в очередь.
+     * @param task Задача.
      */
     default void executeTask(ITask task) {};
     
     /**
      * Добавление задачи в очередь на исполнение и регистрация в окне просмотра
      * задач.
+     * @param task Задача.
      */
     default void enqueueTask(ITask task) {};
     
     /**
      * Незамедлительное исполнение задачи без регистрации в модальном диалоге.
+     * @param task Задача.
      */
     default void quietTask(ITask task) {};
     

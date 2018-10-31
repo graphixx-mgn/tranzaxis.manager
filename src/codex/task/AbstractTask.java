@@ -67,7 +67,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
                 Logger.getLogger().error(e.getDescription());
                 throw e;
             } catch (InterruptedException e) {
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 setProgress(percent, MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
                 setStatus(Status.FAILED);
                 Logger.getLogger().error("Error on task execution", e);
@@ -209,6 +209,9 @@ public abstract class AbstractTask<T> implements ITask<T> {
         return percent;
     }
     
+    /**
+     * Возвращает общее время исполнения задачи, учитывая приостановку.
+     */
     public final long getDuration() {
         return Duration.between(
                 startTime, 
@@ -236,7 +239,11 @@ public abstract class AbstractTask<T> implements ITask<T> {
         if (!this.status.equals(state)) {
             Logger.getLogger().debug("Task ''{0}'' state changed: {1} -> {2}", getTitle(), this.status, state);
             if (this.status == Status.CANCELLED && state == Status.FINISHED) {
-                System.err.println("Incorrect state change");
+                throw new IllegalStateException(
+                        MessageFormat.format(
+                                "Incorrect state change: {0} -> {1}",
+                        this.status, state        
+                ));
             }
         }
         this.status = state;
@@ -250,11 +257,11 @@ public abstract class AbstractTask<T> implements ITask<T> {
         return status;
     }
     
-    public final void fireStatusChange() {
-        new LinkedList<>(listeners).forEach((listener) -> {
-            listener.statusChanged(this, status);
-        });
-    }
+//    public final void fireStatusChange() {
+//        new LinkedList<>(listeners).forEach((listener) -> {
+//            listener.statusChanged(this, status);
+//        });
+//    }
 
     /**
      * Запустить исполнение задачи. Вызывается сервисом исполнения задач в {@link TaskManager}.

@@ -24,7 +24,7 @@ import javax.swing.border.MatteBorder;
  */
 final class TaskView extends AbstractTaskView {
     
-    protected final static SimpleDateFormat DURATION_FORMAT = new SimpleDateFormat("mm:ss", java.util.Locale.getDefault());
+    final static SimpleDateFormat DURATION_FORMAT = new SimpleDateFormat("mm:ss", java.util.Locale.getDefault());
     
     private final JLabel title;
     private final JLabel status;

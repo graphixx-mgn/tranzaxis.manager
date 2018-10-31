@@ -83,7 +83,7 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
      * для позиционирования окна.
      * @param cancelAction Действие по нажатии кнопки отмены на виджете задачи.
      */
-    public TaskMonitor(JComponent invoker, List<ExecutorService> threadPool, Consumer<ITask> cancelAction) {
+    TaskMonitor(JComponent invoker, List<ExecutorService> threadPool, Consumer<ITask> cancelAction) {
         super();
         setInvoker(invoker);
         setBorder(new MatteBorder(1, 1, 0, 1, Color.GRAY));

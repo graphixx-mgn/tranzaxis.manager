@@ -55,6 +55,7 @@ public interface ITask<T> extends RunnableFuture<T> {
     
     /**
      * Код пост-исполнения.
+     * @param result Результат иполнения метода {@link ITask#execute()}.
      */
     void finished(T result);
     
@@ -66,6 +67,7 @@ public interface ITask<T> extends RunnableFuture<T> {
     
     /**
      * Добавить слушатель событий задачи.
+     * @param listener Ссылка на слущатель.
      */
     void addListener(ITaskListener listener);
     
