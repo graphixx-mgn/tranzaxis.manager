@@ -5,17 +5,16 @@ import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
-import static codex.config.IConfigStoreService.RC_SUCCESS;
 import codex.editor.IEditor;
 import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
+import codex.log.Logger;
 import codex.mask.IMask;
 import codex.presentation.SelectorPresentation;
 import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.ArrStr;
-import codex.type.Bool;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Int;
@@ -28,7 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -37,61 +36,117 @@ import java.util.stream.Collectors;
  */
 public class EntityModel extends AbstractModel implements IPropertyChangeListener {
     
-    public  final static String ID  = "ID";  // Primary unique identifier
-    public  final static String OWN = "OWN"; // Reference to owner entity
-    public  final static String SEQ = "SEQ"; // Order sequence number
-    public  final static String PID = "PID"; // Title or name 
-    public  final static String OVR = "OVR"; // List of overridden values
-    public  final static String DEL = "DEL"; // Entity must be deleted
+    final static String ID  = "ID";  // Primary unique identifier
+    final static String OWN = "OWN"; // Reference to owner entity
+    final static String SEQ = "SEQ"; // Order sequence number
+    final static String PID = "PID"; // Title or name 
+    final static String OVR = "OVR"; // List of overridden values
     
-    public  final static List<String> SYSPROPS = Arrays.asList(new String[] {ID, OWN, SEQ, PID, OVR, DEL});
+    private static final Boolean      DEV_MODE  = "1".equals(java.lang.System.getProperty("showSysProps"));
+    public  final static List<String> SYSPROPS  = Arrays.asList(new String[] {ID, OWN, SEQ, PID, OVR});
+    private final static List<String> GENERATED = Arrays.asList(new String[] {ID, SEQ});
     
     private final static IConfigStoreService    CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
-    
-    private final Map<String, String> databaseValues;
     
     private final Class           entityClass;
     private final DynamicResolver dynamicResolver = new DynamicResolver();
     private final List<String>    dynamicProps = new LinkedList<>();
     private final UndoRegistry    undoRegistry = new UndoRegistry();
+    private final Map<String, String>           databaseValues;
+    private final Map<String, Object>           initialValues   = new HashMap<>();
     private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
-    private final List<IModelListener>          modelListeners = new LinkedList<>();
+    private final List<IModelListener>          modelListeners  = new LinkedList<>();
     
     EntityModel(EntityRef owner, Class entityClass, String PID) {
         this.entityClass = entityClass;
-        this.databaseValues = CAS.readClassInstance(entityClass, PID, owner.getId());
+        Integer ownerId = owner == null ? null : owner.getId();
+        this.databaseValues = CAS.readClassInstance(entityClass, PID, ownerId);
+        
+        initialValues.put(EntityModel.ID,  null);
+        initialValues.put(EntityModel.SEQ, null);
+        initialValues.put(EntityModel.PID, PID);
+        initialValues.put(EntityModel.OWN, owner == null ? null : owner.getValue());
+        initialValues.put(EntityModel.OVR, null);
         
         addDynamicProp(
                 ID, 
                 new Int(databaseValues.get(ID) != null ? Integer.valueOf(databaseValues.get(ID)) : null), 
-                Access.Any, null
+                DEV_MODE ? null : Access.Any, null
         );
-        
-        addDynamicProp(
-                OWN, 
-                owner, 
-                Access.Any, null
-        );
-        addUserProp(SEQ, new Int(null), 
+        addUserProp(SEQ, 
+                new Int(databaseValues.get(SEQ) != null ? Integer.valueOf(databaseValues.get(SEQ)) : null), 
                 !Catalog.class.isAssignableFrom(entityClass), 
-                Access.Any
+                DEV_MODE ? Access.Select : Access.Any
         );
         addUserProp(EntityModel.PID, new Str(PID),  
-                true, 
-                Catalog.class.isAssignableFrom(entityClass) ? Access.Any : null
+                true,
+                DEV_MODE ? null : (
+                    Catalog.class.isAssignableFrom(entityClass) ? Access.Any : null
+                )
         );
+        addUserProp(EntityModel.OWN, owner != null ? owner : new EntityRef(null),
+                false, 
+                DEV_MODE ? null : Access.Any
+        );
+        addUserProp(
+                EntityModel.OVR, 
+                new ArrStr(databaseValues.get(OVR) != null ? ArrStr.parse(databaseValues.get(OVR)) : new LinkedList<>()),
+                false, 
+                DEV_MODE ? Access.Select : Access.Any
+        );
+        
+        addPropertyGroup("System properties", ID, SEQ, OWN, OVR);
         setPropUnique(EntityModel.PID);
-        addUserProp(EntityModel.OVR, new ArrStr(new LinkedList<>()), false, Access.Any);
-        addModelListener(dynamicResolver);
     }
     
-    public final Integer getID() {
-        return (Integer) getProperty(ID).getPropValue().getValue();
+    final Integer getID() {
+        return (Integer) getValue(ID);
     }
     
-    public final String getPID() {
-        return (String) getProperty(PID).getPropValue().getValue();
+    final String getPID(boolean unsaved) {
+        return (String) (unsaved ? getUnsavedValue(PID) : getValue(PID));
+    }
+    
+    final Integer getSEQ() {
+        return (Integer) getValue(SEQ);
+    }
+    
+    final Entity getOwner() {
+        return (Entity) getValue(OWN);
+    }
+    
+    final List<String> getOverride() {
+        return (List<String>) getValue(OVR);
+    }
+    
+    final EntityModel setID(Integer id) {
+        setValue(ID, id);
+        return this;
+    }
+    
+    final EntityModel setPID(String pid) {
+        setValue(PID, pid);
+        return this;
+    }
+    
+    final EntityModel setSEQ(Integer seq) {
+        setValue(SEQ, seq);
+        return this;
+    }
+
+    public EntityModel setOverride(List<String> value) {
+        setValue(OVR, value);
+        return this;
+    }
+    
+    public String getQualifiedName() {
+        return MessageFormat.format(
+                "[{0}/#{1}-''{2}'']", 
+                entityClass.getSimpleName(), 
+                getID() == null ? "?" : getID(),
+                IComplexType.coalesce(getPID(getID() != null), "<new>")
+        );
     }
     
     @Override
@@ -105,23 +160,14 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         return isValid;
     };
     
-    protected final void setOwner(Entity owner) {
-        EntityRef ownerRef = new EntityRef(owner.getClass());
-        ownerRef.setValue(owner);
-        setValue(OWN, ownerRef);
-    }
-    
-    public final Entity getOwner() {
-        return (Entity) getValue(OWN);
-    }
-    
-    @Override
-    final void addProperty(String name, IComplexType value, boolean require, Access restriction) {
-        super.addProperty(name, value, require, restriction);
-    }
-    
     @Override
     protected void addProperty(PropertyHolder propHolder, Access restriction) {
+        if (!initialValues.containsKey(propHolder.getName())) {
+            initialValues.put(
+                    propHolder.getName(), 
+                    propHolder.getOwnPropValue().getValue()
+            );
+        }
         super.addProperty(propHolder, restriction);
         getProperty(propHolder.getName()).addChangeListener(this);
     }
@@ -175,13 +221,27 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         dynamicProps.add(name);
     }
     
-    public final void updateDynamicProp(String... names) {
-        for (String name : names) {
-            if (dynamicProps.contains(name)) {
-                Object dynValue = dynamicResolver.valueProviders.get(name).get();
-                dynamicResolver.propertyHolders.get(name).setValue(dynValue);
-            }
-        }
+    /**
+     * Обновление всех динамических свойств модели.
+     */
+    public final void updateDynamicProps() {
+        dynamicResolver.updateDynamicProps(dynamicProps.stream()
+                .filter((propName) -> {
+                    return dynamicResolver.valueProviders.containsKey(propName);
+                }).collect(Collectors.toList())
+        );
+    }
+    
+    /**
+     * Обновление динамических свойств модели.
+     * @param names Список свойст для обновления.
+     */
+    public final void updateDynamicProps(String... names) {
+        dynamicResolver.updateDynamicProps(Arrays.asList(names).stream()
+                .filter((propName) -> {
+                    return dynamicProps.contains(propName) && dynamicResolver.valueProviders.containsKey(propName);
+                }).collect(Collectors.toList())
+        );
     }
     
     /**
@@ -264,7 +324,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * Получить тип свойства по его имени.
      */
     public Class<? extends IComplexType> getPropertyType(String name) {
-        return getProperty(name).getPropValue().getClass();
+        return getProperty(name).getType();
     }
     
     /**
@@ -303,7 +363,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             return false;
         } else {
             StringBuilder msgBuilder = new StringBuilder(
-                    MessageFormat.format(Language.get("error@notdeleted"), getPID())
+                    MessageFormat.format(Language.get("error@notdeleted"), getPID(false))
             );
             links.forEach((link) -> {
                 try {
@@ -324,109 +384,21 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
     }
     
-    public boolean remove() {
-        if (existReferencies()) {
-            return false;
-        } else {
-            int result = CAS.removeClassInstance(entityClass, getID());
-            if (result == IConfigStoreService.RC_SUCCESS) {
-                getProperty(ID).getPropValue().valueOf("");
-                getProperty(SEQ).getPropValue().valueOf("");
-                new LinkedList<>(modelListeners).forEach((listener) -> {
-                    listener.modelDeleted(this);
-                });
-            }
-            return result == IConfigStoreService.RC_SUCCESS;
-        }
-    }
-    
     /**
      * Сохранение изменений модели.
      */
-    public final void commit() {
-        List<String> changes = getChanges();
-        if (!changes.isEmpty()) {
-            Map<String, IComplexType> values = new LinkedHashMap<>();
-            changes.forEach((propName) -> {
-                
-                // Create instance of referenced object if not exists
-                if (getProperty(propName).getPropValue() instanceof EntityRef) {
-                    EntityRef ref = ((EntityRef) getProperty(propName).getPropValue());
-                    
-                    if (ref.isLoaded() && ref.getId() == null) {
-                        Entity owner = ref.getValue().model.getOwner();
-                        Map<String, IComplexType> propDefinitions = new HashMap() {{
-                            put(OWN, owner == null ? null : owner.toRef());
-                            put(DEL, new Bool(true)); // Auto delete
-                        }};
-                        
-                        Map<String, Integer> keys = CAS.initClassInstance(
-                                ref.getEntityClass(), 
-                                ref.getValue().model.getPID(), 
-                                propDefinitions,
-                                owner == null ? null : owner.model.getID()
-                        );
-                        ref.getValue().model.setValue(ID, keys.get(ID));
-                        ref.getValue().model.setValue(SEQ, keys.get(SEQ));
-                        
-                        CAS.updateClassInstance(ref.getEntityClass(), keys.get(ID), propDefinitions);
-                    }
+    public final void commit(boolean showError) throws Exception {
+        if (!getChanges().isEmpty()) {
+            if (getID() == null) {
+                Logger.getLogger().debug(MessageFormat.format("Perform commit (create) model {0}", getQualifiedName()));
+                if (create(showError)) {
+                    update(showError);
                 }
-                
-                values.put(propName, getProperty(propName).getOwnPropValue());
-            });
-            if (getID() == null/* || !databaseValues.keySet().containsAll(changes)*/) { // Создание нового объекта при переименовании
-                Map<String, IComplexType> propDefinitions = new LinkedHashMap<>();
-                
-                propDefinitions.put(OWN, getProperty(OWN).getPropValue());
-                values.put(OWN, getProperty(OWN).getPropValue());
-                
-                getProperties(Access.Any)
-                    .stream()
-                    .filter((propName) -> {
-                        return !dynamicProps.contains(propName) && !SYSPROPS.contains(propName);
-                    })
-                    .forEach((propName) -> {
-                        propDefinitions.put(propName, getProperty(propName).getPropValue());
-                    });
-                
-                EntityRef ownerRef = (EntityRef) getProperty(OWN).getPropValue();
-                Integer ownerId = ownerRef.getValue() != null ? ownerRef.getValue().model.getID() : null;
-                
-                Map<String, Integer> keys = CAS.initClassInstance(entityClass, getPID(), propDefinitions, ownerId);
-                getProperty(ID).getPropValue().valueOf(keys.get(ID).toString());
-                getProperty(SEQ).getPropValue().valueOf(keys.get(SEQ).toString());
-            }
-            int updateResult = CAS.updateClassInstance(entityClass, getID(), values);
-            if (updateResult == IConfigStoreService.RC_SUCCESS) {
-                
-                // Delete instance of referenced object if necessary (DEL = "1")
-                changes.forEach((propName) -> {    
-                    if (getProperty(propName).getPropValue() instanceof EntityRef) {
-                        Entity prevValue = (Entity) undoRegistry.previous(propName);
-                        if (prevValue != null) {
-                            if ("1".equals(CAS.readClassInstance(prevValue.getClass(), prevValue.model.getID()).get(DEL))) {
-                                int deleteResult = CAS.removeClassInstance(prevValue.getClass(), prevValue.model.getID());
-                                if (deleteResult == RC_SUCCESS) {
-                                    prevValue.model.getProperty(ID).getPropValue().valueOf("");
-                                    prevValue.model.getProperty(SEQ).getPropValue().valueOf("");
-                                }
-                            }
-                        }
-                    }
-                });
-                
-                undoRegistry.clear();
-                new LinkedList<>(modelListeners).forEach((listener) -> {
-                    listener.modelSaved(this, changes);
-                });
-                values.keySet().forEach((propName) -> {
-                    ((List<EditorCommand>) getEditor(propName).getCommands()).forEach((command) -> {
-                        command.activate();
-                    });
-                });
             } else {
-                MessageBox.show(MessageType.ERROR, Language.get("error@notsaved"));
+                if (maintenance(showError)) {
+                    Logger.getLogger().debug(MessageFormat.format("Perform commit (update) model {0}", getQualifiedName()));
+                    update(showError);
+                }
             }
         }
     }
@@ -436,40 +408,280 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void rollback() {
         List<String> changes = getChanges();
-        changes.forEach((name) -> {
-            getProperty(name).setValue(undoRegistry.previous(name));
-        });
-        new LinkedList<>(modelListeners).forEach((listener) -> {
-            listener.modelRestored(this, changes);
-        });
+        if (!changes.isEmpty()) {
+            Logger.getLogger().debug(MessageFormat.format("Perform rollback model {0}", getQualifiedName()));
+            changes.forEach((name) -> {
+                getProperty(name).setValue(undoRegistry.previous(name));
+            });
+            new LinkedList<>(modelListeners).forEach((listener) -> {
+                listener.modelRestored(this, changes);
+            });
+        }
     }
     
-//    /**
-//     * Сохранение значения единичного свойства.
-//     * @param propName 
-//     */
-//    public final void saveValue(String propName) {
-//        Map<String, String> values = new LinkedHashMap();
-//        values.put(propName, getProperty(propName).getPropValue().toString());
-//        int result = CAS.updateClassInstance(entityClass, getID(), values);
-//        if (result != IConfigStoreService.RC_SUCCESS) {
-//            MessageBox.show(MessageType.ERROR, Language.get(EntityModel.class.getSimpleName(), "error@notsaved"));
-//        } else {
-//            if (undoRegistry.exists(propName)) {
-//                undoRegistry.put(
-//                        propName, 
-//                        undoRegistry.previous(propName),
-//                        undoRegistry.previous(propName)
-//                );
-//            }
-//        }
-//    }
+    private static Map<String, IComplexType> getPropDefinitions(EntityModel model) {
+        Map<String, IComplexType> propDefinitions = new LinkedHashMap<>();                
+        model.getProperties(Access.Any)
+            .stream()
+            .filter((propName) -> {
+                return !model.dynamicProps.contains(propName) || EntityModel.ID.equals(propName);
+            })
+            .forEach((propName) -> {
+                propDefinitions.put(propName, model.getProperty(propName).getPropValue());
+            });
+        return propDefinitions;
+    }
+    
+    private boolean create(boolean showError) throws Exception {
+        Integer ownerId = getOwner() == null ? null : getOwner().getID();
+        try {
+            synchronized (this) {
+                CAS.initClassInstance(
+                        entityClass, 
+                        (String) getProperty(PID).getPropValue().getValue(), 
+                        getPropDefinitions(this), 
+                        ownerId
+                ).forEach((key, value) -> {
+                    setValue(key, value);
+                });
+                return true;
+            }
+        } catch (Exception e) {
+            Logger.getLogger().error("Unable initialize model in database", e);
+            if (showError) {
+                MessageBox.show(
+                        MessageType.ERROR, 
+                        MessageFormat.format(
+                                Language.get("error@notsaved"),
+                                e.getMessage()
+                        )
+                );
+            }
+            throw e;
+        }
+    }
+    
+    private boolean update(boolean showError) throws Exception {
+        Map<String, String> dbValues = CAS.readClassInstance(entityClass, getID());
+        List<String>   changedValues = getChanges();
+        try {
+            synchronized (this) {
+                processAutoReferences(true, null);
+                CAS.updateClassInstance(
+                        entityClass, 
+                        getID(), 
+                        changedValues.stream()
+                            .filter((propName) -> {
+                                return !getProperty(propName).getOwnPropValue().toString().equals(dbValues.get(propName));
+                            })
+                            .collect(Collectors.toMap(
+                                    propName -> propName, 
+                                    propName -> getProperty(propName).getOwnPropValue()
+                            ))
+                );
+                processAutoReferences(false, null);
+                undoRegistry.clear();
+            }
+            new LinkedList<>(modelListeners).forEach((listener) -> {
+                listener.modelSaved(this, new LinkedList<>(changedValues));
+            });
+            changedValues.forEach((propName) -> {
+                ((List<EditorCommand>) getEditor(propName).getCommands()).forEach((command) -> {
+                    command.activate();
+                });
+            });
+            return true;
+        } catch (Exception e) {
+            Logger.getLogger().error("Unable update model properties to database", e);
+            if (showError) {
+                MessageBox.show(
+                        MessageType.ERROR, 
+                        MessageFormat.format(
+                                Language.get("error@notsaved"),
+                                e.getMessage()
+                        )
+                );
+            }
+            throw e;
+        }
+    }
+    
+    void processAutoReferences(boolean create, List<String> propList) throws Exception {
+        Set<Entity> autoReferences = (propList == null ? getChanges() : propList).stream()
+                .filter((propName) -> {
+                    return 
+                            getPropertyType(propName) == EntityRef.class && 
+                            (create ? getUnsavedValue(propName) : getValue(propName)) != null;
+                }).map((propName) -> {
+                    return (Entity) (create ? getUnsavedValue(propName) : getValue(propName));
+                }).filter((entity) -> {
+                    return entity.isAutoGenerated() && (
+                                ( create && entity.getID() == null) ||
+                                (!create && entity.getID() != null && CAS.findReferencedEntries(entity.getClass(), entity.getID()).isEmpty())
+                           );
+                })
+                .collect(Collectors.toSet());
+        if (!autoReferences.isEmpty() && create) {
+            Logger.getLogger().debug(
+                    "Perform automatic entities creation: {0}", 
+                    autoReferences.stream().map((entity) -> {
+                        return entity.model.getQualifiedName();
+                    }).collect(Collectors.joining(", "))
+            );
+            for (Entity entity : autoReferences) {
+                CAS.initClassInstance(
+                        entity.getClass(), 
+                        entity.getPID(), 
+                        getPropDefinitions(entity.model), 
+                        entity.getOwner() == null ? null : entity.getOwner().getID()
+                ).forEach((key, value) -> {
+                    entity.model.setValue(key, value);
+                });
+            }
+        } else if (!autoReferences.isEmpty() && !create) {
+            Logger.getLogger().debug(
+                    "Perform automatic entities deletion: {0}", 
+                    autoReferences.stream().map((entity) -> {
+                        return entity.model.getQualifiedName();
+                    }).collect(Collectors.joining(", "))
+            );
+            for (Entity entity : autoReferences) {
+                entity.model.remove();
+            }
+        }
+    }
+    
+    /**
+     * Перечитывание значений свойств из БД или установка начальных значений 
+     * если запись в БД отсутствует.
+     */
+    public void     read() {
+        Map<String, String> dbValues;
+        Integer ownerId = getOwner() == null ? null : getOwner().getID();
+        if (getID() == null) {
+            dbValues = CAS.readClassInstance(entityClass, getPID(false), ownerId);
+        } else {
+            dbValues = CAS.readClassInstance(entityClass, getID());
+        }
+        List<String> userProps = getProperties(Access.Any).stream()
+                .filter((propName) -> {
+                    return !isPropertyDynamic(propName) || SYSPROPS.contains(propName);
+                }).collect(Collectors.toList());
+        
+        userProps.forEach((propName) -> {
+            Object prevValue = getProperty(propName).getOwnPropValue().getValue();
+            
+            if (dbValues.containsKey(propName) && dbValues.get(propName) != null) {
+                getProperty(propName).getOwnPropValue().valueOf(dbValues.get(propName));
+            } else if (initialValues.containsKey(propName)) {
+                getProperty(propName).getOwnPropValue().setValue(initialValues.get(propName));
+            }
+        });
+        updateDynamicProps();
+    }
+    
+    /**
+     * Удаление данных модели из БД.
+     */
+    public boolean remove() {
+        return remove(true);
+    }
+    
+    /**
+     * Удаление данных модели из БД.
+     */
+    boolean remove(boolean readAfter) {
+        if (existReferencies()) {
+            return false;
+        } else {
+            Logger.getLogger().debug(MessageFormat.format("Perform removal model {0}", getQualifiedName()));
+            try {
+                synchronized (this) {
+                    try {
+                        CAS.removeClassInstance(entityClass, getID());
+                        processAutoReferences(false, getProperties(Access.Any));
+                    } catch (Exception e) {
+                        Logger.getLogger().error("Unable delete model from database", e);
+                        throw e;
+                    } finally {
+                        if (readAfter) {
+                            read();
+                        }
+                    }
+                }
+                new LinkedList<>(modelListeners).forEach((listener) -> {
+                    listener.modelDeleted(this);
+                });
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+    }
+    
+    private boolean maintenance(boolean showError) {
+        List<String> propList = getProperties(Access.Any).stream().filter((propName) -> {
+            return !isPropertyDynamic(propName);
+        }).collect(Collectors.toList());
+        
+        Map<String, String> dbValues = CAS.readClassInstance(entityClass, getID());
+        List<String> extraProps = dbValues.keySet().stream().filter((propName) -> {
+            return !propList.contains(propName) && !EntityModel.SYSPROPS.contains(propName);
+        }).collect(Collectors.toList());
+        
+        Map<String, IComplexType> absentProps = propList.stream()
+                .filter((propName) -> {
+                    return !dbValues.containsKey(propName);
+                })
+                .collect(Collectors.toMap(
+                        propName -> propName, 
+                        propName -> getProperty(propName).getPropValue()
+                ));
+
+        if (!extraProps.isEmpty() || !absentProps.isEmpty()) {
+            Logger.getLogger().debug(MessageFormat.format("Perform maintenance class catalog {0}", entityClass.getSimpleName()));
+            try {
+                CAS.maintainClassCatalog(entityClass, extraProps, absentProps);
+                return true;
+            } catch (Exception e) {
+                Logger.getLogger().error("CAS: Unable to maintain class catalog", e);
+                if (showError) {
+                    MessageBox.show(
+                            MessageType.ERROR, 
+                            MessageFormat.format(
+                                    Language.get("error@notsaved"),
+                                    e.getMessage()
+                            )
+                    );
+                }
+            }
+            return false;
+        } else {
+            return true;
+        }
+    }
 
     @Override
     public IEditor getEditor(String name) {
         boolean editorExists = editors.containsKey(name);
         IEditor editor = super.getEditor(name);
         editor.getLabel().setText(getProperty(name).getTitle() + (getChanges().contains(name) ? " *" : ""));
+        
+        // Editor settings
+        if (DEV_MODE) {
+            switch (name) {
+                case EntityModel.PID:
+                    editor.setEditable(!Catalog.class.isAssignableFrom(entityClass));
+                    break;
+                case EntityModel.SEQ:
+                case EntityModel.OWN:
+                case EntityModel.OVR:
+                    editor.setEditable(false);
+                    editor.setEditable(false);
+                    editor.setEditable(false);
+                    break;
+            }
+        }
         
         if (!editorExists) {
             addModelListener(new IModelListener() {
@@ -491,101 +703,206 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
 
     
-    final class DynamicResolver implements IPropertyChangeListener, IModelListener {
+    final class DynamicResolver {
 
-        final List<String> resolveOrder = new LinkedList<>();
-        final Map<String, String> resolveMap = new HashMap<>();
-        final Map<String, Supplier> valueProviders = new HashMap<>();
+        final Map<String, List<String>>   resolveMap      = new HashMap<>();
+        final Map<String, Supplier>       valueProviders  = new HashMap<>();
         final Map<String, PropertyHolder> propertyHolders = new HashMap<>();
-        
-        private final IModelListener referenceListener = new IModelListener() {
-            
-            @Override
-            public void modelSaved(EntityModel model, List<String> changes) {
-                DynamicResolver.this.modelSaved(
-                        EntityModel.this, 
-                        new LinkedList<>(resolveOrder)
-                            .stream()
-                            .filter((propName) -> {
-                                return 
-                                        getPropertyType(propName) == EntityRef.class &&
-                                        getValue(propName) != null &&
-                                        ((Entity) getValue(propName)).model.equals(model);
-                            })
-                            .collect(Collectors.toList())
-                );
-            }                    
-
-        };
 
         PropertyHolder newProperty(String name, IComplexType value, Supplier valueProvider, String... baseProps) {
+            valueProviders.put(name, valueProvider);
             
-            for (String basePropName : baseProps) {
-                if (resolveOrder.contains(name)) {
-                    int propIdx = resolveOrder.indexOf(name);
-                    resolveOrder.add(propIdx, basePropName);
-                } else {
-                    resolveOrder.add(basePropName);
-                }
-                resolveMap.put(basePropName, name);
-                
-                if (getPropertyType(basePropName) == EntityRef.class) {
-                    properties.get(basePropName).addChangeListener(this);
-                    Entity baseEntity = (Entity) getValue(basePropName);
-                    if (baseEntity != null) {
-                        baseEntity.model.addModelListener(referenceListener);
-                    }
-                }
-            }
-            valueProviders.put(name, (Supplier<Object>) () -> {
-                return valueProvider.get();
-            });
-            
-            AtomicBoolean propInitiated = new AtomicBoolean(false);
             propertyHolders.put(name, new PropertyHolder(name, value, false) {
+                private boolean initiated = false;
+
                 @Override
                 public IComplexType getPropValue() {
-                    if (!propInitiated.getAndSet(true)) {
-                        value.setValue(valueProviders.get(name).get());
+                    if (!initiated) {
+                        initiated = true;
+                        value.setValue(valueProvider.get());
+                        if (baseProps != null) {
+                            // User props
+                            List<String> baseUserProps = Arrays.asList(baseProps).stream()
+                                    .filter((basePropName) -> {
+                                        return !isPropertyDynamic(basePropName);
+                                    })
+                                    .collect(Collectors.toList());
+                            if (!baseUserProps.isEmpty()) {
+                                EntityModel.this.addModelListener(new IModelListener() {
+                                    @Override
+                                    public void modelSaved(EntityModel model, List<String> changes) {
+                                        if (changes.stream().anyMatch(baseUserProps::contains)) {
+                                            setValue(valueProvider.get());
+                                        }
+                                    }
+                                });
+                            }
+                            
+                            // User props (referencies)
+                            final IModelListener refModelListener = new IModelListener() {
+                                @Override
+                                public void modelSaved(EntityModel model, List<String> changes) {
+                                    setValue(valueProvider.get());
+                                }
+                            };
+                            final IPropertyChangeListener refPropListener = (name, oldValue, newValue) -> {
+                                setValue(valueProvider.get());
+                            };
+                            
+                            List<String> baseRefProps = Arrays.asList(baseProps).stream()
+                                    .filter((basePropName) -> {
+                                        return getPropertyType(basePropName) == EntityRef.class;
+                                    })
+                                    .map((baseRefPropName) -> {
+                                        Entity baseEntity = (Entity) getValue(baseRefPropName);
+                                        if (baseEntity != null) {
+                                            baseEntity.model.addModelListener(refModelListener);
+                                            baseEntity.model.properties.values().stream().filter((propHolder) -> {
+                                                return baseEntity.model.dynamicProps.contains(propHolder.getName());
+                                            }).forEach((propHolder) -> {
+                                                propHolder.addChangeListener(refPropListener);
+                                            });
+                                        }
+                                        return baseRefPropName;
+                                    })
+                                    .collect(Collectors.toList());
+                            if (!baseRefProps.isEmpty()) {
+                                EntityModel.this.addChangeListener((name, oldValue, newValue) -> {
+                                    if (baseRefProps.contains(name)) {
+                                        if (oldValue != null) {
+                                            ((Entity) oldValue).model.removeModelListener(refModelListener);
+                                            ((Entity) oldValue).model.properties.values().stream().filter((propHolder) -> {
+                                                return ((Entity) oldValue).model.dynamicProps.contains(propHolder.getName());
+                                            }).forEach((propHolder) -> {
+                                                propHolder.removeChangeListener(refPropListener);
+                                            });
+                                        }
+                                        if (newValue != null) {
+                                            ((Entity) newValue).model.addModelListener(refModelListener);
+                                            ((Entity) newValue).model.properties.values().stream().filter((propHolder) -> {
+                                                return ((Entity) newValue).model.dynamicProps.contains(propHolder.getName());
+                                            }).forEach((propHolder) -> {
+                                                propHolder.addChangeListener(refPropListener);
+                                            });
+                                        }
+                                    }
+                                });
+                            }
+                            
+                            // Dynamic props
+                            List<String> baseDynProps = Arrays.asList(baseProps).stream()
+                                    .filter((basePropName) -> {
+                                        return isPropertyDynamic(basePropName);
+                                    })
+                                    .collect(Collectors.toList());
+                            if (!baseDynProps.isEmpty()) {
+                                EntityModel.this.addChangeListener((name, oldValue, newValue) -> {
+                                    if (baseDynProps.contains(name)) {
+                                        setValue(valueProvider.get());
+                                    }
+                                });
+                                resolveMap.put(name, baseDynProps);
+                            }
+                        }
                     }
-                    return value;
+                    return super.getPropValue();
                 }
             });
-            propertyHolders.get(name).addChangeListener(this);
             return propertyHolders.get(name);
         };
-
-        @Override
-        public void propertyChange(String name, Object oldValue, Object newValue) {
-            if (getPropertyType(name) == EntityRef.class) {
-                if (oldValue != null) {
-                    ((Entity) oldValue).model.removeModelListener(referenceListener);
+        
+        void updateDynamicProps(List<String> names) {
+            if (names.size() == 1) {
+                Logger.getLogger().debug(MessageFormat.format("Perform update dynamic property: {0}", names.get(0)));
+                getProperty(names.get(0)).setValue(dynamicResolver.valueProviders.get(names.get(0)).get());
+            } else if (names.size() > 1) {
+                Map<String, List<String>> updatePlan = buildUpdatePlan(names);
+                
+                List<String> independentProps = updatePlan.entrySet().stream()
+                            .filter((entry) -> {
+                                    return 
+                                        entry.getValue().size() == 1 && entry.getKey().equals(entry.getValue().get(0)) &&
+                                        !updatePlan.values().stream()
+                                                .filter((baseProps) -> {
+                                                    return baseProps != entry.getValue();
+                                                }).anyMatch((baseProps) -> {
+                                                    return baseProps.contains(entry.getKey());
+                                                });
+                            })
+                            .map((entry) -> {
+                                return entry.getKey();
+                            }).collect(Collectors.toList());
+                
+                Map<String, List<String>> dependencies = updatePlan.entrySet().stream()
+                            .filter((entry) -> {
+                                    return !(entry.getValue().size() == 1 && entry.getKey().equals(entry.getValue().get(0)));
+                            }).collect(Collectors.toMap(
+                                    entry -> entry.getKey(), 
+                                    entry -> entry.getValue()
+                            ));
+                
+                Logger.getLogger().debug(MessageFormat.format(
+                        "Perform update dynamic properties: {0} by resolving plan\n"
+                                + "Independent : {1}\n"
+                                + "Dependencies: {2}", 
+                        names,
+                        independentProps,
+                        dependencies.entrySet().stream()
+                            .map((entry) -> {
+                                return entry.getKey().concat("<=").concat(entry.getValue().toString());
+                            }).collect(Collectors.joining(", "))
+                ));
+                
+                independentProps.forEach((proName) -> {
+                    getProperty(proName).setValue(dynamicResolver.valueProviders.get(proName).get());
+                });
+                
+                Map<String, Object> newValues = new LinkedHashMap<>();
+                dependencies.values().forEach((baseProps) -> {
+                    baseProps.forEach((baseProp) -> {
+                        if (!newValues.containsKey(baseProp)) {
+                            newValues.put(baseProp, dynamicResolver.valueProviders.get(baseProp).get());
+                        }
+                    });
+                });
+                newValues.entrySet().forEach((entry) -> {
+                    if (getValue(entry.getKey()) != entry.getValue()) {
+                        setValue(entry.getKey(), entry.getValue());
+                        dependencies.values().removeIf((baseProps) -> {
+                            return baseProps.contains(entry.getKey());
+                        });
+                    }
+                });
+                if (!dependencies.isEmpty()) {
+                    Logger.getLogger().debug(MessageFormat.format(
+                            "Perform forced update orphaned dynamic properties: {0}", 
+                            dependencies.keySet()
+                    ));
+                    dependencies.keySet().forEach((proName) -> {
+                        getProperty(proName).setValue(dynamicResolver.valueProviders.get(proName).get());
+                    });
                 }
-                if (newValue != null) {
-                    ((Entity) newValue).model.addModelListener(referenceListener);
-                }
-            }
-            if (resolveOrder.contains(name) && EntityModel.this.isPropertyDynamic(name)) {
-                String dynamicProp = resolveMap.get(name);
-                Object dynValue = valueProviders.get(dynamicProp).get();
-                propertyHolders.get(dynamicProp).setValue(dynValue);
             }
         }
 
-        @Override
-        public void modelSaved(EntityModel model, List<String> changes) {
-            resolveOrder.stream()
-                    .filter((propName) -> {
-                        return changes.contains(propName);
-                    })
-                    .map((baseProp) -> {
-                        return resolveMap.get(baseProp);
-                    })
-                    .distinct()
-                    .forEach((dynamicProp) -> {                        
-                        Object dynValue = valueProviders.get(dynamicProp).get();
-                        propertyHolders.get(dynamicProp).setValue(dynValue);
-                    });
+        private Map<String, List<String>> buildUpdatePlan(List<String> names) {
+            Map<String, List<String>> plan = new LinkedHashMap<>();
+            names.forEach((propName) -> {
+                plan.put(propName, getBaseProps(propName));
+            });
+            return plan;
+        }
+        
+        private List<String> getBaseProps(String propName) {
+            List<String> chain = new LinkedList();
+            if (!resolveMap.containsKey(propName)) {
+                chain.add(propName);
+            } else {
+                resolveMap.get(propName).forEach((basePropName) -> {
+                    chain.addAll(getBaseProps(basePropName));
+                });
+            }
+            return chain;
         }
     }
     
@@ -603,15 +920,12 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
 
         @Override
         public boolean verify(String value) {
+            Integer ownerId = getOwner() == null ? null : getOwner().getID();
             return value != null &&
-                !EAS.getEntitiesByClass(entityClass)
-                    .stream()
-                    .filter((entity) -> {
-                        return entity.model != EntityModel.this;
-                    })
-                    .anyMatch((entity) -> {
-                        return entity.model.getProperty(propName).getPropValue().toString().equals(value);
-                    });
+                   !CAS.readCatalogEntries(ownerId, entityClass).keySet().stream()
+                        .anyMatch((ID) -> {
+                            return value.equals(CAS.readClassInstance(entityClass, ID).get(propName)) && ID != getID();
+                        });          
         }
 
         @Override
