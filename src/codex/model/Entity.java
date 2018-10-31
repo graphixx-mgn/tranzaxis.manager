@@ -4,8 +4,6 @@ import codex.command.EntityCommand;
 import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
-import codex.config.ConfigStoreService;
-import codex.config.IConfigStoreService;
 import codex.editor.AbstractEditor;
 import codex.editor.IEditor;
 import codex.explorer.tree.AbstractNode;
@@ -14,7 +12,6 @@ import codex.log.Logger;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.property.IPropertyChangeListener;
-import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Iconified;
@@ -34,11 +31,12 @@ import javax.swing.ImageIcon;
  */
 public abstract class Entity extends AbstractNode implements IPropertyChangeListener, Iconified {
    
-    private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private static final Boolean DEV_MODE = "1".equals(java.lang.System.getProperty("showSysProps"));
+    private static final EnityCache CACHE = EnityCache.getInstance();
     
-    private       String        title;
-    private final ImageIcon     icon;
-    private final String        hint;
+    private       String    title;
+    private final ImageIcon icon;
+    private final String    hint;
     
     private SelectorPresentation selectorPresentation;
     private final Map<String, EntityCommand> commands = new LinkedHashMap<>();
@@ -54,32 +52,18 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      * @param title Название сущности, уникальный ключ.
      * @param hint Описание сущности.
      */
-    public Entity(EntityRef parent, ImageIcon icon, String title, String hint) {
+    public Entity(EntityRef owner, ImageIcon icon, String title, String hint) {
         String PID = null;
         if (title != null) {
             String name = Language.get(this.getClass().getSimpleName(), title, new java.util.Locale("en", "US"));
             PID  = name.equals(Language.NOT_FOUND) ? title : name;
-        
             String localTitle = Language.get(this.getClass().getSimpleName(), title);
-            this.title = localTitle.equals(Language.NOT_FOUND) ? title : localTitle;
+            this.title = localTitle.equals(Language.NOT_FOUND) ? PID : localTitle;
         }
         this.icon  = icon;
         this.hint  = hint;
-        
-        EntityRef ownerRef;
-        if (parent != null) {
-            if (parent.isLoaded()) {
-                Entity owner = getOwner(parent.getValue());
-                ownerRef = owner != null ? owner.toRef() : new EntityRef(null);
-            } else {
-                ownerRef = parent;
-            }
-        } else {
-            ownerRef = new EntityRef(null);
-        }
-        
         this.model = new EntityModel(
-                ownerRef,
+                owner,
                 this.getClass(), 
                 PID
         ) {
@@ -89,59 +73,35 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 editor.setLocked(islocked());
                 return editor;
             }
-
-            @Override
-            public boolean remove() {
-                boolean result = super.remove();
-                if (result) {
-                    CACHE.removeEntity(Entity.this);
-                }
-                return result;
-            }
-
         };
         this.model.addChangeListener(this);
         this.model.addModelListener(new IModelListener() {
             @Override
             public void modelSaved(EntityModel model, List<String> changes) {
                 if (changes.contains(EntityModel.PID)) {
-                    setTitle(model.getPID());
+                    setTitle(model.getPID(false));
                 }
             }
         });
-    }
-
-    @Override
-    public void insert(INode child) {
-        super.insert(child);
-        
-        Entity      childEntity = (Entity) child;
-        EntityModel childModel  = childEntity.model;
-        EntityModel parentModel = this.model;
-
-        List<String> overrideProps = parentModel.getProperties(Access.Edit)
-                .stream()
-                .filter(propName -> childModel.hasProperty(propName) && !EntityModel.SYSPROPS.contains(propName))
-                .collect(Collectors.toList());
-        if (!overrideProps.isEmpty()) {
-            overrideProps.forEach((propName) -> {
-                if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
-                    return command instanceof OverrideProperty;
-                })) {
-                    childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
+        if (getPID() != null) {
+            synchronized (this.getClass()) {
+                final Entity found = CACHE.find(
+                    this.getClass(),
+                    owner == null ? null : owner.getId(),
+                    PID
+                );
+                if (found == null) {
+                    CACHE.cache(this);
                 }
-            });
+            }
         }
-
-        childEntity.maintenanceModel();
-        
-        if (!((Entity) child).model.getProperty(EntityModel.OWN).isEmpty()) {
-            return;
-        }
-        Entity owner = getOwner(((Entity) child).getParent());
-        if (owner != null) {
-            ((Entity) child).model.setOwner(owner);
-        }
+    }
+    
+    /**
+     * Возвращает наименование сущности.
+     */
+    public final String getTitle() {
+        return title;
     }
     
     /**
@@ -152,10 +112,103 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     }
     
     /**
+     * Возвращает иконку сущности.
+     */
+    @Override
+    public final ImageIcon getIcon() {
+        return icon;
+    }
+    
+    /**
+     * Возвращает описание сущности.
+     */
+    public final String getHint() {
+        return hint;
+    }
+    
+    public final Integer getID() {
+        return model.getID();
+    }
+    
+    public final String getPID() {
+        return model.getPID(false);
+    }
+    
+    public final Integer getSEQ() {
+        return model.getSEQ();
+    }
+    
+    public final Entity getOwner() {
+        return model.getOwner();
+    }
+    
+    public final List<String> getOverride() {
+        return (List<String>) model.getOverride();
+    }
+    
+    public final Entity setID(Integer id) {
+        model.setID(id);
+        return this;
+    }
+    
+    public final Entity setPID(String pid) {
+        model.setPID(pid);
+        return this;
+    }
+    
+    public final Entity setSEQ(Integer seq) {
+        model.setSEQ(seq);
+        return this;
+    }
+    
+    public final void setOverride(List<String> value) {
+        model.setOverride(value);
+    }
+
+    @Override
+    public void insert(INode child) {
+        if (child.getParent() != this) {
+            super.insert(child);
+        }
+        
+        Entity      childEntity = (Entity) child;
+        EntityModel childModel  = childEntity.model;
+        EntityModel parentModel = this.model;
+
+        List<String> overrideProps = parentModel.getProperties(Access.Edit)
+                .stream()
+                .filter(
+                        propName -> 
+                                childModel.hasProperty(propName) && 
+                                !EntityModel.SYSPROPS.contains(propName) &&
+                                parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
+                ).collect(Collectors.toList());
+        if (!overrideProps.isEmpty()) {
+            overrideProps.forEach((propName) -> {
+                if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
+                    return command instanceof OverrideProperty;
+                })) {
+                    childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
+                }
+            });
+        }
+    }
+    
+    @Override
+    public void delete(INode child) {
+        Entity childEntity = (Entity) child;
+        if (childEntity.getID() == null || childEntity.model.remove(false)) {
+            super.delete(child);
+            CACHE.remove((Entity) child);
+        }
+    }
+    
+    /**
      * Добавление новой команды сущности.
      */
-    public final void addCommand(EntityCommand command) {
+    public Entity addCommand(EntityCommand command) {
         commands.put(command.getName(), command);
+        return this;
     }
     
     /**
@@ -176,50 +229,11 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     public final List<EntityCommand> getCommands() {
         return new LinkedList<>(commands.values());
     }
-    
-    /**
-     * Возвращает иконку сущности.
-     */
-    @Override
-    public final ImageIcon getIcon() {
-        return icon;
-    }
-    
-    /**
-     * Возвращает описание сущности.
-     */
-    public final String getHint() {
-        return hint;
-    }
-    
-    void maintenanceModel() {
-        if (model.getID() != null) {
-            Map<String, String> databaseValues = CAS.readClassInstance(getClass(), model.getID());
-            if (!databaseValues.isEmpty()) {
-                List<String> propList = model.getProperties(Access.Any).stream().filter((propName) -> {
-                    return !model.isPropertyDynamic(propName);
-                }).collect(Collectors.toList());
-                
-                List<String> extraProps = databaseValues.keySet().stream().filter((propName) -> {
-                    return !propList.contains(propName) && !EntityModel.SYSPROPS.contains(propName);
-                }).collect(Collectors.toList());
-                
-                Map<String, IComplexType> absentProps = propList.stream()
-                        .filter((propName) -> {
-                            return !databaseValues.containsKey(propName);
-                        })
-                        .collect(Collectors.toMap(
-                                propName -> propName, 
-                                propName -> model.getProperty(propName).getPropValue()
-                        ));
-                
-                if (!extraProps.isEmpty() || !absentProps.isEmpty()) {
-                    CAS.maintainClassCatalog(getClass(), extraProps, absentProps);
-                }
-            }
-        }
-    }
 
+    protected boolean isAutoGenerated() {
+        return false;
+    }
+    
     @Override
     public final SelectorPresentation getSelectorPresentation() {
         if (getChildClass() == null) return null;
@@ -245,11 +259,22 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
 
     @Override
     public final void propertyChange(String name, Object oldValue, Object newValue) {
-        Logger.getLogger().debug(
-                "Property ''{0}/{1}@{2}'' has been changed: ''{3}'' -> ''{4}''", 
-                this.getClass().getSimpleName(), this, name, oldValue, (newValue instanceof IComplexType) ? 
-                        ((IComplexType) newValue).getValue() : newValue
-        );
+        if (
+                (oldValue == null && newValue != null) || 
+                (oldValue != null && newValue == null) ||
+                (oldValue != null && newValue != null && !oldValue.equals(newValue))
+        ) {
+            Logger.getLogger().debug(
+                    "Property ''{0}@{1}'' has been changed: {2} -> {3}", 
+                    model.getQualifiedName(), name, 
+                    model.getProperty(name).getPropValue().getQualifiedValue(
+                            oldValue != null && oldValue instanceof IComplexType ? ((IComplexType) oldValue).getValue() : oldValue
+                    ), 
+                    model.getProperty(name).getPropValue().getQualifiedValue(
+                            newValue != null && newValue instanceof IComplexType ? ((IComplexType) newValue).getValue() : newValue
+                    )
+            );
+        }
     }
     
     /**
@@ -289,7 +314,9 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                     Language.get("error@unsavedprop"), 
                     (event) -> {
                         if (event.getID() == Dialog.OK) {
-                            model.commit();
+                            try {
+                                model.commit(true);
+                            } catch (Exception e) {}
                         }
                     }
             );
@@ -305,6 +332,10 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     
     @Override
     public final String toString() {
+        String title = getTitle();
+        if (DEV_MODE && title != null &&  getID() != null) {
+            title = title.concat(" (#").concat(Integer.toString(getID())).concat(")");
+        }
         return IComplexType.coalesce(title, "<new "+getClass().getSimpleName()+">");
     }
     
@@ -314,12 +345,9 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return ref;
     }
     
-    private static final EnityCache CACHE = EnityCache.getInstance();
-    
-    public static synchronized Entity newPrototype(Class entityClass) {
+    public static Entity newPrototype(Class entityClass) {
         try {
             Entity instance = (Entity) entityClass.getConstructor(EntityRef.class, String.class).newInstance(null, null);
-            instance.maintenanceModel();
             return instance;
         } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
             Logger.getLogger().error(
@@ -331,46 +359,60 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return null;
     }
     
-    public static synchronized Entity newInstance(Class entityClass, EntityRef parent, String title) {
-        try {
-            Entity found = CACHE.findEntity(
-                entityClass, 
-                parent == null ? null : (
-                    !parent.isLoaded() ? parent.getId() : (
-                            getOwner(parent.getValue()) != null ? getOwner(parent.getValue()).model.getID() : null
-                    )
-                ),
-                title
+    public static Entity newInstance(Class entityClass, EntityRef owner, String PID) {
+        synchronized (entityClass) {
+            final Entity found = CACHE.find(
+                    entityClass,
+                    owner == null ? null : owner.getId(),
+                    PID
             );
-            if (found != null) {
-                if (parent != null) {
-                    if (parent.isLoaded()) {
-                        parent.getValue().insert(found);
+            if (found == null) {
+                try {
+                    final Entity created = (Entity) entityClass.getConstructor(EntityRef.class, String.class).newInstance(owner, PID);
+                    if (created.getPID() != null) {
+                        CACHE.cache(created);
+                    } else {
+                        created.model.addModelListener(new IModelListener() {
+                            @Override
+                            public void modelSaved(EntityModel model, List<String> changes) {
+                                if (changes.contains(EntityModel.PID)) {
+                                    CACHE.cache(created);
+                                }
+                            }
+                        });
                     }
+                    return created;
+                } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
+                    Logger.getLogger().error(
+                            MessageFormat.format("Unable instantiate entity ''{0}''", entityClass.getCanonicalName()), e.getCause()
+                    );
+                } catch (NoSuchMethodException e) {
+                    Logger.getLogger().error(
+                            "Entity ''{0}'' does not have universal constructor (EntityRef<owner>, String<PID>)", 
+                            entityClass.getCanonicalName()
+                    );
                 }
-                return found;
-            } else {
-                Entity instance = (Entity) entityClass.getConstructor(EntityRef.class, String.class).newInstance(parent, (Object) title);
-                instance.maintenanceModel();
-                CACHE.addEntity(instance);
-                return instance;
             }
-        } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
-            Logger.getLogger().error(
-                    MessageFormat.format("Unable instantiate entity ''{0}''", entityClass.getCanonicalName()), e
-            );
-        } catch (NoSuchMethodException e) {
-            Logger.getLogger().error("Entity ''{0}'' does not have universal constructor (EntityRef, String)", entityClass.getCanonicalName());
+            return found;
         }
-        return null;
     }
     
-    static Entity getOwner(INode from) {
-        Entity owner = (Entity) from;
-        while (owner != null && Catalog.class.isAssignableFrom(owner.getClass())) {
-            owner = (Entity) owner.getParent();
+    public static EntityRef findOwner(INode from) {
+        INode next = from;
+        while (next != null && Catalog.class.isAssignableFrom(next.getClass())) {
+            next = (INode) next.getParent();
         }
-        return owner;
+        if (next == null) {
+            return null;
+        } else {
+            Entity found = (Entity) next;
+            if (found.getID() == null) {
+                Logger.getLogger().warn("Found uninitialized owner entity: {0}", found.model.getQualifiedName());
+                return null;
+            } else {
+                return found.toRef();
+            }
+        }
     }
     
 }
