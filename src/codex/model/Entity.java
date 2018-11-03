@@ -16,6 +16,7 @@ import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.Language;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.util.LinkedHashMap;
@@ -346,15 +347,27 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     }
     
     public static Entity newPrototype(Class entityClass) {
+        if (entityClass.isMemberClass()) {
+            throw new IllegalStateException(MessageFormat.format(
+                    "Entity class ''{0}'' is inner class of ''{1}''", 
+                    entityClass.getSimpleName(),
+                    entityClass.getEnclosingClass().getCanonicalName()
+            ));
+        }
         try {
-            Entity instance = (Entity) entityClass.getConstructor(EntityRef.class, String.class).newInstance(null, null);
+            Constructor ctor = entityClass.getDeclaredConstructor(EntityRef.class, String.class);
+            ctor.setAccessible(true);
+            Entity instance = (Entity) ctor.newInstance(null, null);
             return instance;
         } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
             Logger.getLogger().error(
                     MessageFormat.format("Unable instantiate entity ''{0}''", entityClass.getCanonicalName()), e
             );
         } catch (NoSuchMethodException e) {
-            Logger.getLogger().error("Entity ''{0}'' does not have universal constructor (EntityRef, String)", entityClass.getCanonicalName());
+            throw new IllegalStateException(MessageFormat.format(
+                    "Entity ''{0}'' does not have universal constructor (EntityRef, String)", 
+                    entityClass.getCanonicalName()
+            ));
         }
         return null;
     }
