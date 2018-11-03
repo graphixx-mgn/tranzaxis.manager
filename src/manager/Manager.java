@@ -1,8 +1,5 @@
 package manager;
 
-
-import codex.component.messagebox.MessageBox;
-import codex.component.messagebox.MessageType;
 import codex.config.ConfigStoreService;
 import codex.explorer.ExplorerUnit;
 import codex.explorer.tree.NodeTreeModel;
@@ -14,16 +11,16 @@ import codex.service.ServiceRegistry;
 import codex.task.TaskManager;
 import codex.type.Enum;
 import codex.unit.AbstractUnit;
-import codex.update.UpdateUnit;
 import codex.utils.ImageUtils;
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
-import java.awt.event.ActionEvent;
+import it.sauronsoftware.junique.AlreadyLockedException;
+import it.sauronsoftware.junique.JUnique;
 import java.io.File;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.prefs.Preferences;
-import javax.swing.JButton;
+import javax.swing.JFrame;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import manager.nodes.Common;
@@ -38,8 +35,6 @@ import sun.util.logging.PlatformLogger;
 
 public class Manager {
     
-    private final static String CONFIG_PATH = java.lang.System.getProperty("user.home") + "/.manager.tranzaxis/manager.db";
-    
     static {
         Logger.getLogger().setLevel(Level.ALL);
         try {
@@ -48,20 +43,41 @@ public class Manager {
         } catch (UnsupportedLookAndFeelException e) {}
     }
     
-    private final Window window;
+    private final static String CONFIG_PATH = java.lang.System.getProperty("user.home") + "/.manager.tranzaxis/manager.db";
+    private static final Window WINDOW = new Window("TranzAxis Manager (v.2.0.4)", ImageUtils.getByPath("/images/project.png"));
+    
     private final AbstractUnit 
-            logUnit, updateUnit, explorerUnit, 
-            launchUnit, /*serviceUnit,*/ taskUnit;
+            logUnit, 
+            //updateUnit, 
+            explorerUnit, 
+            launchUnit, 
+            //serviceUnit,
+            taskUnit
+    ;
     
     public Manager() {
         PlatformLogger platformLogger = PlatformLogger.getLogger("java.util.prefs");
         platformLogger.setLevel(PlatformLogger.Level.OFF);
+        
+        String uniqueAppId = Manager.class.getCanonicalName();
+        try {
+            JUnique.acquireLock(uniqueAppId, (message) -> {
+                WINDOW.setState(JFrame.NORMAL);
+                WINDOW.setExtendedState(WINDOW.getExtendedState());
+                WINDOW.toFront();
+                WINDOW.requestFocus();
+                return null;
+            });
+        } catch (AlreadyLockedException e) {
+            JUnique.sendMessage(uniqueAppId, "OPEN");
+            System.exit(0);
+        }
 
-        window = new Window("TranzAxis Manager", ImageUtils.getByPath("/images/project.png"));
         Splash splash = new Splash();
         splash.setVisible(true);
 
         logUnit = new LogUnit();
+        Thread.currentThread().setUncaughtExceptionHandler(Logger.getLogger());
                 
         splash.setProgress(20, "Read configuration");
         loadSystemProps();
@@ -75,9 +91,10 @@ public class Manager {
         
         NodeTreeModel treeModel = new NodeTreeModel(root);
         explorerUnit = new ExplorerUnit(treeModel);
-        RepositoryRoot  repos = new RepositoryRoot(root.toRef());
-        DatabaseRoot    bases = new DatabaseRoot(root.toRef());
-        EnvironmentRoot envs  = new EnvironmentRoot(root.toRef());
+
+        RepositoryRoot  repos = new RepositoryRoot();
+        DatabaseRoot    bases = new DatabaseRoot();
+        EnvironmentRoot envs  = new EnvironmentRoot();
         
         root.insert(repos);
         root.insert(bases);
@@ -89,29 +106,23 @@ public class Manager {
 //        splash.setProgress(80, "Start service management system");
 //        serviceUnit = new ServiceUnit();
         
-        splash.setProgress(90, "Start upgrade management system");
-        updateUnit = new UpdateUnit();
+//        splash.setProgress(90, "Start upgrade management system");
+        //updateUnit = new UpdateUnit();
 
-        ((JButton) updateUnit.getViewport()).addActionListener((ActionEvent e) -> {
-            MessageBox.show(MessageType.INFORMATION, "[ NOT SUPPORTED YET]");
-        });
+//        ((JButton) updateUnit.getViewport()).addActionListener((ActionEvent e) -> {
+//            MessageBox.show(MessageType.INFORMATION, "[ NOT SUPPORTED YET]");
+//        });
 
         splash.setProgress(100, "Initialization user interface");
-        window.addUnit(logUnit,      window.loggingPanel);
-        window.addUnit(updateUnit,   window.upgradePanel);
-        window.addUnit(explorerUnit, window.explorePanel);
-        window.addUnit(launchUnit,   window.launchPanel);
-        //window.addUnit(serviceUnit,  window.servicePanel);
-        window.addUnit(taskUnit,     window.taskmgrPanel);
+        WINDOW.addUnit(logUnit,      WINDOW.loggingPanel);
+        //window.addUnit(updateUnit,   WINDOW.upgradePanel);
+        WINDOW.addUnit(explorerUnit, WINDOW.explorePanel);
+        WINDOW.addUnit(launchUnit,   WINDOW.launchPanel);
+        //window.addUnit(serviceUnit,  WINDOW.servicePanel);
+        WINDOW.addUnit(taskUnit,     WINDOW.taskmgrPanel);
         splash.setProgress(100);
         splash.setVisible(false);        
-        window.setVisible(true);
-    }
-    
-    public void show() {
-        if (window != null) {
-            window.restoreState();
-        }
+        WINDOW.setVisible(true);
     }
     
     private void loadSystemProps() {
@@ -136,5 +147,5 @@ public class Manager {
             logMgmt.changeLevels(levelMap);
         }
     }
-    
+
 }
