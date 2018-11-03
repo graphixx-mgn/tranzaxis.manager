@@ -93,7 +93,7 @@ public class DeleteWC extends EntityCommand<Offshoot> {
         return Kind.Admin;
     }
 
-    private class DeleteTask extends AbstractTask<Void> {
+    public class DeleteTask extends AbstractTask<Void> {
         
         private final Offshoot offshoot;
 
