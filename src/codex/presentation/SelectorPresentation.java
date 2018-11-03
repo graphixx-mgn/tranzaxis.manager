@@ -166,6 +166,20 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 handler.exportAsDrag(c, e, TransferHandler.MOVE);
             }
         });
+        
+        entity.addNodeListener(new INodeListener() {
+            @Override
+            public void childDeleted(INode parentNode, INode childNode, int index) {
+                tableModel.removeRow(index);
+                if (index < tableModel.getRowCount()) {
+                    table.getSelectionModel().setSelectionInterval(index, index);
+                } else if (index == tableModel.getRowCount()) {
+                    table.getSelectionModel().setSelectionInterval(index-1, index-1);
+                } else {
+                    table.getSelectionModel().clearSelection();
+                }
+            }
+        });
     }
 
     @Override
@@ -648,25 +662,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            int entityIdx = -1;
-            int rowCount  = tableModel.getRowCount();
-            for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-                if (tableModel.getEntityAt(rowIdx).model.equals(context.model)) {
-                    entityIdx = rowIdx;
-                    break;
-                }
-            }
             context.getParent().delete(context);
-            if (context.getParent() == null) {    
-                tableModel.removeRow(entityIdx);
-                if (entityIdx < tableModel.getRowCount()) {
-                    table.getSelectionModel().setSelectionInterval(entityIdx, entityIdx);
-                } else if (entityIdx == tableModel.getRowCount()) {
-                    table.getSelectionModel().setSelectionInterval(entityIdx-1, entityIdx-1);
-                } else {
-                    table.getSelectionModel().clearSelection();
-                }
-            }
         }
 
         @Override
