@@ -74,6 +74,19 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 editor.setLocked(islocked());
                 return editor;
             }
+
+            @Override
+            boolean remove(boolean readAfter) {
+                if (getID() == null) {
+                    CACHE.remove(Entity.this);
+                    if (readAfter) read();
+                    return true;
+                } else {
+                    boolean success = super.remove(readAfter);
+                    if (success) CACHE.remove(Entity.this);
+                    return success;
+                }
+            }
         };
         this.model.addChangeListener(this);
         this.model.addModelListener(new IModelListener() {
@@ -198,9 +211,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     @Override
     public void delete(INode child) {
         Entity childEntity = (Entity) child;
-        if (childEntity.getID() == null || childEntity.model.remove(false)) {
+        if (childEntity.model.remove(false)) {
             super.delete(child);
-            CACHE.remove((Entity) child);
         }
     }
     
@@ -381,7 +393,9 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             );
             if (found == null) {
                 try {
-                    final Entity created = (Entity) entityClass.getConstructor(EntityRef.class, String.class).newInstance(owner, PID);
+                    Constructor ctor = entityClass.getDeclaredConstructor(EntityRef.class, String.class);
+                    ctor.setAccessible(true);
+                    final Entity created = (Entity) ctor.newInstance(owner, PID);
                     if (created.getPID() != null) {
                         CACHE.cache(created);
                     } else {
