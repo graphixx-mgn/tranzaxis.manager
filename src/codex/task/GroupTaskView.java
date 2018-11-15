@@ -99,9 +99,6 @@ final class GroupTaskView extends AbstractTaskView {
             controls.add(pause, BorderLayout.CENTER);
         }
         
-        
-        
-        
         JPanel subTasks = new JPanel(new GridLayout(0, 1));
         subTasks.setBorder(new TitledBorder(Language.get("border@title")));
         subTasks.setBackground(Color.WHITE);
@@ -130,7 +127,7 @@ final class GroupTaskView extends AbstractTaskView {
                                 PROGRESS_NORMAL
                 );
                 if (mainTask.getStatus() == Status.FINISHED || mainTask.getStatus() == Status.FINISHED) {
-                    mainProgress.setString(TaskView.DURATION_FORMAT.format(new Date(((AbstractTask) mainTask).getDuration())));
+                    mainProgress.setString(TaskView.formatDuration(((AbstractTask) mainTask).getDuration()));
                 }
             }
         });
@@ -163,5 +160,5 @@ final class GroupTaskView extends AbstractTaskView {
         mainProgress.setValue(totalProgress);
         ((AbstractTask) mainTask).setProgress(totalProgress, null);
     }
-    
+
 }

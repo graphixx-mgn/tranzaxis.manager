@@ -6,6 +6,16 @@ import java.awt.Color;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalUnit;
 import java.util.Date;
 import java.util.function.Consumer;
 import javax.swing.AbstractAction;
@@ -23,8 +33,6 @@ import javax.swing.border.MatteBorder;
  * Реализация виджета задачи для отображения в мониторе.
  */
 final class TaskView extends AbstractTaskView {
-    
-    final static SimpleDateFormat DURATION_FORMAT = new SimpleDateFormat("mm:ss", java.util.Locale.getDefault());
     
     private final JLabel title;
     private final JLabel status;
@@ -93,7 +101,7 @@ final class TaskView extends AbstractTaskView {
         task.addListener(this);
         
         updater = new Timer(1000, (ActionEvent event) -> {
-            progress.setString(DURATION_FORMAT.format(new Date(((AbstractTask) task).getDuration())));
+            progress.setString(formatDuration(((AbstractTask) task).getDuration()));
         });
         updater.setInitialDelay(0);
         statusChanged(task, task.getStatus());
@@ -126,7 +134,7 @@ final class TaskView extends AbstractTaskView {
         } else if (!isInfinitive && !task.getStatus().isFinal()) {
             progress.setString(null);
         } if (task.getStatus() == Status.FINISHED || task.getStatus() == Status.FINISHED) {
-            progress.setString(DURATION_FORMAT.format(new Date(((AbstractTask) task).getDuration())));
+            progress.setString(formatDuration(((AbstractTask) task).getDuration()));
         }
         progress.setIndeterminate(isInfinitive);
         
@@ -138,6 +146,40 @@ final class TaskView extends AbstractTaskView {
                             PROGRESS_NORMAL
         );
         status.setText(task.getDescription());
+    }
+    
+    public final static long ONE_SECOND = 1000;
+    public final static long ONE_MINUTE = ONE_SECOND * 60;
+    public final static long ONE_HOUR   = ONE_MINUTE * 60;
+    public final static long ONE_DAY    = ONE_HOUR   * 24;
+    public static String formatDuration(long duration) {
+        StringBuilder res = new StringBuilder();
+        long temp;
+        if (duration >= ONE_SECOND) {
+            temp = duration / ONE_DAY;
+            if (temp > 0) {
+                duration -= temp * ONE_DAY;
+                res.append(temp).append("d,");
+            }
+            
+            if (temp > 0 || duration / ONE_HOUR > 0) {
+                temp = duration / ONE_HOUR;
+                duration -= temp * ONE_HOUR;
+                res.append(String.format("%02d", temp)).append(":");
+            }
+
+            temp = duration / ONE_MINUTE;
+            duration -= temp * ONE_MINUTE;
+            res.append(String.format("%02d", temp)).append(":");
+
+            temp = duration / ONE_SECOND;
+            if (temp > 0) {
+                res.append(String.format("%02d", temp));
+            }
+            return res.toString();
+        } else {
+            return "00:00";
+        }
     }
     
 }
