@@ -108,8 +108,9 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
     public void statusChanged(ITask task, Status newStatus) {
         List<ITask> taskList = new LinkedList<>(queue);  
         long running  = taskList.stream().filter(queued -> !queued.getStatus().isFinal()).count();
-        long failed   = taskList.stream().filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED).count();
-        boolean ready = running + failed == 0;
+        long stopped  = taskList.stream().filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED).count();
+        long failed   = taskList.stream().filter(queued -> queued.getStatus() == Status.FAILED).count();
+        boolean ready = running + stopped == 0;
         
         status.setVisible(!ready);
         progress.setVisible(!ready);
@@ -134,7 +135,7 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
         }
         
         long finished = taskList.stream().filter(queued -> queued.getStatus() == Status.FINISHED).count();
-        status.setText(MessageFormat.format(failed > 0 ? PATTERN_ERRORS : PATTERN_NORMAL, running, finished, failed));
+        status.setText(MessageFormat.format(stopped > 0 ? PATTERN_ERRORS : PATTERN_NORMAL, running, finished, stopped));
         if (task != null) {
             progressChanged(task, task.getProgress(), task.getDescription());
         }
