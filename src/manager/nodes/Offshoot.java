@@ -158,14 +158,14 @@ public class Offshoot extends BinarySource {
         String wcPath = remote ? getRemotePath(): getLocalPath();
         ISVNAuthenticationManager authMgr = getRepository().getAuthManager();
         SVNInfo info = SVN.info(wcPath, remote, authMgr);
-        return info.getCommittedRevision();
+        return info == null ? SVNRevision.UNDEFINED : info.getCommittedRevision();
     }
     
     public final Date getWorkingCopyRevisionDate(boolean remote) {
         String wcPath = remote ? getRemotePath() : getLocalPath();
         ISVNAuthenticationManager authMgr = getRepository().getAuthManager();
         SVNInfo info = SVN.info(wcPath, remote, authMgr);
-        return info.getCommittedDate();
+        return info == null ? null : info.getCommittedDate();
     }
     
 }

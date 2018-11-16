@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import javax.swing.SwingUtilities;
 import manager.nodes.Offshoot;
+import static manager.nodes.Offshoot.DATE_FORMAT;
 import manager.svn.SVN;
 import manager.type.WCStatus;
 import org.tmatesoft.svn.core.SVNCancelException;
@@ -70,6 +71,11 @@ public class UpdateWC extends EntityCommand<Offshoot> {
         public Void execute() throws Exception {
             String wcPath  = offshoot.getLocalPath();
             String repoUrl = offshoot.getRemotePath();
+            SVNRevision R1 = offshoot.getWorkingCopyRevision(false);
+            String   strR1 = new StringBuilder()
+                    .append(SVNRevision.UNDEFINED.equals(R1) ? "<unknown>" : R1)
+                    .append(SVNRevision.UNDEFINED.equals(R1) ? "" : "/".concat(DATE_FORMAT.format(offshoot.getWorkingCopyRevisionDate(false))))
+                    .toString();
             ISVNAuthenticationManager authMgr = offshoot.getRepository().getAuthManager();
 
             setProgress(0, Language.get(UpdateWC.class.getSimpleName(), "command@calc"));
@@ -148,14 +154,18 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                             }
                         }
                     );
+                    String strR2 = new StringBuilder()
+                            .append(offshoot.getWorkingCopyRevision(false))
+                            .append("/").append(DATE_FORMAT.format(offshoot.getWorkingCopyRevisionDate(false)))
+                            .toString();
                     Logger.getLogger().info(
-                            "UPDATE [{0}] finished\n"+
-                            (added.get()    == 0 ? "" : "                     * Added:    {1}\n")+
-                            (deleted.get()  == 0 ? "" : "                     * Deleted:  {2}\n")+
-                            (restored.get() == 0 ? "" : "                     * Restored: {3}\n")+
-                            (changed.get()  == 0 ? "" : "                     * Changed:  {4}\n")+
-                                                        "                     * Total:    {5}", 
-                            wcPath, added.get(), deleted.get(), restored.get(), changed.get(), loaded.get()
+                            "UPDATE [{0}] finished\nRevision: {1} -> {2}\n"+
+                            (added.get()    == 0 ? "" : " * Added:    {3}\n")+
+                            (deleted.get()  == 0 ? "" : " * Deleted:  {4}\n")+
+                            (restored.get() == 0 ? "" : " * Restored: {5}\n")+
+                            (changed.get()  == 0 ? "" : " * Changed:  {6}\n")+
+                                                        " * Total:    {7}", 
+                            wcPath, strR1, strR2, added.get(), deleted.get(), restored.get(), changed.get(), loaded.get()
                     );
                 } else {
                     Logger.getLogger().info(
