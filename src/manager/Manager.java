@@ -4,21 +4,17 @@ import codex.config.ConfigStoreService;
 import codex.explorer.ExplorerUnit;
 import codex.explorer.tree.NodeTreeModel;
 import codex.launcher.LauncherUnit;
-import codex.log.ILogMgmtService;
 import codex.log.LogUnit;
 import codex.log.Logger;
 import codex.service.ServiceRegistry;
+import codex.service.ServiceUnit;
 import codex.task.TaskManager;
-import codex.type.Enum;
 import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import it.sauronsoftware.junique.AlreadyLockedException;
 import it.sauronsoftware.junique.JUnique;
 import java.io.File;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.prefs.Preferences;
 import javax.swing.JFrame;
 import javax.swing.UIManager;
@@ -51,10 +47,10 @@ public class Manager {
             //updateUnit, 
             explorerUnit, 
             launchUnit, 
-            //serviceUnit,
+            serviceUnit,
             taskUnit
     ;
-    
+
     public Manager() {
         PlatformLogger platformLogger = PlatformLogger.getLogger("java.util.prefs");
         platformLogger.setLevel(PlatformLogger.Level.OFF);
@@ -75,36 +71,32 @@ public class Manager {
 
         Splash splash = new Splash();
         splash.setVisible(true);
-
+        
         logUnit = new LogUnit();
-        Thread.currentThread().setUncaughtExceptionHandler(Logger.getLogger());
+        Thread.setDefaultUncaughtExceptionHandler(Logger.getLogger());
                 
-        splash.setProgress(20, "Read configuration");
-        loadSystemProps();
+        splash.setProgress(10, "Read configuration");
         ServiceRegistry.getInstance().registerService(new ConfigStoreService(new File(CONFIG_PATH)));
+        loadSystemProps();
         
         splash.setProgress(30, "Start task management system");
         taskUnit = new TaskManager();
 
-        splash.setProgress(50, "Build data tree model");
+        splash.setProgress(50, "Build explorer tree");
         Common root = new Common();
+        root.insert(new RepositoryRoot());
+        root.insert(new DatabaseRoot());
+        root.insert(new EnvironmentRoot());
         
         NodeTreeModel treeModel = new NodeTreeModel(root);
         explorerUnit = new ExplorerUnit(treeModel);
-
-        RepositoryRoot  repos = new RepositoryRoot();
-        DatabaseRoot    bases = new DatabaseRoot();
-        EnvironmentRoot envs  = new EnvironmentRoot();
-        
-        root.insert(repos);
-        root.insert(bases);
-        root.insert(envs);
         
         splash.setProgress(70, "Start Launcher unit");
         launchUnit = new LauncherUnit();
         
-//        splash.setProgress(80, "Start service management system");
-//        serviceUnit = new ServiceUnit();
+        splash.setProgress(80, "Start service management system");
+        serviceUnit = new ServiceUnit();
+        
         
 //        splash.setProgress(90, "Start upgrade management system");
         //updateUnit = new UpdateUnit();
@@ -118,8 +110,9 @@ public class Manager {
         //window.addUnit(updateUnit,   WINDOW.upgradePanel);
         WINDOW.addUnit(explorerUnit, WINDOW.explorePanel);
         WINDOW.addUnit(launchUnit,   WINDOW.launchPanel);
-        //window.addUnit(serviceUnit,  WINDOW.servicePanel);
         WINDOW.addUnit(taskUnit,     WINDOW.taskmgrPanel);
+        WINDOW.addUnit(serviceUnit,  WINDOW.servicePanel);
+        
         splash.setProgress(100);
         splash.setVisible(false);        
         WINDOW.setVisible(true);
@@ -132,19 +125,6 @@ public class Manager {
             Locale localeEnum = Locale.valueOf(prefs.get("guiLang", null));
             java.lang.System.setProperty("user.language", localeEnum.getLocale().getLanguage());
             java.lang.System.setProperty("user.country",  localeEnum.getLocale().getCountry());
-        }
-        if (prefs.get("logLevel", null) != null) {
-            Enum minLevel = new Enum(codex.log.Level.Debug);
-            minLevel.valueOf(prefs.get("logLevel", null));
-            
-            ILogMgmtService logMgmt = (ILogMgmtService) ServiceRegistry
-                    .getInstance()
-                    .lookupService(LogUnit.LogMgmtService.class);
-            Map<codex.log.Level, Boolean> levelMap = new HashMap<>();
-            EnumSet.allOf(codex.log.Level.class).forEach((level) -> {
-                levelMap.put(level, level.ordinal() >= ((java.lang.Enum) minLevel.getValue()).ordinal());
-            });
-            logMgmt.changeLevels(levelMap);
         }
     }
 

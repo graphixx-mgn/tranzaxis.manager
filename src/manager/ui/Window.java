@@ -15,9 +15,9 @@ import javax.swing.border.MatteBorder;
 
 public final class Window extends JFrame {
     
-    private final static ImageIcon LAUNCH  = ImageUtils.resize(ImageUtils.getByPath("/images/launch.png"), 20, 20);
-    private final static ImageIcon VIEWER  = ImageUtils.resize(ImageUtils.getByPath("/images/viewer.png"), 20, 20);
-//    private final static ImageIcon SERVICE = ImageUtils.resize(ImageUtils.getByPath("/images/services.png"), 20, 20);
+    private final static ImageIcon LAUNCH  = ImageUtils.resize(ImageUtils.getByPath("/images/launch.png"),   20, 20);
+    private final static ImageIcon VIEWER  = ImageUtils.resize(ImageUtils.getByPath("/images/viewer.png"),   20, 20);
+    private final static ImageIcon SERVICE = ImageUtils.resize(ImageUtils.getByPath("/images/services.png"), 20, 20);
     
     private final JTabbedPane tabbedPanel  = new JTabbedPane(JTabbedPane.LEFT);
     public final JPanel upgradePanel = new JPanel();
@@ -25,7 +25,7 @@ public final class Window extends JFrame {
     public final JPanel loggingPanel = new JPanel();
     public final JPanel explorePanel = new JPanel();
     public final JPanel launchPanel  = new JPanel();
-    //public final JPanel servicePanel = new JPanel();
+    public final JPanel servicePanel = new JPanel();
     
     public Window(String title, ImageIcon icon) {
         super(title);
@@ -44,7 +44,7 @@ public final class Window extends JFrame {
         
         tabbedPanel.addTab(null, VIEWER,  explorePanel);
         tabbedPanel.addTab(null, LAUNCH,  launchPanel);
-//        tabbedPanel.addTab(null, SERVICE, servicePanel);
+        tabbedPanel.addTab(null, SERVICE, servicePanel);
         
         GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
