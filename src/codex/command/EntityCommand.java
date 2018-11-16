@@ -18,7 +18,6 @@ import codex.task.TaskManager;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.Language;
-import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -125,6 +124,9 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
         this.button = new PushButton(icon, null);
         this.button.addActionListener(this);
         this.button.setHint(hint + (key == null ? "" : " ("+getKeyText(key)+")"));
+        if (key != null) {
+            bindKey(key);
+        }
         
         addListener(this);
     }
@@ -145,11 +147,6 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     
     @Override
     public final IButton getButton() {
-        if (key != null) {
-            SwingUtilities.invokeLater(() -> {
-                    bindKey(key);
-            });
-        }
         return button;
     }
     
@@ -312,15 +309,17 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
      * Привязка команды к комбинации клавиш клавиатуры.
      */
     private void bindKey(KeyStroke key) {
-        InputMap inputMap = ((JComponent) ((Component) this.button).getParent()).getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
-        if (inputMap.get(key) != null && inputMap.get(key) != this) {
+        InputMap inputMap = ((JComponent) this.button).getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        if (inputMap.get(key) != null && inputMap.get(key) == this) {
+            // Do nothing
+        } else if (inputMap.get(key) != null && inputMap.get(key) == this) {
             throw new IllegalStateException(MessageFormat.format(
                     "Key [{0}] already used by command ''{1}''", 
                     getKeyText(key), inputMap.get(key).getClass().getSimpleName()
-            ));
+            ));            
         } else {
             inputMap.put(key, this);
-            ((JComponent) ((Component) this.button).getParent()).getActionMap().put(this, new AbstractAction() {
+            ((JComponent) this.button).getActionMap().put(this, new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent event) {
                     if (button.isEnabled()) {
