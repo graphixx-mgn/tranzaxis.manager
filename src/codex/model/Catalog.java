@@ -64,7 +64,7 @@ public abstract class Catalog extends Entity {
     }
     
     @Override
-    public abstract Class getChildClass();
+    public abstract Class<? extends Entity> getChildClass();
     
     protected Collection<String> getChildrenPIDs() {
         EntityRef owner = Entity.findOwner(this);

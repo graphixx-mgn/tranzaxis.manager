@@ -219,7 +219,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     /**
      * Добавление новой команды сущности.
      */
-    public Entity addCommand(EntityCommand command) {
+    public final Entity addCommand(EntityCommand command) {
         commands.put(command.getName(), command);
         return this;
     }
