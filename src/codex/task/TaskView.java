@@ -5,18 +5,6 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAccessor;
-import java.time.temporal.TemporalUnit;
-import java.util.Date;
 import java.util.function.Consumer;
 import javax.swing.AbstractAction;
 import javax.swing.JLabel;
@@ -173,9 +161,7 @@ final class TaskView extends AbstractTaskView {
             res.append(String.format("%02d", temp)).append(":");
 
             temp = duration / ONE_SECOND;
-            if (temp > 0) {
-                res.append(String.format("%02d", temp));
-            }
+            res.append(String.format("%02d", temp));
             return res.toString();
         } else {
             return "00:00";
