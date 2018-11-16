@@ -108,14 +108,14 @@ public class SVN {
                 // Checkout
                 SVNURL svnUrl = SVNURL.parseURIEncoded(url);
                 SVNLogClient logClient = clientMgr.getLogClient();
-                if (handler != null) {
-                    logClient.setEventHandler(handler);
-                }
                 logClient.doList(svnUrl, revision, revision, true, SVNDepth.INFINITY, 1, new ISVNDirEntryHandler() {
                     @Override
                     public void handleDirEntry(SVNDirEntry entry) throws SVNException {
                         if (entry.getKind() != SVNNodeKind.DIR) {
                             changes.addAndGet(1);
+                        }
+                        if (handler != null) {
+                            handler.checkCancelled();
                         }
                     }
                 });
