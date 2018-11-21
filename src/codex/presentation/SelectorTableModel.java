@@ -6,6 +6,7 @@ import codex.model.Access;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.model.IModelListener;
+import codex.type.Bool;
 import codex.type.IComplexType;
 import java.util.Collections;
 import java.util.Iterator;
@@ -17,7 +18,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 
 public class SelectorTableModel extends DefaultTableModel implements IModelListener {
-    
+
     private final List<Class<? extends IComplexType>> columnClasses = new LinkedList<>();
     private final Entity entity;
     
@@ -57,7 +58,7 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
     
     @Override
     public Class<?> getColumnClass(int columnIndex) {
-        return columnClasses.get(columnIndex);
+        return columnClasses.get(columnIndex) == Bool.class ? Bool.class : IComplexType.class;
     }
 
     @Override

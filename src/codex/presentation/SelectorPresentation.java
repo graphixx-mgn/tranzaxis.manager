@@ -2,6 +2,7 @@ package codex.presentation;
 
 import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
+import codex.component.button.IButton;
 import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
@@ -13,13 +14,8 @@ import codex.model.Access;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.model.OverrideProperty;
-import codex.type.ArrStr;
 import codex.type.Bool;
-import codex.type.EntityRef;
-import codex.type.Enum;
 import codex.type.IComplexType;
-import codex.type.Int;
-import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.BorderLayout;
@@ -34,7 +30,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
-import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -68,9 +63,9 @@ import javax.swing.event.ListSelectionListener;
  */
 public final class SelectorPresentation extends JPanel implements ListSelectionListener, INodeListener {
     
-    private final static ImageIcon IMAGE_EDIT   = ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 28, 28);
-    private final static ImageIcon IMAGE_VIEW   = ImageUtils.resize(ImageUtils.getByPath("/images/view.png"), 28, 28);
-    private final static ImageIcon IMAGE_CREATE = ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 28, 28);
+    private final static ImageIcon IMAGE_EDIT   = ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"),  28, 28);
+    private final static ImageIcon IMAGE_VIEW   = ImageUtils.resize(ImageUtils.getByPath("/images/view.png"),  28, 28);
+    private final static ImageIcon IMAGE_CREATE = ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"),  28, 28);
     private final static ImageIcon IMAGE_CLONE  = ImageUtils.resize(ImageUtils.getByPath("/images/clone.png"), 28, 28);
     private final static ImageIcon IMAGE_REMOVE = ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28);
     
@@ -94,7 +89,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         }
         entityClass = entity.getChildClass();
         this.entity = entity;
-        WeakReference<Entity> prototype = new WeakReference<>(Entity.newPrototype(entityClass));
+        Entity prototype = Entity.newPrototype(entityClass);
         
         commands.add(new EditEntity());
         if (entity.allowModifyChild()) {
@@ -103,12 +98,12 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             commands.add(new DeleteEntity());
         }
         commandPanel.addCommands(commands.toArray(new EntityCommand[]{}));
-        if (!prototype.get().getCommands().isEmpty()) {
+        if (!prototype.getCommands().isEmpty()) {
             commandPanel.addSeparator();
         }
         
-        commands.addAll(prototype.get().getCommands());
-        commandPanel.addCommands(prototype.get().getCommands().toArray(new EntityCommand[]{}));
+        commands.addAll(prototype.getCommands());
+        commandPanel.addCommands(prototype.getCommands().toArray(new EntityCommand[]{}));
         
         commands.forEach((command) -> {
             if (command instanceof CreateEntity) {
@@ -120,17 +115,13 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         
         add(commandPanel, BorderLayout.NORTH);
         
-        tableModel = new SelectorTableModel(entity, prototype.get());
+        tableModel = new SelectorTableModel(entity, prototype);
         table = new SelectorTable(tableModel);
         table.getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         
         GeneralRenderer renderer = new GeneralRenderer();
-        table.setDefaultRenderer(Str.class,  renderer);
-        table.setDefaultRenderer(Int.class,  renderer);
-        table.setDefaultRenderer(Bool.class, renderer);
-        table.setDefaultRenderer(Enum.class, renderer);
-        table.setDefaultRenderer(ArrStr.class,    renderer);
-        table.setDefaultRenderer(EntityRef.class, renderer);
+        table.setDefaultRenderer(Bool.class,         renderer);
+        table.setDefaultRenderer(IComplexType.class, renderer);
         table.getTableHeader().setDefaultRenderer(renderer);
         
         if (entity.allowModifyChild()) {
@@ -152,7 +143,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent event) {
-                if (event.getClickCount() == 2) {
+                IButton cmdButton = commands.get(0).getButton();
+                if (event.getClickCount() == 2 && cmdButton.isEnabled() && !cmdButton.isInactive()) {
                     commands.get(0).execute(tableModel.getEntityAt(table.getSelectedRow()), null);
                 }
             }
@@ -325,7 +317,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 
                 @Override
                 public Dimension getPreferredSize() {
-                    return new Dimension(650, super.getPreferredSize().height);
+                    return new Dimension(700, super.getPreferredSize().height);
                 }
             };
             
@@ -478,7 +470,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 
                 @Override
                 public Dimension getPreferredSize() {
-                    return new Dimension(650, super.getPreferredSize().height);
+                    return new Dimension(700, super.getPreferredSize().height);
                 }
             };
             
@@ -520,8 +512,9 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     boolean allDisabled = entities.get(0).model.getProperties(Access.Edit).parallelStream().allMatch((name) -> {
                         return !entities.get(0).model.getEditor(name).isEditable();
                     });
-                    getButton().setIcon(allDisabled || !entity.allowModifyChild() || entities.get(0).islocked() ? IMAGE_VIEW : IMAGE_EDIT);
-                    getButton().setEnabled(true);
+                    boolean hasProps = !entities.get(0).model.getProperties(Access.Edit).isEmpty();
+                    getButton().setIcon(allDisabled || /*!entity.allowModifyChild() ||*/ entities.get(0).islocked() ? IMAGE_VIEW : IMAGE_EDIT);
+                    getButton().setEnabled(hasProps);
                 } else {
                     getButton().setIcon(entity.allowModifyChild() ? IMAGE_EDIT : IMAGE_VIEW);
                     getButton().setEnabled(false);
@@ -534,6 +527,14 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         public void execute(Entity context, Map<String, IComplexType> params) {
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
+            
+//            if (!entity.allowModifyChild()) {
+//                context.model.getProperties(Access.Edit).stream().filter((propName) -> {
+//                    return !context.model.isPropertyDynamic(propName);
+//                }).forEach((propName) -> {
+//                    ((AbstractEditor) context.model.getEditor(propName)).setEditable(false);
+//                });
+//            }
             
             EditorPage page = new EditorPage(context.model);
             page.setBorder(new CompoundBorder(
@@ -581,7 +582,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 
                 @Override
                 public Dimension getPreferredSize() {
-                    return new Dimension(650, super.getPreferredSize().height);
+                    return new Dimension(700, super.getPreferredSize().height);
                 }
             };
             
