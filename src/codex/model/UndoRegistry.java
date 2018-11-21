@@ -1,5 +1,6 @@
 package codex.model;
 
+import codex.log.Logger;
 import java.text.MessageFormat;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,9 +24,7 @@ final class UndoRegistry {
      */
     public final void put(String key, Object previousValue, Object currentValue) {
         if (exists(key)) {
-            if ((previous(key) == null && currentValue == null) ||
-                (previous(key) != null && previous(key).equals(currentValue)))
-            {
+            if ((previous(key) == null ? currentValue == null : previous(key).equals(currentValue))) {
                 delete(key);
             } else {
                 update(key, currentValue);
