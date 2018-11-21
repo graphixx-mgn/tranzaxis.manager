@@ -31,8 +31,8 @@ public class BoolEditor extends AbstractEditor implements ItemListener {
     public Box createEditor() {
         checkBox = new JCheckBox();
         checkBox.setFocusPainted(false);
-        checkBox.setIcon(ImageUtils.resize(ImageUtils.getByPath("/images/unchecked.png"), 20, 20));
-        checkBox.setSelectedIcon(ImageUtils.resize(ImageUtils.getByPath("/images/checked.png"), 20, 20));
+        checkBox.setIcon(ImageUtils.resize(ImageUtils.getByPath("/images/unchecked.png"), 19, 19));
+        checkBox.setSelectedIcon(ImageUtils.resize(ImageUtils.getByPath("/images/checked.png"), 19, 19));
         checkBox.setOpaque(true);
         checkBox.setBackground(Color.WHITE);
         checkBox.setBorder(new EmptyBorder(0, 0, 0, 0));
