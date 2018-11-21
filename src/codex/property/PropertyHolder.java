@@ -137,7 +137,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
             if (IComplexType.class.isAssignableFrom(value.getClass())) {
                 if (value.getClass().equals(this.value.getClass())) {
                     this.value = (IComplexType<V, ?>) value;
-                    fireChangeEvent(prevValue, getPropValue());
+                    fireChangeEvent(prevValue, getPropValue().getValue());
                     return;
                 } else {
                     throw new IllegalStateException(
