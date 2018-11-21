@@ -1,21 +1,20 @@
 package codex.notification;
 
+import codex.service.AbstractService;
 import java.awt.AWTException;
 import java.awt.Image;
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 
 /**
  * Сервис отображения уведомлений в системном трее. Уведомления назначаются на 
  * иконку в трее.
  */
-public class NotificationService implements INotificationService {
+public class NotificationService extends AbstractService<NotifyServiceOptions> implements INotificationService {
     
-    private final TrayIcon    trayIcon;
-    private Supplier<Boolean> condition = () -> true;
+    private final TrayIcon trayIcon;
     
     /**
      * Конструктор сервиса.
@@ -37,15 +36,10 @@ public class NotificationService implements INotificationService {
     public NotificationService(Image trayIconImage, String appName) {
        this.trayIcon = new TrayIcon(trayIconImage, appName);
     }
-    
-    @Override
-    public void setCondition(Supplier<Boolean> condition) {
-        this.condition = condition;
-    }
 
     @Override
     public void showMessage(String title, String details, TrayIcon.MessageType type) {
-        if (SystemTray.isSupported() && condition.get()) {
+        if (SystemTray.isSupported() && getConfig().getCondition().getCondition().get()) {
             AtomicBoolean iconExists = new AtomicBoolean(false);
             Arrays.asList(SystemTray.getSystemTray().getTrayIcons()).forEach((icon) -> {
                 if (icon == trayIcon) {

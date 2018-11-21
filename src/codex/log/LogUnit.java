@@ -2,6 +2,7 @@ package codex.log;
 
 import codex.component.button.PushButton;
 import codex.component.button.ToggleButton;
+import codex.service.AbstractService;
 import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
@@ -165,7 +166,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
             }
         });
         
-        ServiceRegistry.getInstance().registerService(new LogMgmtService());
+        ServiceRegistry.getInstance().registerService(new LogMgmtService(), false);
     }
 
     @Override
@@ -230,9 +231,12 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
         return switches;
     }
     
-    public class LogMgmtService implements ILogMgmtService {
+    public class LogMgmtService extends AbstractService<LoggerServiceOptions> implements ILogMgmtService {
         
-        LogMgmtService() {};
+        @Override
+        public boolean isStoppable() {
+            return false;
+        }
 
         @Override
         public void changeLevels(Map<codex.log.Level, Boolean> levels) {

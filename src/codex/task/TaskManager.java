@@ -2,6 +2,8 @@ package codex.task;
 
 import codex.log.Logger;
 import codex.notification.NotificationService;
+import codex.service.AbstractService;
+import codex.service.CommonServiceOptions;
 import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
 import java.awt.AWTException;
@@ -78,11 +80,11 @@ public final class TaskManager extends AbstractUnit {
             trayIcon.setImageAutoSize(true);
 
             NotificationService notifier = new NotificationService(trayIcon);
-            notifier.setCondition(() -> {
-                int state = frame.getState();
-                Window wnd = FocusManager.getCurrentManager().getActiveWindow();
-                return state == JFrame.ICONIFIED || state == 7 || wnd == null || !wnd.isActive();
-            });
+//            notifier.setCondition(() -> {
+//                int state = frame.getState();
+//                Window wnd = FocusManager.getCurrentManager().getActiveWindow();
+//                return state == JFrame.ICONIFIED || state == 7 || wnd == null || !wnd.isActive();
+//            });
             ServiceRegistry.getInstance().registerService(notifier);
             try {
                 SystemTray.getSystemTray().add(trayIcon);
@@ -135,9 +137,7 @@ public final class TaskManager extends AbstractUnit {
     /**
      * Сервис, принимающий задачи на исполнение.
      */
-    public class TaskExecutorService implements ITaskExecutorService {
-        
-        TaskExecutorService() {}
+    public class TaskExecutorService extends AbstractService<CommonServiceOptions> implements ITaskExecutorService {
         
         @Override
         public void enqueueTask(ITask task) {
@@ -153,6 +153,12 @@ public final class TaskManager extends AbstractUnit {
         public void quietTask(ITask task) {
             execute(task, true);
         };
+        
+        @Override
+        public boolean isStoppable() {
+            return false;
+        }
+
     }
 
 }

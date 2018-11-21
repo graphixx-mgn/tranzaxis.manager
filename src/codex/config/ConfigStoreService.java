@@ -1,7 +1,10 @@
 package codex.config;
 
 import codex.database.IDatabaseAccessService;
+import codex.log.LogUnit;
 import codex.log.Logger;
+import codex.service.AbstractService;
+import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import java.io.File;
@@ -31,13 +34,11 @@ import org.sqlite.core.Codes;
  * Реализация интерфейса сервиса загрузки и сохранения данных модели на базе
  * SQLite.
  */
-public final class ConfigStoreService implements IConfigStoreService {
+public final class ConfigStoreService extends AbstractService<ConfigServiceOptions> implements IConfigStoreService {
     
     private final File configFile;
     private Connection connection;
-    private final Map<String, TableInfo> tableRegistry  = new HashMap<>();
-    
-    private static final Boolean DEV_MODE = "1".equals(java.lang.System.getProperty("showSql"));
+    private final Map<String, TableInfo> tableRegistry = new HashMap<>();
 
     /**
      * Конструктор сервиса.
@@ -75,9 +76,6 @@ public final class ConfigStoreService implements IConfigStoreService {
                                 if (!tableRegistry.containsKey(tableName)) {
                                     tableRegistry.put(tableName, new TableInfo(tableName));
                                 }
-                                if (DEV_MODE) {
-                                    Logger.getLogger().debug(tableRegistry.get(tableName));
-                                }
                             } catch (Exception e) {
                                 Logger.getLogger().error("CAS: Unable to build table registry", e);
                             }
@@ -90,6 +88,27 @@ public final class ConfigStoreService implements IConfigStoreService {
         } catch (SQLException e) {
             Logger.getLogger().error("CAS: Unable to read DB file", e);
         }
+    }
+
+    @Override
+    public void startService() {
+        super.startService();
+        getConfig().setWorkDir(configFile.toPath());
+        if (isShowSql()) {
+            tableRegistry.values().forEach((tableInfo) -> {
+                Logger.getLogger().debug(tableInfo);
+            });   
+        }
+    }
+    
+    @Override
+    public boolean isStoppable() {
+        return false;
+    }
+    
+    public boolean isShowSql() {
+        LogUnit.LogMgmtService LMS = (LogUnit.LogMgmtService) ServiceRegistry.getInstance().lookupService(LogUnit.LogMgmtService.class);
+        return LMS.getConfig().isShowSQL();
     }
     
     private synchronized void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {
@@ -131,7 +150,7 @@ public final class ConfigStoreService implements IConfigStoreService {
         String triggerBI = generateTriggerCode(className, TriggerKind.Before_Insert);
         String triggerBU = generateTriggerCode(className, TriggerKind.Before_Update);
         
-        if (DEV_MODE) {
+        if (isShowSql()) {
             Logger.getLogger().debug(
                     "CAS: Create table queries:\n{0}", 
                             "[1] ".concat(createSQL)
@@ -170,7 +189,7 @@ public final class ConfigStoreService implements IConfigStoreService {
                             .map((columnInfo) -> {
                                 return columnInfo.name;
                             }).collect(Collectors.joining(",")),
-                    DEV_MODE ? "\n".concat(tableRegistry.get(className).toString()) : ""
+                    isShowSql() ? "\n".concat(tableRegistry.get(className).toString()) : ""
             ));
             connection.releaseSavepoint(savepoint);
             connection.commit();
@@ -233,7 +252,7 @@ public final class ConfigStoreService implements IConfigStoreService {
                 "INSERT INTO {0} (SEQ, PID, OWN) VALUES ((SELECT IFNULL(MAX(SEQ), 0)+1 FROM {0}), ?, ?)", className
         );
         
-        if (DEV_MODE) {
+        if (isShowSql()) {
             Logger.getLogger().debug(
                     "CAS: Insert query: {0}", 
                     IDatabaseAccessService.prepareTraceSQL(
@@ -301,7 +320,7 @@ public final class ConfigStoreService implements IConfigStoreService {
             final String[] parts   = properties.keySet().toArray(new String[]{});
             
             final String updateSQL = "UPDATE "+className+" SET "+String.join(" = ?, ", parts)+" = ? WHERE ID = ?";
-            if (DEV_MODE) {
+            if (isShowSql()) {
                 Logger.getLogger().debug("CAS: Update query: {0}", IDatabaseAccessService.prepareTraceSQL(updateSQL, properties.values().toArray(), ID));
             }
             
@@ -488,7 +507,7 @@ public final class ConfigStoreService implements IConfigStoreService {
         String PID = readClassInstance(clazz, ID).get("PID");
         final String deleteSQL = MessageFormat.format("DELETE FROM {0} WHERE ID = ?", className);
         
-        if (DEV_MODE) {
+        if (isShowSql()) {
             Logger.getLogger().debug(
                     "CAS: Delete query: {0}", 
                     IDatabaseAccessService.prepareTraceSQL(deleteSQL, ID)
@@ -646,7 +665,7 @@ public final class ConfigStoreService implements IConfigStoreService {
                     }).collect(Collectors.toList()));
         }
         
-        if (DEV_MODE) {
+        if (isShowSql()) {
             Logger.getLogger().debug(
                     "CAS: Alter table queries:\n{0}", 
                     queries.stream().map((query) -> {
@@ -710,7 +729,7 @@ public final class ConfigStoreService implements IConfigStoreService {
         Logger.getLogger().debug(MessageFormat.format("CAS: Catalog {0} maintainance complete:\n{1}{2}", 
                     className,
                     joiner.toString(),
-                    DEV_MODE ? "\n".concat(tableRegistry.get(className).toString()) : ""
+                    isShowSql() ? "\n".concat(tableRegistry.get(className).toString()) : ""
                 )
         );
     }
