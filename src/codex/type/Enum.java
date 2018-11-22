@@ -5,6 +5,7 @@ import codex.editor.IEditorFactory;
 import codex.mask.IMask;
 import codex.property.PropertyHolder;
 import java.text.MessageFormat;
+import java.util.Objects;
 
 /**
  * Тип-обертка {@link IComplexType} для перечислений Enum.
@@ -44,6 +45,19 @@ public class Enum implements IComplexType<java.lang.Enum, IMask<java.lang.Enum>>
     @Override
     public IEditorFactory editorFactory() {
         return EDITOR_FACTORY;
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+        IComplexType complex = (IComplexType) obj;
+        return complex.getValue().equals(getValue());
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 67 * hash + Objects.hashCode(this.value);
+        return hash;
     }
     
     @Override

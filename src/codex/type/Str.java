@@ -5,6 +5,7 @@ import codex.editor.StrEditor;
 import codex.mask.IMask;
 import codex.property.PropertyHolder;
 import java.text.MessageFormat;
+import java.util.Objects;
 
 /**
  * Тип-обертка {@link IComplexType} для класса String.
@@ -62,6 +63,19 @@ public class Str implements IComplexType<String, IMask<String>> {
     @Override
     public IMask<String> getMask() {
         return mask;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        IComplexType complex = (IComplexType) obj;
+        return (complex.getValue() == null ? getValue() == null : complex.getValue().equals(getValue()));
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 11 * hash + Objects.hashCode(this.value);
+        return hash;
     }
     
     @Override

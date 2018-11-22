@@ -5,6 +5,7 @@ import codex.editor.IEditorFactory;
 import codex.mask.IMask;
 import codex.property.PropertyHolder;
 import java.text.MessageFormat;
+import java.util.Objects;
 
 /**
  * Тип-обертка {@link IComplexType} для класса Boolean.
@@ -38,6 +39,19 @@ public class Bool implements IComplexType<Boolean, IMask<Boolean>> {
     @Override
     public IEditorFactory editorFactory() {
         return EDITOR_FACTORY;
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+        IComplexType complex = (IComplexType) obj;
+        return (complex.getValue() == null ? getValue() == null : complex.getValue().equals(getValue()));
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 97 * hash + Objects.hashCode(this.value);
+        return hash;
     }
     
     @Override
