@@ -6,18 +6,12 @@ import codex.service.AbstractService;
 import codex.service.CommonServiceOptions;
 import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
-import java.awt.AWTException;
 import java.awt.Component;
-import java.awt.SystemTray;
-import java.awt.TrayIcon;
-import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import javax.swing.AbstractAction;
-import javax.swing.FocusManager;
 import javax.swing.JComponent;
-import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
 /**
@@ -71,30 +65,6 @@ public final class TaskManager extends AbstractUnit {
         taskPanel = new TaskStatusBar(Arrays.asList(queuedThreadPool, demandThreadPool));
         return taskPanel;
     }
-
-    @Override
-    public void viewportBound() {
-        if (SystemTray.isSupported()) {
-            JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(taskPanel);
-            final TrayIcon trayIcon = new TrayIcon(frame.getIconImage(), frame.getTitle());
-            trayIcon.setImageAutoSize(true);
-
-            NotificationService notifier = new NotificationService(trayIcon);
-//            notifier.setCondition(() -> {
-//                int state = frame.getState();
-//                Window wnd = FocusManager.getCurrentManager().getActiveWindow();
-//                return state == JFrame.ICONIFIED || state == 7 || wnd == null || !wnd.isActive();
-//            });
-            ServiceRegistry.getInstance().registerService(notifier);
-            try {
-                SystemTray.getSystemTray().add(trayIcon);
-            } catch (AWTException e) {
-                Logger.getLogger().warn("Unable to minimize window to tray: {0}", e.getMessage());
-            }
-        }
-    }
-    
-    
     
     /**
      * Добавление задачи в очередь на исполнение и регистрация в окне просмотра

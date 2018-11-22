@@ -56,6 +56,8 @@ import javax.swing.table.DefaultTableModel;
  */
 final class TaskMonitor extends JPopupMenu implements ITaskListener {
     
+    private final static String  NS_SOURCE    = "TaskManager/Task finished";
+    
     private final static String  POOL_USAGE   = Language.get("thread@usage");
     private final static Matcher THREAD_NAME  = Pattern.compile("([^:]*): .*").matcher("");
     private final static Matcher THREAD_STATE = Pattern.compile("[^:]*: (.*)").matcher("");
@@ -179,6 +181,10 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
         add(tab);
         
         this.cancelAction = cancelAction;
+        
+        ServiceRegistry.getInstance().addRegistryListener(NotificationService.class, (service) -> {
+            ((NotificationService) service).registerSource(NS_SOURCE);
+        });
     }
 
     /**
@@ -297,12 +303,12 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
                     TaskMonitor.class.getSimpleName(),
                     "notify@"+task.getStatus().name().toLowerCase()
             );
-            ((INotificationService) ServiceRegistry.getInstance().lookupService(NotificationService.class))
-                    .showMessage(
-                            msgTitle, 
-                            task.getTitle(), 
-                            task.getStatus() == Status.FINISHED ? TrayIcon.MessageType.INFO : TrayIcon.MessageType.ERROR
-                    );
+            ((INotificationService) ServiceRegistry.getInstance().lookupService(NotificationService.class)).showMessage(
+                    NS_SOURCE,
+                    msgTitle, 
+                    task.getTitle(), 
+                    task.getStatus() == Status.FINISHED ? TrayIcon.MessageType.INFO : TrayIcon.MessageType.ERROR
+            );
         }
     }
  
