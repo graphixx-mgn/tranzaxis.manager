@@ -7,9 +7,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -19,9 +24,11 @@ public final class ServiceRegistry {
     
     private final static ServiceRegistry INSTANCE = new ServiceRegistry();
     
-    private final Map<Class, IService> registry = new HashMap<>();
-    private final Map<Class, IService> stubs = new HashMap<>();
     private Constructor<MethodHandles.Lookup> lookup;
+    
+    private final Map<Class<? extends IService>, IService> stubs = new HashMap<>();
+    private final Map<Class<? extends IService>, IService> registry = new HashMap<>();
+    private final Map<Class<? extends IService>, List<IRegistryListener>> listeners = new ConcurrentHashMap<>();
     
     private ServiceCatalog serviceCatalog;
     
@@ -61,6 +68,15 @@ public final class ServiceRegistry {
      */
     public void registerService(IService service) {
         registerService(service, true);
+        if (listeners.containsKey(service.getClass())) {
+            new LinkedList<>(listeners.get(service.getClass())).forEach((listener) -> {
+                listener.serviceRegistered(service);
+            });
+        }
+    }
+    
+    public boolean isServiceRegistered(Class<? extends IService> serviceClass) {
+        return registry.containsKey(serviceClass);
     }
     
     /**
@@ -111,8 +127,12 @@ public final class ServiceRegistry {
                                 }
                                 if (!method.getName().equals("getTitle") && isEnabled) {
                                     Logger.getLogger().warn(
-                                            "Called not registered service ''{0}'' ", 
-                                            stubs.get(serviceInterface).getTitle()
+                                            "Called not registered service ''{0}''\nService call: {1}({2})", 
+                                            stubs.get(serviceInterface).getTitle(),
+                                            method.getName(),
+                                            Arrays.asList(method.getParameterTypes()).stream().map((param) -> {
+                                                return "<".concat(param.getSimpleName()).concat(">");
+                                            }).collect(Collectors.joining(", "))
                                     );
                                 }
                                 return lookup.newInstance(serviceInterface,
@@ -152,6 +172,24 @@ public final class ServiceRegistry {
                 }).findFirst();
         
         return !serviceConrtrol.isPresent() || serviceConrtrol.get().isStarted();
+    }
+    
+    public final void addRegistryListener(Class<? extends IService> serviceClass, IRegistryListener listener) {
+        if (!listeners.containsKey(serviceClass)) {
+            listeners.put(serviceClass, new LinkedList<>());
+        }
+        listeners.get(serviceClass).add(listener);
+        
+        if (registry.containsKey(serviceClass)) {
+            listener.serviceRegistered(registry.get(serviceClass));
+        }
+    }
+    
+    @FunctionalInterface
+    public interface IRegistryListener {
+        
+        void serviceRegistered(IService service);
+        
     }
     
 }
