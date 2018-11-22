@@ -63,4 +63,10 @@ final class BoolCellRenderer extends CellRenderer<Boolean> {
         return checkBox.getPreferredSize();
     }
 
+    @Override
+    public void setDisabled(boolean disabled) {
+        super.setDisabled(disabled);
+        checkBox.setEnabled(!disabled);
+        checkBox.setBackground(disabled ? Color.decode("#F8F8F8"): Color.WHITE);
+    }
 }

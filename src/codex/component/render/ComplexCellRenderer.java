@@ -33,7 +33,6 @@ final class ComplexCellRenderer extends CellRenderer<Object> {
     @Override
     public void setValue(Object value, String placeholder) {
         ImageIcon icon;
-        
         if (value != null && Iconified.class.isAssignableFrom(value.getClass())) {
             if (value instanceof Entity && !((Entity) value).model.isValid()) {
                 icon = ImageUtils.resize(ImageUtils.combine(((Iconified) value).getIcon(),ICON_INVALID), 18, 18);
@@ -46,12 +45,5 @@ final class ComplexCellRenderer extends CellRenderer<Object> {
         setIcon(icon);
         setText(value != null ? value.toString() : placeholder);
     }
-    
-    @Override
-    public void setEnabled(boolean enabled) {
-        if (getIcon() != null && !enabled) {
-            setIcon(ImageUtils.grayscale((ImageIcon) getIcon()));
-        }
-    }
-    
+
 }

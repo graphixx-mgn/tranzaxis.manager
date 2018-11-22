@@ -6,7 +6,6 @@ import codex.editor.IEditor;
 import codex.explorer.tree.INode;
 import codex.model.Access;
 import codex.model.Entity;
-import codex.model.EntityModel;
 import codex.presentation.SelectorTableModel;
 import codex.property.PropertyState;
 import codex.type.ArrStr;
@@ -117,7 +116,6 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
         Class columnClass = table.getColumnClass(column);
-        CellRenderer cellBox;
         if (row == TableModelEvent.HEADER_ROW) {
             TableHeaderRenderer cellHead = TableHeaderRenderer.getInstance();
             cellHead.setValue((String) value, null);
@@ -127,6 +125,7 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
             ));
             return cellHead;
         } else {
+            CellRenderer cellBox;
             if (Bool.class.equals(columnClass)) {
                 cellBox = BoolCellRenderer.getInstance();
             } else {
@@ -151,7 +150,6 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
                 cellBox.setValue(value, IEditor.NOT_DEFINED);
             }
 
-            cellBox.setEnabled(!isEntityLocked);
             switch (propState) {
                 case Error: 
                     cellBox.state.setIcon(ICON_ERROR);
@@ -160,8 +158,9 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
                     cellBox.state.setIcon(null);
             }
             
-            if (isEntityLocked) {
-                cellBox.setBackground(Color.decode("#E5E5E5"));
+            cellBox.setDisabled(isEntityLocked || !table.isEnabled());
+            if (cellBox.isDisabled()) {
+                // Do nothing
             } else if (isEntityInvalid) {
                 cellBox.setBackground(Color.decode("#FFEEEE"));
             } else {
@@ -176,8 +175,8 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
                 cellBox.setBackground(blend(Color.decode("#BBD8FF"), cellBox.getBackground()));
             }
             
-            if (isEntityLocked) {
-                cellBox.setForeground(IEditor.COLOR_DISABLED);
+            if (cellBox.isDisabled()) {
+                // Do nothing
             } else if (isEntityInvalid && value != null) {
                 cellBox.setForeground(Color.RED);
             } else if (value == null) {
