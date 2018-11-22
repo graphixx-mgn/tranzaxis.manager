@@ -14,11 +14,13 @@ public interface INotificationService extends IService {
      * @param details Текст детального описания.
      * @param type Тип уведомления.
      */
-    default void showMessage(String title, String details, TrayIcon.MessageType type) {}
+    default void showMessage(String source, String title, String details, TrayIcon.MessageType type) {}
     
     @Override
     default String getTitle() {
         return "Notification Service";
     }
+    
+    default void registerSource(String source) {}
     
 }
