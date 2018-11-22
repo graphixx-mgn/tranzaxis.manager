@@ -44,8 +44,8 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
      * Конструктор сервиса.
      * @param configFile Путь к файлу базы данных.
      */
-    public ConfigStoreService(File configFile) {
-        this.configFile = configFile;
+    public ConfigStoreService() {
+        this.configFile = new File(System.getProperty("user.home")+getOption("file"));
         if (!this.configFile.exists()) {
             this.configFile.getParentFile().mkdirs();
         }
@@ -56,13 +56,6 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             connection.createStatement().executeUpdate("PRAGMA foreign_keys = ON");
             if (connection != null) {
                 final DatabaseMetaData meta = connection.getMetaData();
-                Logger.getLogger().debug(MessageFormat.format(
-                        "CAS: DB product version: {0} v.{1}",
-                        meta.getDatabaseProductName(),
-                        meta.getDatabaseProductVersion()
-                ));
-                
-                Logger.getLogger().debug("CAS: Read configuration...");
                 List<String> sysTables = new ArrayList(){{
                     add("sqlite_master");
                     add("sqlite_sequence");
@@ -93,7 +86,6 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     @Override
     public void startService() {
         super.startService();
-        getConfig().setWorkDir(configFile.toPath());
         if (isShowSql()) {
             tableRegistry.values().forEach((tableInfo) -> {
                 Logger.getLogger().debug(tableInfo);
@@ -107,7 +99,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     }
     
     public boolean isShowSql() {
-        LogUnit.LogMgmtService LMS = (LogUnit.LogMgmtService) ServiceRegistry.getInstance().lookupService(LogUnit.LogMgmtService.class);
+        LogUnit.LogManagementService LMS = (LogUnit.LogManagementService) ServiceRegistry.getInstance().lookupService(LogUnit.LogManagementService.class);
         return LMS.getConfig().isShowSQL();
     }
     
@@ -382,10 +374,10 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                         }
                     }
                 } catch (SQLException e) {
-                    Logger.getLogger().error("Unable to read instance", e);
+                    Logger.getLogger().error("CAS: Unable to read instance", e);
                 }
             } catch (SQLException e) {
-                Logger.getLogger().error("Unable to read instance", e);
+                Logger.getLogger().error("CAS: Unable to read instance", e);
             }
         }
         return rowData;
@@ -445,10 +437,10 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                         rows.put(selectRS.getInt(1), selectRS.getString(2));
                     }
                 } catch (SQLException e) {
-                    Logger.getLogger().error("Unable to read catalog", e);
+                    Logger.getLogger().error("CAS: Unable to read catalog", e);
                 }
             } catch (SQLException e) {
-                Logger.getLogger().error("Unable to read catalog", e);
+                Logger.getLogger().error("CAS: Unable to read catalog", e);
             }
         }
         return rows;

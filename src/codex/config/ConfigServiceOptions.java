@@ -3,8 +3,7 @@ package codex.config;
 import codex.model.Access;
 import codex.service.CommonServiceOptions;
 import codex.type.EntityRef;
-import codex.type.FilePath;
-import java.nio.file.Path;
+import codex.type.Str;
 
 
 public class ConfigServiceOptions extends CommonServiceOptions {
@@ -13,13 +12,9 @@ public class ConfigServiceOptions extends CommonServiceOptions {
     
     public ConfigServiceOptions(EntityRef owner, String title) {
         super(owner, title);
-        model.addDynamicProp(PROP_DB_FILE, new FilePath(null), Access.Select, () -> {
-            return null;
+        model.addDynamicProp(PROP_DB_FILE, new Str(null), Access.Select, () -> {
+            return System.getProperty("user.home")+ConfigServiceOptions.this.getService().getOption("file");
         });
-    }
-    
-    public final void setWorkDir(Path value) {
-        model.setValue(PROP_DB_FILE, value);
     }
     
 }
