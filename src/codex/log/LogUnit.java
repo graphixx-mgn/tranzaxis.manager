@@ -2,6 +2,7 @@ package codex.log;
 
 import codex.component.button.PushButton;
 import codex.component.button.ToggleButton;
+import codex.notification.NotificationService;
 import codex.service.AbstractService;
 import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
@@ -75,7 +76,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
         levelIcon.put(Level.DEBUG, DEBUG);
         levelIcon.put(Level.INFO,  INFO);
         levelIcon.put(Level.WARN,  WARN);
-        levelIcon.put(Level.ERROR, ERROR);;
+        levelIcon.put(Level.ERROR, ERROR);
         
         frame = new JFrame();
         frame.setTitle(Language.get("title"));
@@ -165,8 +166,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
                 }
             }
         });
-        
-        ServiceRegistry.getInstance().registerService(new LogMgmtService(), false);
+        ServiceRegistry.getInstance().registerService(new LogManagementService(), false);
     }
 
     @Override
@@ -231,13 +231,21 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
         return switches;
     }
     
-    public class LogMgmtService extends AbstractService<LoggerServiceOptions> implements ILogMgmtService {
+    public class LogManagementService extends AbstractService<LoggerServiceOptions> implements ILogManagementService {
         
         @Override
         public boolean isStoppable() {
             return false;
         }
 
+        @Override
+        public void startService() {
+            super.startService();
+            ServiceRegistry.getInstance().addRegistryListener(NotificationService.class, (service) -> {
+                ((NotificationService) service).registerSource(Logger.NS_SOURCE);
+            });
+        }
+        
         @Override
         public void changeLevels(Map<codex.log.Level, Boolean> levels) {
             levels.forEach((level, enable) -> {

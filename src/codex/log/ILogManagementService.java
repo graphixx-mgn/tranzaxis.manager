@@ -6,7 +6,7 @@ import java.util.Map;
 /**
  * Интерфейс сервиса управления модулем логирования.
  */
-public interface ILogMgmtService extends IService {
+public interface ILogManagementService extends IService {
     
     /**
      * Установить новые значения отображения событий.

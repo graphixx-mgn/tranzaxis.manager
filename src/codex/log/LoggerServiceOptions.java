@@ -16,7 +16,7 @@ import java.util.Map;
 
 public class LoggerServiceOptions extends CommonServiceOptions {
     
-    ILogMgmtService LMS = (ILogMgmtService) ServiceRegistry.getInstance().lookupService(LogUnit.LogMgmtService.class);
+    ILogManagementService LMS = (ILogManagementService) ServiceRegistry.getInstance().lookupService(LogUnit.LogManagementService.class);
     
     public final static String PROP_LOG_LEVEL = "logLevel";
     public final static String PROP_SHOW_SQL  = "showSql";

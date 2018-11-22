@@ -2,6 +2,10 @@ package codex.log;
 
 /* http://alvinalexander.com/java/jwarehouse/jakarta-log4j-1.2.8/examples/subclass */
 
+import codex.notification.INotificationService;
+import codex.notification.NotificationService;
+import codex.service.ServiceRegistry;
+import java.awt.TrayIcon;
 import java.text.MessageFormat;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -14,9 +18,10 @@ import org.apache.log4j.Category;
  */
 public class Logger extends org.apache.log4j.Logger implements Thread.UncaughtExceptionHandler {
     
-    private static final String        FQCN = Logger.class.getName();
+    private static final String FQCN = Logger.class.getName();
     private static final LoggerFactory FACTORY = new LoggerFactory();
-
+    final static String  NS_SOURCE = "Logger/Errors";
+    
     Logger(String name) {
         super(name);
     }
@@ -82,7 +87,10 @@ public class Logger extends org.apache.log4j.Logger implements Thread.UncaughtEx
      * @param params Parameters to fill the template
      */
     public final void error(String message, Object... params) {
-        error(format(message, params));
+        super.error(offset(format(message, params)));
+        if (ServiceRegistry.getInstance().isServiceRegistered(NotificationService.class))
+            ((INotificationService) ServiceRegistry.getInstance().lookupService(NotificationService.class))
+                    .showMessage(NS_SOURCE, Level.Error.toString(), format(message, params), TrayIcon.MessageType.ERROR);
     }
     
     /**
@@ -94,7 +102,7 @@ public class Logger extends org.apache.log4j.Logger implements Thread.UncaughtEx
      * @param params Parameters to fill the template
      */
     public final void fatal(String message, Object... params) {
-        fatal(format(message, params));
+        super.fatal(offset(format(message, params)));
     }
     
     @Override
@@ -114,12 +122,15 @@ public class Logger extends org.apache.log4j.Logger implements Thread.UncaughtEx
 
     @Override
     public void error(Object message, Throwable exception) {
-        error(format(((String) message).concat("\n{0}"), new Object[]{stackTraceToString(exception)}));
+        super.error(offset(format(((String) message).concat("\n{0}"), new Object[]{stackTraceToString(exception)})));
+        if (ServiceRegistry.getInstance().isServiceRegistered(NotificationService.class))
+            ((INotificationService) ServiceRegistry.getInstance().lookupService(NotificationService.class))
+                    .showMessage(NS_SOURCE, Level.Error.toString(), message.toString(), TrayIcon.MessageType.ERROR);
     }
     
     @Override
     public void fatal(Object message, Throwable exception) {
-        fatal(format(((String) message).concat("\n{0}"), new Object[]{stackTraceToString(exception)}));
+        super.fatal(offset(format(((String) message).concat("\n{0}"), new Object[]{stackTraceToString(exception)})));
     }
 
     @Override
@@ -140,11 +151,17 @@ public class Logger extends org.apache.log4j.Logger implements Thread.UncaughtEx
     @Override
     public void error(Object message) {
         super.error(offset(message.toString()));
+        if (ServiceRegistry.getInstance().isServiceRegistered(NotificationService.class))
+            ((INotificationService) ServiceRegistry.getInstance().lookupService(NotificationService.class))
+                    .showMessage(NS_SOURCE, Level.Error.toString(), message.toString(), TrayIcon.MessageType.ERROR);
     }
 
     @Override
     public void fatal(Object message) {
         super.fatal(offset(message.toString()));
+        if (ServiceRegistry.getInstance().isServiceRegistered(NotificationService.class))
+            ((INotificationService) ServiceRegistry.getInstance().lookupService(NotificationService.class))
+                    .showMessage(NS_SOURCE, Level.Error.toString(), message.toString(), TrayIcon.MessageType.ERROR);
     }
     
     private String stackTraceToString(Throwable exception) {
