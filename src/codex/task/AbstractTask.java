@@ -70,7 +70,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
             } catch (Exception e) {
                 setProgress(percent, MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
                 setStatus(Status.FAILED);
-                Logger.getLogger().error("Error on task execution", e);
+                Logger.getLogger().warn("Error on task execution", e);
                 throw e;
             } finally {
                 System.gc();
