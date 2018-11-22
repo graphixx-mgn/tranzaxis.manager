@@ -156,7 +156,7 @@ public class BuildWC extends EntityCommand<Offshoot> {
                 offshoot,
                 new GroupTask<>(
                         Language.get("title") + ": \""+(offshoot).getLocalPath()+"\"",
-                        //new BuildKernelTask(offshoot),
+                        new BuildKernelTask(offshoot),
                         new BuildSourceTask(offshoot, map.get("clean").getValue() == Boolean.TRUE)
                 ),
                 false

@@ -73,7 +73,7 @@ public class CheckDatabase extends EntityCommand<Database> {
             String  host = verMatcher.group(1);
             Integer port = Integer.valueOf(verMatcher.group(2));
             try {
-                return NetTools.isPortAvailable(host, port, 50);
+                return NetTools.isPortAvailable(host, port, 100);
             } catch (IllegalStateException e) {
                 return false;
             }
