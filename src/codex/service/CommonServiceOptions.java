@@ -32,7 +32,7 @@ public class CommonServiceOptions extends Catalog {
         model.addDynamicProp(PROP_CLASS, new ServiceLabel(), Access.Edit, () -> {
             return new ServiceStatus();
         });
-        model.addUserProp(PROP_STARTED, new Bool(true), false, Access.Edit);
+        model.addUserProp(PROP_STARTED, new Bool(true), false, Access.Any);
         
         // Commands
         addCommand(new StartService());
@@ -48,7 +48,7 @@ public class CommonServiceOptions extends Catalog {
         this.service = service;
     }
     
-    AbstractService getService() {
+    protected AbstractService getService() {
         return this.service;
     }
     
