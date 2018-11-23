@@ -56,7 +56,7 @@ public class NotificationService extends AbstractService<NotifyServiceOptions> i
 
     @Override
     public void showMessage(String source, String title, String details, TrayIcon.MessageType type) {
-        if (trayIcon != null) {
+        if (trayIcon != null && getConfig().getCondition().getCondition().get()) {
             Optional<Str> knownSource = getConfig().getSources().keySet().stream().filter((key) -> {
                 return key.getValue().equals(source);
             }).findFirst();
