@@ -1,11 +1,11 @@
 package manager;
 
-import codex.config.ConfigStoreService;
 import codex.explorer.ExplorerUnit;
 import codex.explorer.tree.NodeTreeModel;
 import codex.launcher.LauncherUnit;
 import codex.log.LogUnit;
 import codex.log.Logger;
+import codex.service.IService;
 import codex.service.ServiceRegistry;
 import codex.service.ServiceUnit;
 import codex.task.TaskManager;
@@ -14,7 +14,7 @@ import codex.utils.ImageUtils;
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import it.sauronsoftware.junique.AlreadyLockedException;
 import it.sauronsoftware.junique.JUnique;
-import java.io.File;
+import java.util.ServiceLoader;
 import java.util.prefs.Preferences;
 import javax.swing.JFrame;
 import javax.swing.UIManager;
@@ -24,7 +24,7 @@ import manager.nodes.DatabaseRoot;
 import manager.nodes.EnvironmentRoot;
 import manager.nodes.RepositoryRoot;
 import manager.type.Locale;
-import manager.ui.Splash;
+import manager.ui.splash.SplashScreen;
 import manager.ui.Window;
 import org.apache.log4j.Level;
 import sun.util.logging.PlatformLogger;
@@ -36,10 +36,10 @@ public class Manager {
         try {
             UIManager.setLookAndFeel(new WindowsLookAndFeel());
             UIManager.put("Tree.drawDashedFocusIndicator", false);
+            
         } catch (UnsupportedLookAndFeelException e) {}
     }
     
-    private final static String CONFIG_PATH = java.lang.System.getProperty("user.home") + "/.manager.tranzaxis/manager.db";
     private static final Window WINDOW = new Window("TranzAxis Manager (v.2.0.4)", ImageUtils.getByPath("/images/project.png"));
     
     private final AbstractUnit 
@@ -52,6 +52,9 @@ public class Manager {
     ;
 
     public Manager() {
+        SplashScreen splash = new SplashScreen("images/splash.png");
+        
+        loadSystemProps();
         PlatformLogger platformLogger = PlatformLogger.getLogger("java.util.prefs");
         platformLogger.setLevel(PlatformLogger.Level.OFF);
         
@@ -68,16 +71,16 @@ public class Manager {
             JUnique.sendMessage(uniqueAppId, "OPEN");
             System.exit(0);
         }
-
-        Splash splash = new Splash();
-        splash.setVisible(true);
         
+        splash.setProgress(10, "Initialize logging system");
         logUnit = new LogUnit();
         Thread.setDefaultUncaughtExceptionHandler(Logger.getLogger());
-                
-        splash.setProgress(10, "Read configuration");
-        ServiceRegistry.getInstance().registerService(new ConfigStoreService(new File(CONFIG_PATH)));
-        loadSystemProps();
+        
+        ServiceLoader<IService> services = ServiceLoader.load(IService.class);
+        services.forEach(service -> {
+            splash.setProgress(20, "Load standalone service: "+service.getTitle());
+            ServiceRegistry.getInstance().registerService(service);
+        });
         
         splash.setProgress(30, "Start task management system");
         taskUnit = new TaskManager();
@@ -101,20 +104,15 @@ public class Manager {
 //        splash.setProgress(90, "Start upgrade management system");
         //updateUnit = new UpdateUnit();
 
-//        ((JButton) updateUnit.getViewport()).addActionListener((ActionEvent e) -> {
-//            MessageBox.show(MessageType.INFORMATION, "[ NOT SUPPORTED YET]");
-//        });
-
         splash.setProgress(100, "Initialization user interface");
         WINDOW.addUnit(logUnit,      WINDOW.loggingPanel);
+        WINDOW.addUnit(serviceUnit,  WINDOW.servicePanel);
         //window.addUnit(updateUnit,   WINDOW.upgradePanel);
         WINDOW.addUnit(explorerUnit, WINDOW.explorePanel);
         WINDOW.addUnit(launchUnit,   WINDOW.launchPanel);
         WINDOW.addUnit(taskUnit,     WINDOW.taskmgrPanel);
-        WINDOW.addUnit(serviceUnit,  WINDOW.servicePanel);
         
-        splash.setProgress(100);
-        splash.setVisible(false);        
+        splash.setVisible(false);
         WINDOW.setVisible(true);
     }
     
