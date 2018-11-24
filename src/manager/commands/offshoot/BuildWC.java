@@ -18,13 +18,17 @@ import codex.utils.Language;
 import com.sun.javafx.PlatformUtil;
 import java.awt.event.ActionEvent;
 import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.rmi.AlreadyBoundException;
-import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.RMIClientSocketFactory;
+import java.rmi.server.RMIServerSocketFactory;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,16 +51,31 @@ import org.apache.tools.ant.util.DateUtils;
 
 public class BuildWC extends EntityCommand<Offshoot> {
     
-    public  static final Integer    RMI_PORT = 2099;  
-    private static Registry         RMI_REGISTRY;
+    public  static ServerSocket RMI_SOCKET;
+    private static Registry     RMI_REGISTRY;
     private static BuildingNotifier BUILD_NOTIFIER;
     
     static {
         try {
-            RMI_REGISTRY = LocateRegistry.createRegistry(RMI_PORT);
+            RMI_SOCKET   = new ServerSocket(0);
+            RMI_REGISTRY = LocateRegistry.createRegistry(
+                    0,
+                    new RMIClientSocketFactory() {
+                        @Override
+                        public Socket createSocket(String host, int port) throws IOException {
+                            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                        }
+                    },
+                    new RMIServerSocketFactory() {
+                        @Override
+                        public ServerSocket createServerSocket(int port) throws IOException {
+                            return RMI_SOCKET;
+                        }
+                    }
+            );
             BUILD_NOTIFIER = new BuildingNotifier();
             RMI_REGISTRY.bind(BuildingNotifier.class.getCanonicalName(), BUILD_NOTIFIER);
-        } catch (RemoteException | AlreadyBoundException e) {
+        } catch (AlreadyBoundException | IOException e) {
             Logger.getLogger().error(e.getMessage());
         }
     }
@@ -70,7 +89,9 @@ public class BuildWC extends EntityCommand<Offshoot> {
                 ImageUtils.resize(ImageUtils.getByPath("/images/build.png"), 28, 28), 
                 Language.get("desc"), 
                 (offshoot) -> {
-                    return offshoot.getWCStatus().equals(WCStatus.Succesfull);
+                    return 
+                            RMI_SOCKET != null && RMI_SOCKET.isBound() &&
+                            offshoot.getWCStatus().equals(WCStatus.Succesfull);
                 }
         );
         setParameters(params);
@@ -232,10 +253,11 @@ public class BuildWC extends EntityCommand<Offshoot> {
             command.add("-cp");
             command.add(classPath);
 
+            command.add("-Dport="+RMI_SOCKET.getLocalPort());
+            command.add("-Duuid="+uid.toString());
+            command.add("-Dpath="+offshoot.getLocalPath());
+            
             command.add(KernelBuilder.class.getCanonicalName());
-
-            command.add(uid.toString());
-            command.add(offshoot.getLocalPath());
             
             final ProcessBuilder builder = new ProcessBuilder(command);
             File temp = File.createTempFile("build_trace", ".tmp", new File(offshoot.getLocalPath()));
@@ -375,11 +397,12 @@ public class BuildWC extends EntityCommand<Offshoot> {
             command.add("-cp");
             command.add(classPath);
             
-            command.add(SourceBuilder.class.getCanonicalName());
+            command.add("-Dport="+RMI_SOCKET.getLocalPort());
+            command.add("-Duuid="+uid.toString());
+            command.add("-Dpath="+offshoot.getLocalPath());
+            command.add("-Dclean="+(clean ? "1" : "0"));
             
-            command.add(uid.toString());
-            command.add(offshoot.getLocalPath());
-            command.add(clean ? "1" : "0");
+            command.add(SourceBuilder.class.getCanonicalName());
             
             final ProcessBuilder builder = new ProcessBuilder(command);
             File temp = File.createTempFile("build_trace", ".tmp", new File(offshoot.getLocalPath()));

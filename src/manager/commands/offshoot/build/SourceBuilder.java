@@ -174,7 +174,7 @@ public class SourceBuilder {
         return 0;
     }
     
-    public static void main(String[] args) {
+    public static void main(String[] args12) {
         Preferences prefs = Preferences.userRoot().node(Manager.class.getSimpleName());
         if (prefs.get("guiLang", null) != null) {
             Locale localeEnum = Locale.valueOf(prefs.get("guiLang", null));
@@ -182,8 +182,13 @@ public class SourceBuilder {
             java.lang.System.setProperty("user.country",  localeEnum.getLocale().getCountry());
         }
         
+        Integer port  = Integer.valueOf(System.getProperty("port"));
+        String  uuid  = System.getProperty("uuid");
+        String  path  = System.getProperty("path");
+        Boolean clean = "1".equals(System.getProperty("clean"));
+        
         try {
-            Registry reg = LocateRegistry.getRegistry(BuildWC.RMI_PORT);
+            Registry reg = LocateRegistry.getRegistry(port);
             IBuildingNotifier notifier = (IBuildingNotifier) reg.lookup(BuildingNotifier.class.getCanonicalName());
             
             AtomicInteger totalModules = new AtomicInteger(0);
@@ -215,7 +220,7 @@ public class SourceBuilder {
                     @Override
                     public void progress(int i) {
                         try {
-                            notifier.checkPaused(args[0]);
+                            notifier.checkPaused(uuid);
                         } catch (RemoteException e) {
                             e.printStackTrace();
                         }
@@ -225,14 +230,14 @@ public class SourceBuilder {
                     public void setDisplayName(String name) {
                         Matcher matcher = MODULE_BUILD.matcher(name);
                         try {
-                            notifier.checkPaused(args[0]);
+                            notifier.checkPaused(uuid);
                             if (matcher.find() && !builtModules.contains(matcher.group(1))) {
                                 builtModules.add(matcher.group(1));
                                 int progress = 100*builtModules.size()/totalModules.get();
-                                notifier.setStatus(args[0], matcher.group(1));
-                                notifier.setProgress(args[0], progress);
+                                notifier.setStatus(uuid, matcher.group(1));
+                                notifier.setProgress(uuid, progress);
                             } else {
-                                notifier.setStatus(args[0], name);
+                                notifier.setStatus(uuid, name);
                             }
                         } catch (RemoteException e) {
                             e.printStackTrace();
@@ -245,19 +250,19 @@ public class SourceBuilder {
             ) {
                 @Override
                 public BuildActionExecutor.EBuildActionType getActionType() {
-                    return args[2].equals("1") ? BuildActionExecutor.EBuildActionType.CLEAN_AND_BUILD : BuildActionExecutor.EBuildActionType.BUILD;
+                    return clean ? BuildActionExecutor.EBuildActionType.CLEAN_AND_BUILD : BuildActionExecutor.EBuildActionType.BUILD;
                 }
             };
             
             try {
-                Branch branch = Branch.Factory.loadFromDir(new File(args[1]));
+                Branch branch = Branch.Factory.loadFromDir(new File(path));
                 env.getBuildDisplayer().getProgressHandleFactory().createHandle("Load definitions...");
                 totalModules.set(enumerateModules(branch));
 
                 BuildActionExecutor executor = new BuildActionExecutor(env);
                 executor.execute(branch);
             } catch (IOException e) {
-                notifier.failed(args[0], e);
+                notifier.failed(uuid, e);
             }
             
             if (env.getBuildProblemHandler().wasErrors()) {
@@ -283,9 +288,9 @@ public class SourceBuilder {
                             .concat("]\n - ")
                             .concat(errorIndex.get(key).stream().collect(Collectors.joining("\n - ")));
                 }
-                notifier.failed(args[0], new Exception(message));
+                notifier.failed(uuid, new Exception(message));
             }
-            notifier.finished(args[0]);
+            notifier.finished(uuid);
         } catch (RemoteException | NotBoundException e) {
             e.printStackTrace();
         }

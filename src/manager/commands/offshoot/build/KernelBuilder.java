@@ -35,12 +35,16 @@ public class KernelBuilder {
         Preferences prefs = Preferences.userRoot().node(Manager.class.getSimpleName());
         if (prefs.get("guiLang", null) != null) {
             Locale localeEnum = Locale.valueOf(prefs.get("guiLang", null));
-            java.lang.System.setProperty("user.language", localeEnum.getLocale().getLanguage());
-            java.lang.System.setProperty("user.country",  localeEnum.getLocale().getCountry());
+            System.setProperty("user.language", localeEnum.getLocale().getLanguage());
+            System.setProperty("user.country",  localeEnum.getLocale().getCountry());
         }
         
+        Integer port = Integer.valueOf(System.getProperty("port"));
+        String  uuid = System.getProperty("uuid");
+        String  path = System.getProperty("path");
+        
         try {
-            Registry reg = LocateRegistry.getRegistry(BuildWC.RMI_PORT);
+            Registry reg = LocateRegistry.getRegistry(port);
             IBuildingNotifier notifier = (IBuildingNotifier) reg.lookup(BuildingNotifier.class.getCanonicalName());
             
             try {
@@ -53,7 +57,7 @@ public class KernelBuilder {
 
                 PropertyDocument.Property property = project.addNewProperty();
                 property.setName("modules");
-                File localDir = new File(args[1]);
+                File localDir = new File(path);
 
                 StringJoiner kernels = new StringJoiner("\n");
                 Branch branch = Branch.Factory.loadFromDir(localDir);
@@ -94,7 +98,7 @@ public class KernelBuilder {
                     public void taskStarted(BuildEvent event) {
                         super.taskStarted(event);
                         try {
-                            notifier.checkPaused(args[0]);
+                            notifier.checkPaused(uuid);
                         } catch (RemoteException e) {
                             e.printStackTrace();
                         }
@@ -117,23 +121,23 @@ public class KernelBuilder {
                 try {
                     ant.fireBuildStarted();
                     
-                    notifier.setStatus(args[0], Language.get(BuildWC.class.getSimpleName(), "command@clean"));
+                    notifier.setStatus(uuid, Language.get(BuildWC.class.getSimpleName(), "command@clean"));
                     ant.executeTarget(targetClean.getName());
                     
-                    notifier.setStatus(args[0], Language.get(BuildWC.class.getSimpleName(), "command@distributive"));
+                    notifier.setStatus(uuid, Language.get(BuildWC.class.getSimpleName(), "command@distributive"));
                     ant.executeTarget(targetBuild.getName());
                     
                     ant.fireBuildFinished(null);
                 } catch (BuildException e) {
                     ant.fireBuildFinished(e);
-                    notifier.failed(args[0], e);
+                    notifier.failed(uuid, e);
                     return;
                 }            
             } catch (IOException e) {
-                notifier.failed(args[0], e);
+                notifier.failed(uuid, e);
                 return;
             }
-            notifier.finished(args[0]);
+            notifier.finished(uuid);
         } catch (RemoteException | NotBoundException e) {
             e.printStackTrace();
         }
