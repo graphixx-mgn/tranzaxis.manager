@@ -34,6 +34,9 @@ public class ToggleButton extends PushButton {
      * @param checked TRUE - если включен, иначе - выключен.
      */
     public final void setChecked(boolean checked) {
+        if (checked != isChecked()) {
+            click();
+        }
         this.checked = checked;
         redraw();
     }
