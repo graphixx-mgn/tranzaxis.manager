@@ -13,7 +13,6 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 
 /**
@@ -21,29 +20,28 @@ import javax.swing.tree.TreePath;
  */
 public final class ExplorerUnit extends AbstractUnit {
     
-    private JPanel      browsePanel;
-    private JScrollPane navigatePanel;
+    private final static ExplorerUnit INSTANCE = new ExplorerUnit();
+    public  final static ExplorerUnit getInstance() {
+        return INSTANCE;
+    }
     
-    private final NodeTreeModel treeModel;
-    private final Navigator     navigator;
-    private final Browser       browser;
+    private JPanel          browsePanel;
+    private JScrollPane     navigatePanel;
+    private final Navigator navigator;
+    private final Browser   browser;
     
-    /**
-     * Конструктор модуля.
-     * @param treeModel Модель дерева объектов.
-     */
-    public ExplorerUnit(NodeTreeModel treeModel) {
+    private ExplorerUnit() {
         Logger.getLogger().debug("Initialize unit: Explorer");
-        ServiceRegistry.getInstance().registerService(new ExplorerAccessService(treeModel));
-        
-        this.treeModel = treeModel;
-        this.navigator = new Navigator();
-        navigator.setModel(treeModel);
         this.browser   = new Browser();
-        
+        this.navigator = new Navigator();
         this.navigator.addNavigateListener((TreePath path) -> {
             this.browser.browse((INode) path.getLastPathComponent());
         });
+    }
+    
+    public void setModel(NodeTreeModel treeModel) {
+        navigator.setModel(treeModel);
+        ServiceRegistry.getInstance().registerService(new ExplorerAccessService(treeModel));
     }
     
     @Override
@@ -74,7 +72,7 @@ public final class ExplorerUnit extends AbstractUnit {
     public void viewportBound() {
         navigatePanel.setViewportView(navigator);
         browsePanel.add(browser, BorderLayout.CENTER);
-        navigator.expandPath(new TreePath(treeModel.getPathToRoot((TreeNode) treeModel.getRoot())));
+        navigator.expandRow(0);
     }
     
 }

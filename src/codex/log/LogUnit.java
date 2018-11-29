@@ -68,6 +68,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
     }
 
     private LogUnit() {
+        Logger.getLogger().debug("Initialize unit: Logger");
         JTextPane logPane = new JTextPane();
         paneAppender = new TextPaneAppender(logPane);
         Logger.getLogger().addAppender(paneAppender);
