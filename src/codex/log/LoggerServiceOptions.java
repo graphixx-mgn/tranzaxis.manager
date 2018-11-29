@@ -8,15 +8,12 @@ import codex.service.ServiceRegistry;
 import codex.type.Bool;
 import codex.type.EntityRef;
 import codex.type.Enum;
-import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 
 public class LoggerServiceOptions extends CommonServiceOptions {
     
-    ILogManagementService LMS = (ILogManagementService) ServiceRegistry.getInstance().lookupService(LogUnit.LogManagementService.class);
+    ILogManagementService LMS = (ILogManagementService) ServiceRegistry.getInstance().lookupService(LogManagementService.class);
     
     public final static String PROP_LOG_LEVEL = "logLevel";
     public final static String PROP_SHOW_SQL  = "showSql";
@@ -46,7 +43,6 @@ public class LoggerServiceOptions extends CommonServiceOptions {
             }
         });
         
-        Logger.getLogger().debug("Set minimal logging level from configuration: {0}", getLogLevel().name());
         setLogLevel(getLogLevel());
         model.getEditor(PROP_SHOW_SQL).setEditable(getLogLevel() == Level.Debug);
     }
@@ -57,12 +53,7 @@ public class LoggerServiceOptions extends CommonServiceOptions {
     
     private void setLogLevel(Level value) {
         model.setValue(PROP_LOG_LEVEL, value);
-        Enum minLevel = new Enum(value);
-        Map<codex.log.Level, Boolean> levelMap = new HashMap<>();
-        EnumSet.allOf(codex.log.Level.class).forEach((level) -> {
-            levelMap.put(level, level.ordinal() >= ((java.lang.Enum) minLevel.getValue()).ordinal());
-        });
-        LMS.changeLevels(levelMap);
+        LMS.setLevel(value);
     }
     
     public final boolean isShowSQL() {

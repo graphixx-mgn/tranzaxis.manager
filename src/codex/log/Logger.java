@@ -7,9 +7,12 @@ import codex.notification.NotificationService;
 import codex.service.ServiceRegistry;
 import java.awt.TrayIcon;
 import java.text.MessageFormat;
+import java.util.EnumSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.log4j.Appender;
 import org.apache.log4j.Category;
+import org.apache.log4j.varia.LevelMatchFilter;
 
 /**
  * Extends {@link org.apache.log4j.Logger} in order to support formatted messages.
@@ -24,6 +27,19 @@ public class Logger extends org.apache.log4j.Logger implements Thread.UncaughtEx
     
     Logger(String name) {
         super(name);
+        Thread.setDefaultUncaughtExceptionHandler(this);
+    }
+    
+    static void setLevel(codex.log.Level minLevel) {
+        EnumSet.allOf(codex.log.Level.class).stream()
+                .forEach((level) -> {
+                    Appender appender = Logger.getRootLogger().getAppender(level.getSysLevel().toString());
+                    LevelMatchFilter filter = (LevelMatchFilter) appender.getFilter();
+                    while (!filter.getLevelToMatch().equals(level.getSysLevel().toString())) {
+                        filter = (LevelMatchFilter) filter.getNext();
+                    }
+                    filter.setAcceptOnMatch(level.ordinal() >= minLevel.ordinal());
+                });
     }
     
     /**
