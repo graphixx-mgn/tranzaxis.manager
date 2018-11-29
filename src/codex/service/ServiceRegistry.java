@@ -9,10 +9,12 @@ import java.lang.reflect.Proxy;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -22,12 +24,26 @@ import java.util.stream.Stream;
  */
 public final class ServiceRegistry {
     
-    private final static ServiceRegistry INSTANCE = new ServiceRegistry();
+    private static final ServiceRegistry INSTANCE = new ServiceRegistry();
+    static {
+        Logger.getLogger().debug("Service Registry: load local services...");
+        ServiceLoader<IService> services = ServiceLoader.load(IService.class);
+        services.forEach(service -> {
+            INSTANCE.registerService(service, false);
+        });
+        
+        INSTANCE.registry.values().forEach((service) -> {
+            if (!service.isStarted()) {
+                Logger.getLogger().debug("Service Registry: start service: ''{0}''", service.getTitle());
+                service.startService();
+            }
+        });
+    }
     
     private Constructor<MethodHandles.Lookup> lookup;
     
     private final Map<Class<? extends IService>, IService> stubs = new HashMap<>();
-    private final Map<Class<? extends IService>, IService> registry = new HashMap<>();
+    private final Map<Class<? extends IService>, IService> registry = new LinkedHashMap<>();
     private final Map<Class<? extends IService>, List<IRegistryListener>> listeners = new ConcurrentHashMap<>();
     
     private ServiceCatalog serviceCatalog;
@@ -68,11 +84,14 @@ public final class ServiceRegistry {
      */
     public void registerService(IService service) {
         registerService(service, true);
-        if (listeners.containsKey(service.getClass())) {
-            new LinkedList<>(listeners.get(service.getClass())).forEach((listener) -> {
-                listener.serviceRegistered(service);
-            });
-        }
+        
+        new LinkedHashMap<>(listeners).forEach((serviceClass, listenerList) -> {
+            if (serviceClass.isAssignableFrom(service.getClass())) {
+                listenerList.forEach((listener) -> {
+                    listener.serviceRegistered(service);
+                });
+            }
+        });
     }
     
     public boolean isServiceRegistered(Class<? extends IService> serviceClass) {
@@ -174,15 +193,21 @@ public final class ServiceRegistry {
         return !serviceConrtrol.isPresent() || serviceConrtrol.get().isStarted();
     }
     
+    public final void addRegistryListener(IRegistryListener listener) {
+        addRegistryListener(IService.class, listener);
+    }
+    
     public final void addRegistryListener(Class<? extends IService> serviceClass, IRegistryListener listener) {
         if (!listeners.containsKey(serviceClass)) {
             listeners.put(serviceClass, new LinkedList<>());
         }
         listeners.get(serviceClass).add(listener);
         
-        if (registry.containsKey(serviceClass)) {
-            listener.serviceRegistered(registry.get(serviceClass));
-        }
+        registry.values().forEach((service) -> {
+            if (serviceClass.isAssignableFrom(service.getClass())) {
+                listener.serviceRegistered(service);
+            }
+        });
     }
     
     @FunctionalInterface
