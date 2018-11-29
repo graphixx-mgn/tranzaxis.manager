@@ -1,7 +1,7 @@
 package codex.config;
 
 import codex.database.IDatabaseAccessService;
-import codex.log.LogUnit;
+import codex.log.LogManagementService;
 import codex.log.Logger;
 import codex.service.AbstractService;
 import codex.service.ServiceRegistry;
@@ -87,9 +87,12 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     public void startService() {
         super.startService();
         if (isShowSql()) {
-            tableRegistry.values().forEach((tableInfo) -> {
-                Logger.getLogger().debug(tableInfo);
-            });   
+            Logger.getLogger().debug(
+                    "CAS: Table structure dump:\n{0}", 
+                    tableRegistry.values().stream().map((tableInfo) -> {
+                        return MessageFormat.format("[{0}]\n", tableInfo.name).concat(tableInfo.toString());
+                    }).collect(Collectors.joining("\n\n"))
+            );
         }
     }
     
@@ -99,7 +102,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     }
     
     public boolean isShowSql() {
-        LogUnit.LogManagementService LMS = (LogUnit.LogManagementService) ServiceRegistry.getInstance().lookupService(LogUnit.LogManagementService.class);
+        LogManagementService LMS = (LogManagementService) ServiceRegistry.getInstance().lookupService(LogManagementService.class);
         return LMS.getConfig().isShowSQL();
     }
     
@@ -908,8 +911,6 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         @Override
         public String toString() {
             StringBuilder builder = new StringBuilder();
-            builder.append(MessageFormat.format("Table ''{0}'' structure:\n", name));
-            
             String nameFormat = "%-".concat(
                     Integer.toString(
                             columnInfos.stream()
