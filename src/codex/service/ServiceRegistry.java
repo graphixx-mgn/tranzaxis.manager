@@ -9,11 +9,13 @@ import java.lang.reflect.Proxy;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -28,10 +30,14 @@ public final class ServiceRegistry {
     static {
         Logger.getLogger().debug("Service Registry: load local services...");
         ServiceLoader<IService> services = ServiceLoader.load(IService.class);
-        services.forEach(service -> {
-            INSTANCE.registerService(service, false);
-        });
-        
+        Iterator<IService> iterator = services.iterator();
+        while (iterator.hasNext()) {
+            try {
+                INSTANCE.registerService(iterator.next(), false);
+            } catch (ServiceConfigurationError e) {
+                Logger.getLogger().warn("Service Registry: unable to initialize service", e.getCause());
+            }
+        }
         INSTANCE.registry.values().forEach((service) -> {
             if (!service.isStarted()) {
                 Logger.getLogger().debug("Service Registry: start service: ''{0}''", service.getTitle());
