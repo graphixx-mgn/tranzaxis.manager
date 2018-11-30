@@ -231,6 +231,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     .filter(
                             propName -> 
                                     childModel.hasProperty(propName) && 
+                                    !childModel.isPropertyDynamic(propName) &&
                                     !EntityModel.SYSPROPS.contains(propName) &&
                                     parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
                     ).collect(Collectors.toList());
@@ -369,6 +370,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     .filter(
                             propName -> 
                                     childModel.hasProperty(propName) && 
+                                    !childModel.isPropertyDynamic(propName) &&
                                     !EntityModel.SYSPROPS.contains(propName) &&
                                     parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
                     ).collect(Collectors.toList());

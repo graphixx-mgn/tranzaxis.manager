@@ -194,6 +194,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 .filter(
                         propName -> 
                                 childModel.hasProperty(propName) && 
+                                !childModel.isPropertyDynamic(propName) &&
                                 !EntityModel.SYSPROPS.contains(propName) &&
                                 parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
                 ).collect(Collectors.toList());

@@ -4,7 +4,6 @@ import codex.command.EditorCommand;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.editor.AbstractEditor;
-import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.IComplexType;
