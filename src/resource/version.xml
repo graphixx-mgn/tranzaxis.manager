@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<versions current="2.1.0" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="2.1.0" date="2018-12-10">
+        <changelog>
+            <change scope="CORE" type="Feature">
+                <description>Модуль конфигурации локальных сервисов</description>
+            </change>
+            <change scope="CORE" type="Change">
+                <description>Изменение в схеме запуска сервисов</description>
+            </change>
+            <change scope="CORE" type="Change">
+                <description>Реализация сервиса обновления</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>NPE при создании секции ярлыков</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>NPE при назначении горячих клавих команд селектора</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Взаимодействие с процессами компиляции с использованием случайного порта TCP</description>
+            </change>
+        </changelog>
+    </version>
+</versions>
