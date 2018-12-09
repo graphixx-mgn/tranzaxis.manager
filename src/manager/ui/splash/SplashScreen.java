@@ -9,8 +9,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Transparency;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -39,7 +37,6 @@ public final class SplashScreen extends JFrame {
         
         imagePanel = new ImagePanel();
         imagePanel.setStretchMode(ImagePanel.STRETCH_PRESERVE);
-        imagePanel.setBorder(new MatteBorder(1, 1, 0, 1, Color.decode("#0070C5")));
         getContentPane().add(imagePanel, BorderLayout.CENTER);
         
         JLabel logo = new JLabel(ImageUtils.getByPath("/images/logo.png"));
@@ -54,42 +51,43 @@ public final class SplashScreen extends JFrame {
         imagePanel.add(logoPanel, BorderLayout.EAST);
         
         infoPanel = new JPanel();
-        infoPanel.setBackground(Color.decode("#000332"));
-        infoPanel.setBorder(new MatteBorder(0, 1, 1, 1, Color.decode("#0070C5")));
+        infoPanel.setBackground(Color.WHITE);
         getContentPane().add(infoPanel, BorderLayout.SOUTH);
+        
+        imagePanel.setBorder(new MatteBorder(1, 1, 0, 1, Color.LIGHT_GRAY));
+        infoPanel.setBorder( new MatteBorder(0, 1, 1, 1, Color.LIGHT_GRAY));
         
         File file = new File(this.getClass().getClassLoader().getResource(path).getFile());
         try {
             AnimatedPngImage png = new AnimatedPngImage();
             png.read(file);
-            infoPanel.setPreferredSize(new Dimension(png.getWidth(), 50));
-            imagePanel.setPreferredSize(new Dimension(png.getWidth(), png.getHeight()));
-            BufferedImage[] frames = new AnimatedPngImage().readAllFrames(file);
+            Dimension size = new Dimension(png.getWidth(), png.getHeight());
             
-            pack();
-            setLocationRelativeTo(null);
-            setVisible(true);
-                        
+            infoPanel.setPreferredSize(new Dimension(size.width, 35));
+            imagePanel.setPreferredSize(size);
+            BufferedImage[] frames = new AnimatedPngImage().readAllFrames(file);
+                      
             if (png.isAnimated()) {
-                imagePanel.setImage(frames[0]);
                 final BufferedImage target = imagePanel.getGraphicsConfiguration().createCompatibleImage(
-                        png.getWidth(), png.getHeight(),
+                        size.width, size.height,
                         Transparency.TRANSLUCENT
                 );
                 final Animator animator = new Animator(png, frames, target);
-                Timer timer = new Timer(25, null);
+                Timer timer = new Timer(50, null);
                 timer.setInitialDelay(0);
                 timer.addActionListener(animator);
                 
-                timer.addActionListener(new ActionListener() {
-                    public void actionPerformed(ActionEvent e) {
-                        imagePanel.setImage(target);
-                    }
+                timer.addActionListener((e) -> {
+                    imagePanel.setImage(target);
                 });
                 timer.start();
             } else {
                 imagePanel.setImage(frames[0]);
             }
+            pack();
+            setLocationRelativeTo(null);
+            setVisible(true);
+            
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -100,7 +98,7 @@ public final class SplashScreen extends JFrame {
         super.setVisible(b);
         progressArea = new Rectangle2D.Double(
                 0, infoPanel.getHeight()-10, 
-                infoPanel.getWidth(), 5
+                infoPanel.getWidth(), 3
         );
         descriptionArea = new Rectangle2D.Double(
                 0, infoPanel.getHeight()-30,
@@ -124,13 +122,14 @@ public final class SplashScreen extends JFrame {
                 (int) descriptionArea.getHeight()
             );
 
-            g.setPaint(Color.WHITE);
+            g.setPaint(Color.BLACK);
             g.drawString(
                     text, 
                     (int)(descriptionArea.getX()+5),
                     (int)(descriptionArea.getY()+g.getFontMetrics().getHeight())
             );
         }
+        try { Thread.sleep(100); } catch (InterruptedException e) {}
     }
     
     public void setProgress(int progress) {
@@ -148,10 +147,9 @@ public final class SplashScreen extends JFrame {
             int doneWidth = Math.round(progress * wid / 100.f);
                 doneWidth = Math.max(0, Math.min(doneWidth, wid));
 
-            g.setPaint(Color.decode("#0070C5"));
+            g.setPaint(Color.RED);
             g.fillRect(x, y, doneWidth, hgt);
         }
-        try { Thread.sleep(300); } catch (InterruptedException e) {}
     }
     
 }
