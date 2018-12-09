@@ -21,16 +21,30 @@ public class Map<K extends IComplexType, V extends IComplexType> implements ICom
     java.util.Map<K, V> value;
     private final Class<K> keyClass;
     private final Class<V> valClass;
+    private final Object   defKeyObject, defValObject;
     
     
     public Map(Class<K> keyClass, Class<V> valClass, java.util.Map<K, V> value) {
+        this(keyClass, valClass, value, null, null);
+    }
+    
+    public Map(Class<K> keyClass, Class<V> valClass, java.util.Map<K, V> value, Object defKeyObject, Object defValObject) {
         this.keyClass = keyClass;
         this.valClass = valClass;
+        
         if (value != null) {
             this.value = new LinkedHashMap<>(value);
         } else {
             this.value = null;
         }
+        if (valClass.isAssignableFrom(Enum.class) && defValObject == null) {
+            throw new IllegalStateException("Value type is enum. Default value must be defined");
+        }
+        if (keyClass.isAssignableFrom(Enum.class) && defKeyObject == null) {
+            throw new IllegalStateException("Key type is enum. Default value must be defined");
+        }
+        this.defKeyObject = defKeyObject;
+        this.defValObject = defValObject;
     }
     
     public Class<K> getKeyClass() {
@@ -96,9 +110,9 @@ public class Map<K extends IComplexType, V extends IComplexType> implements ICom
                 ))
                 .forEach((keyStr, valStr) -> {
                     try {
-                        K dbKey = (K) keyClass.getConstructor(new Class[] {keyInternalType}).newInstance(new Object[] {null});
+                        K dbKey = (K) keyClass.getConstructor(new Class[] {keyInternalType}).newInstance(new Object[] {defKeyObject});
                         dbKey.valueOf(keyStr);
-                        V dbVal = (V) valClass.getConstructor(new Class[] {valInternalType}).newInstance(new Object[] {null});
+                        V dbVal = (V) valClass.getConstructor(new Class[] {valInternalType}).newInstance(new Object[] {defValObject});
                         dbVal.valueOf(valStr);
                         this.value.put(dbKey, dbVal);
                     } catch (Exception e) {

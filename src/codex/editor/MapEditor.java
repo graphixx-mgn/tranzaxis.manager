@@ -85,7 +85,7 @@ public class MapEditor extends AbstractEditor {
                         e.printStackTrace();
                     }
                 }
-                propHolder.setValue(new Map<>(kClass, vClass, newMap));
+                propHolder.setValue(new Map<>(kClass, vClass, newMap, table.getModel().getValueAt(0, 0), table.getModel().getValueAt(0, 1)));
             }
         };
         table = new JTable(tableModel);
