@@ -2,11 +2,13 @@ package codex.instance;
 
 import codex.log.Logger;
 import codex.xml.EchoDocument;
+import com.sun.javafx.PlatformUtil;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
 import java.net.DatagramPacket;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -36,7 +38,6 @@ class LookServer {
     private final MulticastSocket mcastReceiverSocket;
     private final ServerSocket    serverSocket;
     private final int             rpcPort;
-
 
     LookServer(int rpcPort) throws IOException {
         this.rpcPort    = rpcPort;
@@ -99,6 +100,14 @@ class LookServer {
         }).start();
     }
     
+    protected void linkInstance(Instance instance) {
+        instances.add(instance);
+    }
+    
+    protected void unlinkInstance(Instance instance) {
+        instances.remove(instance);
+    }
+    
     private void broadcast(byte[] data) {
         DatagramPacket datagramPacket = new DatagramPacket(data, data.length, mcastGroup, GROUP_PORT);
         datagramPacket.getAddress().getHostName();
@@ -113,25 +122,39 @@ class LookServer {
         }
     }
     
-//    private void response(byte[] data, InetAddress address, int port) {
-//        DatagramPacket datagramPacket = new DatagramPacket(data, data.length, address, port);
-//        try (MulticastSocket datagramSocket = new MulticastSocket()) {
-//            datagramSocket.send(datagramPacket);
-//        } catch (IOException e) {
-//            Logger.getLogger().warn("ICS: Send request packet error", e);
-//        }
-//    }
-    
-    byte[] prepareEcho() {
+    private byte[] prepareEcho() {
         EchoDocument echoRequest = EchoDocument.Factory.newInstance();
         echoRequest.addNewEcho();
         try {
             echoRequest.getEcho().setHost(InetAddress.getLocalHost().getCanonicalHostName());
         } catch (IOException e) {}
-        echoRequest.getEcho().setUser(InstanceCommunicationService.getUserName());
+        echoRequest.getEcho().setUser(getUserName());
         echoRequest.getEcho().setRpcPort(rpcPort);
         echoRequest.getEcho().setKcaPort(serverSocket.getLocalPort());
         return echoRequest.toString().getBytes();
+    }
+    
+    private static String getUserName() {
+        try {
+            String className  = null;
+            String methodName = "getUsername";
+            if (PlatformUtil.isWindows()) {
+                className = "com.sun.security.auth.module.NTSystem";
+                methodName = "getName";
+            } else if (PlatformUtil.isUnix()) {
+                className = "com.sun.security.auth.module.UnixSystem";
+            }
+
+            if (className != null) {
+                Class<?> c = Class.forName(className);
+                Method method = c.getDeclaredMethod( methodName );
+                Object o = c.newInstance();
+                return (String) method.invoke(o);
+            }
+            return null;
+        } catch (ReflectiveOperationException e) {
+            return null;
+        }
     }
     
     private boolean connect(Instance instance, boolean forward) {
@@ -176,15 +199,7 @@ class LookServer {
         return true;
     }
     
-    protected void linkInstance(Instance instance) {
-        instances.add(instance);
-    }
-    
-    protected void unlinkInstance(Instance instance) {
-        instances.remove(instance);
-    }
-    
-    class AcceptHandler extends Thread {
+    private class AcceptHandler extends Thread {
         
         private final Socket clientSocket;
         private AcceptHandler(Socket socket) {

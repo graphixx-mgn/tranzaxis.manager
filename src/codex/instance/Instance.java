@@ -7,13 +7,11 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.text.MessageFormat;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 
-public final class Instance {
+public final class Instance implements IInstanceCommunicationService {
     
     final String       host;
     final String       user;
@@ -45,10 +43,12 @@ public final class Instance {
         return registered;
     }
     
+    @Override
     public IRemoteService getService(Class clazz) throws RemoteException, NotBoundException {
         return getService(clazz.getCanonicalName());
     }
     
+    @Override
     public IRemoteService getService(String className) throws RemoteException, NotBoundException {
         return (IRemoteService) registry.lookup(className);
     }

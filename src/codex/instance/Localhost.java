@@ -3,6 +3,7 @@ package codex.instance;
 import codex.model.Catalog;
 import codex.model.Entity;
 import codex.utils.ImageUtils;
+import codex.utils.Language;
 import javax.swing.ImageIcon;
 
 /**
@@ -14,7 +15,7 @@ public class Localhost extends Catalog {
     private static final ImageIcon ICON_LOCAL = ImageUtils.getByPath("/images/localhost.png");
     
     public Localhost() {
-        super(null, ICON_LOCAL, "[This instance]", null);
+        super(null, ICON_LOCAL, Language.get(InstanceUnit.class.getSimpleName(), "this.instance"), null);
     }
 
     @Override
