@@ -21,6 +21,6 @@ public interface INotificationService extends IService {
         return "Notification Service";
     }
     
-    default void registerSource(String source) {}
+    default void registerSource(String source, NotifyCondition condition) {}
     
 }

@@ -5,6 +5,7 @@ import codex.component.render.GeneralRenderer;
 import codex.editor.IEditor;
 import codex.notification.INotificationService;
 import codex.notification.NotificationService;
+import codex.notification.NotifyCondition;
 import codex.service.ServiceRegistry;
 import codex.type.Str;
 import codex.utils.ImageUtils;
@@ -183,7 +184,7 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
         this.cancelAction = cancelAction;
         
         ServiceRegistry.getInstance().addRegistryListener(NotificationService.class, (service) -> {
-            ((NotificationService) service).registerSource(NS_SOURCE);
+            ((NotificationService) service).registerSource(NS_SOURCE, NotifyCondition.INACTIVE);
         });
     }
 

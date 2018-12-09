@@ -1,7 +1,6 @@
 package codex.task;
 
 import codex.log.Logger;
-import codex.notification.NotificationService;
 import codex.service.AbstractService;
 import codex.service.CommonServiceOptions;
 import codex.service.ServiceRegistry;

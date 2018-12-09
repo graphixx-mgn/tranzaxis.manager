@@ -1,6 +1,7 @@
 package codex.log;
 
 import codex.notification.NotificationService;
+import codex.notification.NotifyCondition;
 import codex.service.AbstractService;
 import codex.service.ServiceRegistry;
 import java.util.EnumSet;
@@ -17,7 +18,7 @@ public class LogManagementService extends AbstractService<LoggerServiceOptions> 
     public void startService() {
         super.startService();
         ServiceRegistry.getInstance().addRegistryListener(NotificationService.class, (service) -> {
-            ((NotificationService) service).registerSource(Logger.NS_SOURCE);
+            ((NotificationService) service).registerSource(Logger.NS_SOURCE, NotifyCondition.ALWAYS);
         });
     }
 

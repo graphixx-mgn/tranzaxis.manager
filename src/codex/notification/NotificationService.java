@@ -2,7 +2,7 @@ package codex.notification;
 
 import codex.log.Logger;
 import codex.service.AbstractService;
-import codex.type.Bool;
+import codex.type.Enum;
 import codex.type.Str;
 import java.awt.AWTEvent;
 import java.awt.AWTException;
@@ -48,15 +48,14 @@ public class NotificationService extends AbstractService<NotifyServiceOptions> i
     }
     
     @Override
-    public void registerSource(String source) {
-        if (getConfig().getSources().put(new Str(source), new Bool(true)) != null) {
-            Logger.getLogger().debug("NSS: Registered notification source: ''{0}''", source);
-        }
+    public void registerSource(String source, NotifyCondition condition) {
+        getConfig().getSources().put(new Str(source), new Enum(condition));
+        Logger.getLogger().debug("NSS: Registered notification source: ''{0}''", source);
     }
 
     @Override
     public void showMessage(String source, String title, String details, TrayIcon.MessageType type) {
-        if (trayIcon != null && getConfig().getCondition().getCondition().get()) {
+        if (trayIcon != null) {
             Optional<Str> knownSource = getConfig().getSources().keySet().stream().filter((key) -> {
                 return key.getValue().equals(source);
             }).findFirst();
@@ -66,7 +65,8 @@ public class NotificationService extends AbstractService<NotifyServiceOptions> i
                 return;
             }
 
-            if (Boolean.TRUE.equals(getConfig().getSources().get(knownSource.get()).getValue())) {
+            NotifyCondition condition = (NotifyCondition) getConfig().getSources().get(knownSource.get()).getValue();
+            if (condition.getCondition().get()) {
                 trayIcon.displayMessage(title, details, type);
             }
         }
