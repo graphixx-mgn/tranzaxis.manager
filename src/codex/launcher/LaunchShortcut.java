@@ -197,7 +197,9 @@ final class LaunchShortcut extends LaunchButton implements IModelListener, INode
         }
         
         if (status != newStatus) {
-            Logger.getLogger().debug("LCU: Shortcut ''{0}'' state changed: {1} -> {2}", shortcut, status, newStatus);
+            if (status != Status.UNKNOWN) {
+                Logger.getLogger().debug("LCU: Shortcut ''{0}'' state changed: {1} -> {2}", shortcut, status, newStatus);
+            }
             status = newStatus;
         }
         updateView();

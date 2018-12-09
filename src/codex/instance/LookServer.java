@@ -76,9 +76,9 @@ class LookServer {
         }).max().getAsInt();
         
         Logger.getLogger().debug(
-                "ICS: Found network interfaces:\n{0}",
+                "ICS: Bing network interfaces to lookup server:\n{0}",
                 ifaceAddrs.keySet().stream().map((iface) -> {
-                    return String.format("* [%"+length+"s] : %s", iface.getDisplayName(), ifaceAddrs.get(iface).getHostAddress());
+                    return String.format("* [%-"+length+"s] : %s", iface.getDisplayName(), ifaceAddrs.get(iface).getHostAddress());
                 }).collect(Collectors.joining("\n"))
         );
         

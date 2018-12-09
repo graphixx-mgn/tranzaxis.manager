@@ -71,11 +71,12 @@ public final class InstanceCommunicationService extends AbstractService<CommonSe
     public void startService() {
         super.startService();
         try {
-            Logger.getLogger().debug("ICS: Started registry\nHost: {0}\nPort: {1}",
+            Logger.getLogger().debug("ICS: Started remote service registry\nHost: {0}\nPort: {1}",
                     InetAddress.getLocalHost().getHostName(), 
                     String.valueOf(RMI_SOCKET.getLocalPort())
             );
         } catch (IOException e) {}
+        lookServer.start();
         ServiceLoader<IRemoteService> services = ServiceLoader.load(IRemoteService.class);
         services.forEach(service -> {
             try {
@@ -85,7 +86,6 @@ public final class InstanceCommunicationService extends AbstractService<CommonSe
                 Logger.getLogger().debug("ICS: remote service ''{0}'' registration error", e);
             } catch (AlreadyBoundException e) {}
         });
-        lookServer.start();
     }
     
     public void addInstanceListener(IInstanceListener listener) {
