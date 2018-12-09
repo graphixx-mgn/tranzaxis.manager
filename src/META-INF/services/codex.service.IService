@@ -1,2 +1,4 @@
 codex.config.ConfigStoreService
+codex.log.LogManagementService
 codex.notification.NotificationService
+codex.instance.InstanceCommunicationService

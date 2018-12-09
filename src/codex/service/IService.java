@@ -9,7 +9,7 @@ public interface IService {
      * Возвращает имя сервиса.
      */
     default String getTitle() {
-        return "IService interface instance ["+getClass().getCanonicalName()+"]";
+        return "Local service instance ["+getClass().getCanonicalName()+"]";
     };
     
     /**
