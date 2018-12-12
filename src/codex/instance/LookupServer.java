@@ -10,28 +10,25 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.net.DatagramPacket;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
-import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Enumeration;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.xmlbeans.XmlException;
 
 
-class LookServer {
+/**
+ * Сервер поиска и подключения инстанций. Реализует сетевой обмен пакета между инстанциями
+ * установку постоянных соединений и отслеживание обрывов.
+ */
+class LookupServer {
     
     private final static Integer GROUP_PORT = 4445;
     private final static String  GROUP_ADDR = "230.0.0.0";
     
-    private final Map<NetworkInterface, InetAddress> ifaceAddrs = new LinkedHashMap<>();
     private final List<Instance>  instances = new LinkedList<>();
     private final InetAddress     mcastGroup; 
     private final MulticastSocket mcastSenderSocket;
@@ -39,27 +36,18 @@ class LookServer {
     private final ServerSocket    serverSocket;
     private final int             rpcPort;
 
-    LookServer(int rpcPort) throws IOException {
+    /**
+     * Конструктор сервера.
+     * @param rpcPort Номер порта локально реестра сетевых сервисов. Передатся
+     * в сетевых пакетах.
+     */
+    LookupServer(int rpcPort) throws IOException {
         this.rpcPort    = rpcPort;
         this.mcastGroup = InetAddress.getByName(GROUP_ADDR);
-        
-        final Enumeration<NetworkInterface> netifs = NetworkInterface.getNetworkInterfaces();
-        while (netifs.hasMoreElements()) {
-            NetworkInterface iface = netifs.nextElement();
-            if (iface.isLoopback() || !iface.isUp()) continue;
 
-            Enumeration<InetAddress> inAddrs = iface.getInetAddresses();
-            while (inAddrs.hasMoreElements()) {
-                InetAddress inAddr = inAddrs.nextElement();
-                if (inAddr instanceof Inet4Address) {
-                    ifaceAddrs.put(iface, inAddr);
-                }
-            }
-        }
-        
         mcastReceiverSocket = new MulticastSocket(GROUP_PORT);
         mcastReceiverSocket.setReuseAddress(true);
-        for (InetAddress address : ifaceAddrs.values()) {
+        for (InetAddress address : InstanceCommunicationService.IFACE_ADDRS.values()) {
             mcastReceiverSocket.setInterface(address);
             mcastReceiverSocket.joinGroup(mcastGroup);
         }
@@ -70,18 +58,10 @@ class LookServer {
         serverSocket = new ServerSocket(0);
     }
     
+    /**
+     * Запуск сервера.
+     */
     final void start() {
-        int length = ifaceAddrs.keySet().stream().mapToInt((iface) -> {
-            return iface.getDisplayName().length();
-        }).max().getAsInt();
-        
-        Logger.getLogger().debug(
-                "ICS: Bing network interfaces to lookup server:\n{0}",
-                ifaceAddrs.keySet().stream().map((iface) -> {
-                    return String.format("* [%-"+length+"s] : %s", iface.getDisplayName(), ifaceAddrs.get(iface).getHostAddress());
-                }).collect(Collectors.joining("\n"))
-        );
-        
         new Thread(new RequestHandler(mcastReceiverSocket)).start();
         new Thread(() -> {
             try {
@@ -100,20 +80,39 @@ class LookServer {
         }).start();
     }
     
+    /**
+     * Возвращает список подключенных инстанций.
+     */
+    List<Instance> getInstances() {
+        return new LinkedList<>(instances);
+    }
+    
+    /**
+     * Добавляет инстанцию в список подключенных.
+     */
     protected void linkInstance(Instance instance) {
         instances.add(instance);
+        Logger.getLogger().debug("ICS: Link remote instance {0}", instance);
     }
     
+    /**
+     * Удаляет инстанцию из списка подключенных.
+     */
     protected void unlinkInstance(Instance instance) {
         instances.remove(instance);
+        Logger.getLogger().debug("ICS: Unlink remote instance {0}", instance);
     }
     
+    /**
+     * Посылка multicast-пакета для поиска запущенных инстанций.
+     * @param data Байт-массив пакета.
+     */
     private void broadcast(byte[] data) {
         DatagramPacket datagramPacket = new DatagramPacket(data, data.length, mcastGroup, GROUP_PORT);
         datagramPacket.getAddress().getHostName();
         try {
-            for (InetAddress address : ifaceAddrs.values()) {
-                Logger.getLogger().debug("ICS: Send multicast packet to interface: {0}", address.getHostAddress());
+            for (InetAddress address : InstanceCommunicationService.IFACE_ADDRS.values()) {
+                Logger.getLogger().debug("ICS: Send multicast request packet to interface: {0}", address.getHostAddress());
                 mcastSenderSocket.setInterface(address);
                 mcastSenderSocket.send(datagramPacket);
             };
@@ -122,6 +121,18 @@ class LookServer {
         }
     }
     
+    /**
+     * Подготовка байт-массива эхо-пакета.
+     * Пакет представляет собой XML-документ вида:
+     * <pre>{@code
+     * <Echo host="..." user="..." rpcPort="..." kcaPort="..."/>
+     * где
+     * * host - Имя локального хоста 
+     * * user - Имя локального пользователя
+     * * rpcPort - Номер порта реестра сетевых сервисов (RMI).
+     * * kcaPort - Номер порта для установки постоянного соединения. 
+     * }</pre>
+     */
     private byte[] prepareEcho() {
         EchoDocument echoRequest = EchoDocument.Factory.newInstance();
         echoRequest.addNewEcho();
@@ -133,7 +144,7 @@ class LookServer {
         echoRequest.getEcho().setKcaPort(serverSocket.getLocalPort());
         return echoRequest.toString().getBytes();
     }
-    
+
     private static String getUserName() {
         try {
             String className  = null;
@@ -157,6 +168,14 @@ class LookServer {
         }
     }
     
+    /**
+     * Проверка существования инстанции в реестре, установление соединения и если 
+     * метод вызван обработчиком multicast пакетов - отправка ответа непосредственно
+     * отправителю.
+     * @param instance Инстанция - содержит необходиные данные для подключения.
+     * @param forward "Прямое" соединение, требуется отправка ответа.
+     * @return 
+     */
     private boolean connect(Instance instance, boolean forward) {
         synchronized (instances) {
             if (instances.stream().filter((registered) -> {
@@ -164,7 +183,6 @@ class LookServer {
                            registered.user.equals(instance.user);
             }).findFirst().orElse(null) == null) {
                 linkInstance(instance);
-                Logger.getLogger().debug("ICS: Link remote instance {0}", instance);
             } else {
                 return false;
             }
@@ -181,17 +199,17 @@ class LookServer {
                 );
                 socket.setKeepAlive(true);
                 
-                PrintWriter out = new PrintWriter(socket.getOutputStream());
-                Logger.getLogger().debug("ICS: Send direct packet to instance: {0}", instance);
-                out.println(new String(prepareEcho()));
-                out.flush();
-                
+                if (forward) {
+                    PrintWriter out = new PrintWriter(socket.getOutputStream());
+                    Logger.getLogger().debug("ICS: Send response packet to instance: {0}", instance);
+                    out.println(new String(prepareEcho()));
+                    out.flush();
+                }
                 socket.getInputStream().read();
             } catch (IOException e) {
                 synchronized (instances) {
                     if (instances.contains(instance)) {
                         unlinkInstance(instance);
-                        Logger.getLogger().debug("ICS: Unlink remote instance {0}", instance);
                     }
                 }
             }
@@ -199,6 +217,9 @@ class LookServer {
         return true;
     }
     
+    /**
+     * Обработчик ответов.
+     */
     private class AcceptHandler extends Thread {
         
         private final Socket clientSocket;
@@ -215,7 +236,7 @@ class LookServer {
                     if (input != null && !input.isEmpty()) {
                         try {
                             EchoDocument echoRqDoc = EchoDocument.Factory.parse(input);
-                            Logger.getLogger().debug("ICS: Received direct packet:\nFrom: {0} ({1})\nData: {2}", 
+                            Logger.getLogger().debug("ICS: Received response packet:\nFrom: {0} ({1})\nData: {2}", 
                                     echoRqDoc.getEcho().getHost(),
                                     clientSocket.getRemoteSocketAddress(),
                                     input
@@ -241,7 +262,10 @@ class LookServer {
         }
     
     }
-            
+    
+    /**
+     * Обработчик multicast-запросов.
+     */
     private class RequestHandler implements Runnable {
         
         private final MulticastSocket socket;
@@ -264,7 +288,7 @@ class LookServer {
                     continue;
                 }
                 try {
-                    boolean ownPacket = ifaceAddrs.values().stream().anyMatch((localAddress) -> {
+                    boolean ownPacket = InstanceCommunicationService.IFACE_ADDRS.values().stream().anyMatch((localAddress) -> {
                         return packet.getSocketAddress().equals(new InetSocketAddress(localAddress, mcastSenderSocket.getLocalPort()));
                     });
                     
@@ -272,7 +296,7 @@ class LookServer {
                         EchoDocument echoRqDoc = EchoDocument.Factory.parse(
                             new ByteArrayInputStream(packet.getData(), 0, packet.getLength())
                         );
-                        Logger.getLogger().debug("ICS: Received multicast packet:\nFrom: {0} ({1})\nData: {2}", 
+                        Logger.getLogger().debug("ICS: Received request packet:\nFrom: {0} ({1})\nData: {2}", 
                                 echoRqDoc.getEcho().getHost(),
                                 packet.getSocketAddress(),
                                 new String(packet.getData(), 0, packet.getLength())
