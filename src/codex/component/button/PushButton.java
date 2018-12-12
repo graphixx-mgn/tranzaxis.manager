@@ -1,9 +1,14 @@
 package codex.component.button;
 
 import codex.utils.ImageUtils;
+import java.awt.AWTException;
 import java.awt.Color;
+import java.awt.Event;
+import java.awt.Point;
+import java.awt.Robot;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.InputEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.BoxLayout;
@@ -111,6 +116,8 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     public void addActionListener(ActionListener listener) {
         button.addActionListener((event) -> {
             if (!isInactive()) {
+//                System.err.println(event.getID());
+//                System.err.println(event.getActionCommand());
                 listener.actionPerformed(new ActionEvent(PushButton.this, event.getID(), event.getActionCommand()));
             }
         });
@@ -193,7 +200,9 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
 
     @Override
     public void click() {
-        button.doClick();
+        for (ActionListener listener : button.getActionListeners()) {
+            listener.actionPerformed(new ActionEvent(this, Event.ACTION_EVENT, this.getText()));
+        }
     }
 
 }
