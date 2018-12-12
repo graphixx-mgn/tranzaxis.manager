@@ -2,6 +2,7 @@ package codex.instance;
 
 import codex.service.IRemoteService;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -11,6 +12,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 
+/**
+ * Класс-контейнер для хранения информации об удаленной инстанции и 
+ * обращения к её сервисам.
+ */
 public final class Instance implements IInstanceCommunicationService {
     
     final String       host;
@@ -19,13 +24,22 @@ public final class Instance implements IInstanceCommunicationService {
     final int rpcPort, kcaPort;
     final Registry     registry;
     
+    /**
+     * Конструктор инстанции.
+     * @param address Сетевой адрес инстанции.
+     * @param host Имя хоста инстанции.
+     * @param user Имя пользователя операционной системы, запустивший инстанцию.
+     * @param rpcPort Номер порта реестра сетевых сервисов (RMI).
+     * @param kcaPort НОмер порта для установки постоянного соединения. 
+     * Используется для отслеживания разрыва соединения.
+     */
     Instance(InetAddress address, String host, String user, int rpcPort, int kcaPort) throws RemoteException {
         this.host     = host;
         this.user     = user;
         this.address  = address;
         this.rpcPort  = rpcPort;
         this.kcaPort  = kcaPort;
-        this.registry = LocateRegistry.getRegistry(address.getHostName(), rpcPort);
+        this.registry = LocateRegistry.getRegistry(address.getHostAddress(), rpcPort);
     }
     
     @Override
@@ -33,6 +47,16 @@ public final class Instance implements IInstanceCommunicationService {
         return MessageFormat.format("[host={0}, user={1}, addr={2}]", host, user, address);
     }
     
+    /**
+     * Возвращает адрес сокета реестра сетевых сервисов.
+     */
+    public final InetSocketAddress getRemoteAddress() {
+        return new InetSocketAddress(address, rpcPort);
+    }
+    
+    /**
+     * Возвращает карту имен и ссылок сетевых сервисов.
+     */
     public Map<String, IRemoteService> getServices() throws RemoteException {
         Map<String, IRemoteService> registered = new HashMap<>();
         for (String className : registry.list()) {
