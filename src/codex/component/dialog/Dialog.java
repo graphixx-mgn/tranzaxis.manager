@@ -100,6 +100,28 @@ public class Dialog extends JDialog {
         public DialogButton newInstance() {
             return new DialogButton(icon, title, key, ID);
         }
+        /**
+         * Создание экземпляра кнопки диалога по шаблону {@link Default#newInstance()}.
+         * @param icon Новая иконка кнопки.
+         */
+        public DialogButton newInstance(ImageIcon icon) {
+            return new DialogButton(icon, title, key, ID);
+        }
+        /**
+         * Создание экземпляра кнопки диалога по шаблону {@link Default#newInstance()}.
+         * @param title Новый текст кнопки.
+         */
+        public DialogButton newInstance(String title) {
+            return new DialogButton(icon, title, key, ID);
+        }
+        /**
+         * Создание экземпляра кнопки диалога по шаблону {@link Default#newInstance()}.
+         * @param icon Новая иконка кнопки.
+         * @param title Новый текст кнопки.
+         */
+        public DialogButton newInstance(ImageIcon icon, String title) {
+            return new DialogButton(icon, title, key, ID);
+        }
     }
     
     private final JPanel           contentPanel;
