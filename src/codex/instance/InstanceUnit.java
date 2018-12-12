@@ -11,7 +11,6 @@ import codex.utils.Language;
 import java.awt.GridBagLayout;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
@@ -20,6 +19,10 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
+
+/**
+ * Модуль отображения подключенных инстанций.
+ */
 public class InstanceUnit extends AbstractUnit {
     
     private static final ImageIcon ICON_ERROR  = ImageUtils.getByPath("/images/warn.png");
@@ -45,13 +48,14 @@ public class InstanceUnit extends AbstractUnit {
             Constructor ctor = ExplorerUnit.class.getDeclaredConstructor();
             ctor.setAccessible(true);
             explorer = (ExplorerUnit) ctor.newInstance();
-        } catch (
-            NoSuchMethodException     | 
-            SecurityException         | 
-            IllegalAccessException    | 
-            InstantiationException    |
-            InvocationTargetException |
-            IllegalArgumentException  e) {}
+            explorer.createViewport();
+            
+            Field navigatorField = ExplorerUnit.class.getDeclaredField("navigator");
+            navigatorField.setAccessible(true);
+            
+            Navigator navigator  = (Navigator) navigatorField.get(explorer);
+            navigator.setModel(instancesTree);
+        } catch (Exception e) {}
         
         ICS.addInstanceListener(new IInstanceListener() {
             @Override
@@ -59,6 +63,7 @@ public class InstanceUnit extends AbstractUnit {
                 INode root = (INode) instancesTree.getRoot();
                 root.insert(new RemoteHost(instance));
                 if (root.getChildCount() > 0) {
+                    explorer.getViewport();
                     explorer.viewportBound();
                 }
             }
@@ -72,14 +77,13 @@ public class InstanceUnit extends AbstractUnit {
                     root.delete(view);
                 });
             }
-            
         });
     }
 
     @Override
     public JComponent createViewport() {
         if (ServiceRegistry.getInstance().isServiceRegistered(InstanceCommunicationService.class)) {
-            return explorer.createViewport();
+            return explorer.getViewport();
         } else {
             JPanel panel = new JPanel();
             panel.setLayout(new GridBagLayout());
@@ -93,14 +97,6 @@ public class InstanceUnit extends AbstractUnit {
     @Override
     public void viewportBound() {
         if (!ServiceRegistry.getInstance().isServiceRegistered(InstanceCommunicationService.class)) return;
-        
-        try {
-            Field navigatorField = ExplorerUnit.class.getDeclaredField("navigator");
-            navigatorField.setAccessible(true);
-            
-            Navigator navigator  = (Navigator) navigatorField.get(explorer);
-            navigator.setModel(instancesTree);
-        } catch (NoSuchFieldException | SecurityException | IllegalAccessException e) {}
         explorer.viewportBound();
     }
     
