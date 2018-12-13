@@ -5,6 +5,7 @@ import codex.explorer.tree.NodeTreeModel;
 import codex.instance.InstanceUnit;
 import codex.launcher.LauncherUnit;
 import codex.log.LogUnit;
+import codex.log.Logger;
 import codex.service.ServiceUnit;
 import codex.task.TaskManager;
 import codex.unit.AbstractUnit;
@@ -46,7 +47,7 @@ public class Manager {
     ;
 
     public Manager() {
-        SplashScreen splash = new SplashScreen("images/splash.png");
+        SplashScreen splash = new SplashScreen();
         
         loadSystemProps();
         PlatformLogger platformLogger = PlatformLogger.getLogger("java.util.prefs");
@@ -85,7 +86,7 @@ public class Manager {
         
         splash.setProgress(70, "Start command launcher unit");
         commandLauncher = new LauncherUnit();
-//        
+
         splash.setProgress(80, "Start service management unit");
         serviceOptions = new ServiceUnit();
         
@@ -94,7 +95,7 @@ public class Manager {
 
         splash.setProgress(90, "Start upgrade unit");
         upgradeUnit = new UpgradeUnit();
-
+        
         splash.setProgress(100, "Initialize user interface");
         window.addUnit(logViewer,       window.loggingPanel);
         window.addUnit(serviceOptions,  window.servicePanel);
