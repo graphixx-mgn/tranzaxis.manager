@@ -11,9 +11,12 @@ import java.awt.Graphics2D;
 import java.awt.Transparency;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -29,15 +32,23 @@ public final class SplashScreen extends JFrame {
     private Rectangle2D.Double progressArea;
     private Rectangle2D.Double descriptionArea;
 
-    public SplashScreen(String path) {
+    public SplashScreen() {
         setUndecorated(true);
         setLayout(new BorderLayout());
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         
+        ImageIcon splash = ImageUtils.getByPath("/images/splash.png");
+        BufferedImage bimage = new BufferedImage(splash.getIconWidth(), splash.getIconHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D bGr = bimage.createGraphics();
+        bGr.drawImage(splash.getImage(), 0, 0, null);
+        bGr.dispose();
+        Dimension size = new Dimension(splash.getIconWidth(), splash.getIconHeight());
         
         imagePanel = new ImagePanel();
+        imagePanel.setPreferredSize(size);
+        imagePanel.setBorder(new MatteBorder(1, 1, 0, 1, Color.LIGHT_GRAY));
         imagePanel.setStretchMode(ImagePanel.STRETCH_PRESERVE);
-        getContentPane().add(imagePanel, BorderLayout.CENTER);
+        imagePanel.setImage(bimage);
         
         JLabel logo = new JLabel(ImageUtils.getByPath("/images/logo.png"));
         logo.setOpaque(true);
@@ -52,45 +63,15 @@ public final class SplashScreen extends JFrame {
         
         infoPanel = new JPanel();
         infoPanel.setBackground(Color.WHITE);
-        getContentPane().add(infoPanel, BorderLayout.SOUTH);
-        
-        imagePanel.setBorder(new MatteBorder(1, 1, 0, 1, Color.LIGHT_GRAY));
         infoPanel.setBorder( new MatteBorder(0, 1, 1, 1, Color.LIGHT_GRAY));
+        infoPanel.setPreferredSize(new Dimension(size.width, 35));
         
-        File file = new File(this.getClass().getClassLoader().getResource(path).getFile());
-        try {
-            AnimatedPngImage png = new AnimatedPngImage();
-            png.read(file);
-            Dimension size = new Dimension(png.getWidth(), png.getHeight());
-            
-            infoPanel.setPreferredSize(new Dimension(size.width, 35));
-            imagePanel.setPreferredSize(size);
-            BufferedImage[] frames = new AnimatedPngImage().readAllFrames(file);
-                      
-            if (png.isAnimated()) {
-                final BufferedImage target = imagePanel.getGraphicsConfiguration().createCompatibleImage(
-                        size.width, size.height,
-                        Transparency.TRANSLUCENT
-                );
-                final Animator animator = new Animator(png, frames, target);
-                Timer timer = new Timer(50, null);
-                timer.setInitialDelay(0);
-                timer.addActionListener(animator);
-                
-                timer.addActionListener((e) -> {
-                    imagePanel.setImage(target);
-                });
-                timer.start();
-            } else {
-                imagePanel.setImage(frames[0]);
-            }
-            pack();
-            setLocationRelativeTo(null);
-            setVisible(true);
-            
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        getContentPane().add(imagePanel, BorderLayout.CENTER);
+        getContentPane().add(infoPanel,  BorderLayout.SOUTH);
+        
+        pack();
+        setLocationRelativeTo(null);
+        setVisible(true);
     }
 
     @Override
