@@ -90,7 +90,7 @@ public final class EditorPage extends JPanel {
             ));
         }
         
-        addEditorWidget(this, Box.createHorizontalStrut(Math.max(220, maxSize.get()+30)), null);
+        addEditorWidget(this, Box.createHorizontalStrut(Math.max(220, maxSize.get()+30)), Box.createHorizontalBox());
         groupWidgets.values().forEach((panel) -> {
             addEditorWidget(panel, Box.createHorizontalStrut(Math.max(220, maxSize.get()+30)), null);
         });
