@@ -102,8 +102,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     }
     
     public boolean isShowSql() {
-        LogManagementService LMS = (LogManagementService) ServiceRegistry.getInstance().lookupService(LogManagementService.class);
-        return LMS.getConfig().isShowSQL();
+        return getConfig().isShowSQL();
     }
     
     private synchronized void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {
