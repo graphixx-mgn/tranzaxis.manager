@@ -11,8 +11,10 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.Insets;
 import java.net.InetSocketAddress;
+import java.rmi.ConnectException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.ServerException;
 import java.text.MessageFormat;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.ImageIcon;
@@ -68,8 +70,12 @@ public final class UpgradeUnit extends AbstractUnit implements IInstanceListener
                     } else {
                         Logger.getLogger().debug("Upgrade is not available. Remote instance version: {0}", availVersion.getNumber());
                     }
-                } catch (NotBoundException | RemoteException e) {
+                } catch (ConnectException | NotBoundException e) {
                     // Do nothing
+                } catch (ServerException e) {
+                    Logger.getLogger().warn("Remote service call error: {0}", e.getCause().getMessage());
+                } catch (RemoteException e) {
+                    e.printStackTrace();
                 }
             }
         }).start();
