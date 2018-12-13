@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 /**
  * Сервис взаимодействия инстанций.
  */
-public final class InstanceCommunicationService extends AbstractService<CommonServiceOptions> implements IInstanceCommunicationService {
+public final class InstanceCommunicationService extends AbstractService<CommunicationServiceOptions> implements IInstanceCommunicationService {
     
     /**
      * Карта доступных сетевых интерфейсов и их IP адресов.
