@@ -123,7 +123,7 @@ public class Map<K extends IComplexType, V extends IComplexType> implements ICom
 
     @Override
     public String getQualifiedValue(java.util.Map<K, V> val) {
-        return val == null ? "<NULL>" : new StringBuilder().append("{")
+        return val == null ? "<NULL>" : new StringBuilder().append("[")
             .append(val.entrySet().stream()
                 .map((entry) -> {
                     return 
@@ -131,7 +131,7 @@ public class Map<K extends IComplexType, V extends IComplexType> implements ICom
                             .concat("=")
                             .concat(entry.getValue().getQualifiedValue(entry.getValue().getValue()));
                 }).collect(Collectors.joining(","))
-            ).append("}").toString();
+            ).append("]").toString();
     }
 
 }
