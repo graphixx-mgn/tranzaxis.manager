@@ -99,7 +99,8 @@ public class OracleAccessService implements IDatabaseAccessService {
             @Override
             public void cursorMoved(RowSetEvent event) {
                 try {
-                    if (rowSet.isLast()) {
+                    if (rowSet.isAfterLast() && !rowSet.isClosed()) {
+                        rowSet.close();
                         connection.close();
                     }
                 } catch (SQLException e) {}

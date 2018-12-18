@@ -161,99 +161,100 @@ public class RowSelector implements IDataSupplier<String> {
                 try {
                     Integer connID = connectionID.get();
                     if (connID != null) {
-                        ResultSet rset = DAS.select(connID, query, parameters.get());
-                        ResultSetMetaData meta = rset.getMetaData();
-                        int colomnCount = meta.getColumnCount();
-                        Vector<String> columns = new Vector<>();
-                        for (int colIdx = 1; colIdx <= colomnCount; colIdx++) {
-                            columns.add(meta.getColumnName(colIdx));
-                        }
-
-                        DefaultTableModel tableModel = new DefaultTableModel(null, columns) {
-                            @Override
-                            public Class<?> getColumnClass(int columnIndex) {
-                                return String.class;
-                            }
-
-                            @Override
-                            public boolean isCellEditable(int row, int column) {
-                                return false;
-                            }
-                        };
-                        table = new SelectorTable(tableModel);
-                        table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-                        table.setDefaultRenderer(String.class, new GeneralRenderer());
-                        table.getTableHeader().setDefaultRenderer(new HeaderRenderer());
-                        table.getSelectionModel().addListSelectionListener((ListSelectionEvent event) -> {
-                            if (event.getValueIsAdjusting()) return;
-                            btnConfirm.setEnabled(true);
-                        });
-                        table.addMouseListener(new MouseAdapter() {
-                            @Override
-                            public void mouseClicked(MouseEvent event) {
-                                if (event.getClickCount() == 2) {
-                                    btnConfirm.click();
-                                }
-                            }
-                        });
-
-                        sorter = new TableRowSorter<>(table.getModel());
-                        table.setRowSorter(sorter);
-
-                        PropertyHolder lookupHolder = new PropertyHolder(
-                                "filter", null, 
-                                Language.get(RowSelector.class.getSimpleName(), "filter"), 
-                                new Str(null), false
-                        );
-                        lookupEditor = new StrEditor(lookupHolder);
-                        EditorCommand search = new ApplyFilter();
-                        lookupEditor.addCommand(search);
-                        lookupEditor.getEditor().add((Component) search.getButton());
-                        lookupHolder.addChangeListener((name, oldValue, newValue) -> {
-                            search.execute(lookupHolder);
-                        });
-
-                        JLabel filterIcon  = new JLabel(ImageUtils.resize(ImageUtils.getByPath("/images/filter.png"), 20, 20));
-                        filterIcon.setBorder(new EmptyBorder(0, 5, 0, 5));
-
-                        JPanel filterPanel = new JPanel(new BorderLayout());
-                        filterPanel.setBorder(new EmptyBorder(5, 5, 0, 5));
-                        filterPanel.add(filterIcon, BorderLayout.WEST);
-                        filterPanel.add(lookupEditor.getEditor(), BorderLayout.CENTER);
-
-                        content.add(filterPanel, BorderLayout.NORTH);
-
-                        final JScrollPane scrollPane = new JScrollPane();
-                        scrollPane.getViewport().setBackground(Color.WHITE);
-                        scrollPane.setViewportView(table);
-                        scrollPane.setBorder(new CompoundBorder(
-                                new EmptyBorder(5, 5, 5, 5), 
-                                new MatteBorder(1, 1, 1, 1, Color.GRAY)
-                        ));
-                        content.add(scrollPane, BorderLayout.CENTER);
-                        int rowCount = 0;
-                        while (rset.next()) {
-                            rowCount++;
-                            Vector<String> row = new Vector<>();
+                        try (ResultSet rset = DAS.select(connID, query, parameters.get())) {
+                            ResultSetMetaData meta = rset.getMetaData();
+                            int colomnCount = meta.getColumnCount();
+                            Vector<String> columns = new Vector<>();
                             for (int colIdx = 1; colIdx <= colomnCount; colIdx++) {
-                                row.add(rset.getString(colIdx));
+                                columns.add(meta.getColumnName(colIdx));
                             }
-                            tableModel.addRow(row);
+
+                            DefaultTableModel tableModel = new DefaultTableModel(null, columns) {
+                                @Override
+                                public Class<?> getColumnClass(int columnIndex) {
+                                    return String.class;
+                                }
+
+                                @Override
+                                public boolean isCellEditable(int row, int column) {
+                                    return false;
+                                }
+                            };
+                            table = new SelectorTable(tableModel);
+                            table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+                            table.setDefaultRenderer(String.class, new GeneralRenderer());
+                            table.getTableHeader().setDefaultRenderer(new HeaderRenderer());
+                            table.getSelectionModel().addListSelectionListener((ListSelectionEvent event) -> {
+                                if (event.getValueIsAdjusting()) return;
+                                btnConfirm.setEnabled(true);
+                            });
+                            table.addMouseListener(new MouseAdapter() {
+                                @Override
+                                public void mouseClicked(MouseEvent event) {
+                                    if (event.getClickCount() == 2) {
+                                        btnConfirm.click();
+                                    }
+                                }
+                            });
+
+                            sorter = new TableRowSorter<>(table.getModel());
+                            table.setRowSorter(sorter);
+
+                            PropertyHolder lookupHolder = new PropertyHolder(
+                                    "filter", null, 
+                                    Language.get(RowSelector.class.getSimpleName(), "filter"), 
+                                    new Str(null), false
+                            );
+                            lookupEditor = new StrEditor(lookupHolder);
+                            EditorCommand search = new ApplyFilter();
+                            lookupEditor.addCommand(search);
+                            lookupEditor.getEditor().add((Component) search.getButton());
+                            lookupHolder.addChangeListener((name, oldValue, newValue) -> {
+                                search.execute(lookupHolder);
+                            });
+
+                            JLabel filterIcon  = new JLabel(ImageUtils.resize(ImageUtils.getByPath("/images/filter.png"), 20, 20));
+                            filterIcon.setBorder(new EmptyBorder(0, 5, 0, 5));
+
+                            JPanel filterPanel = new JPanel(new BorderLayout());
+                            filterPanel.setBorder(new EmptyBorder(5, 5, 0, 5));
+                            filterPanel.add(filterIcon, BorderLayout.WEST);
+                            filterPanel.add(lookupEditor.getEditor(), BorderLayout.CENTER);
+
+                            content.add(filterPanel, BorderLayout.NORTH);
+
+                            final JScrollPane scrollPane = new JScrollPane();
+                            scrollPane.getViewport().setBackground(Color.WHITE);
+                            scrollPane.setViewportView(table);
+                            scrollPane.setBorder(new CompoundBorder(
+                                    new EmptyBorder(5, 5, 5, 5), 
+                                    new MatteBorder(1, 1, 1, 1, Color.GRAY)
+                            ));
+                            content.add(scrollPane, BorderLayout.CENTER);
+                            int rowCount = 0;
+                            while (rset.next()) {
+                                rowCount++;
+                                Vector<String> row = new Vector<>();
+                                for (int colIdx = 1; colIdx <= colomnCount; colIdx++) {
+                                    row.add(rset.getString(colIdx));
+                                }
+                                tableModel.addRow(row);
+                            }
+                            if (table.getRowSorter().getViewRowCount() == 1) {
+                                table.getSelectionModel().setSelectionInterval(0, 0);
+                            }
+
+                            dialog.setContent(content);
+                            dialog.setMinimumSize(new Dimension(
+                                    Math.max(table.getColumnCount() * 100, 300),
+                                    200
+                            ));
+                            dialog.setPreferredSize(new Dimension(
+                                    Math.max(table.getColumnCount() * 200, 300),
+                                    rowCount < 10 ? 300 : 400
+                            ));
+                            super.setVisible(visible);
                         }
-                        if (table.getRowSorter().getViewRowCount() == 1) {
-                            table.getSelectionModel().setSelectionInterval(0, 0);
-                        }
-                        
-                        dialog.setContent(content);
-                        dialog.setMinimumSize(new Dimension(
-                                Math.max(table.getColumnCount() * 100, 300),
-                                200
-                        ));
-                        dialog.setPreferredSize(new Dimension(
-                                Math.max(table.getColumnCount() * 200, 300),
-                                rowCount < 10 ? 300 : 400
-                        ));
-                        super.setVisible(visible);
                     }
                 } catch (SQLException e) {
                     String command = MessageFormat.format(
