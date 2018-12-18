@@ -1,6 +1,7 @@
 package codex.explorer.tree;
 
 import codex.component.render.GeneralRenderer;
+import codex.editor.IEditor;
 import codex.log.Logger;
 import codex.model.Entity;
 import codex.model.EntityModel;
@@ -39,7 +40,7 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
      */
     public Navigator() {
         super();
-        setRowHeight((int) (getRowHeight()*1.5));
+        setRowHeight(IEditor.FONT_VALUE.getSize()*2-2);
         setBorder(new EmptyBorder(5, 10, 5, 2));
         addTreeSelectionListener((TreeSelectionEvent event) -> {
             SwingUtilities.invokeLater(() -> {

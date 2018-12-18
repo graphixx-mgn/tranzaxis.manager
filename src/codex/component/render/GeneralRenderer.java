@@ -4,6 +4,7 @@ import codex.component.button.IButton;
 import codex.editor.AbstractEditor;
 import codex.editor.IEditor;
 import codex.explorer.tree.INode;
+import codex.explorer.tree.NodeTreeModel;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.presentation.SelectorTableModel;
@@ -27,6 +28,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.event.TableModelEvent;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreeCellRenderer;
 
 /**
@@ -218,36 +220,40 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
      */
     @Override
     public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) {
-        Entity entity = (Entity) value;
-        int iconSize  = tree.getRowHeight()-2;
-        ImageIcon icon;
-        if (entity.islocked()) {
-            icon = ImageUtils.resize(ImageUtils.combine(
-                entity.getIcon(),
-                ICON_LOCKED
-            ), iconSize, iconSize);
-        } else if (!entity.model.isValid()) {
-            icon = ImageUtils.resize(ImageUtils.combine(
-                entity.getIcon(),
-                ICON_INVALID
-            ), iconSize, iconSize);
-        } else {
-            icon = ImageUtils.resize(entity.getIcon(), iconSize, iconSize);
-        }
-        JLabel label = new JLabel(entity.toString().concat(DEV_MODE ? ", hash="+entity.hashCode() : "")) {{
-            setOpaque(true);
-            setIconTextGap(6);
-            setVerticalAlignment(CENTER);
-            
-            setDisabledIcon(ImageUtils.grayscale(icon));
-            setIcon(icon);
+        if (tree.getModel() instanceof NodeTreeModel) {
+            Entity entity = (Entity) value;
+            int iconSize  = tree.getRowHeight()-2;
+            ImageIcon icon;
+            if (entity.islocked()) {
+                icon = ImageUtils.resize(ImageUtils.combine(
+                    entity.getIcon(),
+                    ICON_LOCKED
+                ), iconSize, iconSize);
+            } else if (!entity.model.isValid()) {
+                icon = ImageUtils.resize(ImageUtils.combine(
+                    entity.getIcon(),
+                    ICON_INVALID
+                ), iconSize, iconSize);
+            } else {
+                icon = ImageUtils.resize(entity.getIcon(), iconSize, iconSize);
+            }
+            JLabel label = new JLabel(entity.toString().concat(DEV_MODE ? ", hash="+entity.hashCode() : "")) {{
+                setOpaque(true);
+                setIconTextGap(6);
+                setVerticalAlignment(CENTER);
 
-            setForeground(selected ? Color.WHITE : IEditor.COLOR_NORMAL);
-            setBackground(selected ? Color.decode("#55AAFF") : Color.WHITE);
-            setBorder(new EmptyBorder(15, 2, 15, 7));
-            setEnabled((entity.getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED); 
-        }};
-        return label;
+                setDisabledIcon(ImageUtils.grayscale(icon));
+                setIcon(icon);
+
+                setForeground(selected ? Color.WHITE : IEditor.COLOR_NORMAL);
+                setBackground(selected ? Color.decode("#55AAFF") : Color.WHITE);
+                setBorder(new EmptyBorder(15, 2, 15, 7));
+                setEnabled((entity.getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED); 
+            }};
+            return label;
+        } else {
+            return new DefaultTreeCellRenderer().getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
+        }
     }
     
 }
