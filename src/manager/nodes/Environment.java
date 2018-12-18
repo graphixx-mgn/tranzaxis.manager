@@ -70,9 +70,10 @@ public class Environment extends Entity implements INodeListener {
             Database database = getDataBase(true);
             String   layerUri = getLayerUri(true);
             if (IComplexType.notNull(database, layerUri)) {
-                ResultSet rs = DAS.select(database.getConnectionID(false), "SELECT VERSION FROM RDX_DDSVERSION WHERE LAYERURI = ?", layerUri);
-                if (rs.next()) {
-                    return rs.getString(1);
+                try (ResultSet rs = DAS.select(database.getConnectionID(false), "SELECT VERSION FROM RDX_DDSVERSION WHERE LAYERURI = ?", layerUri);) {
+                    if (rs.next()) {
+                        return rs.getString(1);
+                    }
                 }
             }
             return null;
