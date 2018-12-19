@@ -69,14 +69,13 @@ public class ImageUtils {
     }
     
     public static ImageIcon combine(ImageIcon bgIcon, ImageIcon fgIcon) {
-        ImageObserver observer = bgIcon.getImageObserver();
         Image srcImage = bgIcon.getImage();
-        int width   = srcImage.getHeight(observer);
-        int height  = srcImage.getHeight(observer);
+        int width  = bgIcon.getIconWidth();
+        int height = bgIcon.getIconHeight();
 
         final BufferedImage combinedImage = new BufferedImage( 
                 width, 
-                width, 
+                height, 
                 BufferedImage.TYPE_INT_ARGB
         );
         Graphics2D g = combinedImage.createGraphics();
