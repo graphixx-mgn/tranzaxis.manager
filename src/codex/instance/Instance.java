@@ -10,6 +10,7 @@ import java.rmi.registry.Registry;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 
 /**
@@ -76,5 +77,12 @@ public final class Instance implements IInstanceCommunicationService {
     public IRemoteService getService(String className) throws RemoteException, NotBoundException {
         return (IRemoteService) registry.lookup(className);
     }
-    
+
+    @Override
+    public boolean equals(Object obj) {
+        Instance instance = (Instance) obj;
+        return host.equals(instance.host) && 
+               user.equals(instance.user) &&
+               address.equals(instance.address);
+    }
 }
