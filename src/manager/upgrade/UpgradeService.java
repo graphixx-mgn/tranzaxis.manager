@@ -4,14 +4,11 @@ import codex.instance.InstanceCommunicationService;
 import codex.instance.MultihomeRMIClientSocketFactory;
 import codex.instance.ServiceNotLoadedException;
 import codex.log.Logger;
-import com.sun.javafx.PlatformUtil;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
-import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
@@ -146,12 +143,8 @@ public class UpgradeService extends UnicastRemoteObject implements IUpgradeServi
     
     public static File getCurrentJar() {
         try {
-            if (PlatformUtil.isWindows()) {
-                return new File(BuildWC.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-            } else {
-                return new File(URLDecoder.decode(ClassLoader.getSystemClassLoader().getResource(".").getPath(), "UTF-8"));
-            }
-        } catch (URISyntaxException | UnsupportedEncodingException e) {
+            return new File(BuildWC.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+        } catch (URISyntaxException e) {
             Logger.getLogger().error("Unexpected exception", e);
         }
         return null;
