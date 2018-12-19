@@ -16,10 +16,12 @@ class RemoteHost extends Catalog {
     public  final static String PROP_USER_NAME = "userName";
     public  final static String PROP_HOST_NAME = "hostName";
     public  final static String PROP_HOST_ADDR = "hostAddress";
+    
+    private final Instance instance;
 
     RemoteHost(Instance instance) {
         super(null, ICON_REMOTE, instance.user, null);
-        setTitle(MessageFormat.format("{0}/{1}", instance.host, instance.user));
+        setTitle(MessageFormat.format("{0}/{1}", instance.address, instance.user));
         
         model.addDynamicProp(PROP_USER_NAME, new Str(null), null, () -> {
             return getPID();
@@ -32,7 +34,7 @@ class RemoteHost extends Catalog {
         model.addDynamicProp(PROP_HOST_ADDR, new Str(null), Access.Select, () -> {
             return instance.address.getHostAddress();
         });
-        
+        this.instance = instance;
     }
 
     @Override
@@ -40,12 +42,8 @@ class RemoteHost extends Catalog {
         return null;
     }
     
-    public final String getHost() {
-        return (String) model.getValue(PROP_HOST_NAME);
-    }
-    
-    public final String getUser() {
-        return (String) model.getValue(PROP_USER_NAME);
+    public final Instance getInstance() {
+        return instance;
     }
     
 }
