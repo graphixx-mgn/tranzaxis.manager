@@ -57,6 +57,15 @@ public class InstanceUnit extends AbstractUnit {
             navigator.setModel(instancesTree);
         } catch (Exception e) {}
         
+        ICS.getInstances().forEach((instance) -> {
+            INode root = (INode) instancesTree.getRoot();
+            root.insert(new RemoteHost(instance));
+            if (root.getChildCount() > 0) {
+                explorer.getViewport();
+                explorer.viewportBound();
+            }
+        });
+        
         ICS.addInstanceListener(new IInstanceListener() {
             @Override
             public void instanceLinked(Instance instance) {
@@ -72,7 +81,7 @@ public class InstanceUnit extends AbstractUnit {
             public void instanceUnlinked(Instance instance) {
                 INode root = (INode) instancesTree.getRoot();
                 getViews().stream().filter((view) -> {
-                    return view.getHost().equals(instance.host) && view.getUser().equals(instance.user);
+                    return view.getInstance().equals(instance);
                 }).forEach((view) -> {
                     root.delete(view);
                 });
