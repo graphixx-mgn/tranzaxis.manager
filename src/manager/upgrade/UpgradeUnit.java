@@ -62,7 +62,7 @@ public final class UpgradeUnit extends AbstractUnit implements IInstanceListener
                         Logger.getLogger().debug("Available upgrade {0} => {1}", currentVersion.getNumber(), availVersion.getNumber());
                         VersionsDocument diff = remoteUpService.getDiffVersions(currentVersion, availVersion);
                         new UpgradeDialog(instance, diff, (event) -> {
-                            skipUpgrade.set(event.getID() != Dialog.OK);
+                            skipUpgrade.set(event.getID() == Dialog.OK);
                             if (event.getID() == Dialog.OK) {
                                 upgrade(instance);
                             }
