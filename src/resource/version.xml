@@ -1,5 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<versions current="2.1.0" xmlns="manager/schemas/VersionInfo.xsd">
+<versions current="2.1.2" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="2.1.2" date="2018-12-19">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена ошибка инициализации дерева проводника в ОС Linux.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Корректное закрытие ресурса БД (ResultSet) при чтении информации о версии слоя окружения.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Исправлено появление информационного окна обновления при наличии нескольких инстанций с более новой версией ПО.</description>
+            </change>
+        </changelog>
+    </version>
+    <version number="2.1.1" date="2018-12-14">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена ошибка при сохранении настроек модуля нотификации, воспроизводится при
+включеной опции "Отображать запросы базы данных" в модуле доступа к конфигурации.</description>
+            </change>
+        </changelog>
+    </version>
     <version number="2.1.0" date="2018-12-10">
         <changelog>
             <change scope="CORE" type="Feature">
