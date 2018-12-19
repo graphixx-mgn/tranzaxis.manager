@@ -64,7 +64,7 @@ class LookupServer {
     /**
      * Запуск сервера.
      */
-    final void start() {
+    final void start() {   
         ICS = (InstanceCommunicationService) ServiceRegistry.getInstance().lookupService(InstanceCommunicationService.class);
         new Thread(new RequestHandler(mcastReceiverSocket)).start();
         new Thread(() -> {
@@ -189,8 +189,7 @@ class LookupServer {
     private boolean connect(Instance instance, boolean forward) {
         synchronized (instances) {
             if (instances.stream().filter((registered) -> {
-                    return registered.host.equals(instance.host) && 
-                           registered.user.equals(instance.user);
+                    return registered.equals(instance);
             }).findFirst().orElse(null) == null) {
                 linkInstance(instance);
             } else {
@@ -198,9 +197,8 @@ class LookupServer {
             }
         }
         new Thread(() -> {
-            try (Socket socket = new Socket() {{
-                connect(new InetSocketAddress(instance.address, instance.kcaPort), 1000);
-            }}) {
+            try (Socket socket = new Socket()) {
+                socket.connect(new InetSocketAddress(instance.address, instance.kcaPort), 1000);
                 if (ICS.getConfig().isShowNetOps()) {
                     Logger.getLogger().debug(
                             "ICS: {2} connection established: {0}:{1}", 
@@ -221,6 +219,8 @@ class LookupServer {
                 }
                 socket.getInputStream().read();
             } catch (IOException e) {
+                // Do nothing. Unlink instance in finalization
+            } finally {
                 synchronized (instances) {
                     if (instances.contains(instance)) {
                         unlinkInstance(instance);
@@ -268,12 +268,16 @@ class LookupServer {
                                 Logger.getLogger().debug("ICS: Skip duplicate linkage of instance {0}", remoteInstance);
                             }
                         } catch (XmlException e) {}
+                    } else {
+                        break;
                     }
                 }
             } catch (IOException e) {
+                // Do nothing. Close connection in finalization
+            } finally {
                 try {
                     clientSocket.close();
-                } catch (IOException e1) {}
+                } catch (IOException e) {}
             }
         }
     
