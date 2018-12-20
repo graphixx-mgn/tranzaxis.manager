@@ -32,8 +32,8 @@ public class Language {
         if (bundles.containsKey(className)) {
             bundle = bundles.get(className);
         } else {
-            if (LOADER.getResource("resource/locale/"+className+"_"+getLocale().toString()+".properties") != null) {
-                bundle = ResourceBundle.getBundle("resource/locale/"+className, getLocale());
+            if (LOADER.getResource("locale/"+className+"_"+getLocale().toString()+".properties") != null) {
+                bundle = ResourceBundle.getBundle("locale/"+className, getLocale());
                 bundles.put(className, bundle);
             } else {
                 return NOT_FOUND;
@@ -44,8 +44,8 @@ public class Language {
     
     public static String get(String className, String key, Locale locale) {
         ResourceBundle bundle;
-        if (LOADER.getResource("resource/locale/"+className+"_"+(locale == null ? getLocale(): locale).toString()+".properties") != null) {
-            bundle = ResourceBundle.getBundle("resource/locale/"+className, locale == null ? getLocale(): locale);
+        if (LOADER.getResource("locale/"+className+"_"+(locale == null ? getLocale(): locale).toString()+".properties") != null) {
+            bundle = ResourceBundle.getBundle("locale/"+className, locale == null ? getLocale(): locale);
         } else {
             return NOT_FOUND;
         }
@@ -63,8 +63,8 @@ public class Language {
         for (String className : classNames) {
             if (bundles.containsKey(className) && bundles.get(className).containsKey(key)) {
                 return bundles.get(className).getString(key);
-            } else if (LOADER.getResource("resource/locale/"+className+"_"+getLocale().toString()+".properties") != null) {
-                ResourceBundle bundle = ResourceBundle.getBundle("resource/locale/"+className, getLocale());
+            } else if (LOADER.getResource("locale/"+className+"_"+getLocale().toString()+".properties") != null) {
+                ResourceBundle bundle = ResourceBundle.getBundle("locale/"+className, getLocale());
                 if (bundle.containsKey(key)) {
                     bundles.put(className, bundle);
                     return bundles.get(className).getString(key);

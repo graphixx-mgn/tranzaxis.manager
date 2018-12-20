@@ -11,7 +11,6 @@ import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.LinkedList;
 import java.util.List;
 import javax.swing.JComboBox;
 import javax.swing.JList;
@@ -55,9 +54,10 @@ public class StrSetMask extends EditorCommand implements IArrMask, ActionListene
 
     @Override
     public List<String> getCleanValue() {
-        List<String> newValue = new LinkedList<>((List<String>) getContext()[0].getPropValue().getValue());
-        newValue.set(0, "");
-        return newValue;
+        throw new UnsupportedOperationException();
+//        List<String> newValue = new LinkedList<>((List<String>) getContext()[0].getPropValue().getValue());
+//        newValue.set(0, "");
+//        return newValue;
     }
     
     @Override
@@ -92,11 +92,11 @@ public class StrSetMask extends EditorCommand implements IArrMask, ActionListene
     @Override
     public void actionPerformed(ActionEvent event) {
         if (event.getSource().equals(comboBox)) {
-            popup.hide();
-            List<String> value = ((List<String>) getContext()[0].getPropValue().getValue());
-            List<String> newValue = new LinkedList<>(value);
-            newValue.set(0, (String) comboBox.getSelectedItem());
-            getContext()[0].setValue(newValue);
+//            popup.hide();
+//            List<String> value = ((List<String>) getContext()[0].getPropValue().getValue());
+//            List<String> newValue = new LinkedList<>(value);
+//            newValue.set(0, (String) comboBox.getSelectedItem());
+//            getContext()[0].setValue(newValue);
         } else {
             super.actionPerformed(event);
         }
