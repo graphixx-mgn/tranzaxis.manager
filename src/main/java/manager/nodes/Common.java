@@ -26,7 +26,6 @@ public final class Common extends Catalog {
     
     public  final static String PROP_WORK_DIR  = "workDir";
     public  final static String PROP_GUI_LANG  = "guiLang";
-    public  final static String PROP_USE_TRAY  = "useTray";
 
     public Common() {
         super(null, ImageUtils.getByPath("/images/settings.png"), "title", Language.get("desc"));

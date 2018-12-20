@@ -44,9 +44,7 @@ public class Offshoot extends BinarySource {
         super(owner, ImageUtils.getByPath("/images/branch.png"), title);
         
         // Properties
-        model.addDynamicProp(PROP_VERSION,     new Str(null), null, () -> {
-            return getPID();
-        });
+        model.addDynamicProp(PROP_VERSION,     new Str(null), null, () -> getPID());
         model.addDynamicProp(PROP_WC_STATUS,   new Enum(WCStatus.Absent), Access.Edit, () -> {
             if (this.getOwner() != null) {
                 return getWorkingCopyStatus();

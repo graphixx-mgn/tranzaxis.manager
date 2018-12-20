@@ -30,7 +30,7 @@ import org.apache.xmlbeans.XmlException;
 
 public class UpgradeService extends UnicastRemoteObject implements IUpgradeService {
     
-    public final static String VERSION_RESOURCE = "/resource/version.xml";
+    public final static String VERSION_RESOURCE = "/version.xml";
     
     static final  Comparator<Version> VER_COMPARATOR = (v1, v2) -> {
         String[] vals1 = v1.getNumber().split("\\.");

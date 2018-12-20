@@ -71,6 +71,8 @@ public class Manager {
         splash.setProgress(10, "Initialize logging system");
         logViewer = LogUnit.getInstance();
 
+        Logger.getLogger().info(System.getProperty("java.class.path"));
+
         splash.setProgress(40, "Start task management system");
         taskManager = new TaskManager();
 
