@@ -6,174 +6,23 @@
 
     <groupId>com.compassplus</groupId>
     <artifactId>manager</artifactId>
-    <version>2.1.0</version>
-
-    <repositories>
-        <repository>
-            <id>poolborges-github-thirdparty</id>
-            <name>poolborges-github</name>
-            <url>https://github.com/poolborges/maven/raw/master/thirdparty/</url>
-        </repository>
-    </repositories>
-
-    <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>com.compassplus</groupId>
-            <artifactId>codex</artifactId>
-            <version>2.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.tmatesoft.svnkit</groupId>
-            <artifactId>svnkit</artifactId>
-            <version>1.9.3</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>jsch.agentproxy.core</artifactId>
-                    <groupId>com.jcraft</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>jna</artifactId>
-                    <groupId>net.java.dev.jna</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>platform</artifactId>
-                    <groupId>net.java.dev.jna</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.xmlbeans</groupId>
-            <artifactId>xmlbeans</artifactId>
-            <version>2.4.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.ant</groupId>
-            <artifactId>ant</artifactId>
-            <version>1.10.5</version>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.6</version>
-        </dependency>
-        <dependency>
-            <groupId>com.compassplus</groupId>
-            <artifactId>radix</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>it.sauronsoftware</groupId>
-            <artifactId>junique</artifactId>
-            <version>1.0.4</version>
-            <type>jar</type>
-        </dependency>
-    </dependencies>
+    <packaging>pom</packaging>
+    <version>2.1.2</version>
 
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-install-plugin</artifactId>
-                <version>3.0.0-M1</version>
-                <executions>
-                    <execution>
-                        <id>install:com.compassplus:radix</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
-                            <file>${basedir}/lib/radix.jar</file>
-                            <groupId>com.compassplus</groupId>
-                            <artifactId>radix</artifactId>
-                            <version>1.0.0</version>
-                            <packaging>jar</packaging>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>xmlbeans-maven-plugin</artifactId>
-                <version>2.3.3</version>
-                <executions>
-                    <execution>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>xmlbeans</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <schemaDirectory>src/main/java/manager/schemas</schemaDirectory>
-                    <xmlConfigs>
-                        <xmlConfig implementation="java.io.File">src/main/java/manager/schemas/.xsdconfig</xmlConfig>
-                    </xmlConfigs>
-                    <verbose>false</verbose>
-                    <quiet>false</quiet>
-                    <javaSource>${maven.compiler.source}</javaSource>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>2.3.2</version>
                 <configuration>
-                    <compilerArguments>
-                        <bootclasspath>${sun.boot.class.path}${path.separator}${java.home}/lib/jfxrt.jar</bootclasspath>
-                    </compilerArguments>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.1</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <createDependencyReducedPom>false</createDependencyReducedPom>
-                    <filters>
-                        <filter>
-                            <artifact>*:*</artifact>
-                            <excludes>
-                                <exclude>*.txt</exclude>
-                                <exclude>*build.properties</exclude>
-                                <exclude>.netbeans_*</exclude>
-                                <exclude>META-INF/LICENSE*</exclude>
-                                <exclude>META-INF/NOTICE*</exclude>
-                                <exclude>META-INF/maven/**</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
-                    <finalName>${project.artifactId}-${project.version}</finalName>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.1.0</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>Loader</mainClass>
-                        </manifest>
-                    </archive>
+                    <debug>true</debug>
                 </configuration>
             </plugin>
         </plugins>
     </build>
-    
+    <modules>
+        <module>core</module>
+        <module>plugins/example</module>
+    </modules>
 </project>

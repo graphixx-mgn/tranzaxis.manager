@@ -1,0 +1,7 @@
+# IntellijIdea files
+*.iml
+.idea
+
+#Project build files
+/core/target
+/plugins/*/target

@@ -24,6 +24,7 @@ import manager.nodes.RepositoryRoot;
 import manager.type.Locale;
 import manager.ui.splash.SplashScreen;
 import manager.ui.Window;
+import manager.upgrade.UpgradeService;
 import manager.upgrade.UpgradeUnit;
 import sun.util.logging.PlatformLogger;
 
@@ -47,6 +48,7 @@ public class Manager {
     ;
 
     public Manager() {
+        System.out.println(UpgradeService.getCurrentJar());
         SplashScreen splash = new SplashScreen();
         
         loadSystemProps();
