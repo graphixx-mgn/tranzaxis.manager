@@ -4,6 +4,7 @@ import codex.command.EntityCommand;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.model.Catalog;
+import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.type.ArrStr;
 import codex.type.EntityRef;
@@ -21,6 +22,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -45,9 +47,7 @@ class EntryEntity extends Catalog {
     EntryEntity(EntityRef owner, String title) {
         super(null, null, title, null);
         
-        model.addDynamicProp(PROP_KIND, new Enum(DiskUsageReport.EntryKind.None), null, () -> {
-            return entry.kind;
-        });
+        model.addDynamicProp(PROP_KIND, new Enum(DiskUsageReport.EntryKind.None), null, () -> entry.kind);
         model.addDynamicProp(PROP_NAME, new Str(null), null, () -> {
             switch (entry.kind) {
                 case Dump:
@@ -70,25 +70,23 @@ class EntryEntity extends Catalog {
                         e.printStackTrace();
                     }
                     return null;
-                }).filter((PID) -> {
-                    return PID != null;
-                }).collect(Collectors.toList());
+                }).filter(Objects::nonNull).collect(Collectors.toList());
             }
             return null;
         });
         model.addDynamicProp(PROP_SIZE, new Str(null), null, null);
-        
+
         // Commands
         addCommand(new DeleteEntry());
     }
-    
+
     final List<String> getUsed() {
         return (List<String>) model.getValue(PROP_USED);
     }
     
     final void setEntry(DiskUsageReport.Entry entry) {
         this.entry = entry;
-        this.entityRef = findEntity();
+        this.entityRef = findEntity(entry);
         
         if (this.entityRef != null) {
             if (entityRef.getValue().islocked()) {
@@ -121,7 +119,7 @@ class EntryEntity extends Catalog {
         model.setValue(PROP_SIZE, DiskUsageReport.formatFileSize(size));
     }
     
-    private EntityRef findEntity() {
+    static EntityRef findEntity(DiskUsageReport.Entry entry) {
         List<IConfigStoreService.ForeignLink> links = CAS.findReferencedEntries(Repository.class, entry.repo.getID());
         switch (entry.kind) {
             case Sources:
@@ -147,7 +145,7 @@ class EntryEntity extends Catalog {
     }
 
     @Override
-    public final Class getChildClass() {
+    public final Class<? extends Entity> getChildClass() {
         return null;
     }
     
@@ -169,43 +167,47 @@ class EntryEntity extends Catalog {
                         return FileVisitResult.CONTINUE;
                     }
                 });
-            } catch (IOException e) {}
+            } catch (IOException e) {
+                // Do nothing
+            }
             return size.get();
         }
     }
     
     private class DeleteEntry extends EntityCommand<EntryEntity> {
 
-        public DeleteEntry() {
+        DeleteEntry() {
             super(
                     "delete",
                     Language.get(DiskUsageReport.class.getSimpleName(), "delete@title"),
                     ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28),
                     Language.get(DiskUsageReport.class.getSimpleName(), "delete@title"), 
-                    (entryEntity) -> {
-                        return 
-                                entryEntity.model.getValue(PROP_SIZE) != null && (
-                                    entryEntity.entry.kind == DiskUsageReport.EntryKind.Cache ||
-                                    entryEntity.entry.kind == DiskUsageReport.EntryKind.Dump || (
-                                        entryEntity.entry.kind == DiskUsageReport.EntryKind.Sources &&
-                                        entryEntity.getUsed() == null
-                                    )
-                                );
-                    }
+                    (entryEntity) ->
+                            entryEntity.model.getValue(PROP_SIZE) != null && (
+                                entryEntity.entry.kind == DiskUsageReport.EntryKind.File  ||
+                                entryEntity.entry.kind == DiskUsageReport.EntryKind.Dir   ||
+                                entryEntity.entry.kind == DiskUsageReport.EntryKind.Cache ||
+                                entryEntity.entry.kind == DiskUsageReport.EntryKind.Dump  || (
+                                    entryEntity.entry.kind == DiskUsageReport.EntryKind.Sources &&
+                                    entryEntity.getUsed() == null
+                                )
+                            )
             );
         }
 
         @Override
         public void execute(EntryEntity entryEntity, Map<String, IComplexType> params) {
             switch (entryEntity.entry.kind) {
+                case Dir:
                 case Cache:
-                    executeTask(entryEntity, new DiskUsageReport.DeleteCache(entryEntity), true);
+                    executeTask(entryEntity, new DiskUsageReport.DeleteDirectory(entryEntity), true);
                     break;
                 case Sources:
-                    DiskUsageReport.deleteSource(entryEntity);
+                    executeTask(entryEntity, DiskUsageReport.deleteSource(entryEntity), true);
                     break;
+                case File:
                 case Dump:
-                    DiskUsageReport.deleteDump(entryEntity);
+                    DiskUsageReport.deleteFile(entryEntity);
                     break;
                 default:
                     throw new UnsupportedOperationException("Not supported yet.");

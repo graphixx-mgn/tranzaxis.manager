@@ -8,10 +8,7 @@ import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.log.Logger;
 import codex.service.ServiceRegistry;
-import codex.task.AbstractTask;
-import codex.task.AbstractTaskView;
-import codex.task.ITaskExecutorService;
-import codex.task.TaskManager;
+import codex.task.*;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Iconified;
@@ -57,6 +54,7 @@ import manager.nodes.Common;
 import manager.nodes.Offshoot;
 import manager.nodes.Repository;
 import org.apache.commons.io.FileDeleteStrategy;
+import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 public class DiskUsageReport extends EntityCommand<Common> {
     
@@ -69,7 +67,6 @@ public class DiskUsageReport extends EntityCommand<Common> {
     private static final NotifableLong SIZE_UNUSED = new NotifableLong(0);
     
     public DiskUsageReport() {
-        
         super(
                 "usage", 
                 "title", 
@@ -113,9 +110,19 @@ public class DiskUsageReport extends EntityCommand<Common> {
                             structureMap.put(repositoryDir.getName(), new LinkedList<>());
                         }
                         Stream.of(repositoryDir.listFiles()).forEach((cacheDir) -> {
-                            structureMap.get(repositoryDir.getName()).add(
-                                    new Entry(EntryKind.Cache, repoIndex.get(repositoryDir.getName()), cacheDir)
-                            );
+                            if (cacheDir.isFile()) {
+                                structureMap.get(repositoryDir.getName()).add(
+                                        new Entry(EntryKind.File, repoIndex.get(repositoryDir.getName()), cacheDir)
+                                );
+                            } else {
+                                Entry entry = new Entry(EntryKind.Cache, repoIndex.get(repositoryDir.getName()), cacheDir);
+                                EntityRef ref = EntryEntity.findEntity(entry);
+                                if (ref == null) {
+                                    structureMap.get(repositoryDir.getName()).add(new Entry(EntryKind.Dir, repoIndex.get(repositoryDir.getName()), cacheDir));
+                                } else {
+                                    structureMap.get(repositoryDir.getName()).add(entry);
+                                }
+                            }
                         });
                     } else {
                         Logger.getLogger().warn("Found repository directory ''{0}'' does not match to any existing repository", repositoryDir.getAbsolutePath());
@@ -130,27 +137,36 @@ public class DiskUsageReport extends EntityCommand<Common> {
                             structureMap.put(repositoryDir.getName(), new LinkedList<>());
                         }
                         Stream.of(repositoryDir.listFiles()).forEach((offshootDir) -> {
-                            structureMap.get(repositoryDir.getName()).add(
-                                    new Entry(EntryKind.Sources, repoIndex.get(repositoryDir.getName()), offshootDir)
-                            );
-                            
-                            StringJoiner logPath = new StringJoiner(File.separator);
-                            logPath.add(offshootDir.getAbsolutePath());
-                            logPath.add(".config");
-                            logPath.add("var");
-                            logPath.add("log");
-                            
-                            File logDir = new File(logPath.toString());
-                            if (logDir.exists()) {
-                                for (File file : logDir.listFiles()) {
-                                    if (file.getName().startsWith("heapdump")) {
-                                        structureMap.get(repositoryDir.getName()).add(
-                                                new Entry(EntryKind.Dump, repoIndex.get(repositoryDir.getName()), file)
-                                        );
+                            if (offshootDir.isFile()) {
+                                structureMap.get(repositoryDir.getName()).add(
+                                        new Entry(EntryKind.File, repoIndex.get(repositoryDir.getName()), offshootDir)
+                                );
+                            } else {
+                                Entry entry = new Entry(EntryKind.Sources, repoIndex.get(repositoryDir.getName()), offshootDir);
+                                EntityRef ref = EntryEntity.findEntity(entry);
+                                if (!SVNWCUtil.isVersionedDirectory(offshootDir) || ref == null) {
+                                    structureMap.get(repositoryDir.getName()).add(new Entry(EntryKind.Dir, repoIndex.get(repositoryDir.getName()), offshootDir));
+                                } else {
+                                    structureMap.get(repositoryDir.getName()).add(entry);
+                                }
+
+                                StringJoiner logPath = new StringJoiner(File.separator);
+                                logPath.add(offshootDir.getAbsolutePath());
+                                logPath.add(".config");
+                                logPath.add("var");
+                                logPath.add("log");
+
+                                File logDir = new File(logPath.toString());
+                                if (logDir.exists()) {
+                                    for (File file : logDir.listFiles()) {
+                                        if (file.getName().startsWith("heapdump")) {
+                                            structureMap.get(repositoryDir.getName()).add(
+                                                    new Entry(EntryKind.Dump, repoIndex.get(repositoryDir.getName()), file)
+                                            );
+                                        }
                                     }
                                 }
                             }
-
                         });
                     } else {
                         Logger.getLogger().warn("Found repository directory ''{0}'' does not match to any existing repository", repositoryDir.getAbsolutePath());
@@ -300,7 +316,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
             repoView.add(repoName, BorderLayout.NORTH);
             
             repoView.add(
-                    repoEntity.getSelectorPresentation(), 
+                    repoEntity.getSelectorPresentation(),
                     BorderLayout.CENTER
             );
             return repoView;
@@ -425,18 +441,21 @@ public class DiskUsageReport extends EntityCommand<Common> {
         }
         return hrSize;
     }
-    
-    enum  EntryKind implements Iconified {
-        
+
+    enum EntryKind implements Iconified {
+
         None(Language.get(DiskUsageReport.class.getSimpleName(), "kind@none"), ImageUtils.getByPath("/images/clearval.png")),
         Sources(Language.get(DiskUsageReport.class.getSimpleName(), "kind@sources"), ImageUtils.getByPath("/images/branch.png")),
         Cache(Language.get(DiskUsageReport.class.getSimpleName(), "kind@cache"), ImageUtils.getByPath("/images/release.png")),
-        Dump(Language.get(DiskUsageReport.class.getSimpleName(), "kind@dump"), ImageUtils.getByPath("/images/thread.png"));
+        Dump(Language.get(DiskUsageReport.class.getSimpleName(), "kind@dump"), ImageUtils.getByPath("/images/thread.png")),
+
+        File(Language.get(DiskUsageReport.class.getSimpleName(), "kind@file"), ImageUtils.getByPath("/images/unknown_file.png")),
+        Dir(Language.get(DiskUsageReport.class.getSimpleName(), "kind@dir"), ImageUtils.getByPath("/images/unknown_dir.png"));
 
         private final String    title;
         private final ImageIcon icon;
 
-        private EntryKind(String title, ImageIcon icon) {
+        EntryKind(String title, ImageIcon icon) {
             this.title  = title;
             this.icon   = icon;
         }
@@ -494,17 +513,17 @@ public class DiskUsageReport extends EntityCommand<Common> {
         }
     }
     
-    static class DeleteCache extends AbstractTask<Void> {
+    static class DeleteDirectory extends AbstractTask<Void> {
 
         private final EntryEntity entryEntity;
         private final long initialSize;
-        
-        public DeleteCache(EntryEntity entryEntity) {
-            super(Language.get(DiskUsageReport.class.getSimpleName(), "delete@title")+": "+entryEntity.entry.file);
+
+        public DeleteDirectory(EntryEntity entryEntity) {
+            super(Language.get(DiskUsageReport.class.getSimpleName(), "delete@title") + ": " + entryEntity.entry.file);
             this.entryEntity = entryEntity;
             this.initialSize = entryEntity.getSize();
         }
-        
+
         @Override
         public boolean isPauseable() {
             return true;
@@ -513,11 +532,11 @@ public class DiskUsageReport extends EntityCommand<Common> {
         @Override
         public Void execute() throws Exception {
             setProgress(0, Language.get(DiskUsageReport.class.getSimpleName(), "delete@calc"));
-            long totalFiles  = entryEntity.getFilesCount();
+            long totalFiles = entryEntity.getFilesCount();
 
             AtomicInteger processed = new AtomicInteger(0);
             Files.walkFileTree(entryEntity.entry.file.toPath(), new SimpleFileVisitor<Path>() {
-                
+
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                     return processPath(file);
@@ -527,7 +546,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
                 public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
                     return processPath(dir);
                 }
-                
+
                 private FileVisitResult processPath(Path path) {
                     checkPaused();
                     if (isCancelled()) {
@@ -536,7 +555,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
                     try {
                         FileDeleteStrategy.NORMAL.delete(path.toFile());
                         processed.addAndGet(1);
-                        String fileName = path.toString().replace(entryEntity.entry.file.toPath()+File.separator, "");
+                        String fileName = path.toString().replace(entryEntity.entry.file.toPath() + File.separator, "");
                         setProgress(
                                 (int) (processed.get() * 100 / totalFiles),
                                 MessageFormat.format(
@@ -561,7 +580,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
         @Override
         public void finished(Void result) {
             long finalSize = entryEntity.getSize();
-            long deleted   = -1*(initialSize-finalSize);
+            long deleted = -1 * (initialSize - finalSize);
             SIZE_TOTAL.addAndNotify(deleted);
             if (entryEntity.getUsed() == null || entryEntity.getUsed().isEmpty()) {
                 SIZE_UNUSED.addAndNotify(deleted);
@@ -576,7 +595,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
         }
     }
     
-    static void  deleteDump(EntryEntity entryEntity) {
+    static void  deleteFile(EntryEntity entryEntity) {
         long initialSize = entryEntity.entry.file.length();
         try {
             FileDeleteStrategy.NORMAL.delete(entryEntity.entry.file);
@@ -591,10 +610,10 @@ public class DiskUsageReport extends EntityCommand<Common> {
         }
     }
     
-    static void  deleteSource(EntryEntity entryEntity) {
+    static ITask deleteSource(EntryEntity entryEntity) {
         long initialSize = entryEntity.getSize();
         Offshoot offshoot = (Offshoot) entryEntity.entityRef.getValue();
-        DeleteWC.DeleteTask task = ((DeleteWC) offshoot.getCommand("clean")).new DeleteTask(offshoot) {
+        return ((DeleteWC) offshoot.getCommand("clean")).new DeleteTask(offshoot) {
             @Override
             public void finished(Void result) {
                 super.finished(result);
@@ -612,6 +631,5 @@ public class DiskUsageReport extends EntityCommand<Common> {
                 }
             }
         };
-        TES.executeTask(task);
     }
 }
