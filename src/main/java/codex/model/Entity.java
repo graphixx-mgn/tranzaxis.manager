@@ -157,7 +157,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     }
     
     public final List<String> getOverride() {
-        return (List<String>) model.getOverride();
+        return model.getOverride();
     }
     
     public final Entity setID(Integer id) {
@@ -255,12 +255,12 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             selectorPresentation = new SelectorPresentation(this);
         }
         return selectorPresentation;
-    };
+    }
 
     @Override
     public final EditorPresentation getEditorPresentation() {
         return new EditorPresentation(this);
-    };
+    }
     
     public final List<String> getInvalidProperties() {
         return model.editors.entrySet().stream()
@@ -297,9 +297,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      */
     public final boolean validate() {
         List<String> invalidProps = getInvalidProperties().stream()
-            .map((propName) -> {
-                return model.getProperty(propName).getTitle();
-            })
+            .map((propName) -> model.getProperty(propName).getTitle())
             .collect(Collectors.toList());
         if (!invalidProps.isEmpty()) {
             // Имеются ошибки в значениях
@@ -330,7 +328,9 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                         if (event.getID() == Dialog.OK) {
                             try {
                                 model.commit(true);
-                            } catch (Exception e) {}
+                            } catch (Exception e) {
+                                // Do nothing
+                            }
                         }
                     }
             );
@@ -339,9 +339,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     };
     
     public final void stopEditing() {
-        model.editors.values().stream().forEach((editor) -> {
-            editor.stopEditing();
-        });
+        model.editors.values().forEach(IEditor::stopEditing);
     }
     
     @Override
@@ -370,12 +368,14 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         try {
             Constructor ctor = entityClass.getDeclaredConstructor(EntityRef.class, String.class);
             ctor.setAccessible(true);
-            Entity instance = (Entity) ctor.newInstance(null, null);
-            return instance;
-        } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
-            Logger.getLogger().error(
-                    MessageFormat.format("Unable instantiate entity ''{0}''", entityClass.getCanonicalName()), e
-            );
+            return (Entity) ctor.newInstance(null, null);
+        } catch (InvocationTargetException | ExceptionInInitializerError | InstantiationException | IllegalAccessException e) {
+            Throwable exception = e;
+            do {
+                Logger.getLogger().error(
+                        MessageFormat.format("Unable instantiate entity ''{0}''", entityClass.getCanonicalName()), exception
+                );
+            } while ((exception = exception.getCause()) != null);
         } catch (NoSuchMethodException e) {
             throw new IllegalStateException(MessageFormat.format(
                     "Entity ''{0}'' does not have universal constructor (EntityRef, String)", 
@@ -410,10 +410,13 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                         });
                     }
                     return created;
-                } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
-                    Logger.getLogger().error(
-                            MessageFormat.format("Unable instantiate entity ''{0}''", entityClass.getCanonicalName()), e.getCause()
-                    );
+                } catch (InvocationTargetException | ExceptionInInitializerError | InstantiationException | IllegalAccessException e) {
+                    Throwable exception = e;
+                    do {
+                        Logger.getLogger().error(
+                                MessageFormat.format("Unable instantiate entity ''{0}''", entityClass.getCanonicalName()), exception
+                        );
+                    } while ((exception = exception.getCause()) != null);
                 } catch (NoSuchMethodException e) {
                     Logger.getLogger().error(
                             "Entity ''{0}'' does not have universal constructor (EntityRef<owner>, String<PID>)", 
