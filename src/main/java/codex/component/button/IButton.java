@@ -99,6 +99,8 @@ public interface IButton {
      * Возвращает признак отключения обработчиков.
      */
     public boolean isInactive();
+
+    public void setVisible(boolean visible);
     
     /**
      * Программная эмуляция нажатия кнопки.
