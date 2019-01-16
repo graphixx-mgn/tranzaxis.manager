@@ -237,7 +237,13 @@ public abstract class AbstractTask<T> implements ITask<T> {
             stopTime = LocalDateTime.now();
         }
         if (!this.status.equals(state)) {
-            Logger.getLogger().debug("Task ''{0}'' state changed: {1} -> {2}", getTitle(), this.status, state);
+            Logger.getLogger().debug(
+                    "Task ''{0}'' state changed: {1} -> {2}{3}",
+                    getTitle(),
+                    this.status,
+                    state,
+                    state.isFinal() ? MessageFormat.format(" (duration: {0})", TaskView.formatDuration(getDuration())) : ""
+            );
             if (this.status == Status.CANCELLED && state == Status.FINISHED) {
                 throw new IllegalStateException(
                         MessageFormat.format(
@@ -256,12 +262,6 @@ public abstract class AbstractTask<T> implements ITask<T> {
     public final Status getStatus() {
         return status;
     }
-    
-//    public final void fireStatusChange() {
-//        new LinkedList<>(listeners).forEach((listener) -> {
-//            listener.statusChanged(this, status);
-//        });
-//    }
 
     /**
      * Запустить исполнение задачи. Вызывается сервисом исполнения задач в {@link TaskManager}.
