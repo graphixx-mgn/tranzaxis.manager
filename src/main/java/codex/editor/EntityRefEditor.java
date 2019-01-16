@@ -38,9 +38,7 @@ import javax.swing.plaf.basic.BasicComboPopup;
  * сущностей, найденный по классу и с учетом фильтра указанных в свойстве.
  */
 public class EntityRefEditor extends AbstractEditor implements ActionListener, INodeListener {
-    
-    private final static ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
-    
+
     private JComboBox comboBox;
 
     /**
@@ -68,6 +66,7 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener, I
     protected List<Object> getValues() {
         Class             entityClass  = ((EntityRef) propHolder.getPropValue()).getEntityClass();
         Predicate<Entity> entityFilter = ((EntityRef) propHolder.getPropValue()).getEntityFilter();
+        ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
         return entityClass != null ? EAS.getEntitiesByClass(entityClass)
                     .stream()
                     .filter(entityFilter)

@@ -52,7 +52,7 @@ import javax.swing.tree.TreeSelectionModel;
  */
 public class EntityRefTreeEditor extends AbstractEditor {
     
-    private final static ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+    //private final static ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
     
     private DefaultListModel listModel;
     protected JTextField     textField;
@@ -165,6 +165,7 @@ public class EntityRefTreeEditor extends AbstractEditor {
     private List<Entity> getValues() {
         Class             entityClass  = ((EntityRef) propHolder.getPropValue()).getEntityClass();
         Predicate<Entity> entityFilter = ((EntityRef) propHolder.getPropValue()).getEntityFilter();
+        ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
         return entityClass != null ? EAS.getEntitiesByClass(entityClass)
                     .stream()
                     .filter(entityFilter)
@@ -180,9 +181,8 @@ public class EntityRefTreeEditor extends AbstractEditor {
 
         @Override
         public void execute(PropertyHolder context) {
-            
             JPanel content = new JPanel(new BorderLayout());
-            
+            ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
             Entity rootEAS = EAS.getRoot();
             Predicate<Entity> entityFilter = ((EntityRef) propHolder.getPropValue()).getEntityFilter();
             
