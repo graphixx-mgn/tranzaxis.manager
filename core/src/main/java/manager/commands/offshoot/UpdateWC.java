@@ -8,7 +8,9 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.io.File;
 import java.nio.channels.ClosedChannelException;
+import java.nio.file.Path;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -18,10 +20,7 @@ import manager.nodes.Offshoot;
 import static manager.nodes.Offshoot.DATE_FORMAT;
 import manager.svn.SVN;
 import manager.type.WCStatus;
-import org.tmatesoft.svn.core.SVNCancelException;
-import org.tmatesoft.svn.core.SVNErrorCode;
-import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.SVNNodeKind;
+import org.tmatesoft.svn.core.*;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.wc.ISVNEventHandler;
 import org.tmatesoft.svn.core.wc.SVNEvent;
@@ -80,9 +79,17 @@ public class UpdateWC extends EntityCommand<Offshoot> {
 
             setProgress(0, Language.get(UpdateWC.class.getSimpleName(), "command@calc"));
             try {
-                Long changes = SVN.diff(wcPath, repoUrl, SVNRevision.HEAD, authMgr, new ISVNEventHandler() {
+                List<Path> changes = SVN.changes(wcPath, repoUrl, SVNRevision.HEAD, authMgr, new ISVNEventHandler() {
                     @Override
-                    public void handleEvent(SVNEvent event, double d) throws SVNException {}
+                    public void handleEvent(SVNEvent event, double d) throws SVNException {
+                        if (event.getErrorMessage() != null && event.getErrorMessage().getErrorCode() == SVNErrorCode.WC_CLEANUP_REQUIRED) {
+                            if (event.getExpectedAction() == SVNEventAction.RESOLVER_STARTING) {
+                                Logger.getLogger().info("UPDATE [{0}] perform automatic cleanup", wcPath);
+                            } else {
+                                Logger.getLogger().info("UPDATE [{0}] continue after cleanup", wcPath);
+                            }
+                        }
+                    }
 
                     @Override
                     public void checkCancelled() throws SVNCancelException {
@@ -92,7 +99,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                         }
                     }
                 });
-                if (changes > 0) {
+                if (changes.size() > 0) {
                     offshoot.setWCLoaded(false);
                     offshoot.model.commit(false);
                     
@@ -106,26 +113,18 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                     AtomicInteger restored = new AtomicInteger(0);
                     AtomicInteger changed  = new AtomicInteger(0);
 
+                    long total = changes.size();
                     SVN.update(repoUrl, wcPath, SVNRevision.HEAD, authMgr, new ISVNEventHandler() {
                             @Override
                             public void handleEvent(SVNEvent event, double d) throws SVNException {
-                                if (event.getErrorMessage() != null && event.getErrorMessage().getErrorCode() == SVNErrorCode.WC_CLEANUP_REQUIRED) {
-                                    if (event.getExpectedAction() == SVNEventAction.RESOLVER_STARTING) {
-                                        Logger.getLogger().warn("UPDATE [{0}] perfom recovery", wcPath);
-                                    } else {
-                                        Logger.getLogger().info("UPDATE [{0}] continue after recovery", wcPath);
-                                    }
-                                    return;
-                                }
-                                
                                 if (event.getAction() != SVNEventAction.UPDATE_STARTED && event.getAction() != SVNEventAction.UPDATE_COMPLETED) {
-                                    if (event.getNodeKind() != SVNNodeKind.DIR) {
+                                    if (changes.contains(event.getFile().toPath())) {
                                         loaded.addAndGet(1);
-                                        int percent = (int) (loaded.get() * 100 / changes);
+                                        int percent = (int) (loaded.get() * 100 / total);
                                         setProgress(
-                                                percent > 100 ? 100 : percent, 
+                                                percent > 100 ? 100 : percent,
                                                 MessageFormat.format(
-                                                        Language.get(UpdateWC.class.getSimpleName(), "command@progress"), 
+                                                        Language.get(UpdateWC.class.getSimpleName(), "command@progress"),
                                                         event.getFile().getPath().replace(wcPath+File.separator, "")
                                                 )
                                         );
@@ -141,6 +140,8 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                                         } else {
                                             System.err.println(action + " / " + event.getFile().getPath().replace(wcPath+File.separator, ""));
                                         }
+                                    } else {
+                                        if (event.getFile().isFile()) System.out.println(event);
                                     }
                                 }
                             }
@@ -168,10 +169,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                             wcPath, strR1, strR2, added.get(), deleted.get(), restored.get(), changed.get(), loaded.get()
                     );
                 } else {
-                    Logger.getLogger().info(
-                            "UPDATE [{0}] finished. working copy already actual", 
-                            new Object[]{wcPath}
-                    );
+                    Logger.getLogger().info("UPDATE [{0}] finished. working copy already actual", wcPath);
                 }
             } catch (SVNException e) {
                 Optional<Throwable> rootCause = Stream
@@ -179,10 +177,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                         .filter(element -> element.getCause() == null)
                         .findFirst();
                 if (rootCause.get() instanceof SVNCancelException || rootCause.get() instanceof ClosedChannelException) {
-                    Logger.getLogger().info(
-                            "UPDATE [{0}] canceled", 
-                            new Object[]{wcPath}
-                    );
+                    Logger.getLogger().info("UPDATE [{0}] canceled", wcPath);
                 } else {
                     throw e;
                 }
