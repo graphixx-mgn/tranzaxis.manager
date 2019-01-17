@@ -709,14 +709,15 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         final Map<String, Supplier>       valueProviders  = new HashMap<>();
         final Map<String, PropertyHolder> propertyHolders = new HashMap<>();
 
+        @SuppressWarnings("unchecked")
         PropertyHolder newProperty(String name, IComplexType value, Supplier valueProvider, String... baseProps) {
             valueProviders.put(name, valueProvider);
-            
+
             propertyHolders.put(name, new PropertyHolder(name, value, false) {
                 private boolean initiated = false;
 
                 @Override
-                public IComplexType getPropValue() {
+                public synchronized IComplexType getPropValue() {
                     if (!initiated) {
                         initiated = true;
                         value.setValue(valueProvider.get());
