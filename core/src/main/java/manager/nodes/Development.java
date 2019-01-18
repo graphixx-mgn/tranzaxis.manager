@@ -1,61 +1,38 @@
 package manager.nodes;
 
-import codex.model.Catalog;
+import codex.model.Entity;
 import codex.type.EntityRef;
 import codex.utils.ImageUtils;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-import manager.svn.SVN;
-import org.tmatesoft.svn.core.SVNDirEntry;
-import org.tmatesoft.svn.core.SVNErrorCode;
-import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 
-public class Development extends Catalog {
-    
+public class Development extends BranchCatalog {
+
+    private static final String SUB_DIR = "/dev";
+
     public Development(EntityRef owner) {
-        super(owner, ImageUtils.getByPath("/images/development.png"), "title", null);
+        this(owner, "title");
+    }
+
+    public Development(EntityRef owner, String PID) {
+        super(owner, ImageUtils.getByPath("/images/development.png"), PID, null);
     }
     
     @Override
-    public Class getChildClass() {
+    public Class<? extends Entity> getChildClass() {
         return Offshoot.class;
     }
-    
+
+    @Override
+    String getSubDirectory() {
+        return SUB_DIR;
+    }
+
     @Override
     public boolean allowModifyChild() {
         return false;
-    };
+    }
 
     Repository getRepository() {
         return (Repository) this.getOwner();
-    }
-    
-    @Override
-    protected final Collection<String> getChildrenPIDs() {
-        ISVNAuthenticationManager authMgr = getRepository().getAuthManager();
-        String repoUrl = getRepository().getRepoUrl();        
-
-        try {
-            List<SVNDirEntry> dirItems = SVN.list(repoUrl+"/dev", authMgr);
-            return dirItems.stream()
-                    .filter((entry) -> {
-                        return !entry.getName().isEmpty();
-                    })
-                    .map((entry) -> {
-                        return entry.getName();
-                    })
-                    .sorted(BinarySource.VERSION_SORTER.reversed())
-                    .collect(Collectors.toList());
-        } catch (SVNException e) {
-            SVNErrorCode code = e.getErrorMessage().getErrorCode();
-            if (code == SVNErrorCode.RA_SVN_IO_ERROR || code == SVNErrorCode.RA_SVN_MALFORMED_DATA) {
-                return super.getChildrenPIDs().stream().sorted(BinarySource.VERSION_SORTER.reversed()).collect(Collectors.toList());
-            } else {
-                throw new Error(e);
-            }
-        }
     }
     
 }

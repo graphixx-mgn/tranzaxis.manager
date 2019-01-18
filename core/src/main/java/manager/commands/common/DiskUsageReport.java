@@ -7,6 +7,7 @@ import codex.component.messagebox.MessageType;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.log.Logger;
+import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.task.*;
 import codex.type.EntityRef;
@@ -28,13 +29,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -50,11 +45,9 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
 import manager.commands.offshoot.DeleteWC;
-import manager.nodes.Common;
-import manager.nodes.Offshoot;
-import manager.nodes.Repository;
+import manager.nodes.*;
 import org.apache.commons.io.FileDeleteStrategy;
-import org.tmatesoft.svn.core.wc.SVNWCUtil;
+import org.tmatesoft.svn.core.SVNException;
 
 public class DiskUsageReport extends EntityCommand<Common> {
     
@@ -115,13 +108,33 @@ public class DiskUsageReport extends EntityCommand<Common> {
                                         new Entry(EntryKind.File, repoIndex.get(repositoryDir.getName()), cacheDir)
                                 );
                             } else {
-                                Entry entry = new Entry(EntryKind.Cache, repoIndex.get(repositoryDir.getName()), cacheDir);
-                                EntityRef ref = EntryEntity.findEntity(entry);
-                                if (ref == null) {
-                                    structureMap.get(repositoryDir.getName()).add(new Entry(EntryKind.Dir, repoIndex.get(repositoryDir.getName()), cacheDir));
-                                } else {
-                                    structureMap.get(repositoryDir.getName()).add(entry);
+                                boolean isBranch = false;
+                                try {
+                                    isBranch = ((BranchCatalog) Entity.newInstance(
+                                            ReleaseList.class, repoIndex.get(repositoryDir.getName()).toRef(), Language.get(ReleaseList.class.getSimpleName(), "title")
+                                    )).getBranchItems().stream()
+                                            .anyMatch(svnDirEntry -> svnDirEntry.getName().equals(cacheDir.getName()));
+                                } catch (SVNException e) {
+                                    // Do nothing
                                 }
+//                                boolean isBranch = repoIndex.get(repositoryDir.getName()).childrenList().stream()
+//                                        .filter(iNode -> iNode.getClass().equals(ReleaseList.class))
+//                                        .map(iNode -> {
+//                                            try {
+//                                                return ((BranchCatalog) iNode).getBranchItems();
+//                                            } catch (SVNException e) {
+//                                                return null;
+//                                            }
+//                                        })
+//                                        .flatMap(Collection::stream)
+//                                        .anyMatch(svnDirEntry -> svnDirEntry.getName().equals(cacheDir.getName()));
+                                structureMap.get(repositoryDir.getName()).add(
+                                        new Entry(
+                                                isBranch ? EntryKind.Cache : EntryKind.Dir,
+                                                repoIndex.get(repositoryDir.getName()),
+                                                cacheDir
+                                        )
+                                );
                             }
                         });
                     } else {
@@ -142,13 +155,22 @@ public class DiskUsageReport extends EntityCommand<Common> {
                                         new Entry(EntryKind.File, repoIndex.get(repositoryDir.getName()), offshootDir)
                                 );
                             } else {
-                                Entry entry = new Entry(EntryKind.Sources, repoIndex.get(repositoryDir.getName()), offshootDir);
-                                EntityRef ref = EntryEntity.findEntity(entry);
-                                if (!SVNWCUtil.isVersionedDirectory(offshootDir) || ref == null) {
-                                    structureMap.get(repositoryDir.getName()).add(new Entry(EntryKind.Dir, repoIndex.get(repositoryDir.getName()), offshootDir));
-                                } else {
-                                    structureMap.get(repositoryDir.getName()).add(entry);
+                                boolean isBranch = false;
+                                try {
+                                    isBranch = ((BranchCatalog) Entity.newInstance(
+                                            Development.class, repoIndex.get(repositoryDir.getName()).toRef(), Language.get(Development.class.getSimpleName(), "title")
+                                    )).getBranchItems().stream()
+                                            .anyMatch(svnDirEntry -> svnDirEntry.getName().equals(offshootDir.getName()));
+                                } catch (SVNException e) {
+                                    // Do nothing
                                 }
+                                structureMap.get(repositoryDir.getName()).add(
+                                        new Entry(
+                                                isBranch ? EntryKind.Sources : EntryKind.Dir,
+                                                repoIndex.get(repositoryDir.getName()),
+                                                offshootDir
+                                        )
+                                );
 
                                 StringJoiner logPath = new StringJoiner(File.separator);
                                 logPath.add(offshootDir.getAbsolutePath());
@@ -256,17 +278,6 @@ public class DiskUsageReport extends EntityCommand<Common> {
                         }, 
                         Dialog.Default.BTN_CLOSE
                 );
-        //        content.addHierarchyBoundsListener(new HierarchyBoundsListener() {
-        //            @Override
-        //            public void ancestorMoved(HierarchyEvent e) {
-        //                dialog.pack();
-        //            }
-        //
-        //            @Override
-        //            public void ancestorResized(HierarchyEvent e) {
-        //                dialog.pack();
-        //            }
-        //        });
                 TES.quietTask(calcTask);
                 dialog.setPreferredSize(new Dimension(800, 600));
                 dialog.setResizable(false);

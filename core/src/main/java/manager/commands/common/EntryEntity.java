@@ -26,10 +26,7 @@ import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import manager.nodes.BinarySource;
-import manager.nodes.Offshoot;
-import manager.nodes.Release;
-import manager.nodes.Repository;
+import manager.nodes.*;
 
 
 class EntryEntity extends Catalog {
@@ -93,7 +90,7 @@ class EntryEntity extends Catalog {
                 try {
                     getLock().acquire();
                 } catch (InterruptedException e) {}
-            };
+            }
         }
         
         if (entry.kind == DiskUsageReport.EntryKind.Cache || entry.kind == DiskUsageReport.EntryKind.Sources) {
@@ -119,29 +116,22 @@ class EntryEntity extends Catalog {
         model.setValue(PROP_SIZE, DiskUsageReport.formatFileSize(size));
     }
     
-    static EntityRef findEntity(DiskUsageReport.Entry entry) {
-        List<IConfigStoreService.ForeignLink> links = CAS.findReferencedEntries(Repository.class, entry.repo.getID());
+    private static EntityRef findEntity(DiskUsageReport.Entry entry) {
+        Class entityClass;
         switch (entry.kind) {
-            case Sources:
             case Cache:
-                return links.stream().filter((link) -> {
-                    return 
-                            Boolean.FALSE.equals(link.isIncoming) && (
-                                link.entryClass.equals(Offshoot.class.getCanonicalName()) ||
-                                link.entryClass.equals(Release.class.getCanonicalName())
-                            );
-                }).map((link) -> {
-                    try {
-                        return EntityRef.build(Class.forName(link.entryClass), link.entryID);
-                    } catch (ClassNotFoundException e) {
-                        return null;
-                    }
-                }).filter((ref) -> {
-                    return ref != null &&
-                           ((BinarySource) ref.getValue()).getLocalPath().equals(entry.file.getAbsolutePath());
-                }).findFirst().orElse(null);
+                entityClass = Release.class;
+                break;
+            case Sources:
+                entityClass = Offshoot.class;
+                break;
+
+            default: return null;
         }
-        return null;
+        return CAS.findReferencedEntries(Repository.class, entry.repo.getID()).stream()
+                .filter(foreignLink -> !foreignLink.isIncoming && foreignLink.entryClass.equals(entityClass.getCanonicalName()))
+                .map(foreignLink -> EntityRef.build(entityClass, foreignLink.entryID))
+                .filter(entityRef -> ((BinarySource) entityRef.getValue()).getLocalPath().equals(entry.file.getAbsolutePath())).findFirst().orElse(null);
     }
 
     @Override
