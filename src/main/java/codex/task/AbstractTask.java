@@ -213,10 +213,14 @@ public abstract class AbstractTask<T> implements ITask<T> {
      * Возвращает общее время исполнения задачи, учитывая приостановку.
      */
     public final long getDuration() {
-        return Duration.between(
-                startTime, 
-                status.isFinal() ? stopTime : LocalDateTime.now()
-        ).toMillis();
+        if (startTime == null) {
+            return 0;
+        } else {
+            return Duration.between(
+                    startTime,
+                    status.isFinal() ? stopTime : LocalDateTime.now()
+            ).toMillis();
+        }
     }
 
     /**
