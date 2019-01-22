@@ -56,14 +56,14 @@ public class RunDesigner extends EntityCommand<Offshoot> {
             File workDir  = designer.getParentFile();
             File confDir  = new File(localPath+File.separator+".config");
             
-            List<String> args = new ArrayList() {{
+            List<String> args = new ArrayList<String>() {{
                 if (PlatformUtil.isWindows()) {
                     add(designer.getAbsolutePath());
                 } else {
                     add("/bin/sh");
                     add(designer.getAbsolutePath());
                 }
-                add("-J-Xmx4G");
+                add("-J-Xmx6G");
                 add("-J-Xms500M");
                 add("--userdir");
                 add(confDir.toString());

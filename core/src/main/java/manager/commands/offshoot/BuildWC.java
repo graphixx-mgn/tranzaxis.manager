@@ -372,6 +372,8 @@ public class BuildWC extends EntityCommand<Offshoot> {
 
             final ArrayList<String> command = new ArrayList<>();
             command.add("java");
+            command.add("-Xmx6G");
+            command.add("-Xms500M");
                     
             String classPath;
             if (currentJar.isFile()) {
