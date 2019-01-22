@@ -42,7 +42,6 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
 
     /**
      * Конструктор сервиса.
-     * @param configFile Путь к файлу базы данных.
      */
     public ConfigStoreService() {
         this.configFile = new File(System.getProperty("user.home")+getOption("file"));
@@ -478,10 +477,6 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                         select.setString(2, tableInfo.name.toUpperCase());
                         try (ResultSet selectRS = select.executeQuery()) {
                             while (selectRS.next()) {
-                                Logger.getLogger().debug(MessageFormat.format(
-                                    "CAS: Found reference: {0}/#{1}-{2}",
-                                    selectRS.getString(1), selectRS.getInt(2), selectRS.getString(3)
-                                ));
                                 links.add(new ForeignLink(
                                         selectRS.getString(1), 
                                         selectRS.getInt(2), 
