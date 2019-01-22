@@ -75,6 +75,14 @@ public class UpgradeService extends UnicastRemoteObject implements IUpgradeServi
         return null;
     }
 
+    static VersionsDocument getHistory() {
+        try {
+            return VersionsDocument.Factory.parse(UpgradeService.class.getResourceAsStream(VERSION_RESOURCE));
+        } catch (IOException | XmlException e) {
+            return null;
+        }
+    }
+
     @Override
     public Version getCurrentVersion() throws RemoteException {
         return getVersion();
