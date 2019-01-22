@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
+import manager.nodes.Development;
 import manager.nodes.Offshoot;
 import manager.type.WCStatus;
 
@@ -65,6 +67,11 @@ public class RunDesigner extends EntityCommand<Offshoot> {
                 }
                 add("-J-Xmx6G");
                 add("-J-Xms500M");
+                addAll(
+                        ((Development) offshoot.getParent()).getJvmDesigner().stream()
+                                .map("-J"::concat)
+                                .collect(Collectors.toList())
+                );
                 add("--userdir");
                 add(confDir.toString());
                 add("--console");

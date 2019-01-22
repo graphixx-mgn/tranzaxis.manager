@@ -44,6 +44,7 @@ import manager.commands.offshoot.build.BuildingNotifier;
 import manager.commands.offshoot.build.IBuildingNotifier;
 import manager.commands.offshoot.build.KernelBuilder;
 import manager.commands.offshoot.build.SourceBuilder;
+import manager.nodes.Development;
 import manager.nodes.Offshoot;
 import manager.type.BuildStatus;
 import manager.type.WCStatus;
@@ -372,8 +373,7 @@ public class BuildWC extends EntityCommand<Offshoot> {
 
             final ArrayList<String> command = new ArrayList<>();
             command.add("java");
-            command.add("-Xmx6G");
-            command.add("-Xms500M");
+            command.addAll(((Development) offshoot.getParent()).getJvmDesigner());
                     
             String classPath;
             if (currentJar.isFile()) {
