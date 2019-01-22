@@ -4,11 +4,8 @@ import codex.log.Logger;
 import codex.service.AbstractService;
 import codex.type.Enum;
 import codex.type.Str;
-import java.awt.AWTEvent;
-import java.awt.AWTException;
-import java.awt.SystemTray;
-import java.awt.Toolkit;
-import java.awt.TrayIcon;
+
+import java.awt.*;
 import java.awt.event.AWTEventListener;
 import static java.awt.event.WindowEvent.WINDOW_OPENED;
 import java.util.Optional;
@@ -22,22 +19,23 @@ public class NotificationService extends AbstractService<NotifyServiceOptions> i
     
     private TrayIcon trayIcon;
     private AWTEventListener WND_LISTENER = (event) -> {
-        JFrame frame = (JFrame) event.getSource();
-        if (event.getID() == WINDOW_OPENED && frame.getTitle() != null && frame.getIconImage() != null) {
-            Toolkit.getDefaultToolkit().removeAWTEventListener(this.WND_LISTENER);
-            trayIcon = new TrayIcon(frame.getIconImage(), frame.getTitle());
-            trayIcon.setImageAutoSize(true);
-            try {
-                SystemTray.getSystemTray().add(trayIcon);
-            } catch (AWTException e) {
-                e.printStackTrace();
+        if (event.getSource() instanceof JFrame) {
+            JFrame frame = (JFrame) event.getSource();
+            if (event.getID() == WINDOW_OPENED && frame.getTitle() != null && frame.getIconImage() != null && !frame.isUndecorated()) {
+                Toolkit.getDefaultToolkit().removeAWTEventListener(this.WND_LISTENER);
+                trayIcon = new TrayIcon(frame.getIconImage(), frame.getTitle());
+                trayIcon.setImageAutoSize(true);
+                try {
+                    SystemTray.getSystemTray().add(trayIcon);
+                } catch (AWTException e) {
+                    e.printStackTrace();
+                }
             }
         }
     };
     
     /**
      * Конструктор сервиса.
-     * @param trayIcon Иконка системного трея.
      */
     public NotificationService() {
         if (SystemTray.isSupported()) {
