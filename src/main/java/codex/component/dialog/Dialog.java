@@ -3,27 +3,14 @@ package codex.component.dialog;
 import codex.component.button.DialogButton;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import javax.swing.*;
+import javax.swing.FocusManager;
+import java.awt.*;
+import java.awt.event.*;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.swing.AbstractAction;
-import javax.swing.ActionMap;
-import javax.swing.ImageIcon;
-import javax.swing.InputMap;
-import javax.swing.JComponent;
-import javax.swing.JDialog;
-import javax.swing.JPanel;
-import javax.swing.KeyStroke;
-import javax.swing.WindowConstants;
 
 /**
  * Диалоговое окно для отображения и/или запроса информации.
@@ -125,12 +112,8 @@ public class Dialog extends JDialog {
     }
     
     private final JPanel           contentPanel;
-    private final JPanel           buttonPanel;
     private final Consumer<Dialog> relocate;
-    private final InputMap         inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
-    private final ActionMap        actionMap = rootPane.getActionMap();
-    private boolean                preventDefault = false;
-    
+
     protected Function<DialogButton, ActionListener> handler;
     
     /**
@@ -143,9 +126,8 @@ public class Dialog extends JDialog {
      * @param buttonTemplates Список шаблонов кнопок произвольной длины.
      */
     public Dialog(Window parent, ImageIcon icon, String title, JPanel content, ActionListener close, Default... buttonTemplates) {
-        this(parent, icon, title, content, close, Arrays.asList(buttonTemplates)
-                .stream()
-                .map((template) -> template.newInstance())
+        this(parent, icon, title, content, close, Arrays.stream(buttonTemplates)
+                .map(Default::newInstance)
                 .collect(Collectors.toList())
                 .toArray(new DialogButton[]{})
         );
@@ -164,7 +146,8 @@ public class Dialog extends JDialog {
         super(parent, title, ModalityType.APPLICATION_MODAL);
         
         relocate = (dialog) -> {
-            dialog.setLocationRelativeTo(parent);
+            Window active = FocusManager.getCurrentManager().getActiveWindow();
+            dialog.setLocationRelativeTo(active != null ? active : parent);
         };
         
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -174,36 +157,35 @@ public class Dialog extends JDialog {
         contentPanel = new JPanel(new BorderLayout());
         contentPanel.add(content);
         add(contentPanel, BorderLayout.CENTER);
-        
-        buttonPanel = new JPanel();
+
+        JPanel buttonPanel = new JPanel();
         add(buttonPanel, BorderLayout.SOUTH);
         
-        handler = (button) -> {
-            return (keyEvent) -> {
-                preventDefault = true;
-                dispose();
-                if (close != null) {
-                    final ActionEvent event = new ActionEvent(
-                            keyEvent, 
-                            button == null || !button.isEnabled() ? EXIT : button.getID(),
-                            null
-                    );
-                    close.actionPerformed(event);
-                }
-            };
+        handler = (button) -> (keyEvent) -> {
+            setVisible(false);
+            if (close != null) {
+                final ActionEvent event = new ActionEvent(
+                        keyEvent,
+                        button == null || !button.isEnabled() ? EXIT : button.getID(),
+                        null
+                );
+                close.actionPerformed(event);
+            }
         };
 
         int maxWidth = Arrays.asList(buttons).stream().map((button) -> button.getPreferredSize().width).max(Integer::compareTo).get();
+        InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap actionMap = rootPane.getActionMap();
         for (DialogButton button : buttons) {
             button.setPreferredSize(new Dimension(maxWidth, button.getPreferredSize().height));
             buttonPanel.add(button);
-            
+
             // Обрабочик нажатия мыши
             button.addActionListener((e) -> {
                 handler.apply(button).actionPerformed(new ActionEvent(this, button.getID(), null));
             });
             if (button.getKeyCode() != null) {
-                // Обработчики нажатия кнопки клавиатуры 
+                // Обработчики нажатия кнопки клавиатуры
                 inputMap.put(button.getKeyCode(), button.getKeyCode());
                 actionMap.put(button.getKeyCode(), new AbstractAction() {
                     @Override
@@ -230,10 +212,7 @@ public class Dialog extends JDialog {
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
-                if (!preventDefault) {
-                    handler.apply(null).actionPerformed(new ActionEvent(this, EXIT, null));
-                }
-                preventDefault = false;
+                handler.apply(null).actionPerformed(new ActionEvent(this, EXIT, null));
             }
         });
     }
@@ -244,8 +223,10 @@ public class Dialog extends JDialog {
      */
     @Override
     public void setVisible(boolean visible) {
-        pack();
-        relocate.accept(this);
+        if (visible) {
+            pack();
+            relocate.accept(this);
+        }
         super.setVisible(visible);
     }
     
