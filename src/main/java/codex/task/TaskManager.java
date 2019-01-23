@@ -5,7 +5,6 @@ import codex.service.AbstractService;
 import codex.service.CommonServiceOptions;
 import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
-import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
@@ -21,18 +20,15 @@ public final class TaskManager extends AbstractUnit {
     private final ExecutorService queuedThreadPool = new TaskExecutor(ThreadPoolKind.Queued);
     private final ExecutorService demandThreadPool = new TaskExecutor(ThreadPoolKind.Demand);
     
-    private TaskStatusBar    taskPanel;
-    private final TaskDialog taskDialog = new TaskDialog(
-            SwingUtilities.getWindowAncestor(getViewport()),
+    private TaskStatusBar taskPanel;
+    private TaskDialog taskDialog = new TaskDialog(
+            null,
             new AbstractAction() {
-                
                 @Override
                 public void actionPerformed(ActionEvent event) {
-                    long running = taskDialog.taskRegistry.keySet().stream()
-                                    .filter(queued -> !queued.getStatus().isFinal())
-                                    .count();
+                    long running = taskDialog.runningTasks();
                     if (event.getID() == TaskDialog.CANCEL || running == 0) {
-                        taskDialog.taskRegistry.keySet().stream().forEach((task) -> {
+                        taskDialog.taskRegistry.keySet().forEach((task) -> {
                             task.cancel(true);
                         });
                     } else if (event.getID() == TaskDialog.ENQUEUE || running != 0) {
@@ -43,13 +39,7 @@ public final class TaskManager extends AbstractUnit {
                     taskDialog.clear();
                 }
             }
-    ) {
-        @Override
-        public void setLocationRelativeTo(Component c) {
-            super.setLocationRelativeTo(SwingUtilities.getWindowAncestor(getViewport()));
-        }
-    
-    };
+    );
     
     /**
      * Конструктор.
@@ -57,6 +47,7 @@ public final class TaskManager extends AbstractUnit {
     public TaskManager() {
         Logger.getLogger().debug("Initialize unit: Task Manager");
         ServiceRegistry.getInstance().registerService(new TaskExecutorService());
+        getViewport();
     }
 
     @Override
@@ -88,10 +79,7 @@ public final class TaskManager extends AbstractUnit {
      * При закрытии диалога, все задачи перемещаются в очередь.
      */
     void execute(ITask task, boolean quiet) {
-        if (!quiet) {
-            taskDialog.addTask(task);
-        }
-        demandThreadPool.submit(() -> {
+        Runnable runnable = () -> {
             final Thread thread = Thread.currentThread();
             final String name   = thread.getName();
             thread.setName(name.replace(NamingThreadFactory.IDLE, "Task '"+task.getTitle()+"'"));
@@ -100,7 +88,16 @@ public final class TaskManager extends AbstractUnit {
             } finally {
                 thread.setName(name);
             }
-        });
+        };
+
+        if (!quiet) {
+            taskDialog.addTask(task);
+            SwingUtilities.invokeLater(() -> {
+                demandThreadPool.submit(runnable);
+            });
+        } else {
+            demandThreadPool.submit(runnable);
+        }
     }
     
     /**
@@ -121,7 +118,7 @@ public final class TaskManager extends AbstractUnit {
         @Override
         public void quietTask(ITask task) {
             execute(task, true);
-        };
+        }
         
         @Override
         public boolean isStoppable() {

@@ -6,12 +6,7 @@ import java.awt.Color;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.util.function.Consumer;
-import javax.swing.AbstractAction;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JProgressBar;
-import javax.swing.SwingConstants;
-import javax.swing.Timer;
+import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -42,7 +37,7 @@ final class TaskView extends AbstractTaskView {
         ));
         
         title  = new JLabel(task.getTitle(), null, SwingConstants.LEFT);
-        status = new JLabel();
+        status = new JLabel(task.getDescription());
         progress = new JProgressBar();
         progress.setMaximum(100);
         progress.setUI(new StripedProgressBarUI(true));
@@ -89,7 +84,9 @@ final class TaskView extends AbstractTaskView {
         task.addListener(this);
         
         updater = new Timer(1000, (ActionEvent event) -> {
-            progress.setString(formatDuration(((AbstractTask) task).getDuration()));
+            SwingUtilities.invokeLater(() -> {
+                progress.setString(formatDuration(((AbstractTask) task).getDuration()));
+            });
         });
         updater.setInitialDelay(0);
         statusChanged(task, task.getStatus());
@@ -97,43 +94,48 @@ final class TaskView extends AbstractTaskView {
     
     @Override
     public void statusChanged(ITask task, Status taskStatus) {
-        title.setIcon(task.getStatus().getIcon());
-        status.setText(task.getDescription());
-        status.setForeground(
-                task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
-                    task.getStatus() == Status.FAILED ? PROGRESS_ABORTED :
-                        Color.GRAY
-        );
-        progressChanged(task, task.getProgress(), task.getDescription());
+        SwingUtilities.invokeLater(() -> {
+            title.setIcon(task.getStatus().getIcon());
+            status.setText(task.getDescription());
+            status.setForeground(
+                    task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
+                            task.getStatus() == Status.FAILED ? PROGRESS_ABORTED :
+                                    Color.GRAY
+            );
+            progressChanged(task, task.getProgress(), task.getDescription());
+        });
     }
     
     @Override
     public void progressChanged(ITask task, int percent, String description) {
-        progress.setValue(task.getStatus() == Status.FINISHED ? 100 : task.getProgress());
-        boolean isInfinitive = task.getStatus() == Status.STARTED && task.getProgress() == 0;
-        
-        if (task.getStatus() == Status.PAUSED) {
-            updater.stop();
-            progress.setString(Status.PAUSED.toString());
-        } else if (!progress.isIndeterminate() && isInfinitive) {
-            updater.start();
-        } else if (progress.isIndeterminate() && !isInfinitive) {
-            updater.stop();
-        } else if (!isInfinitive && !task.getStatus().isFinal()) {
-            progress.setString(null);
-        } if (task.getStatus() == Status.FINISHED || task.getStatus() == Status.FINISHED) {
-            progress.setString(formatDuration(((AbstractTask) task).getDuration()));
-        }
-        progress.setIndeterminate(isInfinitive);
-        
-        progress.setForeground(
-            progress.isIndeterminate() ? PROGRESS_INFINITE : 
-                task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
-                    task.getStatus() == Status.FAILED ? PROGRESS_ABORTED :
-                        (task.getStatus() == Status.CANCELLED || task.getStatus() == Status.PAUSED) ? PROGRESS_CANCELED :
-                            PROGRESS_NORMAL
-        );
-        status.setText(task.getDescription());
+        SwingUtilities.invokeLater(() -> {
+            progress.setValue(task.getStatus() == Status.FINISHED ? 100 : task.getProgress());
+            boolean isInfinitive = task.getStatus() == Status.STARTED && task.getProgress() == 0;
+
+            if (task.getStatus() == Status.PAUSED) {
+                updater.stop();
+                progress.setString(Status.PAUSED.toString());
+            } else if (!progress.isIndeterminate() && isInfinitive) {
+                updater.start();
+            } else if (progress.isIndeterminate() && !isInfinitive) {
+                updater.stop();
+            } else if (!isInfinitive && !task.getStatus().isFinal()) {
+                progress.setString(null);
+            }
+            if (task.getStatus() == Status.FINISHED || task.getStatus() == Status.FINISHED) {
+                progress.setString(formatDuration(((AbstractTask) task).getDuration()));
+            }
+            progress.setIndeterminate(isInfinitive);
+
+            progress.setForeground(
+                    progress.isIndeterminate() ? PROGRESS_INFINITE :
+                            task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
+                                    task.getStatus() == Status.FAILED ? PROGRESS_ABORTED :
+                                            (task.getStatus() == Status.CANCELLED || task.getStatus() == Status.PAUSED) ? PROGRESS_CANCELED :
+                                                    PROGRESS_NORMAL
+            );
+            status.setText(task.getDescription());
+        });
     }
     
     public final static long ONE_SECOND = 1000;

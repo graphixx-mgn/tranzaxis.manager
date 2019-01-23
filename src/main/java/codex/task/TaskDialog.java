@@ -4,9 +4,7 @@ import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Window;
+import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,40 +37,10 @@ class TaskDialog extends Dialog implements ITaskListener {
     private static final DialogButton BTN_CANCEL = new DialogButton(
             ImageUtils.resize(ImageUtils.getByPath("/images/cancel.png"), 22, 22), Language.get("cancel@title"), -1, CANCEL
     );
-    
-    private final JPanel viewPort;
+
     private final JPanel viewPanel;
-    final Map<ITask, AbstractTaskView> taskRegistry = new ConcurrentHashMap<ITask, AbstractTaskView>() {
-        
-        @Override
-        public AbstractTaskView put(ITask key, AbstractTaskView view) {
-            viewPanel.add(view);
-            super.put(key, view);
-            SwingUtilities.invokeLater(() -> {
-                setVisible(size() > 0);
-            });
-            return view;
-        }
+    final Map<ITask, AbstractTaskView> taskRegistry = new ConcurrentHashMap<>();
 
-        @Override
-        public void clear() {
-            super.clear();
-            SwingUtilities.invokeLater(() -> {
-                setVisible(false);
-            });
-        }
-
-        @Override
-        public AbstractTaskView remove(Object key) {
-            AbstractTaskView view = super.remove(key);
-            SwingUtilities.invokeLater(() -> {
-                setVisible(!isEmpty());
-            });
-            return view;
-        }
-        
-    };
-    
     /**
      * Конструктор окна.
      * @param closeAction Слушатель события закрытия окна.
@@ -85,8 +53,8 @@ class TaskDialog extends Dialog implements ITaskListener {
                 closeAction,
                 BTN_QUEUE, BTN_CANCEL
         );
-        
-        viewPort = new JPanel();
+
+        JPanel viewPort = new JPanel();
         viewPort.setLayout(new BorderLayout());
         
         viewPanel = new JPanel();
@@ -103,51 +71,59 @@ class TaskDialog extends Dialog implements ITaskListener {
      * Регистрация новой задачи.
      */
     void addTask(ITask task) {
-        taskRegistry.put(task, task.createView(new Consumer<ITask>() {
-            
-            @Override
-            public void accept(ITask context) {
-                if (context.getStatus() == Status.PENDING || context.getStatus() == Status.STARTED) {
-                    context.cancel(true);
-                }
-                viewPanel.remove(taskRegistry.get(context));
-                taskRegistry.remove(context);
-                statusChanged(null, null);
-            }
-        }));
         task.addListener(this);
+        EventQueue.invokeLater(() -> {
+            taskRegistry.put(task, task.createView(new Consumer<ITask>() {
+                @Override
+                public void accept(ITask context) {
+                    if (context.getStatus() == Status.PENDING || context.getStatus() == Status.STARTED) {
+                        context.cancel(true);
+                    }
+                    SwingUtilities.invokeLater(() -> {
+                        viewPanel.remove(taskRegistry.get(context));
+                        viewPanel.revalidate();
+                        viewPanel.repaint();
+                        taskRegistry.remove(context);
+                        statusChanged(null, null);
+                    });
+                }
+            }));
+            viewPanel.add(taskRegistry.get(task));
+            setVisible(true);
+        });
     }
     
     /**
      * Очистка окна.
      */
     void clear() {
-        taskRegistry.clear();
-        viewPanel.removeAll();
+        SwingUtilities.invokeLater(() -> {
+            setVisible(false);
+            taskRegistry.clear();
+            viewPanel.removeAll();
+        });
+    }
+
+    long runningTasks() {
+        return taskRegistry.keySet().stream().filter(queued -> !queued.getStatus().isFinal()).count();
+    }
+
+    long failedTasks() {
+        return taskRegistry.keySet().stream().filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED).count();
+    }
+
+    boolean isReady() {
+        return runningTasks() + failedTasks() == 0;
     }
 
     @Override
     public void statusChanged(ITask task, Status status) {
-        long running  = taskRegistry.keySet().stream()
-                .filter(queued -> !queued.getStatus().isFinal())
-                .count();
-        long failed   = taskRegistry.keySet().stream()
-                .filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED)
-                .count();
-        boolean ready = running + failed == 0;
-        
-        BTN_QUEUE.setEnabled(running != 0);
-        
-        if (ready) {
+        BTN_QUEUE.setEnabled(runningTasks() != 0);
+        if (isReady()) {
             clear();
+        } else {
+            pack();
         }
-    }
-    
-    @Override
-    public void setVisible(boolean visible) {
-        try {
-            super.setVisible(visible);
-        } catch (Throwable e) {}
     }
     
 }
