@@ -71,7 +71,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
 
     @Override
     public void execute(Common common, Map<String, IComplexType> map) {
-        TES.quietTask(new BuildStructure());
+        TES.executeTask(new BuildStructure());
     }
     
     class BuildStructure extends AbstractTask<Map<String, List<Entry>>> {
@@ -117,17 +117,6 @@ public class DiskUsageReport extends EntityCommand<Common> {
                                 } catch (SVNException e) {
                                     // Do nothing
                                 }
-//                                boolean isBranch = repoIndex.get(repositoryDir.getName()).childrenList().stream()
-//                                        .filter(iNode -> iNode.getClass().equals(ReleaseList.class))
-//                                        .map(iNode -> {
-//                                            try {
-//                                                return ((BranchCatalog) iNode).getBranchItems();
-//                                            } catch (SVNException e) {
-//                                                return null;
-//                                            }
-//                                        })
-//                                        .flatMap(Collection::stream)
-//                                        .anyMatch(svnDirEntry -> svnDirEntry.getName().equals(cacheDir.getName()));
                                 structureMap.get(repositoryDir.getName()).add(
                                         new Entry(
                                                 isBranch ? EntryKind.Cache : EntryKind.Dir,
@@ -279,9 +268,11 @@ public class DiskUsageReport extends EntityCommand<Common> {
                         Dialog.Default.BTN_CLOSE
                 );
                 TES.quietTask(calcTask);
-                dialog.setPreferredSize(new Dimension(800, 600));
-                dialog.setResizable(false);
-                dialog.setVisible(true);
+                SwingUtilities.invokeLater(() -> {
+                    dialog.setPreferredSize(new Dimension(800, 600));
+                    dialog.setResizable(false);
+                    dialog.setVisible(true);
+                });
             }
         }
 
