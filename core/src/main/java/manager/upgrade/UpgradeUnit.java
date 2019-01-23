@@ -10,17 +10,18 @@ import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.Insets;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.net.InetSocketAddress;
-import java.rmi.ConnectException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.rmi.ServerException;
 import java.text.MessageFormat;
+import java.util.AbstractMap;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import javax.swing.ImageIcon;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.SwingConstants;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import manager.xml.Version;
 import manager.xml.VersionsDocument;
@@ -31,7 +32,53 @@ public final class UpgradeUnit extends AbstractUnit implements IInstanceListener
     private final static InstanceCommunicationService ICS = (InstanceCommunicationService) ServiceRegistry.getInstance().lookupService(InstanceCommunicationService.class);
     
     private final Version currentVersion;
-    private final AtomicBoolean skipUpgrade = new AtomicBoolean(false);
+    private final AtomicBoolean skip = new AtomicBoolean(false);
+
+    private final Queue<Map.Entry<Instance, VersionsDocument>> providers = new PriorityQueue<Map.Entry<Instance, VersionsDocument>>((entry1, entry2) -> {
+        Version v1 = Version.Factory.newInstance();
+        Version v2 = Version.Factory.newInstance();
+        v1.setNumber(entry1.getValue().getVersions().getCurrent());
+        v2.setNumber(entry2.getValue().getVersions().getCurrent());
+        return UpgradeService.VER_COMPARATOR.compare(v2, v1);
+    }) {
+        @Override
+        public boolean add(Map.Entry<Instance, VersionsDocument> entry) {
+            boolean result = super.add(entry);
+            updateDialog();
+            return result;
+        }
+
+        @Override
+        public boolean remove(Object entry) {
+            boolean result = super.remove(entry);
+            updateDialog();
+            return result;
+        }
+
+        private void updateDialog() {
+            SwingUtilities.invokeLater(() -> {
+                Map.Entry<Instance, VersionsDocument> nextProvider = providers.peek();
+                if (nextProvider != null) {
+                    synchronized (providers) {
+                        dialog.updateInfo(nextProvider.getValue(), providers.size());
+                    }
+                }
+                dialog.setVisible(!providers.isEmpty());
+            });
+        }
+    };
+
+    private final UpgradeDialog dialog = new UpgradeDialog(event -> {
+        synchronized (skip) {
+            skip.set(true);
+            if (event.getID() == Dialog.OK) {
+                upgrade(providers.peek().getKey());
+            } else {
+                Logger.getLogger().debug("Upgrade skipped by user");
+                providers.clear();
+            }
+        }
+    });
     
     public UpgradeUnit() {
         Logger.getLogger().debug("Initialize unit: Upgrade Manager");
@@ -41,46 +88,68 @@ public final class UpgradeUnit extends AbstractUnit implements IInstanceListener
 
     @Override
     public JComponent createViewport() {
-        return new JLabel(
-                MessageFormat.format(Language.get("current"), currentVersion.getNumber()), 
+        JLabel label = new JLabel(
+                MessageFormat.format(Language.get("current"), currentVersion.getNumber()),
                 ICON, SwingConstants.CENTER
         ) {{
             setBorder(new EmptyBorder(new Insets(2, 10, 2, 10)));
         }};
+        label.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                UpgradeDialog dialog = new UpgradeDialog(null);
+                dialog.updateInfo(UpgradeService.getHistory(), 0);
+                dialog.setVisible(true);
+            }
+        });
+        return label;
     }
 
     @Override
-    public void instanceLinked(Instance instance) {
+    public void instanceLinked(Instance instance)  {
+        synchronized (skip) {
+            if (skip.get()) return;
+        }
         new Thread(() -> {
-            synchronized (skipUpgrade) {
-                if (skipUpgrade.get()) return;
-                try {
-                    IUpgradeService remoteUpService = (IUpgradeService) instance.getService(UpgradeService.class);
-                    Logger.getLogger().debug("Check remote instance {0} for upgrade", instance);
-                    Version availVersion = remoteUpService.getCurrentVersion();
-                    if (UpgradeService.VER_COMPARATOR.compare(currentVersion, availVersion) < 0) {
-                        Logger.getLogger().debug("Available upgrade {0} => {1}", currentVersion.getNumber(), availVersion.getNumber());
-                        VersionsDocument diff = remoteUpService.getDiffVersions(currentVersion, availVersion);
-                        new UpgradeDialog(instance, diff, (event) -> {
-                            skipUpgrade.set(event.getID() == Dialog.OK);
-                            if (event.getID() == Dialog.OK) {
-                                upgrade(instance);
-                            }
-                        }).setVisible(true);
-                    } else {
-                        Logger.getLogger().debug("Upgrade is not available. Remote instance version: {0}", availVersion.getNumber());
+            try {
+                IUpgradeService remoteUpService = (IUpgradeService) instance.getService(UpgradeService.class);
+                Logger.getLogger().debug("Check remote instance {0} for upgrade", instance);
+                Version availVersion = remoteUpService.getCurrentVersion();
+                if (availVersion != null && UpgradeService.VER_COMPARATOR.compare(currentVersion, availVersion) < 0) {
+                    VersionsDocument diff = remoteUpService.getDiffVersions(currentVersion, availVersion);
+                    Map.Entry<Instance, VersionsDocument> entry = new AbstractMap.SimpleImmutableEntry<>(instance, diff);
+                    synchronized (providers) {
+                        Logger.getLogger().debug(
+                                "Add upgrade provider: {0} ({1} -> {2})",
+                                instance, currentVersion.getNumber(), availVersion.getNumber()
+                        );
+                        providers.add(entry);
                     }
-                } catch (ConnectException | NotBoundException e) {
-                    // Do nothing
-                } catch (ServerException e) {
-                    Logger.getLogger().warn("Remote service call error: {0}", e.getCause().getMessage());
-                } catch (RemoteException e) {
-                    e.printStackTrace();
+                } else if (availVersion != null) {
+                    Logger.getLogger().debug("Upgrade is not available. Remote instance version: {0}", availVersion.getNumber());
                 }
+            } catch (RemoteException | NotBoundException e) {
+                // Do nothing
             }
         }).start();
     }
-    
+
+    @Override
+    public void instanceUnlinked(Instance instance) {
+        synchronized (skip) {
+            if (skip.get()) return;
+        }
+        synchronized (providers) {
+            providers.stream()
+                    .filter(entry -> entry.getKey().equals(instance))
+                    .findFirst().ifPresent(entry -> {
+                        Logger.getLogger().debug("Remove upgrade provider: {0}", instance);
+                        providers.remove(entry);
+                    }
+            );
+        }
+    }
+
     private void upgrade(Instance instance) {
         InetSocketAddress rmiAddress = instance.getRemoteAddress();
         new Updater(
