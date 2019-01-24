@@ -58,21 +58,12 @@ import javax.swing.table.DefaultTableModel;
 final class TaskMonitor extends JPopupMenu implements ITaskListener {
     
     private final static String  NS_SOURCE    = "TaskManager/Task finished";
-    
-    private final static String  POOL_USAGE   = Language.get("thread@usage");
-    private final static Matcher THREAD_NAME  = Pattern.compile("([^:]*): .*").matcher("");
-    private final static Matcher THREAD_STATE = Pattern.compile("[^:]*: (.*)").matcher("");
-    
+
     private final Map<ITask, AbstractTaskView> taskRegistry = new HashMap<>();
     private final List<ExecutorService>        threadPool;
     
     private final ScrollablePanel   taskList;
     private final Consumer<ITask>   cancelAction;
-    
-    private final JProgressBar      poolUsage = new JProgressBar();
-    private final JLabel            threadCount = new JLabel();
-    private final DefaultTableModel threadTableModel;
-    
     private boolean viewPortBound = false;
     
     static {
@@ -91,8 +82,7 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
         setInvoker(invoker);
         setBorder(new MatteBorder(1, 1, 0, 1, Color.GRAY));
         this.threadPool = threadPool;
-        
-        // Панель задач
+
         taskList = new ScrollablePanel();
         taskList.setLayout(new BoxLayout(taskList, BoxLayout.Y_AXIS));
         taskList.add(Box.createVerticalGlue());
@@ -105,84 +95,9 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
                 new LineBorder(Color.LIGHT_GRAY, 1)
         ));
         taskScrollPane.setColumnHeader(null);
-        
-        // Панель потоков
-        JPanel threadPanel = new JPanel(new BorderLayout());
-        threadPanel.setBorder(new EmptyBorder(5, 5, 0, 5));
-        poolUsage.setMinimum(0);
-        poolUsage.setUI(new BasicProgressBarUI() {
-            @Override
-            protected Color getSelectionForeground() {
-              return Color.WHITE;
-            }
-            
-            @Override
-            protected Color getSelectionBackground() {
-                return Color.WHITE;
-            }
-                
-        });
-        poolUsage.setBackground(AbstractTaskView.PROGRESS_INFINITE);
-        poolUsage.setForeground(AbstractTaskView.PROGRESS_ABORTED);
-        poolUsage.setBorder(new LineBorder(Color.LIGHT_GRAY, 1));
-        poolUsage.setStringPainted(true);
-        threadCount.setBorder(new EmptyBorder(0, 5, 0, 0));
-        
-        JPanel usagePanel = new JPanel(new BorderLayout());
-        usagePanel.setOpaque(false);
-        usagePanel.add(poolUsage, BorderLayout.WEST);
-        usagePanel.add(threadCount, BorderLayout.CENTER);
-        threadPanel.add(usagePanel, BorderLayout.NORTH);
-        threadPanel.setBorder(new CompoundBorder(
-                new EmptyBorder(2, 2, 1, 2),
-                new CompoundBorder(
-                    new LineBorder(Color.LIGHT_GRAY, 1),
-                    new EmptyBorder(3, 3, 3, 3)
-                )
-        ));
-        threadTableModel = new DefaultTableModel() {
-            @Override
-            public Class<?> getColumnClass(int columnIndex) {
-                return Str.class;
-            }
-            
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        }; 
-        JTable threadTable = new JTable(threadTableModel);
-        threadTable.setRowHeight((int) (IEditor.FONT_VALUE.getSize() * 1.5));
-        threadTable.setShowVerticalLines(false);
-        threadTable.setIntercellSpacing(new Dimension(0,0));
-        
-        threadTable.setDefaultRenderer(Str.class, new GeneralRenderer());
-        threadTable.getTableHeader().setDefaultRenderer(new GeneralRenderer());
-
-        threadTableModel.addColumn("#"); 
-        threadTableModel.addColumn(Language.get("thread@name"));
-        threadTableModel.addColumn(Language.get("thread@status"));
-        threadTable.setRowHeight((int) (threadTable.getRowHeight() * 1.3));
-        threadTable.getColumnModel().getColumn(0).setMaxWidth(40);
-        threadTable.getColumnModel().getColumn(1).setMinWidth(230);
-        threadTable.getColumnModel().getColumn(1).setMaxWidth(230);
-        threadTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
-
-        JScrollPane threadScrollPane = new JScrollPane(threadTable);
-        threadScrollPane.setBorder(new CompoundBorder(
-                new EmptyBorder(3, 0, 0, 0),
-                new LineBorder(Color.GRAY, 1)
-        ));
-        threadPanel.add(threadScrollPane, BorderLayout.CENTER);
-        
-        JTabbedPane tab = new JTabbedPane();
-        tab.setBorder(new EmptyBorder(1, 1, 0, 1));
-        tab.addTab(Language.get("tab@tasks"), ImageUtils.resize(ImageUtils.getByPath("/images/task.png"), 16, 16), taskScrollPane);
-        tab.addTab(Language.get("tab@threads"), ImageUtils.resize(ImageUtils.getByPath("/images/thread.png"), 16, 16), threadPanel);
-        add(tab);
+        add(taskScrollPane);
         
         this.cancelAction = cancelAction;
-        
         ServiceRegistry.getInstance().addRegistryListener(NotificationService.class, (service) -> {
             ((NotificationService) service).registerSource(NS_SOURCE, NotifyCondition.INACTIVE);
         });
@@ -268,37 +183,6 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
 
     @Override
     public void statusChanged(ITask task, Status status) {
-        int active = threadPool.stream().mapToInt((executor) -> {
-            return ((ThreadPoolExecutor) executor).getActiveCount();
-        }).sum() + (status == Status.PENDING || status == Status.STARTED ? 0 : -1);
-        int total = threadPool.stream().mapToInt((executor) -> {
-            return ((ThreadPoolExecutor) executor).getPoolSize();
-        }).sum();
-        poolUsage.setMaximum(total);
-        poolUsage.setValue(active);
-        threadCount.setText(MessageFormat.format(POOL_USAGE, active, total));
-        
-        Thread[] threadGroup = new Thread[256];
-        Thread.enumerate(threadGroup);
-        List<String> threadNames = Arrays.asList(threadGroup)
-                .stream()
-                .filter((thread) -> {
-                    return thread != null && thread.getName().startsWith(TaskManager.class.getSimpleName());
-                }).map((thread) -> {
-                    return thread.getName();
-                }).sorted().collect(Collectors.toList());
-        SwingUtilities.invokeLater(() -> {
-            while (threadTableModel.getRowCount() > 0) {
-                threadTableModel.removeRow(0);
-            }
-
-            int threadIdx = 0; 
-            for (String name : threadNames) {
-                THREAD_NAME.reset(name).find();
-                THREAD_STATE.reset(name).find();
-                threadTableModel.addRow(new Object[]{(threadIdx++)+"", THREAD_NAME.group(1), THREAD_STATE.group(1)});
-            }
-        });
         if (task.getStatus() == Status.FAILED || task.getStatus() == Status.FINISHED) {
             String msgTitle = Language.get(
                     TaskMonitor.class.getSimpleName(),
