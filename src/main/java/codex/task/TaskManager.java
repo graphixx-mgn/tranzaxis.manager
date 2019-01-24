@@ -4,13 +4,14 @@ import codex.log.Logger;
 import codex.service.AbstractService;
 import codex.service.CommonServiceOptions;
 import codex.service.ServiceRegistry;
+import codex.type.IComplexType;
 import codex.unit.AbstractUnit;
+
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
-import javax.swing.AbstractAction;
-import javax.swing.JComponent;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
 /**
  * Модуль-исполнитель задач {@link ITask}.
@@ -36,10 +37,19 @@ public final class TaskManager extends AbstractUnit {
                             taskPanel.addTask(task);
                         });
                     }
-                    taskDialog.clear();
+                    taskDialog.clearTasks();
                 }
             }
-    );
+    ) {
+        @Override
+        public void setLocationRelativeTo(Component c) {
+            Window owner = IComplexType.coalesce(
+                    FocusManager.getCurrentManager().getActiveWindow(),
+                    SwingUtilities.getWindowAncestor(getViewport())
+            );
+            super.setLocationRelativeTo(owner);
+        }
+    };
     
     /**
      * Конструктор.
@@ -92,12 +102,8 @@ public final class TaskManager extends AbstractUnit {
 
         if (!quiet) {
             taskDialog.addTask(task);
-            SwingUtilities.invokeLater(() -> {
-                demandThreadPool.submit(runnable);
-            });
-        } else {
-            demandThreadPool.submit(runnable);
         }
+        demandThreadPool.submit(runnable);
     }
     
     /**

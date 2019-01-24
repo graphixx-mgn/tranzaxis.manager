@@ -8,10 +8,11 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
@@ -40,6 +41,7 @@ class TaskDialog extends Dialog implements ITaskListener {
 
     private final JPanel viewPanel;
     final Map<ITask, AbstractTaskView> taskRegistry = new ConcurrentHashMap<>();
+    private final ExecutorService dialogThread = Executors.newCachedThreadPool();
 
     /**
      * Конструктор окна.
@@ -72,36 +74,44 @@ class TaskDialog extends Dialog implements ITaskListener {
      */
     void addTask(ITask task) {
         task.addListener(this);
-        EventQueue.invokeLater(() -> {
-            taskRegistry.put(task, task.createView(new Consumer<ITask>() {
-                @Override
-                public void accept(ITask context) {
-                    if (context.getStatus() == Status.PENDING || context.getStatus() == Status.STARTED) {
-                        context.cancel(true);
-                    }
-                    SwingUtilities.invokeLater(() -> {
-                        viewPanel.remove(taskRegistry.get(context));
-                        viewPanel.revalidate();
-                        viewPanel.repaint();
-                        taskRegistry.remove(context);
-                        statusChanged(null, null);
-                    });
+        taskRegistry.put(task, task.createView(new Consumer<ITask>() {
+            @Override
+            public void accept(ITask context) {
+                if (context.getStatus() == Status.PENDING || context.getStatus() == Status.STARTED) {
+                    context.cancel(true);
                 }
-            }));
-            viewPanel.add(taskRegistry.get(task));
-            setVisible(true);
+            }
+        }));
+
+        dialogThread.submit(
+            () -> {
+                viewPanel.add(taskRegistry.get(task));
+                setVisible(true);
+            }
+        );
+    }
+
+    void removeTask(ITask task) {
+        AbstractTaskView view = taskRegistry.remove(task);
+        dialogThread.submit(() -> {
+            viewPanel.remove(view);
+            viewPanel.revalidate();
+            viewPanel.repaint();
+            setSize(new Dimension(getSize().width, getPreferredSize().height));
         });
     }
     
     /**
      * Очистка окна.
      */
-    void clear() {
-        SwingUtilities.invokeLater(() -> {
-            setVisible(false);
-            taskRegistry.clear();
-            viewPanel.removeAll();
-        });
+    void clearTasks() {
+        dialogThread.submit(
+            () -> {
+                setVisible(false);
+                taskRegistry.clear();
+                viewPanel.removeAll();
+            }
+        );
     }
 
     long runningTasks() {
@@ -118,11 +128,12 @@ class TaskDialog extends Dialog implements ITaskListener {
 
     @Override
     public void statusChanged(ITask task, Status status) {
+        if (status == Status.CANCELLED) {
+            removeTask(task);
+        }
         BTN_QUEUE.setEnabled(runningTasks() != 0);
         if (isReady()) {
-            clear();
-        } else {
-            pack();
+            clearTasks();
         }
     }
     
