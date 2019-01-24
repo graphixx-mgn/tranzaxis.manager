@@ -6,13 +6,18 @@ import codex.instance.Instance;
 import codex.instance.InstanceCommunicationService;
 import codex.log.Logger;
 import codex.service.ServiceRegistry;
+import codex.task.ITaskExecutorService;
+import codex.task.TaskManager;
 import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.awt.Insets;
+import manager.xml.Version;
+import manager.xml.VersionsDocument;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.net.InetSocketAddress;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.text.MessageFormat;
@@ -21,10 +26,6 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import manager.xml.Version;
-import manager.xml.VersionsDocument;
 
 public final class UpgradeUnit extends AbstractUnit implements IInstanceListener {
     
@@ -72,7 +73,8 @@ public final class UpgradeUnit extends AbstractUnit implements IInstanceListener
         synchronized (skip) {
             skip.set(true);
             if (event.getID() == Dialog.OK) {
-                upgrade(providers.peek().getKey());
+                ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class);
+                TES.quietTask(new LoadUpgrade(providers.peek().getKey()));
             } else {
                 Logger.getLogger().debug("Upgrade skipped by user");
                 providers.clear();
@@ -150,12 +152,4 @@ public final class UpgradeUnit extends AbstractUnit implements IInstanceListener
         }
     }
 
-    private void upgrade(Instance instance) {
-        InetSocketAddress rmiAddress = instance.getRemoteAddress();
-        new Updater(
-                rmiAddress.getAddress().getHostAddress(),
-                rmiAddress.getPort()
-        ).start();
-    }
-    
 }
