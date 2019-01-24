@@ -1,6 +1,7 @@
 package codex.component.dialog;
 
 import codex.component.button.DialogButton;
+import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.*;
@@ -8,7 +9,6 @@ import javax.swing.FocusManager;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Arrays;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -111,9 +111,7 @@ public class Dialog extends JDialog {
         }
     }
     
-    private final JPanel           contentPanel;
-    private final Consumer<Dialog> relocate;
-
+    private final JPanel contentPanel;
     protected Function<DialogButton, ActionListener> handler;
     
     /**
@@ -144,11 +142,6 @@ public class Dialog extends JDialog {
      */
     public Dialog(Window parent, ImageIcon icon, String title, JPanel content, ActionListener close, DialogButton... buttons) {
         super(parent, title, ModalityType.APPLICATION_MODAL);
-        
-        relocate = (dialog) -> {
-            Window active = FocusManager.getCurrentManager().getActiveWindow();
-            dialog.setLocationRelativeTo(active != null ? active : parent);
-        };
         
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -216,6 +209,12 @@ public class Dialog extends JDialog {
             }
         });
     }
+
+    @Override
+    public void setLocationRelativeTo(Component c) {
+        Window owner = IComplexType.coalesce(FocusManager.getCurrentManager().getActiveWindow(), getOwner());
+        super.setLocationRelativeTo(owner != null ? owner : c);
+    }
     
     /**
      * Отображение или скрытие окна диалога.
@@ -225,7 +224,7 @@ public class Dialog extends JDialog {
     public void setVisible(boolean visible) {
         if (visible) {
             pack();
-            relocate.accept(this);
+            setLocationRelativeTo(null);
         }
         super.setVisible(visible);
     }
