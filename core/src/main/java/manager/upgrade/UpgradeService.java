@@ -4,10 +4,19 @@ import codex.instance.InstanceCommunicationService;
 import codex.instance.MultihomeRMIClientSocketFactory;
 import codex.instance.ServiceNotLoadedException;
 import codex.log.Logger;
+import manager.commands.offshoot.BuildWC;
+import manager.upgrade.stream.RemoteInputStream;
+import manager.upgrade.stream.RemoteInputStreamServer;
+import manager.xml.Version;
+import manager.xml.VersionList;
+import manager.xml.VersionsDocument;
+import org.apache.xmlbeans.XmlException;
+import javax.xml.bind.DatatypeConverter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.rmi.RemoteException;
@@ -17,15 +26,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
-import javax.xml.bind.DatatypeConverter;
-import manager.commands.offshoot.BuildWC;
-import manager.upgrade.stream.RemoteInputStream;
-import manager.upgrade.stream.RemoteInputStreamServer;
-import manager.xml.Version;
-import manager.xml.VersionList;
-import manager.xml.VersionsDocument;
-import org.apache.xmlbeans.XmlException;
 
 
 public class UpgradeService extends UnicastRemoteObject implements IUpgradeService {
@@ -49,17 +51,29 @@ public class UpgradeService extends UnicastRemoteObject implements IUpgradeServi
     };
     
     private final VersionsDocument versionsDocument;
+    private final Semaphore lock = new Semaphore(1, true);
 
     public UpgradeService() throws Exception {
         super(0, new MultihomeRMIClientSocketFactory(
-                InstanceCommunicationService.IFACE_ADDRS.values().stream().map((address) -> {
-                    return address.getHostAddress();
-                }).collect(Collectors.toList()).toArray(new String[]{})
+                InstanceCommunicationService.IFACE_ADDRS.values().stream()
+                        .map(InetAddress::getHostAddress)
+                        .collect(Collectors.toList()).toArray(new String[]{})
         ), null);
         if (!getCurrentJar().isFile()) {
             throw new ServiceNotLoadedException(this, "Running application in development mode");
         }
         versionsDocument = VersionsDocument.Factory.parse(this.getClass().getResourceAsStream(VERSION_RESOURCE));
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (!lock.tryAcquire()) {
+                try {
+                    lock.acquire();
+                } catch (InterruptedException e) {
+                } finally {
+                    lock.release();
+                }
+            }
+        }));
     }
     
     static Version getVersion() {
@@ -108,14 +122,28 @@ public class UpgradeService extends UnicastRemoteObject implements IUpgradeServi
     public RemoteInputStream getUpgradeFileStream() throws RemoteException {
         File jar = getCurrentJar();
         try {
-            InputStream in = new FileInputStream(jar);
-            
+            InputStream in = new FileInputStream(jar) {
+                {
+                    try {
+                        lock.acquire();
+                    } catch (InterruptedException e) {}
+                }
+                @Override
+                public void close() throws IOException {
+                    try {
+                        super.close();
+                    } finally {
+                        lock.release();
+                    }
+                }
+            };
+
             Logger.getLogger().debug("File stream of ''{0}'' opened for transmission (size: {1})", jar, String.valueOf(in.available()).concat(" bytes"));
             return new RemoteInputStream(new RemoteInputStreamServer(in) {
                 boolean started = false;
 
                 @Override
-                public byte[] read(int count) throws IOException, RemoteException {
+                public byte[] read(int count) throws IOException {
                     byte[] read = super.read(count);
                     if (!started) {
                         started = true;
