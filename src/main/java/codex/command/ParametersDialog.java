@@ -63,27 +63,26 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
             };
         }
             @Override
-            public void setLocationRelativeTo(Component c) {
-                super.setLocationRelativeTo(FocusManager.getCurrentManager().getActiveWindow());
-            }
-            
-            @Override
             public void setVisible(boolean visible) {
-                PropertyHolder[] propHolders = paramProps.get();
-                if (propHolders.length != 0) {
-                    for (PropertyHolder propHolder : propHolders) {
-                        paramModel.addProperty(propHolder);
+                if (visible) {
+                    PropertyHolder[] propHolders = paramProps.get();
+                    if (propHolders.length != 0) {
+                        for (PropertyHolder propHolder : propHolders) {
+                            paramModel.addProperty(propHolder);
+                        }
+                        command.preprocessParameters(paramModel);
+                        dialog.setContent(new EditorPage(paramModel));
+                        if (Arrays.stream(paramProps.get()).anyMatch((propHolder) -> {
+                            return !Bool.class.isAssignableFrom(propHolder.getPropValue().getClass());
+                        })) {
+                            dialog.setPreferredSize(new Dimension(550, dialog.getPreferredSize().height));
+                        }
+                        super.setVisible(true);
+                    } else {
+                        ParametersDialog.this.data = new LinkedHashMap<>();
                     }
-                    command.preprocessParameters(paramModel);
-                    dialog.setContent(new EditorPage(paramModel));
-                    if (Arrays.asList(paramProps.get()).stream().anyMatch((propHolder) -> {
-                        return !Bool.class.isAssignableFrom(propHolder.getPropValue().getClass());
-                    })) {
-                        dialog.setPreferredSize(new Dimension(550, dialog.getPreferredSize().height));
-                    }
-                    super.setVisible(visible);
                 } else {
-                    ParametersDialog.this.data = new LinkedHashMap<>();
+                    super.setVisible(false);
                 }
             }
         };
@@ -94,7 +93,6 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
      */
     @Override
     public Map<String, IComplexType> call() throws Exception {
-        dialog.setLocationRelativeTo(null);
         dialog.setVisible(true);
         return new LinkedHashMap<>(data);
     }
