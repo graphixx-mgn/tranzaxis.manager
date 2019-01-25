@@ -212,7 +212,7 @@ public class Dialog extends JDialog {
 
     @Override
     public void setLocationRelativeTo(Component c) {
-        Window owner = IComplexType.coalesce(FocusManager.getCurrentManager().getActiveWindow(), getOwner());
+        Window owner = IComplexType.coalesce(getOwner(), FocusManager.getCurrentManager().getActiveWindow());
         super.setLocationRelativeTo(owner != null ? owner : c);
     }
     

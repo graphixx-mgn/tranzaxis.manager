@@ -76,9 +76,9 @@ class TaskDialog extends Dialog implements ITaskListener {
         task.addListener(this);
         taskRegistry.put(task, task.createView(new Consumer<ITask>() {
             @Override
-            public void accept(ITask context) {
-                if (context.getStatus() == Status.PENDING || context.getStatus() == Status.STARTED) {
-                    context.cancel(true);
+            public void accept(ITask task) {
+                if (task.getStatus() == Status.PENDING || task.getStatus() == Status.STARTED) {
+                    task.cancel(true);
                 }
             }
         }));
@@ -86,7 +86,13 @@ class TaskDialog extends Dialog implements ITaskListener {
         dialogThread.submit(
             () -> {
                 viewPanel.add(taskRegistry.get(task));
-                setVisible(true);
+                viewPanel.revalidate();
+                viewPanel.repaint();
+                if (!isVisible()) {
+                    setVisible(true);
+                } else {
+                    setSize(new Dimension(getSize().width, getPreferredSize().height));
+                }
             }
         );
     }
@@ -128,7 +134,7 @@ class TaskDialog extends Dialog implements ITaskListener {
 
     @Override
     public void statusChanged(ITask task, Status status) {
-        if (status == Status.CANCELLED) {
+        if (status == Status.CANCELLED || status == Status.FINISHED) {
             removeTask(task);
         }
         BTN_QUEUE.setEnabled(runningTasks() != 0);
