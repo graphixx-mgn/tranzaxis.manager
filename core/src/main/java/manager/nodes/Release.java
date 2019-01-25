@@ -12,6 +12,7 @@ import codex.utils.Language;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,6 +29,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -45,8 +47,10 @@ import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 
 
 public class Release extends BinarySource {
+
+    public final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
     
-    private final static ExecutorService   EXECUTOR = Executors.newFixedThreadPool(10);
+    private final static ExecutorService   EXECUTOR = Executors.newFixedThreadPool(5);
     private final static Predicate<String> XML_PATTERN = Pattern.compile("^[^/]*.xml").asPredicate();
     private final static Pattern INCLUDE = Pattern.compile("Include FileName=\"(.*)\"");
     private final static Pattern FILE    = Pattern.compile("File Name=\"(.*)\"\\s");
@@ -58,9 +62,7 @@ public class Release extends BinarySource {
         super(parent, ImageUtils.getByPath("/images/release.png"), title);
         
         // Properties
-        model.addDynamicProp(PROP_VERSION, new Str(null), null, () -> {
-            return getPID();
-        });
+        model.addDynamicProp(PROP_VERSION, new Str(null), null, this::getPID);
     }
     
     public final String getVersion() {
@@ -88,7 +90,6 @@ public class Release extends BinarySource {
     
     @Override
     public final String getLocalPath() {
-        IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
         String workDir = ((Common) EAS.getRoot()).getWorkDir().toString();
         StringJoiner wcPath = new StringJoiner(File.separator)
             .add(workDir)
@@ -127,7 +128,9 @@ public class Release extends BinarySource {
                 if (layerMatcher.find()) {
                     chain.putAll(createLayerChain(layerMatcher.group(1)));
                 }
-            } catch (IOException e) {}
+            } catch (IOException e) {
+                // Do nothing
+            }
         } else {
             chain.put(nextLayer, null);
         }
@@ -163,7 +166,7 @@ public class Release extends BinarySource {
         return map;
     }
     
-    public static boolean checkStructure(String localPath) {
+    public static boolean checkStructure(String localPath, Supplier<Boolean> isCancelled) {
         Path path = Paths.get(localPath);
         if (!Files.exists(path)) {
             return false;
@@ -182,23 +185,26 @@ public class Release extends BinarySource {
             final Stream.Builder<String> files = Stream.builder();
             while (fileMatcher.find()) files.add(fileMatcher.group(1));
 
+            if (isCancelled.get()) {
+                throw new CancelException();
+            }
+
             return Stream
                     .concat(
                         includes.build(), 
                         files.build().filter((fileName) -> {
-                                return 
-                                    fileName.startsWith("bin/") || 
+                                return
+                                    fileName.startsWith("bin/") ||
                                     fileName.startsWith("lib/") ||
                                     XML_PATTERN.test(fileName);
                             })
                     ).parallel()
                     .allMatch((include) -> {
-                        return checkStructure(path.getParent()+File.separator+include);
+                        return checkStructure(path.getParent()+File.separator+include, isCancelled);
                     });
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new CancelException();
         }
-        return false;
     }
     
     private static void loadIndex(int level, ExecutorService executor, Map<String, String> mapLocalToRemote, ISVNAuthenticationManager authMgr) {
@@ -346,6 +352,7 @@ public class Release extends BinarySource {
     public class LoadCache extends AbstractTask<Void> {
         
         private final List<String> requiredLayers;
+        private final ISVNAuthenticationManager authMgr = getRepository().getAuthManager();
         
         public LoadCache(List<String> requiredLayers) {
             super(MessageFormat.format(
@@ -387,7 +394,7 @@ public class Release extends BinarySource {
                         return new Callable<Map.Entry<String, String>>() {
                             @Override
                             public Map.Entry<String, String> call() throws Exception {
-                                SVN.export(pathEntry.getValue(), pathEntry.getKey(), null, null);
+                                SVN.export(pathEntry.getValue(), pathEntry.getKey(), authMgr, null);
                                 current.addAndGet(1);
                                 setProgress(
                                         current.get() * 100 / mapLocalToRemote.size(), 
