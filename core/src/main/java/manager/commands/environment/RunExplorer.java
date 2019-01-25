@@ -42,10 +42,8 @@ public class RunExplorer extends EntityCommand<Environment> {
                 "explorer", 
                 Language.get("RunTX", "explorer@title"), 
                 ImageUtils.resize(ImageUtils.getByPath("/images/explorer.png"), 28, 28), 
-                Language.get("RunTX", "explorer@title"), 
-                (environment) -> {
-                    return environment.canStartExplorer();
-                }
+                Language.get("RunTX", "explorer@title"),
+                Environment::canStartExplorer
         );
     }
 
@@ -53,83 +51,11 @@ public class RunExplorer extends EntityCommand<Environment> {
     public void execute(Environment environment, Map<String, IComplexType> map) {
         BinarySource source = environment.getBinaries();
         if (source instanceof Release) {
-            Thread checker = new Thread(() -> {
-                try {
-                    source.getLock().acquire();
-                } catch (InterruptedException e) {}
-                
-                Release release  = (Release) source;
-                String  topLayer = environment.getLayerUri(false);
-                String  rootUrl  = release.getRemotePath();
-                ISVNAuthenticationManager authMgr = release.getRepository().getAuthManager();
-                boolean online = false;
-                try {
-                    if (SVN.checkConnection(rootUrl, authMgr)) {
-                        online = true;
-                    }
-                } catch (SVNException e) {
-                    SVNErrorCode code = e.getErrorMessage().getErrorCode();
-                    if (code != SVNErrorCode.RA_SVN_IO_ERROR && code != SVNErrorCode.RA_SVN_MALFORMED_DATA) {
-                        MessageBox.show(MessageType.ERROR, 
-                                MessageFormat.format(
-                                        Language.get(Repository.class.getSimpleName(), "error@message"),
-                                        release.getRepository().getPID(),
-                                        e.getMessage()
-                                )
-                        );
-                        source.getLock().release();
-                    }
-                }
-                Map<String, Path> requiredLayers = release.getRequiredLayers(topLayer, online);
-                String lostLayer = requiredLayers.entrySet().stream().filter((entry) -> {
-                    return entry.getValue() == null;
-                }).map((entry) -> {
-                    return entry.getKey();
-                }).findFirst().orElse(null);
-                if (lostLayer != null) {
-                    MessageBox.show(MessageType.WARNING, 
-                            MessageFormat.format(Language.get("RunTX", "error@layer"), lostLayer)
-                    );
-                    source.getLock().release();
-                }
-                boolean checkResult = requiredLayers.keySet().parallelStream().allMatch((layerName) -> {
-                    return Release.checkStructure(release.getLocalPath()+File.separator+layerName+File.separator+"directory.xml");
-                });
-                if (!checkResult) {
-                    if (!online) {
-                        MessageBox.show(MessageType.WARNING, Language.get("RunTX", "error@structure"));
-                        source.getLock().release();
-                    } else {
-                        TES.executeTask(
-                        release.new LoadCache(new LinkedList<>(requiredLayers.keySet())) {
-                            
-                            @Override
-                            public Void execute() throws Exception {
-                                try {
-                                    return super.execute();
-                                } finally {
-                                    source.getLock().release();
-                                }
-                            }
-                            
-                            @Override
-                            public void finished(Void t) {
-                                super.finished(t);
-                                if (!isCancelled()) {
-                                    SwingUtilities.invokeLater(() -> {
-                                        TES.enqueueTask(new RunExplorerTask(environment));
-                                    });
-                                }
-                            }
-                        }
-                    );
-                    }
-                } else {
-                    source.getLock().release();
-                    TES.enqueueTask(new RunExplorerTask(environment));
-                }
-            });
-            checker.start();
+            TES.executeTask(new CheckCache(
+                    environment,
+                    new RunExplorerTask(environment)
+
+            ));
         } else {
             TES.enqueueTask(
                 new RunExplorerTask(environment)
