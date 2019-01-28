@@ -16,6 +16,9 @@ public interface IProgressHandle extends org.radixware.kernel.common.builder.api
     default void start(int i) {}
 
     @Override
+    default void progress(int i) {}
+
+    @Override
     default void progress(String string, int i) {
         progress(0);
     }
