@@ -15,7 +15,7 @@ import javax.swing.border.MatteBorder;
 /**
  * Реализация виджета задачи для отображения в мониторе.
  */
-final class TaskView extends AbstractTaskView {
+public class TaskView extends AbstractTaskView {
     
     private final JLabel title;
     private final JLabel status;
@@ -28,7 +28,7 @@ final class TaskView extends AbstractTaskView {
      * @param cancelAction Действие по нажатии кнопки отмены на виджете задачи 
      * для обработки в мониторе.
      */
-    TaskView(ITask task, Consumer<ITask> cancelAction) {
+    public TaskView(ITask task, Consumer<ITask> cancelAction) {
         super(new BorderLayout());
         setBackground(Color.WHITE);
         setBorder(new CompoundBorder(
@@ -59,7 +59,6 @@ final class TaskView extends AbstractTaskView {
         if (task.isPauseable() && cancelAction != null) {
             PauseButton pause = new PauseButton();
             pause.addActionListener(new AbstractAction() {
-                
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     ((AbstractTask) task).setPause(task.getStatus() != Status.PAUSED);
@@ -79,7 +78,7 @@ final class TaskView extends AbstractTaskView {
         
         add(title,    BorderLayout.CENTER);
         add(controls, BorderLayout.EAST);
-        add(status,   BorderLayout.AFTER_LAST_LINE);
+        add(status,   BorderLayout.SOUTH);
         
         task.addListener(this);
         
@@ -132,11 +131,11 @@ final class TaskView extends AbstractTaskView {
         status.setText(task.getDescription());
     }
     
-    public final static long ONE_SECOND = 1000;
-    public final static long ONE_MINUTE = ONE_SECOND * 60;
-    public final static long ONE_HOUR   = ONE_MINUTE * 60;
-    public final static long ONE_DAY    = ONE_HOUR   * 24;
-    public static String formatDuration(long duration) {
+    private final static long ONE_SECOND = 1000;
+    private final static long ONE_MINUTE = ONE_SECOND * 60;
+    private final static long ONE_HOUR   = ONE_MINUTE * 60;
+    private final static long ONE_DAY    = ONE_HOUR   * 24;
+    private static String formatDuration(long duration) {
         StringBuilder res = new StringBuilder();
         long temp;
         if (duration >= ONE_SECOND) {
