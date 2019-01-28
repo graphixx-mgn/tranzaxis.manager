@@ -77,6 +77,11 @@
             <version>1.0.4</version>
             <type>jar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.xmlgraphics</groupId>
+            <artifactId>batik-transcoder</artifactId>
+            <version>1.10</version>
+        </dependency>
     </dependencies>
 
     <build>
