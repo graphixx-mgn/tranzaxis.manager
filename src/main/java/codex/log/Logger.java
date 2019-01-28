@@ -180,7 +180,7 @@ public class Logger extends org.apache.log4j.Logger implements Thread.UncaughtEx
                     .showMessage(NS_SOURCE, Level.Error.toString(), message.toString(), TrayIcon.MessageType.ERROR);
     }
     
-    private String stackTraceToString(Throwable exception) {
+    public static String stackTraceToString(Throwable exception) {
         return exception.toString().concat("\n\t").concat(String.join(
                 "\n\t", 
                 Stream.of(exception.getStackTrace())
