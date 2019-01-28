@@ -67,7 +67,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
 
         final ArrayList<String> command = new ArrayList<>();
         command.add("java");
-        command.addAll(((Development) offshoot.getParent()).getJvmDesigner());
+        command.addAll(offshoot.getJvmDesigner());
 
         String classPath;
         if (currentJar.isFile()) {
@@ -264,6 +264,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
                     super.setExpandedState(path, true);
                 }
             };
+            tree.setBorder(new EmptyBorder(0, 3, 0, 0));
             tree.getModel().addTreeModelListener(new TreeModelAdapter() {
                 @Override
                 public void treeStructureChanged(TreeModelEvent event) {
@@ -309,11 +310,13 @@ public class BuildSourceTask extends AbstractTask<Error> {
             statusPanel.add(problemsView, BorderLayout.SOUTH);
             add(statusPanel, BorderLayout.SOUTH);
 
-            problemsStatusSwitch.addMouseListener(new MouseAdapter() {
+            problemsStatus.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    problemsStatusSwitch.setIcon(problemsView.isVisible() ? ICON_COLLAPSE : ICON_EXPAND);
-                    problemsView.setVisible(!problemsView.isVisible());
+                    if (getErrorsCount() + getWarningsCount() != 0) {
+                        problemsStatusSwitch.setIcon(problemsView.isVisible() ? ICON_COLLAPSE : ICON_EXPAND);
+                        problemsView.setVisible(!problemsView.isVisible());
+                    }
                 }
             });
         }
