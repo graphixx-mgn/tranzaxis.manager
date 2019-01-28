@@ -1,5 +1,7 @@
 package manager.commands.offshoot.build;
 
+import org.radixware.kernel.common.check.RadixProblem;
+import javax.swing.*;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.LinkedHashMap;
@@ -13,37 +15,60 @@ public class BuildingNotifier extends UnicastRemoteObject implements IBuildingNo
     
     public BuildingNotifier() throws RemoteException {}
 
-    @Override
-    public void setProgress(String uid, int percent) {
-        listeners.get(UUID.fromString(uid)).setProgress(percent);
+    void addListener(UUID uuid, IBuildListener listener) {
+        synchronized (listeners) {
+            listeners.put(uuid, listener);
+        }
+    }
+
+    void removeListener(UUID uuid) {
+        synchronized (listeners) {
+            listeners.remove(uuid);
+        }
     }
 
     @Override
-    public void setStatus(String uid, String text) {
-        listeners.get(UUID.fromString(uid)).setStatus(text);
+    public void error(UUID uuid, Throwable ex) throws RemoteException {
+        synchronized (listeners) {
+            if (listeners.containsKey(uuid)) {
+                new LinkedHashMap<>(listeners).get(uuid).error(ex);
+            }
+        }
     }
 
     @Override
-    public void failed(String uid, Throwable ex) {
-        listeners.get(UUID.fromString(uid)).failed(ex);
-    }
-    
-    @Override
-    public void finished(String uid) throws RemoteException {
-        listeners.get(UUID.fromString(uid)).finished();
-    }
-    
-    public void addListener(UUID uuid, IBuildListener listener) {
-        listeners.put(uuid, listener);
-    }
-    
-    public void removeListener(UUID uuid) {
-        listeners.remove(uuid);
+    public void event(UUID uuid, RadixProblem.ESeverity severity, String defId, String name, ImageIcon icon, String message) throws RemoteException {
+        synchronized (listeners) {
+            if (listeners.containsKey(uuid)) {
+                new LinkedHashMap<>(listeners).get(uuid).event(severity, defId, name, icon, message);
+            }
+        }
     }
 
     @Override
-    public void checkPaused(String uid) throws RemoteException {
-        listeners.get(UUID.fromString(uid)).checkPaused();
+    public void progress(UUID uuid, int percent) throws RemoteException {
+        synchronized (listeners) {
+            if (listeners.containsKey(uuid)) {
+                new LinkedHashMap<>(listeners).get(uuid).progress(percent);
+            }
+        }
     }
- 
+
+    @Override
+    public void description(UUID uuid, String text) throws RemoteException {
+        synchronized (listeners) {
+            if (listeners.containsKey(uuid)) {
+                new LinkedHashMap<>(listeners).get(uuid).description(text);
+            }
+        }
+    }
+
+    @Override
+    public void isPaused(UUID uuid) throws RemoteException {
+        synchronized (listeners) {
+            if (listeners.containsKey(uuid)) {
+                new LinkedHashMap<>(listeners).get(uuid).isPaused();
+            }
+        }
+    }
 }

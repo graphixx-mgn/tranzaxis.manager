@@ -1,24 +1,28 @@
 package manager.commands.offshoot.build;
 
+import org.radixware.kernel.common.check.RadixProblem;
+
+import javax.swing.*;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
+import java.util.UUID;
 
 
 public interface IBuildingNotifier extends Remote {
+
+    void error(UUID uuid, Throwable ex) throws RemoteException;
+    void event(UUID uuid, RadixProblem.ESeverity severity, String defId, String name, ImageIcon icon, String message) throws RemoteException;
+    void progress(UUID uuid, int percent) throws RemoteException;
+    void description(UUID uuid, String text) throws RemoteException;
+    void isPaused(UUID uuid) throws RemoteException;
     
-    public void setProgress(String uid, int percent) throws RemoteException;
-    public void setStatus(String uid, String text)   throws RemoteException;
-    public void failed(String uid, Throwable ex)     throws RemoteException;
-    public void finished(String uid)                 throws RemoteException;
-    public void checkPaused(String uid)              throws RemoteException;
-    
-    public interface IBuildListener {
-    
-        public void setProgress(int percent);
-        public void setStatus(String text);
-        public void failed(Throwable ex);
-        public void finished();
-        public void checkPaused();
+    interface IBuildListener {
+
+        void error(Throwable ex);
+        void event(RadixProblem.ESeverity severity, String defId, String name, ImageIcon icon, String message);
+        void progress(int percent);
+        void description(String text);
+        void isPaused();
         
     }
     
