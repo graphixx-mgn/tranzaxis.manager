@@ -15,12 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import javax.swing.AbstractAction;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JProgressBar;
-import javax.swing.SwingConstants;
+import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -99,7 +94,8 @@ final class GroupTaskView extends AbstractTaskView {
             controls.add(pause, BorderLayout.CENTER);
         }
         
-        JPanel subTasks = new JPanel(new GridLayout(0, 1));
+        JPanel subTasks = new JPanel();
+        subTasks.setLayout(new BoxLayout(subTasks, BoxLayout.Y_AXIS));
         subTasks.setBorder(new TitledBorder(Language.get("border@title")));
         subTasks.setBackground(Color.WHITE);
         
