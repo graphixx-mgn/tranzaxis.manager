@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Logger;
 import org.radixware.kernel.common.builder.BuildActionExecutor;
 import org.radixware.kernel.common.builder.api.IBuildDisplayer;
 import org.radixware.kernel.common.builder.api.IBuildEnvironment;
@@ -21,9 +20,7 @@ import org.radixware.kernel.common.defs.ads.build.BuildOptions;
 import org.radixware.kernel.common.defs.ads.build.IFlowLogger;
 import org.radixware.kernel.common.enums.ERuntimeEnvironmentType;
 
-public class BuildEnvironment implements IBuildEnvironment {
-    
-    private long startTime;
+public abstract class BuildEnvironment implements IBuildEnvironment {
     
     private final CheckOptions checkOptions;
     private final BuildOptions buildOptions;
@@ -54,14 +51,7 @@ public class BuildEnvironment implements IBuildEnvironment {
     
     
     @Override
-    public void prepare() {
-        startTime = System.currentTimeMillis();
-    }
-
-    @Override
-    public Logger getLogger() {
-        return Logger.getLogger(BuildEnvironment.class.getName());
-    }
+    public void prepare() {}
 
     @Override
     public BuildActionExecutor.EBuildActionType getActionType() {
