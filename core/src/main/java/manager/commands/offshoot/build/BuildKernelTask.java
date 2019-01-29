@@ -7,12 +7,15 @@ import codex.utils.Language;
 import manager.commands.offshoot.BuildWC;
 import manager.nodes.Offshoot;
 import manager.type.BuildStatus;
+import manager.ui.splash.SplashScreen;
 import manager.upgrade.UpgradeService;
 import org.apache.tools.ant.util.DateUtils;
-import org.radixware.kernel.common.check.RadixProblem;
 
-import javax.swing.*;
+import javax.tools.ToolProvider;
 import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.StringJoiner;
@@ -52,7 +55,14 @@ public class BuildKernelTask extends AbstractTask<Void> {
         } else {
             classPath = System.getProperty("java.class.path");
         }
-        String javac = System.getenv("JAVA_HOME")+File.separator+"lib"+File.separator+"tools.jar";
+        String javac;
+        URL url = ToolProvider.getSystemJavaCompiler().getClass().getProtectionDomain().getCodeSource().getLocation();
+        try {
+            String urlDecoded = URLDecoder.decode(url.getPath(), "UTF-8");
+            javac = new File(urlDecoded).getPath();
+        } catch (UnsupportedEncodingException e) {
+            javac = System.getenv("JAVA_HOME")+File.separator+"lib"+File.separator+"tools.jar";
+        }
         StringJoiner radixBinPath = new StringJoiner(File.separator)
             .add(offshoot.getLocalPath())
             .add("org.radixware")
