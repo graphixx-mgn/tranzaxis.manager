@@ -183,6 +183,10 @@ public class BuildSourceTask extends AbstractTask<Error> {
                         }
                         errorIndex.get(event.getDefId()).add(event.getMessage());
                     });
+            offshoot.setBuiltStatus(new BuildStatus(offshoot.getWorkingCopyRevision(false).getNumber(), true));
+            try {
+                offshoot.model.commit(false);
+            } catch (Exception e) {}
             String message = MessageFormat.format(
                     "BUILD SOURCE [{0}] failed. Total time: {1}. Errors: {2}",
                     offshoot.getLocalPath(), DateUtils.formatElapsedTime(getDuration()), getErrorsCount()

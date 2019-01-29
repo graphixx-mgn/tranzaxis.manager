@@ -19,9 +19,9 @@ public interface IBuildingNotifier extends Remote {
     interface IBuildListener {
 
         void error(Throwable ex);
-        void event(RadixProblem.ESeverity severity, String defId, String name, ImageIcon icon, String message);
-        void progress(int percent);
-        void description(String text);
+        default void event(RadixProblem.ESeverity severity, String defId, String name, ImageIcon icon, String message) {}
+        default void progress(int percent) {}
+        default void description(String text) {}
         void isPaused();
         
     }
