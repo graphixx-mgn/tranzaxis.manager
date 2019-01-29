@@ -8,6 +8,9 @@ import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.util.Map;
+
+import manager.commands.offshoot.build.BuildKernelTask;
+import manager.commands.offshoot.build.BuildSourceTask;
 import manager.nodes.Offshoot;
 import manager.type.WCStatus;
 
@@ -41,8 +44,8 @@ public class RefreshWC extends EntityCommand<Offshoot> {
                 new GroupTask<>(
                         Language.get("title") + ": "+(offshoot).getLocalPath(),
                         ((UpdateWC) offshoot.getCommand("update")).new UpdateTask(offshoot),
-                        ((BuildWC)  offshoot.getCommand("build")).new BuildKernelTask(offshoot),
-                        ((BuildWC)  offshoot.getCommand("build")).new BuildSourceTask(offshoot, map.get("clean").getValue() == Boolean.TRUE)
+                        new BuildKernelTask(offshoot),
+                        new BuildSourceTask(offshoot, map.get("clean").getValue() == Boolean.TRUE)
                 ), 
                 false
         );

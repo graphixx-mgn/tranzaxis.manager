@@ -1,9 +1,12 @@
 package manager.nodes;
 
+import codex.config.ConfigStoreService;
+import codex.config.IConfigStoreService;
 import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
 import codex.explorer.tree.INode;
 import codex.model.Access;
+import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.type.Bool;
 import codex.type.EntityRef;
@@ -24,9 +27,7 @@ import manager.svn.SVN;
 import manager.type.BuildStatus;
 import manager.type.WCStatus;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
-import org.tmatesoft.svn.core.wc.SVNInfo;
-import org.tmatesoft.svn.core.wc.SVNRevision;
-import org.tmatesoft.svn.core.wc.SVNWCUtil;
+import org.tmatesoft.svn.core.wc.*;
 
 
 public class Offshoot extends BinarySource {
@@ -53,7 +54,7 @@ public class Offshoot extends BinarySource {
             }
         });
         model.addDynamicProp(PROP_WC_REVISION, new Str(null), null, () -> {
-            if (this.getOwner() != null && getWCStatus().equals(WCStatus.Succesfull)) {
+            if (this.getOwner() != null && (getWCStatus().equals(WCStatus.Succesfull) || getWCStatus().equals(WCStatus.Erroneous))) {
                 return getWorkingCopyRevision(false).getNumber()+" / "+DATE_FORMAT.format(getWorkingCopyRevisionDate(false));
             } else {
                 return null;
@@ -124,6 +125,20 @@ public class Offshoot extends BinarySource {
             .add(getVersion())
             .toString();
     }
+
+    public final List<String> getJvmDesigner() {
+        if (getParent() != null) {
+            return ((Development) getParent()).getJvmDesigner();
+        } else {
+            IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+            Development dev = CAS.findReferencedEntries(Repository.class, getRepository().getID()).stream()
+                    .filter(link -> link.entryClass.equals(Development.class.getCanonicalName()))
+                    .map(link -> (Development) EntityRef.build(Development.class, link.entryID).getValue())
+                    .findFirst()
+                    .orElse((Development) Entity.newPrototype(Development.class));
+            return dev.getJvmDesigner();
+        }
+    }
     
     public final WCStatus getWorkingCopyStatus() {
         String   wcPath = getLocalPath();
@@ -145,7 +160,32 @@ public class Offshoot extends BinarySource {
             ) {
                 status = WCStatus.Interrupted;
             } else {
-                status = WCStatus.Succesfull;
+//                status = WCStatus.Succesfull;
+//
+//
+//                final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
+//                try {
+//                    System.out.println("Check "+wcPath);
+//                    clientMgr.getStatusClient().doStatus(new File(wcPath), SVNRevision.HEAD, SVNDepth.INFINITY, false, false, false, false, new ISVNStatusHandler() {
+//                        @Override
+//                        public void handleStatus(SVNStatus svnStatus) throws SVNException {
+//                            if (svnStatus.isConflicted()) {
+//                                System.out.println("path=" + svnStatus.getFile() + ", conflict=" + svnStatus.isConflicted());
+//                                System.out.println("node="+svnStatus.getNodeStatus()+", content="+svnStatus.getContentsStatus());
+//                                System.out.println("conflict="+svnStatus.getTreeConflict());
+//                            }
+//                        }
+//                    }, null);
+//                } catch (SVNException e) {
+//                    Logger.getLogger().warn("SVN operation ''status'' error: {0}", e.getErrorMessage());
+//                }
+
+
+                if (SVN.status(wcPath, false, authMgr).isConflicted()) {
+                    status = WCStatus.Erroneous;
+                } else {
+                    status = WCStatus.Succesfull;
+                }
             }
         }
         setMode(INode.MODE_SELECTABLE + (status.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
