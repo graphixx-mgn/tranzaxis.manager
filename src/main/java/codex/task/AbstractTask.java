@@ -60,7 +60,9 @@ public abstract class AbstractTask<T> implements ITask<T> {
                 }
                 finished(result);
             } catch (CancelException e) {
-                setStatus(Status.CANCELLED);
+                if (isCancelled() && status != Status.CANCELLED) {
+                    setStatus(Status.CANCELLED);
+                }
             } catch (ExecuteException e) {
                 setProgress(percent, MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
                 setStatus(Status.FAILED);
@@ -79,8 +81,10 @@ public abstract class AbstractTask<T> implements ITask<T> {
         }) {       
             @Override
             protected void done() {
-                if (status != Status.FAILED) {
-                    setStatus(isCancelled() ? Status.CANCELLED : Status.FINISHED);
+                if (isCancelled() && status != Status.CANCELLED) {
+                    setStatus(Status.CANCELLED);
+                } else if (!isCancelled() && !isFailed()) {
+                    setStatus(Status.FINISHED);
                 }
             }
         };
@@ -278,11 +282,16 @@ public abstract class AbstractTask<T> implements ITask<T> {
     @Override
     public AbstractTaskView createView(Consumer<ITask> cancelAction) {
         return new TaskView(this, cancelAction);
-    };
+    }
 
     @Override
     public final void addListener(ITaskListener listener) {
         listeners.add(listener);
-    };
+    }
+
+    @Override
+    public final void removeListener(ITaskListener listener) {
+        listeners.remove(listener);
+    }
     
 }
