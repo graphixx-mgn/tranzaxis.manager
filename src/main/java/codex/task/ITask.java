@@ -70,5 +70,11 @@ public interface ITask<T> extends RunnableFuture<T> {
      * @param listener Ссылка на слущатель.
      */
     void addListener(ITaskListener listener);
+
+    /**
+     * Удалить слушателя событий задачи.
+     * @param listener Ссылка на слущатель.
+     */
+    void removeListener(ITaskListener listener);
     
 }
