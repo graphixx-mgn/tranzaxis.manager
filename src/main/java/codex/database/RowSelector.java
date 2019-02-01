@@ -156,6 +156,10 @@ public class RowSelector implements IDataSupplier<String> {
         }
             @Override
             public void setVisible(boolean visible) {
+                if (!visible) {
+                    super.setVisible(false);
+                    return;
+                }
                 JPanel content = new JPanel(new BorderLayout());
                 IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
                 try {
