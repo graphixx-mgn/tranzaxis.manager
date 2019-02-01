@@ -177,6 +177,9 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
         if ((((INode) path.getLastPathComponent()).getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED) {
             super.setExpandedState(path, state);
         }
+        if (path.getPathCount() == 1) {
+            super.setExpandedState(path, true);
+        }
     }
     
 }
