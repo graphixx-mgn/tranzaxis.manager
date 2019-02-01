@@ -65,13 +65,7 @@ public class RunDesigner extends EntityCommand<Offshoot> {
                     add("/bin/sh");
                     add(designer.getAbsolutePath());
                 }
-                add("-J-Xmx6G");
-                add("-J-Xms500M");
-                addAll(
-                        ((Development) offshoot.getParent()).getJvmDesigner().stream()
-                                .map("-J"::concat)
-                                .collect(Collectors.toList())
-                );
+                addAll(offshoot.getJvmDesigner().stream().map("-J"::concat).collect(Collectors.toList()));
                 add("--userdir");
                 add(confDir.toString());
                 add("--console");
