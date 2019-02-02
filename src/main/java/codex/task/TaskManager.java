@@ -34,10 +34,10 @@ public final class TaskManager extends AbstractUnit {
                         });
                     } else if (event.getID() == TaskDialog.ENQUEUE || running != 0) {
                         taskDialog.taskRegistry.keySet().stream().forEach((task) -> {
+                            taskDialog.removeTask(task);
                             taskPanel.addTask(task);
                         });
                     }
-                    taskDialog.clearTasks();
                 }
             }
     ) {

@@ -135,7 +135,7 @@ public class TaskView extends AbstractTaskView {
     private final static long ONE_MINUTE = ONE_SECOND * 60;
     private final static long ONE_HOUR   = ONE_MINUTE * 60;
     private final static long ONE_DAY    = ONE_HOUR   * 24;
-    private static String formatDuration(long duration) {
+    public static String formatDuration(long duration) {
         StringBuilder res = new StringBuilder();
         long temp;
         if (duration >= ONE_SECOND) {
