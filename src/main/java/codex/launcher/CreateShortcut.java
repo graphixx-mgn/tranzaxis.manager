@@ -36,11 +36,11 @@ import javax.swing.SwingUtilities;
  */
 class CreateShortcut extends EntityCommand<Entity> {
     
-    private static final String PARAM_SECTION = "section";
-    private static final String PARAM_CATALOG = "catalog";
-    private static final String PARAM_ENTITY  = "entity";
-    private static final String PARAM_COMMAND = "command";
-    private static final String PARAM_TITLE   = "title";
+    private static final String PARAM_SECTION  = "section";
+    private static final String PARAM_CATALOG  = "catalog";
+    private static final String PARAM_ENTITY   = "entity";
+    private static final String PARAM_COMMAND  = "command";
+    private static final String PARAM_LINKNAME = "linkname";
         
     private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private final CreateSection proxyCommand;
@@ -150,7 +150,7 @@ class CreateShortcut extends EntityCommand<Entity> {
         paramModel.addProperty(PARAM_CATALOG,  catalogRef, true);
         paramModel.addProperty(PARAM_ENTITY,   new EntityRef(null), true);
         paramModel.addProperty(PARAM_COMMAND,  commandRef, true);
-        paramModel.addProperty(PARAM_TITLE,    new Str(null), true);
+        paramModel.addProperty(PARAM_LINKNAME, new Str(null), true);
         
         paramModel.addChangeListener((String name, Object oldValue, Object newValue) -> {
             if (name != null) {
@@ -188,10 +188,10 @@ class CreateShortcut extends EntityCommand<Entity> {
                             String commandName = (String) paramModel.getValue(PARAM_COMMAND);
                             if (commandName != null) {
                                 EntityCommand command = entity.getCommand(commandName);
-                                paramModel.setValue(PARAM_TITLE, MessageFormat.format("{0} ({1})", command.toString(), entity));
+                                paramModel.setValue(PARAM_LINKNAME, MessageFormat.format("{0} ({1})", command.toString(), entity));
                             }
                         } else {
-                            paramModel.setValue(PARAM_TITLE, null);
+                            paramModel.setValue(PARAM_LINKNAME, null);
                         }
                         break;
                 }
@@ -199,7 +199,7 @@ class CreateShortcut extends EntityCommand<Entity> {
             
             paramModel.getEditor(PARAM_ENTITY).setEditable(paramModel.getValue(PARAM_CATALOG) != null); 
             paramModel.getEditor(PARAM_COMMAND).setEditable(paramModel.getValue(PARAM_ENTITY) != null); 
-            paramModel.getEditor(PARAM_TITLE).setEditable(paramModel.getValue(PARAM_COMMAND)  != null);
+            paramModel.getEditor(PARAM_LINKNAME).setEditable(paramModel.getValue(PARAM_COMMAND)  != null);
             confirmBtn.setEnabled(paramModel.getValue(PARAM_COMMAND) != null);
         });
         
@@ -226,7 +226,7 @@ class CreateShortcut extends EntityCommand<Entity> {
             (event) -> {
                 if (event.getID() == Dialog.OK) {
                     boundView(newShortcut(
-                        (String) paramModel.getValue(PARAM_TITLE), 
+                        (String) paramModel.getValue(PARAM_LINKNAME),
                         (ShortcutSection) paramModel.getValue(PARAM_SECTION), 
                         (Entity) paramModel.getValue(PARAM_ENTITY), 
                         (String) paramModel.getValue(PARAM_COMMAND)
