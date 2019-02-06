@@ -21,6 +21,7 @@ import codex.utils.Language;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
@@ -31,12 +32,11 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.text.MessageFormat;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.swing.DropMode;
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
@@ -68,13 +68,28 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     private final static ImageIcon IMAGE_CREATE = ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"),  28, 28);
     private final static ImageIcon IMAGE_CLONE  = ImageUtils.resize(ImageUtils.getByPath("/images/clone.png"), 28, 28);
     private final static ImageIcon IMAGE_REMOVE = ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28);
-    
-    private final CommandPanel        commandPanel = new CommandPanel();
-    private final List<EntityCommand> commands = new LinkedList<>();
+
     private final Class               entityClass;
     private final Entity              entity;
     private final SelectorTableModel  tableModel;
     private final JTable              table;
+
+    private final CommandPanel commandPanel;
+    private final List<EntityCommand<Entity>> systemCommands  = new LinkedList<>();
+    private final List<EntityCommand<Entity>> contextCommands = new LinkedList<EntityCommand<Entity>>() {
+        @Override
+        public boolean add(EntityCommand<Entity> entityEntityCommand) {
+            clear();
+            return super.add(entityEntityCommand);
+        }
+
+        @Override
+        public boolean addAll(Collection<? extends EntityCommand<Entity>> c) {
+            clear();
+            return super.addAll(c);
+        }
+    };
+    private final Supplier<Stream<EntityCommand<Entity>>> commands = () -> Stream.concat(systemCommands.stream(), contextCommands.stream());
     
     /**
      * Конструктор презентации. 
@@ -90,26 +105,20 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         entityClass = entity.getChildClass();
         this.entity = entity;
         Entity prototype = Entity.newPrototype(entityClass);
-        
-        commands.add(new EditEntity());
+
+        systemCommands.add(new EditEntity());
         if (entity.allowModifyChild()) {
-            commands.add(new CreateEntity());
-            commands.add(new CloneEntity());
-            commands.add(new DeleteEntity());
+            systemCommands.add(new CreateEntity());
+            systemCommands.add(new CloneEntity());
+            systemCommands.add(new DeleteEntity());
         }
-        commandPanel.addCommands(commands.toArray(new EntityCommand[]{}));
-        if (!prototype.getCommands().isEmpty()) {
-            commandPanel.addSeparator();
-        }
-        
-        commands.addAll(prototype.getCommands());
-        commandPanel.addCommands(prototype.getCommands().toArray(new EntityCommand[]{}));
-        
-        commands.forEach((command) -> {
+
+        commandPanel = new CommandPanel(systemCommands.toArray(new EntityCommand[]{}));
+        commands.get().forEach(command -> {
             if (command instanceof CreateEntity) {
                 command.setContext(entity);
             } else {
-                command.getButton().setEnabled(false);
+                command.activate();
             }
         });
         
@@ -138,14 +147,14 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 new MatteBorder(1, 1, 1, 1, Color.GRAY)
         ));
         add(scrollPane, BorderLayout.CENTER);
-        
+
         table.getSelectionModel().addListSelectionListener(this);
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent event) {
-                IButton cmdButton = commands.get(0).getButton();
+                IButton cmdButton = systemCommands.get(0).getButton();
                 if (event.getClickCount() == 2 && cmdButton.isEnabled() && !cmdButton.isInactive()) {
-                    commands.get(0).execute(tableModel.getEntityAt(table.getSelectedRow()), null);
+                    systemCommands.get(0).execute(tableModel.getEntityAt(table.getSelectedRow()), null);
                 }
             }
         });
@@ -156,6 +165,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 JComponent c = (JComponent) e.getSource();
                 TransferHandler handler = c.getTransferHandler();
                 handler.exportAsDrag(c, e, TransferHandler.MOVE);
+                table.getSelectionModel().setValueIsAdjusting(false);
             }
         });
         
@@ -174,36 +184,47 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         });
     }
 
-    @Override
-    public void valueChanged(ListSelectionEvent event) {
-        if (event.getValueIsAdjusting()) return;
-        
+    public final void updateCommands() {
         List<Entity> context = Arrays
                 .stream(table.getSelectedRows())
                 .boxed()
-                .map((rowIdx) -> {
-                    return tableModel.getEntityAt(rowIdx);
-                })
+                .map(tableModel::getEntityAt)
                 .collect(Collectors.toList());
-        
-        commands.forEach((command) -> {
+
+        if (context.size() == 1) {
+            contextCommands.addAll(context.get(0).getCommands());
+        } else if (!context.isEmpty()){
+            List<String> commandIds = context.get(0).getCommands().stream().map(EntityCommand::getName).collect(Collectors.toList());
+            context.forEach(entity -> commandIds.retainAll(
+                    entity.getCommands().stream().map(EntityCommand::getName).collect(Collectors.toList())
+            ));
+            contextCommands.addAll(
+                    context.get(0).getCommands().stream()
+                            .filter(command -> commandIds.contains(command.getName()))
+                            .collect(Collectors.toList())
+            );
+        }
+        commandPanel.setContextCommands(contextCommands.toArray(new EntityCommand[]{}));
+
+        commands.get().forEach(command -> {
             if (!(command instanceof CreateEntity)) {
-                context.forEach((contextItem) -> {
-                    contextItem.removeNodeListener(this);
-                });
+                context.forEach((contextItem) -> contextItem.removeNodeListener(this));
                 command.setContext(context);
-                context.forEach((contextItem) -> {
-                    contextItem.addNodeListener(this);
-                });
+                context.forEach((contextItem) -> contextItem.addNodeListener(this));
             }
         });
+    }
+
+    @Override
+    public void valueChanged(ListSelectionEvent event) {
+        if (!event.getValueIsAdjusting()) {
+            updateCommands();
+        }
     }
     
     @Override
     public void childChanged(INode node) {
-        commands.forEach((command) -> {
-            command.activate();
-        });
+        commands.get().forEach(EntityCommand::activate);
     }
 
     class CreateEntity extends EntityCommand<Entity> {

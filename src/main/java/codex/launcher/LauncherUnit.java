@@ -46,7 +46,6 @@ public final class LauncherUnit extends AbstractUnit {
     @Override
     public JComponent createViewport() {
         JPanel panel = new JPanel(new BorderLayout());
-        CommandPanel commandPanel = new CommandPanel();
         
         CreateSection createSection = new CreateSection() {
             @Override
@@ -60,7 +59,7 @@ public final class LauncherUnit extends AbstractUnit {
                 addShortcut(shortcut.getSection(), shortcut);
             }
         };
-        commandPanel.addCommands(createSection, createShortcut);
+        CommandPanel commandPanel = new CommandPanel(createSection, createShortcut);
         panel.add(commandPanel, BorderLayout.NORTH);
         
         JScrollPane scrollPane = new JScrollPane(shortcutPanel);        

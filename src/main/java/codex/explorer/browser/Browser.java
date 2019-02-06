@@ -2,6 +2,8 @@ package codex.explorer.browser;
 
 import codex.explorer.tree.INode;
 import codex.presentation.EditorPresentation;
+import codex.presentation.SelectorPresentation;
+
 import java.awt.BorderLayout;
 import javax.swing.JPanel;
 
@@ -39,18 +41,16 @@ public final class Browser extends JPanel {
         selectorPanel.removeAll();
         selectorPanel.revalidate();
         selectorPanel.repaint();
-        
-        //TODO: В SWING недопустимо чтобы одни и те же элементы были вставлены
-        // в разные контейнеры, а нужно отобразить редакторы свойств в главном
-        // окне и в модельном редакторе, поэтому кэширование отключено, т.к.
-        // редакторы кэшируются в модели и переносятся в контейнер диалога.
-        EditorPresentation presentation = node.getEditorPresentation();
-        if (presentation != null) {
-            editorPanel.add(presentation);
-            presentation.activateCommands();
+
+        EditorPresentation editorPresentation = node.getEditorPresentation();
+        if (editorPresentation != null) {
+            editorPanel.add(editorPresentation);
+            editorPresentation.activateCommands();
         }
-        if (node.getSelectorPresentation() != null) {
-            selectorPanel.add(node.getSelectorPresentation());
+        SelectorPresentation selectorPresentation = node.getSelectorPresentation();
+        if (selectorPresentation != null) {
+            selectorPanel.add(selectorPresentation);
+            selectorPresentation.updateCommands();
         }
     }
     

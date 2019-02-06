@@ -6,10 +6,12 @@ import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.model.Access;
 import codex.model.Entity;
-import java.awt.BorderLayout;
+import javax.swing.*;
+import java.awt.*;
 import java.util.LinkedList;
 import java.util.List;
-import javax.swing.JPanel;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 /**
  * Презентация редактора сущности. Реализует как функциональность редактирования
@@ -17,12 +19,11 @@ import javax.swing.JPanel;
  * редактора, так и обеспечивает работу команд сущностей.
  */
 public final class EditorPresentation extends JPanel {
-    
-    private final static EntityCommand CMD_COMMIT   = new CommitEntity();
-    private final static EntityCommand CMD_ROLLBACK = new RollbackEntity();
- 
-    private final CommandPanel        commandPanel = new CommandPanel();
-    private final List<EntityCommand> commands = new LinkedList<>();
+
+    private final CommandPanel commandPanel;
+    private final List<EntityCommand<Entity>> systemCommands  = new LinkedList<>();
+    private final List<EntityCommand<Entity>> contextCommands = new LinkedList<>();
+    private final Supplier<Stream<EntityCommand<Entity>>> commands = () -> Stream.concat(systemCommands.stream(), contextCommands.stream());
     
     /**
      * Конструктор презентации. 
@@ -30,34 +31,33 @@ public final class EditorPresentation extends JPanel {
      */
     public EditorPresentation(Entity entity) {
         super(new BorderLayout());
+
         if (!entity.model.getProperties(Access.Edit).isEmpty()) {
-            commands.add(CMD_COMMIT);
-            commands.add(CMD_ROLLBACK);
-            commandPanel.addCommands(commands.toArray(new EntityCommand[]{}));
+            systemCommands.add(new CommitEntity());
+            systemCommands.add(new RollbackEntity());
         }
-        List<EntityCommand> entityCommands = entity.getCommands();
-        if (!entityCommands.isEmpty()) {
-            if (!commands.isEmpty()) commandPanel.addSeparator();
-            commands.addAll(entityCommands);
-            commandPanel.addCommands(entityCommands.toArray(new EntityCommand[]{}));
-        }
-        commands.forEach((command) -> {
-            command.setContext(entity);
-        });
-        if (!entity.model.getProperties(Access.Edit).isEmpty() || !commands.isEmpty()) {
-            commandPanel.setVisible(!commands.isEmpty());
+        contextCommands.addAll(entity.getCommands());
+
+        commandPanel = new CommandPanel(systemCommands.toArray(new EntityCommand[]{}));
+        commandPanel.setContextCommands(contextCommands.toArray(new EntityCommand[]{}));
+
+        commands.get().forEach(command -> command.setContext(entity));
+        activateCommands();
+
+        boolean hasCommands = commands.get().findFirst().isPresent();
+
+        if (!entity.model.getProperties(Access.Edit).isEmpty() || hasCommands) {
+            commandPanel.setVisible(hasCommands);
             add(commandPanel, BorderLayout.NORTH);
-            
+
             entity.addNodeListener(new INodeListener() {
-                
+
                 @Override
                 public void childChanged(INode node) {
                     Entity changed = (Entity) node;
-                    changed.model.getProperties(Access.Edit).stream().filter((propName) -> {
-                        return !changed.model.isPropertyDynamic(propName);
-                    }).forEach((propName) -> {
-                        ((AbstractEditor) changed.model.getEditor(propName)).setLocked(changed.islocked());
-                    });
+                    changed.model.getProperties(Access.Edit).stream()
+                            .filter((propName) -> !changed.model.isPropertyDynamic(propName))
+                            .forEach((propName) -> ((AbstractEditor) changed.model.getEditor(propName)).setLocked(changed.islocked()));
                     activateCommands();
                 }
             });
@@ -71,9 +71,7 @@ public final class EditorPresentation extends JPanel {
      * Актуализация состояния доступности команд.
      */
     public void activateCommands() {
-        commands.forEach((command) -> {
-            command.activate();
-        });
+        commands.get().forEach(EntityCommand::activate);
     }
     
 }
