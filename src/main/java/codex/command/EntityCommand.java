@@ -113,7 +113,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
             throw new IllegalStateException("Parameter 'icon' can not be NULL");
         }
         this.key       = key;
-        this.name      = name;
+        this.name      = name == null ? getClass().getCanonicalName().toLowerCase() : name;
         this.available = available;
         
         if (title != null) {
@@ -143,6 +143,13 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
      */
     public final String getName() {
         return name;
+    }
+
+    /**
+     * Возвращает название команды.
+     */
+    public final String getTitle() {
+        return title;
     }
     
     @Override
@@ -185,7 +192,6 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     /**
      * Предобработка модели параметров команды. Может использоваться для более
      * гибкой настройки редакторов параметров и их взаимосвязей.
-     * @param contextItem Сущность контекста команды.
      * @param paramModel Модель набора параметров.
      */
     public void preprocessParameters(ParamModel paramModel) {
@@ -344,7 +350,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     @Override
     public void contextChanged(List<V> context) {
         // Do nothing
-    };
+    }
 
     @Override
     public ImageIcon getIcon() {
