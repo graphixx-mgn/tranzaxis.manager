@@ -64,14 +64,13 @@ public abstract class AbstractNode implements INode {
     
     @Override
     public final String getPathString() {
-        return "/" + String.join("/", this
+        return "/".concat(
+                this
                 .getPath()
                 .stream()
                 .skip(1)
-                .map((node) -> {
-                    return node.toString();
-                })
-                .collect(Collectors.toList())
+                .map(Object::toString)
+                .collect(Collectors.joining("/"))
         );
     }
     
@@ -82,13 +81,15 @@ public abstract class AbstractNode implements INode {
     
     @Override
     public final void addNodeListener(INodeListener listener) {
-        nodeListeners.add(listener);
-    };
+        if (!nodeListeners.contains(listener)) {
+            nodeListeners.add(listener);
+        }
+    }
     
     @Override
     public final void removeNodeListener(INodeListener listener) {
         nodeListeners.remove(listener);
-    };
+    }
     
     @Override
     public synchronized void insert(INode child) {
@@ -118,7 +119,7 @@ public abstract class AbstractNode implements INode {
         new LinkedList<>(nodeListeners).forEach((listener) -> {
             listener.childDeleted(this, child, index);
         });
-    };
+    }
     
     private Semaphore lock;
     /**

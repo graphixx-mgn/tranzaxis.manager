@@ -11,7 +11,6 @@ import java.awt.Color;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import javax.swing.JLabel;
 import javax.swing.JTree;
 import javax.swing.SwingConstants;
@@ -68,7 +67,6 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
                             listener.nodeChanged(path);
                         });
                     });
-                    Entity current = (Entity) path.getLastPathComponent();
                 }
             });
         });
@@ -123,28 +121,23 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
 
     @Override
     public void modelRestored(EntityModel model, List<String> changes) {
-        Optional<INode> update = ((INode) (getModel()).getRoot()).flattened().filter((node) -> {
-           return ((Entity) node).model == model;
-        }).findFirst();
-        if (update.isPresent()) {
-            ((DefaultTreeModel) getModel()).nodeChanged(update.get());
-        }
+        ((INode) (getModel()).getRoot()).flattened()
+                .filter((node) -> ((Entity) node).model == model)
+                .findFirst()
+                .ifPresent(iNode -> ((DefaultTreeModel) getModel()).nodeChanged(iNode));
     }
 
     @Override
     public void modelSaved(EntityModel model, List<String> changes) {
-        Optional<INode> update = ((INode) (getModel()).getRoot()).flattened().filter((node) -> {
-           return ((Entity) node).model == model;
-        }).findFirst();
-        if (update.isPresent()) {
-            ((DefaultTreeModel) getModel()).nodeChanged(update.get());
-        }
+        ((INode) (getModel()).getRoot()).flattened()
+                .filter((node) -> ((Entity) node).model == model)
+                .findFirst()
+                .ifPresent(iNode -> ((DefaultTreeModel) getModel()).nodeChanged(iNode));
     }
     
     @Override
     public void childInserted(INode parentNode, INode childNode) {
-        childNode.addNodeListener(this);
-        ((Entity) childNode).model.addModelListener(this);
+        attachListeners(childNode);
         ((DefaultTreeModel) getModel()).nodesWereInserted(
                 parentNode, 
                 new int[] {parentNode.getIndex(childNode)}
@@ -153,8 +146,7 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
 
     @Override
     public void childDeleted(INode parentNode, INode childNode, int index) {
-        childNode.removeNodeListener(this);
-        ((Entity) childNode).model.removeModelListener(this);
+        detachListeners(childNode);
         ((DefaultTreeModel) getModel()).nodesWereRemoved(
                 parentNode, 
                 new int[] {index}, 
@@ -180,6 +172,24 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
         if (path.getPathCount() == 1) {
             super.setExpandedState(path, true);
         }
+    }
+
+    private void attachListeners(INode node) {
+        node.addNodeListener(this);
+        ((Entity) node).model.addModelListener(this);
+        node.childrenList().forEach(child -> {
+            child.addNodeListener(this);
+            ((Entity) child).model.addModelListener(this);
+        });
+    }
+
+    private void detachListeners(INode node) {
+        node.removeNodeListener(this);
+        ((Entity) node).model.removeModelListener(this);
+        node.childrenList().forEach(child -> {
+            child.removeNodeListener(this);
+            ((Entity) child).model.removeModelListener(this);
+        });
     }
     
 }
