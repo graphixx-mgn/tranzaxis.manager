@@ -59,8 +59,7 @@ class CreateSection extends EntityCommand<Entity> {
         DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
         DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
 
-        EditorPage page = new EditorPage(newEntity.model);
-        page.setBorder(new CompoundBorder(
+        newEntity.getEditorPage().setBorder(new CompoundBorder(
                 new EmptyBorder(10, 5, 5, 5), 
                 new TitledBorder(
                         new LineBorder(Color.LIGHT_GRAY, 1), 
@@ -71,7 +70,7 @@ class CreateSection extends EntityCommand<Entity> {
         Dialog editor = new Dialog(
             SwingUtilities.getWindowAncestor((Component) getButton()),
             ImageUtils.getByPath("/images/createdir.png"),
-            Language.get("title"), page,
+            Language.get("title"), newEntity.getEditorPage(),
             (event) -> {
                 if (event.getID() == Dialog.OK) {
                     try {

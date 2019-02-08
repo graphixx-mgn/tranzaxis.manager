@@ -269,19 +269,20 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
             
-            EditorPage page = new EditorPage(newEntity.model);
-            page.setBorder(new CompoundBorder(
-                    new EmptyBorder(10, 5, 5, 5), 
-                    new TitledBorder(
-                            new LineBorder(Color.LIGHT_GRAY, 1), 
-                            Language.get(SelectorPresentation.class.getSimpleName(), "creator@desc")
-                    )
-            ));
-            
             Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
                     ImageUtils.getByPath("/images/plus.png"),
-                    Language.get(SelectorPresentation.class.getSimpleName(), "creator@title"), page,
+                    Language.get(SelectorPresentation.class.getSimpleName(), "creator@title"),
+                    new JPanel(new BorderLayout()) {{
+                        add(newEntity.getEditorPage());
+                        setBorder(new CompoundBorder(
+                                new EmptyBorder(10, 5, 5, 5),
+                                new TitledBorder(
+                                        new LineBorder(Color.LIGHT_GRAY, 1),
+                                        Language.get(SelectorPresentation.class.getSimpleName(), "creator@desc")
+                                )
+                        ));
+                    }},
                     (event) -> {
                         if (event.getID() == Dialog.OK) {
                             try {
@@ -395,7 +396,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                                     !EntityModel.SYSPROPS.contains(propName) &&
                                     parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
                     ).collect(Collectors.toList());
-            List<String> overriddenProps = (List<String>) context.getOverride();
+            List<String> overriddenProps = context.getOverride();
 
             context.model.getProperties(Access.Edit).forEach((propName) -> {
                 if ("PID".equals(propName)) {
@@ -423,19 +424,20 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
             
-            EditorPage page = new EditorPage(newEntity.model);
-            page.setBorder(new CompoundBorder(
-                    new EmptyBorder(10, 5, 5, 5), 
-                    new TitledBorder(
-                            new LineBorder(Color.LIGHT_GRAY, 1), 
-                            Language.get(SelectorPresentation.class.getSimpleName(), "copier@desc")
-                    )
-            ));
-            
             Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
                     ImageUtils.getByPath("/images/clone.png"),
-                    Language.get(SelectorPresentation.class.getSimpleName(), "copier@title"), page,
+                    Language.get(SelectorPresentation.class.getSimpleName(), "copier@title"),
+                    new JPanel() {{
+                        add(newEntity.getEditorPage());
+                        setBorder(new CompoundBorder(
+                                new EmptyBorder(10, 5, 5, 5),
+                                new TitledBorder(
+                                        new LineBorder(Color.LIGHT_GRAY, 1),
+                                        Language.get(SelectorPresentation.class.getSimpleName(), "copier@desc")
+                                )
+                        ));
+                    }},
                     (event) -> {
                         if (event.getID() == Dialog.OK) {
                             try {
@@ -558,13 +560,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 //                    ((AbstractEditor) context.model.getEditor(propName)).setEditable(false);
 //                });
 //            }
-            
-            EditorPage page = new EditorPage(context.model);
-            page.setBorder(new CompoundBorder(
-                    new EmptyBorder(10, 5, 5, 5), 
-                    new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())
-            ));
-            
+
             confirmBtn.setEnabled(getButton().getIcon().equals(IMAGE_EDIT));
             
             Dialog editor = new Dialog(
@@ -573,8 +569,14 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     Language.get(
                             SelectorPresentation.class.getSimpleName(), 
                             getIcon().equals(IMAGE_EDIT) ? "editor@title" : "viewer@title"
-                    ), 
-                    page,
+                    ),
+                    new JPanel(new BorderLayout()) {{
+                        add(context.getEditorPage());
+                        setBorder(new CompoundBorder(
+                                new EmptyBorder(10, 5, 5, 5),
+                                new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())
+                        ));
+                    }},
                     (event) -> {
                         if (event.getID() == Dialog.OK) {
                             if (context.model.hasChanges()) {

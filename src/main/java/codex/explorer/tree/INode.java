@@ -1,5 +1,6 @@
 package codex.explorer.tree;
 
+import codex.presentation.EditorPage;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import java.util.Collections;
@@ -36,6 +37,11 @@ public interface INode extends TreeNode {
      * (см. {@link INode#MODE_NONE}, {@link INode#MODE_ENABLED}, {@link INode#MODE_SELECTABLE})
      */
     void setMode(int mode);
+
+    /**
+     * Возвраящает страницу редактора модели.
+     */
+    EditorPage getEditorPage();
     
     /**
      * Возвращает презентацию редактора узла. 

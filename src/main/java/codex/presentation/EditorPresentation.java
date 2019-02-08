@@ -32,7 +32,10 @@ public final class EditorPresentation extends JPanel {
     public EditorPresentation(Entity entity) {
         super(new BorderLayout());
 
-        if (!entity.model.getProperties(Access.Edit).isEmpty()) {
+        boolean editable = entity.model.getProperties(Access.Edit).stream()
+                .anyMatch(propName -> !entity.model.isPropertyDynamic(propName));
+
+        if (editable) {
             systemCommands.add(new CommitEntity());
             systemCommands.add(new RollbackEntity());
         }
@@ -61,16 +64,21 @@ public final class EditorPresentation extends JPanel {
                     activateCommands();
                 }
             });
-            add(new EditorPage(entity.model), BorderLayout.CENTER);
+            add(entity.getEditorPage(), BorderLayout.CENTER);
         } else {
             setVisible(false);
         }
+    }
+
+    public final void updateCommands() {
+        commandPanel.setContextCommands(contextCommands.toArray(new EntityCommand[]{}));
+        activateCommands();
     }
     
     /**
      * Актуализация состояния доступности команд.
      */
-    public void activateCommands() {
+    private void activateCommands() {
         commands.get().forEach(EntityCommand::activate);
     }
     
