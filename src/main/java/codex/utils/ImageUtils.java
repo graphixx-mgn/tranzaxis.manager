@@ -6,18 +6,20 @@ import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
+import java.net.URL;
 import javax.swing.ImageIcon;
 
 public class ImageUtils {
     
     public static ImageIcon getByPath(String path) {
-        String className = new Exception().getStackTrace()[1].getClassName();
-        try {
-            return new ImageIcon(Class.forName(className).getResource(path));
-        } catch (ClassNotFoundException e) {
-            Logger.getLogger().error("Unexpected error", e);
+        path = path.replaceFirst("^/", "");
+        URL resource = ClassLoader.getSystemClassLoader().getResource(path);
+        if (resource != null) {
+            return new ImageIcon(resource);
+        } else {
+            Logger.getLogger().error("Image ''{0}'' not found", path);
+            return null;
         }
-        return null;
     }
     
     public static ImageIcon resize(ImageIcon icon, int width, int height) {
