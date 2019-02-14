@@ -3,6 +3,7 @@ package codex.presentation;
 import codex.command.EntityCommand;
 import codex.component.button.GroupButton;
 import codex.component.button.GroupItemButton;
+import codex.model.Entity;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -10,6 +11,7 @@ import javax.swing.border.MatteBorder;
 import java.awt.*;
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,7 +26,7 @@ public final class CommandPanel extends Box {
     /**
      * Конструктор панели.
      */
-    public CommandPanel(EntityCommand ... systemCommands) {
+    public CommandPanel(List<EntityCommand<Entity>> systemCommands) {
         super(BoxLayout.LINE_AXIS);
         setBorder(new CompoundBorder(
                 new EmptyBorder(2, 5, 2, 5),
@@ -44,12 +46,12 @@ public final class CommandPanel extends Box {
         setCommands(systemCommandsPanel, systemCommands);
     }
 
-    public void setContextCommands(EntityCommand ... commands) {
+    void setContextCommands(List<EntityCommand<Entity>> commands) {
         setCommands(contextCommandsPanel, commands);
-        separator.setVisible(commands.length > 0);
+        separator.setVisible(systemCommandsPanel.getComponentCount() > 0 && !commands.isEmpty());
     }
 
-    private void setCommands(Box commandPanel, EntityCommand ... commands) {
+    private void setCommands(Box commandPanel, List<EntityCommand<Entity>> commands) {
         commandPanel.removeAll();
         final Map<String, GroupButton> groupButtons = new HashMap<>();
 
