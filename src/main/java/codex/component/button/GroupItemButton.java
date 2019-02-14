@@ -24,12 +24,12 @@ public final class GroupItemButton extends JMenuItem implements IButton {
 
     @Override
     public void setInactive(boolean inactive) {
-        setEnabled(inactive);
+        setEnabled(!inactive);
     }
 
     @Override
     public boolean isInactive() {
-        return isEnabled();
+        return !isEnabled();
     }
 
     @Override

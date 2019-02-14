@@ -4,20 +4,15 @@ import codex.command.EntityCommand;
 import codex.component.button.IButton;
 import codex.component.render.GeneralRenderer;
 import codex.editor.AbstractEditor;
-import static codex.editor.IEditor.FONT_VALUE;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
-import java.awt.Component;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JComboBox;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+import javax.swing.*;
 import javax.swing.border.LineBorder;
 import javax.swing.plaf.BorderUIResource;
 import javax.swing.plaf.basic.BasicComboPopup;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 /**
  * Редактор ссылки на команду сущности.
@@ -25,30 +20,27 @@ import javax.swing.plaf.basic.BasicComboPopup;
 class CommandChooser extends AbstractEditor implements ActionListener {
     
     private JComboBox comboBox;
-    private Entity    entity;
+    //private Entity    entity;
 
     /**
      * Конструктор редактора.
      * @param propHolder Свойство для хранения имени команды.
-     * @param entity Сущность, в контексте которой имеется команда.
      */
-    CommandChooser(PropertyHolder propHolder, Entity entity) {
+    CommandChooser(PropertyHolder propHolder) {
         super(propHolder);
-        this.entity = entity;
     }
     
     /**
      * Обновление ссылки на сущность с пересчетом допустимых значений редактора.
      */
     public final void setEntity(Entity entity) {
-        this.entity = entity;
         comboBox.removeActionListener(this);
         comboBox.removeAllItems();
         comboBox.addItem(new NullValue());
         if (entity != null) {
             entity.getCommands().stream()
                 .filter((command) -> (
-                    !command.getButton().isInactive() && command.getKind() == EntityCommand.Kind.Action
+                    command.getKind() == EntityCommand.Kind.Action
                 )).forEachOrdered((command) -> {
                     comboBox.addItem(command);
                 });
@@ -61,14 +53,6 @@ class CommandChooser extends AbstractEditor implements ActionListener {
     public Box createEditor() {
         comboBox = new JComboBox();
         comboBox.addItem(new NullValue());
-        if (entity != null) {
-            entity.getCommands().stream()
-                .filter((command) -> (
-                        !command.getButton().isInactive() && command.getKind() == EntityCommand.Kind.Action
-                )).forEachOrdered((command) -> {
-                    comboBox.addItem(command);
-                });
-        }
         
         UIManager.put("ComboBox.border", new BorderUIResource(
                 new LineBorder(UIManager.getColor ("Panel.background"), 1))

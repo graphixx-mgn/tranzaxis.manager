@@ -11,10 +11,10 @@ import codex.type.Str;
  */
 public class Shortcut extends Entity {
     
-    final static String PROP_SECTION      = "section";
-    final static String PROP_ENTITY_CLASS = "entityClass";
-    final static String PROP_ENTITY_ID    = "entityId";
-    final static String PROP_COMMAND      = "command";
+    public final static String PROP_SECTION      = "section";
+    public final static String PROP_ENTITY_CLASS = "entityClass";
+    public final static String PROP_ENTITY_ID    = "entityId";
+    public final static String PROP_COMMAND      = "command";
     
     /**
      * Конструктор ярлыка.

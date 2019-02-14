@@ -139,9 +139,7 @@ class CreateShortcut extends EntityCommand<Entity> {
         final Str commandRef = new Str(null) {
             @Override
             public IEditorFactory editorFactory() {
-                return (PropertyHolder propHolder) -> {
-                    return new CommandChooser(propHolder, null);
-                };
+                return CommandChooser::new;
             }
         };
 
@@ -159,9 +157,7 @@ class CreateShortcut extends EntityCommand<Entity> {
                         Class entityClass = newValue != null ? ((Catalog) newValue).getChildClass() : null;
                         EntityRef entityRef;
                         if (entityClass != null) {
-                            entityRef = new EntityRef(entityClass, (entity) -> {
-                                return entity.getID() != null && entity.getParent().equals(newValue);
-                            });
+                            entityRef = new EntityRef(entityClass, (entity) -> entity.getID() != null && entity.getParent().equals(newValue));
                             entityRef.setValue(null);
                         } else {
                             entityRef = null;

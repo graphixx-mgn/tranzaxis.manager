@@ -34,7 +34,7 @@ import javax.swing.tree.TreeCellRenderer;
 /**
  * Стандартный рендерер ячеек списка, таблицы и элементов дерева.
  */
-public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCellRenderer, TreeCellRenderer {
+public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, TableCellRenderer, TreeCellRenderer {
     
     private static final Boolean DEV_MODE = "1".equals(java.lang.System.getProperty("showHashes"));
     
@@ -72,7 +72,7 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
      * @return SWING виджет, являющийся визуальным представлением ячейки.
      */
     @Override
-    public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean hasFocus) {
+    public Component getListCellRendererComponent(JList<? extends E> list, E value, int index, boolean isSelected, boolean hasFocus) {
         JLabel label = new JLabel(
                 value.toString().concat(DEV_MODE && !(value instanceof AbstractEditor.NullValue) ? ", hash="+value.hashCode() : "")
         ) {{
@@ -85,18 +85,21 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
                 if (value instanceof Entity && !((Entity) value).model.isValid()) {
                     setIcon(ImageUtils.resize(ImageUtils.combine(
                         ((Iconified) value).getIcon(),
-                        ICON_INVALID  
+                        ICON_INVALID
                     ), 17, 17));
                 } else if (value instanceof Entity && ((Entity) value).islocked()) {
                     setIcon(ImageUtils.resize(ImageUtils.combine(
                         ((Iconified) value).getIcon(),
-                        ICON_LOCKED  
+                        ICON_LOCKED
                     ), 17, 17));
                 } else {
                     setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 17, 17));
                 }
             } else {
                 setIcon(null);
+            }
+            if (getIcon() != null) {
+                setDisabledIcon(ImageUtils.grayscale((ImageIcon) getIcon()));
             }
             setBorder(new EmptyBorder(1, 4, 1, 2));
             setForeground(value instanceof AbstractEditor.NullValue ? Color.GRAY : IEditor.COLOR_NORMAL);
@@ -255,5 +258,4 @@ public class GeneralRenderer extends JLabel implements ListCellRenderer, TableCe
             return new DefaultTreeCellRenderer().getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
         }
     }
-    
 }

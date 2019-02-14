@@ -20,9 +20,7 @@ import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import javax.swing.Box;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -59,7 +57,7 @@ public final class LauncherUnit extends AbstractUnit {
                 addShortcut(shortcut.getSection(), shortcut);
             }
         };
-        CommandPanel commandPanel = new CommandPanel(createSection, createShortcut);
+        CommandPanel commandPanel = new CommandPanel(Arrays.asList(createSection, createShortcut));
         panel.add(commandPanel, BorderLayout.NORTH);
         
         JScrollPane scrollPane = new JScrollPane(shortcutPanel);        
