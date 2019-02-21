@@ -33,14 +33,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     private static final Boolean DEV_MODE = "1".equals(java.lang.System.getProperty("showSysProps"));
     private static final EnityCache CACHE = EnityCache.getInstance();
 
-//    private static final Map<Class<? extends Entity>, List<IEntityListener>> listeners = new HashMap<>();
-//    public  static void addListener(Class<? extends Entity> entityClass, IEntityListener listener) {
-//        if (!listeners.containsKey(entityClass)) {
-//            listeners.put(entityClass, new LinkedList<>());
-//        }
-//        listeners.get(entityClass).add(listener);
-//    }
-    
     private       String    title;
     private final ImageIcon icon;
     private final String    hint;
@@ -119,9 +111,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 }
             }
         }
-//        if (listeners.containsKey(this.getClass())) {
-//            listeners.get(this.getClass()).forEach(listener -> listener.entityCreated(this));
-//        }
     }
     
     /**
@@ -144,6 +133,12 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     @Override
     public final ImageIcon getIcon() {
         return icon;
+    }
+
+    protected final void setIcon(ImageIcon icon) {
+        if (icon != null) {
+            this.icon.setImage(icon.getImage());
+        }
     }
     
     /**
@@ -363,7 +358,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             );
         }
         return !model.hasChanges();
-    };
+    }
     
     public final void stopEditing() {
         model.editors.values().forEach(IEditor::stopEditing);
@@ -372,7 +367,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     @Override
     public final String toString() {
         String title = getTitle();
-        if (DEV_MODE && title != null &&  getID() != null) {
+        if (DEV_MODE && title != null && getID() != null) {
             title = title.concat(" (#").concat(Integer.toString(getID())).concat(")");
         }
         return IComplexType.coalesce(title, "<new "+getClass().getSimpleName()+">");
