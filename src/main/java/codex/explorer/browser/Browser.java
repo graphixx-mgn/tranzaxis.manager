@@ -43,14 +43,13 @@ public final class Browser extends JPanel {
 
         EditorPresentation editorPresentation = node.getEditorPresentation();
         if (editorPresentation != null) {
-            editorPresentation.add(node.getEditorPage());
             editorPanel.add(editorPresentation);
-            editorPresentation.updateCommands();
+            editorPresentation.refresh();
         }
         SelectorPresentation selectorPresentation = node.getSelectorPresentation();
         if (selectorPresentation != null) {
             selectorPanel.add(selectorPresentation);
-            selectorPresentation.updateCommands();
+            selectorPresentation.refresh();
         }
     }
     
