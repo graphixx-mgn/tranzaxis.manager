@@ -9,11 +9,7 @@ import codex.utils.Language;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JFileChooser;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
 /**
@@ -22,8 +18,10 @@ import javax.swing.border.EmptyBorder;
  * в вызываемом командой диалоге выбора объекта файловой системы.
  */
 public class FilePathEditor extends AbstractEditor {
+
+    private static final ImageIcon ICON = ImageUtils.getByPath("/images/folder.png");
     
-    protected JTextField  textField;
+    private JTextField    textField;
     private EditorCommand pathSelector;
 
     /**
@@ -32,22 +30,10 @@ public class FilePathEditor extends AbstractEditor {
      */
     public FilePathEditor(PropertyHolder propHolder) {
         super(propHolder);
-    }
 
-    @Override
-    public Box createEditor() {
-        textField = new JTextField();
-        textField.setFont(FONT_VALUE);
-        textField.setBorder(new EmptyBorder(0, 3, 0, 3));
-        textField.setEditable(false);
-        
-        PlaceHolder placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField, PlaceHolder.Show.ALWAYS);
-        placeHolder.setBorder(textField.getBorder());
-        placeHolder.changeAlpha(100);
-        
         pathSelector = new PathSelector();
         addCommand(pathSelector);
-        
+
         textField.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent event) {
@@ -56,6 +42,19 @@ public class FilePathEditor extends AbstractEditor {
                 }
             }
         });
+    }
+
+    @Override
+    public Box createEditor() {
+        textField = new JTextField();
+        textField.setFont(FONT_VALUE);
+        textField.setBorder(new EmptyBorder(0, 3, 0, 3));
+        textField.setEditable(false);
+        textField.addFocusListener(this);
+        
+        PlaceHolder placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField, PlaceHolder.Show.ALWAYS);
+        placeHolder.setBorder(textField.getBorder());
+        placeHolder.changeAlpha(100);
 
         Box container = new Box(BoxLayout.X_AXIS);
         container.setBackground(textField.getBackground());
@@ -77,14 +76,22 @@ public class FilePathEditor extends AbstractEditor {
     private class PathSelector extends EditorCommand {
 
         private PathSelector() {
-            super(ImageUtils.resize(ImageUtils.getByPath("/images/folder.png"), 18, 18), Language.get("title"));
+            super(ImageUtils.resize(ICON, 18, 18), Language.get("title"));
         }
 
         @Override
-        public void execute(PropertyHolder contex) {
-            JFileChooser fileChooser = new JFileChooser(contex.getPropValue() == null ? "" : contex.toString());
+        public void execute(PropertyHolder context) {
+            JFileChooser fileChooser = new JFileChooser(context.getPropValue() == null ? "" : context.toString()) {
+                @Override
+                protected javax.swing.JDialog createDialog(java.awt.Component parent) throws java.awt.HeadlessException {
+                    javax.swing.JDialog dialog = super.createDialog(parent);
+                    dialog.setIconImage(ICON.getImage());
+                    return dialog;
+                }
+            };
             fileChooser.setDialogTitle(Language.get("title"));
-            IPathMask mask = (IPathMask) contex.getPropValue().getMask();
+
+            IPathMask mask = (IPathMask) context.getPropValue().getMask();
             if (mask != null) {
                 fileChooser.setFileSelectionMode(mask.getSelectionMode());
                 if (mask.getFilter() != null) {
@@ -99,7 +106,7 @@ public class FilePathEditor extends AbstractEditor {
             if (returnVal == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
                 setValue(file.getPath());
-                contex.setValue(file.toPath());
+                context.setValue(file.toPath());
             }
         }
     

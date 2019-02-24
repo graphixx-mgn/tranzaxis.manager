@@ -1,5 +1,6 @@
 package codex.model;
 
+import codex.command.CommandStatus;
 import codex.command.EditorCommand;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
@@ -24,7 +25,7 @@ public final class OverrideProperty extends EditorCommand {
     private static final ImageIcon           INHERIT  = ImageUtils.resize(ImageUtils.getByPath("/images/inherit.png"), 18, 18);
     private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     
-    private Consumer<PropertyHolder> updater  = (holder) -> {};
+    private Consumer<PropertyHolder> updater;
 
     /**
      * Конструктор команды.
@@ -32,6 +33,7 @@ public final class OverrideProperty extends EditorCommand {
      * @param childModel  Ссылка на дочернюю модель.
      * @param propName Свойство которое следует перекрыть.
      */
+    @SuppressWarnings("unchecked")
     public OverrideProperty(EntityModel parentModel, EntityModel childModel, String propName) {
         super(childModel.getProperty(propName).isInherited() ? OVERRIDE : INHERIT, Language.get("title"));
         
@@ -40,8 +42,7 @@ public final class OverrideProperty extends EditorCommand {
         
         childModel.getProperty(EntityModel.OVR).addChangeListener((String name, Object oldValue, Object newValue) -> {
             boolean newOverride = newValue != null && ((List<String>) newValue).contains(propName);
-            
-            button.setIcon(!newOverride ? INHERIT : OVERRIDE);
+
             childHolder.setInherited(newOverride ? null : parentHolder);
             ((AbstractEditor) childModel.getEditor(propName)).updateUI();
             
@@ -55,13 +56,7 @@ public final class OverrideProperty extends EditorCommand {
             }
         });
         
-        activator = (holder) -> {
-            button.setEnabled(
-                    holder != null && (
-                            available == null || available.test(holder)
-                    )
-            );
-        };
+        activator = (holder) -> new CommandStatus(true, childModel.getProperty(propName).isInherited() ? OVERRIDE : INHERIT);
         
         updater = (holder) -> {
             List<String> overrideProps = (List<String>) IComplexType.coalesce(
@@ -81,7 +76,6 @@ public final class OverrideProperty extends EditorCommand {
                 new LinkedList<>()
         );
         childHolder.setInherited(overrideProps.contains(propName) ? null : parentHolder);
-        button.setIcon(overrideProps.contains(propName) ? OVERRIDE : INHERIT);
     }
 
     @Override

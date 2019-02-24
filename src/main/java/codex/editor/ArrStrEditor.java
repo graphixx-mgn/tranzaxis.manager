@@ -1,37 +1,29 @@
 package codex.editor;
 
+import codex.command.CommandStatus;
 import codex.command.EditorCommand;
-import codex.component.button.CommandButton;
+import codex.command.ICommand;
 import codex.component.button.DialogButton;
 import codex.component.button.PushButton;
 import codex.component.dialog.Dialog;
 import codex.component.list.EditableList;
 import codex.mask.IArrMask;
+import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.type.ArrStr;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.Dimension;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
 import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.border.EmptyBorder;
+import java.util.function.Function;
 
 /**
  * Редактор свойств типа {@link ArrStr}, представляет собой нередактируемое 
@@ -45,7 +37,7 @@ public class ArrStrEditor extends AbstractEditor {
     private static final ImageIcon VIEW_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/view.png"), 18, 18);
     private static final Dimension SIZE = new Dimension(350, 400);
     
-    protected JTextField textField;
+    private JTextField   textField;
     private final JLabel signDelete;
 
     /**
@@ -76,6 +68,19 @@ public class ArrStrEditor extends AbstractEditor {
                 }
             }
         });
+
+        IArrMask mask = (IArrMask) propHolder.getPropValue().getMask();
+        EditorCommand defCommand = mask instanceof EditorCommand ? (EditorCommand) mask : new ArrStrEditor.ListEditor();
+        addCommand(defCommand);
+
+        textField.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                if (event.getClickCount() == 2) {
+                    defCommand.execute(propHolder);
+                }
+            }
+        });
     }
 
     @Override
@@ -90,22 +95,6 @@ public class ArrStrEditor extends AbstractEditor {
         PlaceHolder placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.ALWAYS);
         placeHolder.setBorder(textField.getBorder());
         placeHolder.changeAlpha(100);
-        
-        IArrMask mask = (IArrMask) propHolder.getPropValue().getMask();
-        if (mask != null) {
-            addCommand((EditorCommand) mask);
-        } else {
-            addCommand(new ArrStrEditor.ListEditor());
-        }
-        
-        textField.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent event) {
-                if (event.getClickCount() == 2) {
-                    commands.get(0).execute(propHolder);
-                }
-            }
-        });
 
         Box container = new Box(BoxLayout.X_AXIS);
         container.setBackground(textField.getBackground());
@@ -118,6 +107,10 @@ public class ArrStrEditor extends AbstractEditor {
         super.setEditable(editable);
         textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
         textField.setOpaque(editable && !propHolder.isInherited());
+
+        commands.stream()
+                .filter(command -> command instanceof ArrStrEditor.ListEditor)
+                .forEach(ICommand::activate);
     }
 
     @Override
@@ -157,19 +150,20 @@ public class ArrStrEditor extends AbstractEditor {
         return textField;
     }
 
-    
+
     private class ListEditor extends EditorCommand {
 
         private ListEditor() {
             super(EDIT_ICON, Language.get("title"));
-            this.button = new CommandButton(EDIT_ICON) {
-                @Override
-                public void setEnabled(boolean enabled) {
-                    setIcon(enabled ? EDIT_ICON : VIEW_ICON);
-                }
-            };
-            this.button.addActionListener(this);
-            this.button.setHint(Language.get("title"));
+            activator = holder -> new CommandStatus(
+                    true,
+                    ArrStrEditor.this.isEditable() && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON
+            );
+        }
+
+        @Override
+        public boolean disableWithContext() {
+            return false;
         }
 
         @Override
