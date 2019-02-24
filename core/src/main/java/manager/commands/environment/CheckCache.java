@@ -66,7 +66,7 @@ class CheckCache extends AbstractTask<Void> {
                 .findFirst();
         if (lostLayer.isPresent()) {
             MessageBox.show(MessageType.WARNING,
-                    MessageFormat.format(Language.get("RunTX", "error@layer"), lostLayer.get())
+                    MessageFormat.format(Language.get("RunTX", "error@structure"), release.getRepository())
             );
             return null;
         }
@@ -88,7 +88,10 @@ class CheckCache extends AbstractTask<Void> {
 
         if (!indexCheckResult) {
             if (!repoOnline) {
-                MessageBox.show(MessageType.WARNING, Language.get("RunTX", "error@structure"));
+                MessageBox.show(
+                        MessageType.WARNING,
+                        MessageFormat.format(Language.get("RunTX", "error@structure"), release.getRepository())
+                );
                 return null;
             }
             try {
