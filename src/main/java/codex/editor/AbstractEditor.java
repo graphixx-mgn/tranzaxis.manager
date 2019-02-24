@@ -2,6 +2,8 @@ package codex.editor;
 
 import codex.command.EditorCommand;
 import codex.command.ICommand;
+import codex.command.ICommandListener;
+import codex.component.button.PushButton;
 import codex.property.PropertyHolder;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
@@ -13,14 +15,12 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.LinkedList;
 import java.util.List;
-import javax.swing.Box;
-import javax.swing.ImageIcon;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
+import javax.swing.*;
 import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.MatteBorder;
+
 import net.java.balloontip.BalloonTip;
 import net.java.balloontip.styles.EdgedBalloonStyle;
 import net.java.balloontip.utils.TimingUtils;
@@ -30,6 +30,11 @@ import net.java.balloontip.utils.TimingUtils;
  * управления состоянием виджета и свойства, реализуя роль Controller (MVC).
  */
 public abstract class AbstractEditor extends JComponent implements IEditor, FocusListener {
+
+    private static final Border NORMAL_BORDER = new CompoundBorder(
+            new MatteBorder(0, 1, 0, 0, Color.LIGHT_GRAY),
+            new EmptyBorder(1, 0, 1, 1)
+    );
     
     private final JLabel label;
     protected Box        editor;
@@ -38,6 +43,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     
     protected final PropertyHolder propHolder;
     protected final List<ICommand<PropertyHolder, PropertyHolder>> commands = new LinkedList<>();
+    private   final List<IEditorListener> listeners = new LinkedList<>();
 
     /**
      * Конструктор редактора.
@@ -88,12 +94,8 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
             }
         });
         
-        propHolder.addChangeListener((String name, Object oldValue, Object newValue) -> {
-            updateUI();
-        });
-        propHolder.addStateListener((name) -> {
-            updateUI();
-        });
+        propHolder.addChangeListener((String name, Object oldValue, Object newValue) -> updateUI());
+        propHolder.addStateListener((name) -> updateUI());
         
         setBorder(IEditor.BORDER_NORMAL);
         updateUI();
@@ -112,7 +114,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     @Override
     public final void setBorder(Border border) {
         editor.setBorder(border);
-    };
+    }
 
     /**
      * Установка бордюра в момент получения фокуса ввода.
@@ -140,24 +142,21 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
      * @param locked Если TRUE - значение редактировать невозможно.
      */
     public void setLocked(boolean locked) {
-        this.locked = locked;
-        setEditable(isEditable());
-        super.updateUI();
+        if (this.locked != locked) {
+            this.locked = locked;
+            new LinkedList<>(listeners).forEach(listener -> listener.setLocked(this.locked));
+            setEditable(isEditable());
+        }
     }
     
     @Override
     public void setEditable(boolean editable) {
         if (!locked) {
-            this.editable = editable;
-        }
-        commands.stream().filter((command) -> {
-            return command.disableWithContext();
-        }).forEach((command) -> {
-            command.getButton().setEnabled(editable);
-            if (editable) {
-                command.activate();
+            if (this.editable != editable) {
+                this.editable = editable;
+                new LinkedList<>(listeners).forEach(listener -> listener.setEditable(this.editable));
             }
-        });
+        }
     }
     
     @Override
@@ -175,17 +174,19 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     @Override
     public boolean isVisible() {
         return editor.isVisible();
-    };
+    }
+
+    void addListener(IEditorListener listener) {
+        listeners.add(listener);
+    }
 
     @Override
     public void addCommand(EditorCommand command) {
+        final EditorCommandButton button = new EditorCommandButton(command);
         commands.add(command);
-        command.getButton().addActionListener((e) -> {
-            SwingUtilities.invokeLater(() -> {
-                updateUI();
-            });
-        });
+        editor.add(button);
         command.setContext(propHolder);
+        updateUI();
     }
     
     @Override
@@ -220,6 +221,72 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         public String toString() {
             return propHolder.getPlaceholder();
         }
+    }
+
+
+    class EditorCommandButton extends PushButton {
+
+        EditorCommandButton(EditorCommand command) {
+            super(command.getIcon(), null);
+            button.setBorder(new EmptyBorder(2, 2, 2, 2));
+            setHint(command.getHint());
+            setBackground(null);
+            setBorder(NORMAL_BORDER);
+
+            button.addActionListener(e -> {
+                command.execute(command.getContext());
+                SwingUtilities.invokeLater(() -> {
+                    if (!locked) commands.forEach(ICommand::activate);
+                    updateUI();
+                });
+            });
+
+            AbstractEditor.this.addListener(new IEditorListener() {
+                @Override
+                public void setEditable(boolean editable) {
+                    if (command.disableWithContext()) button.setEnabled(editable);
+                }
+
+                @Override
+                public void setLocked(boolean locked) {
+                    button.setEnabled(!locked);
+                }
+            });
+
+            command.addListener(new ICommandListener<PropertyHolder>() {
+                @Override
+                public void commandStatusChanged(boolean active) {
+                    button.setEnabled(active);
+                }
+
+                @Override
+                public void commandIconChanged(ImageIcon icon) {
+                    button.setIcon(icon);
+                    button.setDisabledIcon(ImageUtils.grayscale(icon));
+                }
+            });
+        }
+
+        @Override
+        protected final void redraw() {
+            if (button.getModel().isPressed()) {
+                setBorder(PRESS_BORDER);
+                setBackground(PRESS_COLOR);
+            } else if (button.getModel().isRollover()) {
+                setBorder(HOVER_BORDER);
+                setBackground(HOVER_COLOR);
+            } else {
+                setBorder(NORMAL_BORDER);
+                setBackground(null);
+            }
+        }
+    }
+
+    interface IEditorListener {
+
+        void setEditable(boolean editable);
+        void setLocked(boolean locked);
+
     }
 
 }
