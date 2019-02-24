@@ -224,7 +224,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     }
 
 
-    class EditorCommandButton extends PushButton {
+    class EditorCommandButton extends PushButton implements ICommandListener<PropertyHolder> {
 
         EditorCommandButton(EditorCommand command) {
             super(command.getIcon(), null);
@@ -244,27 +244,37 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
             AbstractEditor.this.addListener(new IEditorListener() {
                 @Override
                 public void setEditable(boolean editable) {
-                    if (command.disableWithContext()) button.setEnabled(editable);
+                    if (command.disableWithContext()) {
+                        if (editable) {
+                            command.activate();
+                        } else {
+                            button.setEnabled(false);
+                        }
+                    }
                 }
 
                 @Override
                 public void setLocked(boolean locked) {
-                    button.setEnabled(!locked);
+                    if (locked) {
+                        button.setEnabled(false);
+                    } else {
+                        command.activate();
+                    }
                 }
             });
 
-            command.addListener(new ICommandListener<PropertyHolder>() {
-                @Override
-                public void commandStatusChanged(boolean active) {
-                    button.setEnabled(active);
-                }
+            command.addListener(this);
+        }
 
-                @Override
-                public void commandIconChanged(ImageIcon icon) {
-                    button.setIcon(icon);
-                    button.setDisabledIcon(ImageUtils.grayscale(icon));
-                }
-            });
+        @Override
+        public void commandStatusChanged(boolean active) {
+            button.setEnabled(active);
+        }
+
+        @Override
+        public void commandIconChanged(ImageIcon icon) {
+            button.setIcon(icon);
+            button.setDisabledIcon(ImageUtils.grayscale(icon));
         }
 
         @Override
