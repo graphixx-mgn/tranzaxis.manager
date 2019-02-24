@@ -72,9 +72,6 @@ public final class EditorPage extends JPanel {
             container.add(editor);
             container.add(Box.createRigidArea(new Dimension(1, 28)));
 
-            ((List<EditorCommand>) propEditor.getCommands()).stream().forEach((command) -> {
-                editor.add((JComponent) command.getButton());
-            });
             String propGroup = model.getPropertyGroup(propName);
             if (propGroup != null) {
                 addEditorWidget(addGroupWidget(this, propGroup), propEditor.getLabel(), container);
