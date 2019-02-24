@@ -1,31 +1,31 @@
 package codex.command;
 
-import codex.component.button.CommandButton;
-import codex.component.button.IButton;
 import codex.property.PropertyHolder;
-import java.awt.Component;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.function.Consumer;
+import javax.swing.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.function.Function;
 import java.util.function.Predicate;
-import javax.swing.ImageIcon;
 
 /**
  * Абстрактная реализация команд редактора свойств {@link PropertyHolder}.
  * Используется для возможности производить различные действия над свойством.
  */
-public abstract class EditorCommand implements ICommand<PropertyHolder, PropertyHolder>, ActionListener {
+public abstract class EditorCommand implements ICommand<PropertyHolder, PropertyHolder> {
     
     protected PropertyHolder context;
-    protected IButton        button;
-    protected Predicate<PropertyHolder> available;
-    protected Consumer<PropertyHolder>  activator = (holder) -> {
-        button.setEnabled(
-                holder != null && (
+
+    private final ImageIcon icon;
+    private final String    hint;
+    private Predicate<PropertyHolder> available;
+    private final List<ICommandListener<PropertyHolder>> listeners = new LinkedList<>();
+
+    protected Function<PropertyHolder, CommandStatus> activator = holder -> new CommandStatus(
+            holder != null && (
                     available == null || available.test(holder)
-                ) && !holder.isInherited()
-        );
-    };
+            ) &&
+            !holder.isInherited()
+    );
     
     /**
      * Конструктор экземпляра команды.
@@ -46,32 +46,36 @@ public abstract class EditorCommand implements ICommand<PropertyHolder, Property
         if (icon == null) {
             throw new IllegalStateException("Parameter 'icon' can not be NULL");
         }
+        this.icon      = icon;
+        this.hint      = hint;
         this.available = available;
-        this.button = new CommandButton(icon);
-        this.button.addActionListener(this);
-        this.button.setHint(hint);
     }
-    
+
     @Override
-    public IButton getButton() {
-        return button;
+    public final void addListener(ICommandListener<PropertyHolder> listener) {
+        listeners.add(listener);
+    }
+
+    @Override
+    public final void removeListener(ICommandListener<PropertyHolder> listener) {
+        listeners.remove(listener);
     }
     
     @Override
     public final void activate() {
-        activator.accept(getContext());
-    };
+        CommandStatus status = activator.apply(getContext());
+        new LinkedList<>(listeners).forEach(listener -> {
+            listener.commandStatusChanged(status.active);
+            if (status.icon != null) {
+                listener.commandIconChanged(status.icon);
+            }
+        });
+    }
 
     @Override
     public void setContext(PropertyHolder context) {
         this.context = context;
         activate();
-    }
-    
-    @Override
-    public void actionPerformed(ActionEvent event) {
-        execute(getContext());
-        ((Component) button).getParent().getComponent(0).requestFocusInWindow();
     }
 
     @Override
@@ -81,7 +85,15 @@ public abstract class EditorCommand implements ICommand<PropertyHolder, Property
 
     @Override
     public final boolean multiContextAllowed() {
-        return ICommand.super.multiContextAllowed();
+        return false;
     }
-    
+
+    @Override
+    public final ImageIcon getIcon() {
+        return icon;
+    }
+
+    public final String getHint() {
+        return hint;
+    }
 }

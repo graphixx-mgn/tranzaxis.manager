@@ -1,19 +1,13 @@
 package codex.command;
 
-import codex.component.button.IButton;
+import codex.type.Iconified;
 
 /**
- * Интерфейс команд над объектами. Вызывается при нажатии на кнопку, которая создается 
- * в классе конкретной реализации метода {@link #getButton()} интерфейса.
+ * Интерфейс команд над объектами.
  * @param <V> Тип элемента контекста для которого вызывается команда.
  * @param <C> Тип контекста для которого вызывается команда.
  */
-public interface ICommand<V, C> {
-    
-    /**
-     * Возвращает экземпляр кнопки, вызывающей исполнение команды над объектом.
-     */
-    public IButton getButton();
+public interface ICommand<V, C> extends Iconified {
     
     /**
      * Актуализация состояния доступности команды.
@@ -38,6 +32,18 @@ public interface ICommand<V, C> {
      * @param context Элемент набора объектов, установленных в качестве контекста команды.
      */
     public void execute(V context);
+
+    /**
+     * Добавляет слушатель событий команды.
+     * @param listener Ссылка на слушатель.
+     */
+    void addListener(ICommandListener<V> listener);
+
+    /**
+     * Удаляет слушатель событий команды.
+     * @param listener Ссылка на слушатель.
+     */
+    void removeListener(ICommandListener<V> listener);
     
     /**
      * Возвращает признак блокируется ли команда при блокировке контекстного объекта.
