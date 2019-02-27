@@ -1,5 +1,6 @@
 package manager.nodes;
 
+import codex.command.CommandStatus;
 import codex.command.EditorCommand;
 import codex.database.IDatabaseAccessService;
 import codex.database.OracleAccessService;
@@ -9,7 +10,6 @@ import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.log.Logger;
 import codex.mask.DataSetMask;
-import codex.mask.IArrMask;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.model.EntityModel;
@@ -24,12 +24,12 @@ import codex.type.IComplexType;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+
+import java.awt.event.ActionEvent;
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import javax.swing.ImageIcon;
+import java.util.*;
+import javax.swing.*;
+
 import manager.commands.environment.RunAll;
 import manager.commands.environment.RunExplorer;
 import manager.commands.environment.RunServer;
@@ -49,13 +49,10 @@ public class Environment extends Entity implements INodeListener {
     public final static String PROP_USER_NOTE    = "userNote";
     
     public final static String PROP_AUTO_RELEASE = "autoRelease";
-    
-    private final static IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
 
     private final IDataSupplier<String> layerSupplier = new RowSelector(
-            RowSelector.Mode.Value, () -> {
-                return getDataBase(true).getConnectionID(true);
-            }, 
+            RowSelector.Mode.Value,
+            () -> getDataBase(true).getConnectionID(true),
             "SELECT LAYERURI, VERSION, UPGRADEDATE FROM RDX_DDSVERSION"
     ) {
         @Override
@@ -69,7 +66,8 @@ public class Environment extends Entity implements INodeListener {
         public String call() throws Exception {
             Database database = getDataBase(true);
             String   layerUri = getLayerUri(true);
-            if (IComplexType.notNull(database, layerUri)) {
+            if (IComplexType.notNull(database, layerUri) && ServiceRegistry.getInstance().isServiceRegistered(OracleAccessService.class)) {
+                IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
                 try (ResultSet rs = DAS.select(database.getConnectionID(false), "SELECT VERSION FROM RDX_DDSVERSION WHERE LAYERURI = ?", layerUri);) {
                     if (rs.next()) {
                         return rs.getString(1);
@@ -81,9 +79,8 @@ public class Environment extends Entity implements INodeListener {
     };
     
     private final IDataSupplier<String> instanceSupplier = new RowSelector(
-            RowSelector.Mode.Row, () -> {
-                return getDataBase(true).getConnectionID(true);
-            }, 
+            RowSelector.Mode.Row,
+            () -> getDataBase(true).getConnectionID(true),
             "SELECT ID, TITLE FROM RDX_INSTANCE ORDER BY ID"
     ) {
         @Override
@@ -92,8 +89,8 @@ public class Environment extends Entity implements INodeListener {
         } 
     };
     
-    private final EditorCommand layerSelector = new DataSetMask(null, layerSupplier);
-    private final IArrMask instanceSelector = new DataSetMask("{0} - {1}", instanceSupplier);
+    private final DataSetMask layerSelector    = new DataSetMask(null, layerSupplier);
+    private final DataSetMask instanceSelector = new DataSetMask("{0} - {1}", instanceSupplier);
     
     public Environment(EntityRef parent, String title) {
         super(parent, ImageUtils.getByPath("/images/instance.png"), title, null);
@@ -104,13 +101,7 @@ public class Environment extends Entity implements INodeListener {
         model.addUserProp(PROP_LAYER_URI,    new Str(null),                   true,  Access.Select);
         model.addUserProp(PROP_DATABASE,     new EntityRef(Database.class),   false, null);
         model.addDynamicProp(PROP_VERSION,   new Str(null), Access.Select, () -> {
-            Thread thread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    setVersion(getLayerVersion());
-                }
-            });
-            thread.start();
+            new Thread(() -> setVersion(getLayerVersion())).start();
             return getVersion();
         });
         model.addUserProp(PROP_INSTANCE_ID,  new ArrStr().setMask(instanceSelector), false, Access.Select);
@@ -136,9 +127,7 @@ public class Environment extends Entity implements INodeListener {
         ), true, Access.Select);
         model.addUserProp(PROP_RELEASE,      new EntityRef(
                 Release.class, 
-                (entity) -> {
-                    return ((Release) entity).getRepository()  == getRepository(true);
-                },
+                (entity) -> ((Release) entity).getRepository()  == getRepository(true),
                 (entity) -> {
                     String layerVersion = getVersion();
                     if (layerVersion == null || layerVersion.isEmpty())
@@ -152,12 +141,10 @@ public class Environment extends Entity implements INodeListener {
                            );
                 }
         ), true, Access.Select);
-        
         model.addDynamicProp(PROP_BINARIES,  new EntityRef(BinarySource.class), Access.Edit, () -> {
             return IComplexType.coalesce(getOffshoot(true), getRelease(true));
         }, PROP_OFFSHOOT, PROP_RELEASE, PROP_REPOSITORY);
         model.addUserProp(PROP_USER_NOTE,    new Str(null), false, null);
-        
         model.addUserProp(PROP_AUTO_RELEASE, new Bool(false), false, Access.Any);
         
         // Property settings
@@ -173,21 +160,23 @@ public class Environment extends Entity implements INodeListener {
         model.getEditor(PROP_LAYER_URI).addCommand(layerSelector);
         model.getEditor(PROP_RELEASE).setVisible(getRepository(true)     != null);
         model.getEditor(PROP_OFFSHOOT).setVisible(getRepository(true)    != null);
-        model.getEditor(PROP_INSTANCE_ID).setVisible(getRepository(true) != null);
-        model.getEditor(PROP_VERSION).setVisible(getRepository(true)     != null);
+        model.getEditor(PROP_INSTANCE_ID).setVisible(getDataBase(true) != null);
+        model.getEditor(PROP_VERSION).setVisible(getDataBase(true)     != null);
         
         SynkRelease synkRelease = new SynkRelease();
         model.addModelListener(synkRelease);
-        ((AbstractEditor) model.getEditor(PROP_RELEASE)).addCommand(synkRelease);
+        model.getEditor(PROP_RELEASE).addCommand(synkRelease);
         
         // Handlers
         model.addChangeListener((name, oldValue, newValue) -> {
             switch (name) {
                 case PROP_DATABASE:
                     layerSelector.activate();
+                    instanceSelector.activate();
                     model.updateDynamicProps(PROP_VERSION);
                     model.getEditor(PROP_INSTANCE_ID).setVisible(newValue != null);
                     model.getEditor(PROP_VERSION).setVisible(newValue     != null);
+
                     setInstanceId(null);
                     break;
                     
@@ -419,15 +408,12 @@ public class Environment extends Entity implements INodeListener {
                 Language.get(Environment.class.getSimpleName(), "release.command@synk"),
                 null
             );
-            activator = (holders) -> {
+            activator = holder -> {
                 String  foundVersion = Environment.this.getVersion();
-                Release usedRelease  = Environment.this.getRelease(false);
+                Release usedRelease  = Environment.this.getRelease(true);
                 String  usedVersion  = usedRelease == null ? null : usedRelease.getVersion();
                 boolean autoRelease  = Environment.this.getAutoRelease(true);
-                
-                button.setEnabled(foundVersion != null);
-                button.setIcon(autoRelease ? CHECKED : UNCHECKED);
-                
+
                 AbstractEditor releaseEditor = (AbstractEditor) model.getEditor(PROP_RELEASE);
                 releaseEditor.setEditable(!autoRelease || foundVersion == null);
 
@@ -435,10 +421,10 @@ public class Environment extends Entity implements INodeListener {
                     Entity newValue = findEntity(foundVersion);
                     if (newValue != null) {
                         Environment.this.setRelease((Release) newValue);
-                        if (Environment.this.getID() != null) {
+                        if (model.getChanges().equals(Arrays.asList(PROP_RELEASE))) {
                             try {
                                 Environment.this.model.commit(true);
-                            } catch (Exception e) {}
+                            } catch (Exception e) {/**/}
                         }
                         Logger.getLogger().info(
                                 "Environment ''{0}'' release has been updated automatically to ''{1}''",
@@ -447,22 +433,28 @@ public class Environment extends Entity implements INodeListener {
                         releaseEditor.updateUI();
                     }
                 }
+                return new CommandStatus(
+                        foundVersion != null,
+                        autoRelease ? CHECKED : UNCHECKED
+                );
             };
         }
 
         @Override
         public void execute(PropertyHolder context) {
             Environment.this.setAutoRelease(!getAutoRelease(true));
-            if (Environment.this.getID() != null) {
-                try {
-                    Environment.this.model.commit(true);
-                } catch (Exception e) {}
+            if (getID() != null) {
+                if (model.getChanges().equals(Arrays.asList(PROP_AUTO_RELEASE))) {
+                    try {
+                        Environment.this.model.commit(true);
+                    } catch (Exception e) {/**/}
+                }
             }
             activate();
         }
         
         private Entity findEntity(String version) {
-            Entity repository  = (Entity) Environment.this.getRepository(true);
+            Entity repository  = Environment.this.getRepository(true);
             if (repository != null) {
                 return Entity.newInstance(Release.class, repository.toRef(), version);
             }

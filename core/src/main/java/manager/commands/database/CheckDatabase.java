@@ -1,5 +1,6 @@
 package manager.commands.database;
 
+import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.model.EntityModel;
 import codex.type.IComplexType;
@@ -22,24 +23,20 @@ public class CheckDatabase extends EntityCommand<Database> {
 
     public CheckDatabase() {
         super("activity", null, PASSIVE, Language.get(Database.class.getSimpleName(), "command@activity"), null);
-        getButton().setInactive(true);
-        
-        activator = (databases) -> {
+        activator = databases -> {
             if (databases != null && databases.size() > 0 && !(databases.size() > 1 && !multiContextAllowed())) {
                 String dbUrl = databases.get(0).getDatabaseUrl(true);
                 if (dbUrl != null) {
                     if (checkUrlPort(dbUrl)) {
-                        getButton().setIcon(ACTIVE);
+                        return new CommandStatus(true, ACTIVE);
                     } else {
-                        getButton().setIcon(PASSIVE);
+                        return new CommandStatus(true, PASSIVE);
                     }
                 } else {
-                    getButton().setIcon(ImageUtils.combine(PASSIVE, WARN));
+                    return new CommandStatus(true, ImageUtils.combine(PASSIVE, WARN));
                 }
-                getButton().setEnabled(true);
             } else {
-                getButton().setIcon(PASSIVE);
-                getButton().setEnabled(false);
+                return new CommandStatus(false, PASSIVE);
             }
         };
     }

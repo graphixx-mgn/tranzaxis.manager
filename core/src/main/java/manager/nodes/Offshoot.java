@@ -160,9 +160,6 @@ public class Offshoot extends BinarySource {
             ) {
                 status = WCStatus.Interrupted;
             } else {
-//                status = WCStatus.Succesfull;
-//
-//
 //                final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
 //                try {
 //                    System.out.println("Check "+wcPath);
@@ -188,7 +185,6 @@ public class Offshoot extends BinarySource {
                 }
             }
         }
-        setMode(INode.MODE_SELECTABLE + (status.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
         return status;
     }
     

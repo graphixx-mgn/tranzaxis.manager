@@ -36,9 +36,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                 "title", 
                 ImageUtils.resize(ImageUtils.getByPath("/images/update.png"), 28, 28), 
                 Language.get("desc"), 
-                (offshoot) -> {
-                    return !offshoot.getWCStatus().equals(WCStatus.Invalid);
-                }
+                (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Invalid)
         );
     }
 
@@ -138,6 +136,10 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                                         } else if (action == SVNEventAction.RESTORE) {
                                             restored.addAndGet(1);
                                         } else {
+//                                            System.err.println(event.getContentsStatus());
+//                                            System.err.println(event.getErrorMessage());
+//                                            System.err.println(event.getExpectedAction());
+//                                            Logger.getLogger().warn("Conflict: {0}", event.getFile().getPath());
                                             System.err.println(action + " / " + event.getFile().getPath().replace(wcPath+File.separator, ""));
                                         }
                                     } else {

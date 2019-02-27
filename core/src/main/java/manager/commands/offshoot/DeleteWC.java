@@ -1,15 +1,10 @@
 package manager.commands.offshoot;
 
 import codex.command.EntityCommand;
-import codex.component.dialog.Dialog;
-import codex.component.messagebox.MessageBox;
-import codex.component.messagebox.MessageType;
-import codex.log.Logger;
 import codex.task.AbstractTask;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -54,38 +49,24 @@ public class DeleteWC extends EntityCommand<Offshoot> {
     }
 
     @Override
-    public void actionPerformed(ActionEvent event) {
-        SwingUtilities.invokeLater(() -> {
-            String message; 
-            if (getContext().size() == 1) {
-                message = MessageFormat.format(
-                        Language.get("confirm@clean.single"), 
-                        getContext().get(0)
-                );
-            } else {
-                StringBuilder entityList = new StringBuilder();
-                getContext().forEach((entity) -> {
-                    entityList.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(entity.toString());
-                });
-                message = MessageFormat.format(
-                        Language.get("confirm@clean.range"), 
-                        entityList.toString()
-                );
-            }
-            MessageBox.show(
-                    MessageType.CONFIRMATION, null, message,
-                    (close) -> {
-                        if (close.getID() == Dialog.OK) {
-                            Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), getContext());
-                            getContext().stream()
-                                    .filter((offshoot) -> (!offshoot.model.existReferencies()))
-                                    .forEachOrdered((offshoot) -> {
-                                        execute(offshoot, null);
-                                    });
-                        }
-                    }
+    public String acquireConfirmation() {
+        String message;
+        if (getContext().size() == 1) {
+            message = MessageFormat.format(
+                    Language.get("confirm@clean.single"),
+                    getContext().get(0)
             );
-        });
+        } else {
+            StringBuilder entityList = new StringBuilder();
+            getContext().forEach((entity) -> {
+                entityList.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(entity.toString());
+            });
+            message = MessageFormat.format(
+                    Language.get("confirm@clean.range"),
+                    entityList.toString()
+            );
+        }
+        return message;
     }
 
     @Override

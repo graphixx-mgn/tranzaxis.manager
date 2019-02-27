@@ -34,12 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.swing.ImageIcon;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTabbedPane;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -76,7 +71,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
     
     class BuildStructure extends AbstractTask<Map<String, List<Entry>>> {
 
-        public BuildStructure() {
+        BuildStructure() {
             super(Language.get(DiskUsageReport.class.getSimpleName(), "task@structure"));
         }
 
@@ -184,7 +179,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
                     }
                 });
             }
-            List repoOrder = new ArrayList(repoIndex.keySet());
+            List<String> repoOrder = new ArrayList<>(repoIndex.keySet());
             return structureMap.entrySet().stream()
                     .sorted(new Comparator<Map.Entry<String, List<Entry>>>() {
                         @Override
@@ -256,15 +251,15 @@ public class DiskUsageReport extends EntityCommand<Common> {
                 );
                 
                 Dialog dialog = new Dialog(
-                        SwingUtilities.getWindowAncestor((JComponent) getButton()),
-                        (ImageIcon) getButton().getIcon(), 
-                        Language.get(DiskUsageReport.class.getSimpleName(), "title"), 
+                        null,
+                        getIcon(),
+                        Language.get(DiskUsageReport.class.getSimpleName(), "title"),
                         view,
                         (event) -> {
                             if (event.getID() == Dialog.EXIT || event.getID() == Dialog.CLOSE) {
                                 calcTask.cancel(true);
                             }
-                        }, 
+                        },
                         Dialog.Default.BTN_CLOSE
                 );
                 TES.quietTask(calcTask);
