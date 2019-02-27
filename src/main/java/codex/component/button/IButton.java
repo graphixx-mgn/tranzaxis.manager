@@ -88,17 +88,6 @@ public interface IButton {
      * @return TRUE - кнопка доступна для взаимодействия, иначе - нет.
      */
     public boolean isEnabled();
-    
-    /**
-     * Отключает обработчики нажатия.
-     * @param inactive Если true - кнопка не активна.
-     */
-    public void setInactive(boolean inactive);
-    
-    /**
-     * Возвращает признак отключения обработчиков.
-     */
-    public boolean isInactive();
 
     public void setVisible(boolean visible);
     
