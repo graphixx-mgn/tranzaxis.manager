@@ -58,14 +58,6 @@ final class PauseButton extends JButton implements IButton {
     }
 
     @Override
-    public void setInactive(boolean inactive) {}
-
-    @Override
-    public boolean isInactive() {
-        return false;
-    }
-
-    @Override
     public void click() {
         doClick();
     }
