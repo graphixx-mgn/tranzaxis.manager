@@ -1,5 +1,6 @@
 package manager.commands.repository;
 
+import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
@@ -42,13 +43,11 @@ public class LoadWC extends EntityCommand<Repository> {
                 Language.get(Repository.class.getSimpleName(), "command@load"), 
                 null
         );
-        activator = (entities) -> {
+        activator = entities -> {
             if (entities != null && entities.size() > 0 && !(entities.size() > 1 && !multiContextAllowed())) {
-                getButton().setIcon(entities.get(0).isLocked(true) ? ENABLED : DISABLED);
-                getButton().setEnabled(true);
+                return new CommandStatus(true, entities.get(0).isLocked(true) ? ENABLED : DISABLED);
             } else {
-                getButton().setIcon(ENABLED);
-                getButton().setEnabled(false);
+                return new CommandStatus(false, ENABLED);
             }
         };
     }
