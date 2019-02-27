@@ -168,8 +168,13 @@ public final class CommandPanel extends Box {
             Map<String, IComplexType> params = command.getParameters();
             if (params != null) {
                 List<Entity> context = command.getContext();
-                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", command.getName(), context);
-                context.forEach(entity -> command.execute(entity, params));
+                if (context.isEmpty() && command.isActive()) {
+                    Logger.getLogger().debug("Perform contextless command [{0}]", command.getName());
+                    command.execute(null, null);
+                } else {
+                    Logger.getLogger().debug("Perform command [{0}]. Context: {1}", command.getName(), context);
+                    context.forEach(entity -> command.execute(entity, params));
+                }
                 command.activate();
             }
         }
