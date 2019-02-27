@@ -10,7 +10,6 @@ import codex.type.Bool;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
@@ -20,7 +19,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.swing.FocusManager;
 import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
 
 /**
  * Реализация поставщика данных - параметров команды. Представляет собой диалог
@@ -40,15 +38,15 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
      */
     public ParametersDialog(EntityCommand command, Supplier<PropertyHolder[]> paramProps) {
         dialog = new Dialog(
-                SwingUtilities.getWindowAncestor((Component)command.getButton()), 
-                ImageUtils.getByPath("/images/param.png"), 
-                Language.get(EntityCommand.class.getSimpleName(), "params@title"), 
-                new JPanel(), 
+                FocusManager.getCurrentManager().getActiveWindow(),
+                ImageUtils.getByPath("/images/param.png"),
+                Language.get(EntityCommand.class.getSimpleName(), "params@title"),
+                new JPanel(),
                 (event) -> {
                     if (event.getID() == Dialog.OK) {
                         ParametersDialog.this.data = paramModel.getParameters();
                     }
-                }, 
+                },
                 Dialog.Default.BTN_OK,
                 Dialog.Default.BTN_CANCEL
         ) {{
@@ -66,24 +64,18 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
             public void setVisible(boolean visible) {
                 if (visible) {
                     PropertyHolder[] propHolders = paramProps.get();
-                    if (propHolders.length != 0) {
-                        for (PropertyHolder propHolder : propHolders) {
-                            paramModel.addProperty(propHolder);
-                        }
-                        command.preprocessParameters(paramModel);
-                        dialog.setContent(new EditorPage(paramModel));
-                        if (Arrays.stream(paramProps.get()).anyMatch((propHolder) -> {
-                            return !Bool.class.isAssignableFrom(propHolder.getPropValue().getClass());
-                        })) {
-                            dialog.setPreferredSize(new Dimension(550, dialog.getPreferredSize().height));
-                        }
-                        super.setVisible(true);
-                    } else {
-                        ParametersDialog.this.data = new LinkedHashMap<>();
+                    for (PropertyHolder propHolder : propHolders) {
+                        paramModel.addProperty(propHolder);
                     }
-                } else {
-                    super.setVisible(false);
+                    command.preprocessParameters(paramModel);
+                    dialog.setContent(new EditorPage(paramModel));
+                    if (Arrays.stream(paramProps.get()).anyMatch((propHolder) -> {
+                        return !Bool.class.isAssignableFrom(propHolder.getPropValue().getClass());
+                    })) {
+                        dialog.setPreferredSize(new Dimension(550, dialog.getPreferredSize().height));
+                    }
                 }
+                super.setVisible(visible);
             }
         };
     }

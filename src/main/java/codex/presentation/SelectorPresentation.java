@@ -1,15 +1,12 @@
 package codex.presentation;
 
+import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
-import codex.component.button.IButton;
 import codex.component.dialog.Dialog;
-import codex.component.messagebox.MessageBox;
-import codex.component.messagebox.MessageType;
 import codex.component.render.GeneralRenderer;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
-import codex.log.Logger;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.model.EntityModel;
@@ -21,16 +18,7 @@ import codex.utils.Language;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.datatransfer.Transferable;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
+import java.awt.event.*;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.function.Function;
@@ -75,6 +63,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     private final JTable              table;
 
     private final CommandPanel commandPanel;
+    private final Supplier<List<Entity>>      context;
     private final List<EntityCommand<Entity>> systemCommands  = new LinkedList<>();
     private final List<EntityCommand<Entity>> contextCommands = new LinkedList<EntityCommand<Entity>>() {
         @Override
@@ -89,7 +78,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             return super.addAll(c);
         }
     };
-    private final Supplier<Stream<EntityCommand<Entity>>> commands = () -> Stream.concat(systemCommands.stream(), contextCommands.stream());
     
     /**
      * Конструктор презентации. 
@@ -102,26 +90,29 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     new LineBorder(Color.GRAY, 1)
             ));
         }
-        entityClass = entity.getChildClass();
         this.entity = entity;
+        entityClass = entity.getChildClass();
+
         Entity prototype = Entity.newPrototype(entityClass);
 
-        systemCommands.add(new EditEntity());
+        EditEntity editEntity = new EditEntity();
+        systemCommands.add(editEntity);
         if (entity.allowModifyChild()) {
-            systemCommands.add(new CreateEntity());
+            CreateEntity createEntity = new CreateEntity();
+            createEntity.setContext(entity);
+            systemCommands.add(createEntity);
+
             systemCommands.add(new CloneEntity());
             systemCommands.add(new DeleteEntity());
         }
+        entity.getCommands().stream()
+                .filter(command -> command.getKind() == EntityCommand.Kind.System)
+                .forEach(command -> {
+                    command.setContext(entity);
+                    systemCommands.add(command);
+                });
 
-        commandPanel = new CommandPanel(systemCommands.toArray(new EntityCommand[]{}));
-        commands.get().forEach(command -> {
-            if (command instanceof CreateEntity) {
-                command.setContext(entity);
-            } else {
-                command.activate();
-            }
-        });
-        
+        commandPanel = new CommandPanel(systemCommands);
         add(commandPanel, BorderLayout.NORTH);
         
         tableModel = new SelectorTableModel(entity, prototype);
@@ -138,6 +129,12 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             table.setDropMode(DropMode.INSERT_ROWS);
             table.setTransferHandler(new TableTransferHandler(table));
         }
+
+        context = () -> Arrays
+                .stream(table.getSelectedRows())
+                .boxed()
+                .map(tableModel::getEntityAt)
+                .collect(Collectors.toList());
         
         final JScrollPane scrollPane = new JScrollPane();
         scrollPane.getViewport().setBackground(Color.WHITE);
@@ -152,9 +149,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent event) {
-                IButton cmdButton = systemCommands.get(0).getButton();
-                if (event.getClickCount() == 2 && cmdButton.isEnabled() && !cmdButton.isInactive()) {
-                    systemCommands.get(0).execute(tableModel.getEntityAt(table.getSelectedRow()), null);
+                if (event.getClickCount() == 2 && editEntity.isActive()) {
+                    editEntity.execute(tableModel.getEntityAt(table.getSelectedRow()), null);
                 }
             }
         });
@@ -184,30 +180,47 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         });
     }
 
-    public final void updateCommands() {
-        List<Entity> context = Arrays
-                .stream(table.getSelectedRows())
-                .boxed()
-                .map(tableModel::getEntityAt)
-                .collect(Collectors.toList());
+    /**
+     * Обновление презентации и панели команд.
+     */
+    public final void refresh() {
+        updateCommands();
+        activateCommands();
+    }
 
+    public Class getEntityClass() {
+        return entityClass;
+    }
+
+    private List<EntityCommand<Entity>> getContextCommands(List<Entity> context) {
+        final List<EntityCommand<Entity>> commands = new LinkedList<>();
         if (context.size() == 1) {
-            contextCommands.addAll(context.get(0).getCommands());
-        } else if (!context.isEmpty()){
-            List<String> commandIds = context.get(0).getCommands().stream().map(EntityCommand::getName).collect(Collectors.toList());
+            commands.addAll(context.get(0).getCommands());
+        } else if (!context.isEmpty()) {
+            final List<String> commandIds = context.get(0).getCommands().stream().map(EntityCommand::getName).collect(Collectors.toList());
             context.forEach(entity -> commandIds.retainAll(
                     entity.getCommands().stream().map(EntityCommand::getName).collect(Collectors.toList())
             ));
-            contextCommands.addAll(
-                    context.get(0).getCommands().stream()
-                            .filter(command -> commandIds.contains(command.getName()))
-                            .collect(Collectors.toList())
+            commands.addAll(
+                context.get(0).getCommands().stream()
+                    .filter(command -> commandIds.contains(command.getName()))
+                    .collect(Collectors.toList())
             );
         }
-        commandPanel.setContextCommands(contextCommands.toArray(new EntityCommand[]{}));
+        return commands;
+    }
 
-        commands.get().forEach(command -> {
-            if (!(command instanceof CreateEntity)) {
+    private void updateCommands() {
+        commandPanel.setContextCommands(getContextCommands(this.context.get()));
+    }
+
+    private void activateCommands() {
+        List<Entity> context = this.context.get();
+        Stream.concat(
+                systemCommands.stream(),
+                getContextCommands(this.context.get()).stream()
+        ).forEach(command -> {
+            if (command.getKind() != EntityCommand.Kind.System) {
                 context.forEach((contextItem) -> contextItem.removeNodeListener(this));
                 command.setContext(context);
                 context.forEach((contextItem) -> contextItem.addNodeListener(this));
@@ -218,13 +231,13 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     @Override
     public void valueChanged(ListSelectionEvent event) {
         if (!event.getValueIsAdjusting()) {
-            updateCommands();
+            refresh();
         }
     }
     
     @Override
     public void childChanged(INode node) {
-        commands.get().forEach(EntityCommand::activate);
+        activateCommands();
     }
 
     class CreateEntity extends EntityCommand<Entity> {
@@ -237,7 +250,11 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     null,
                     KeyStroke.getKeyStroke(KeyEvent.VK_ADD, InputEvent.CTRL_MASK)
             );
-            activator = (entities) -> {};
+        }
+
+        @Override
+        public Kind getKind() {
+            return Kind.System;
         }
 
         @Override
@@ -428,7 +445,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
                     ImageUtils.getByPath("/images/clone.png"),
                     Language.get(SelectorPresentation.class.getSimpleName(), "copier@title"),
-                    new JPanel() {{
+                    new JPanel(new BorderLayout()) {{
                         add(newEntity.getEditorPage());
                         setBorder(new CompoundBorder(
                                 new EmptyBorder(10, 5, 5, 5),
@@ -532,17 +549,16 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     Language.get(SelectorPresentation.class.getSimpleName(), "command@edit"),
                     (entity) -> true
             );
-            activator = (entities) -> {
+            activator = entities -> {
                 if (entities != null && entities.size() > 0 && !(entities.size() > 1 && !multiContextAllowed())) {
-                    boolean allDisabled = entities.get(0).model.getProperties(Access.Edit).parallelStream().allMatch((name) -> {
+                    boolean allDisabled = entities.get(0).model.getProperties(Access.Edit).stream().allMatch((name) -> {
                         return !entities.get(0).model.getEditor(name).isEditable();
                     });
+
                     boolean hasProps = !entities.get(0).model.getProperties(Access.Edit).isEmpty();
-                    getButton().setIcon(allDisabled || /*!entity.allowModifyChild() ||*/ entities.get(0).islocked() ? IMAGE_VIEW : IMAGE_EDIT);
-                    getButton().setEnabled(hasProps);
+                    return new CommandStatus(hasProps, allDisabled || entities.get(0).islocked() ? IMAGE_VIEW : IMAGE_EDIT);
                 } else {
-                    getButton().setIcon(entity.allowModifyChild() ? IMAGE_EDIT : IMAGE_VIEW);
-                    getButton().setEnabled(false);
+                    return new CommandStatus(false, entity.allowModifyChild() ? IMAGE_EDIT : IMAGE_VIEW);
                 }
             };
             activate();
@@ -550,25 +566,14 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
-            DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
-            
-//            if (!entity.allowModifyChild()) {
-//                context.model.getProperties(Access.Edit).stream().filter((propName) -> {
-//                    return !context.model.isPropertyDynamic(propName);
-//                }).forEach((propName) -> {
-//                    ((AbstractEditor) context.model.getEditor(propName)).setEditable(false);
-//                });
-//            }
-
-            confirmBtn.setEnabled(getButton().getIcon().equals(IMAGE_EDIT));
+            boolean allDisabled = context.model.getProperties(Access.Edit).stream().noneMatch((name) -> context.model.getEditor(name).isEditable());
             
             Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
-                    getIcon(),
+                    allDisabled ? IMAGE_VIEW : IMAGE_EDIT,
                     Language.get(
-                            SelectorPresentation.class.getSimpleName(), 
-                            getIcon().equals(IMAGE_EDIT) ? "editor@title" : "viewer@title"
+                            SelectorPresentation.class.getSimpleName(),
+                            allDisabled ? "viewer@title" : "editor@title"
                     ),
                     new JPanel(new BorderLayout()) {{
                         add(context.getEditorPage());
@@ -592,7 +597,9 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                             }
                         }
                     },
-                    confirmBtn, declineBtn
+                    allDisabled ?
+                            new DialogButton[] { Dialog.Default.BTN_CLOSE.newInstance() } :
+                            new DialogButton[] { Dialog.Default.BTN_OK.newInstance(), Dialog.Default.BTN_CANCEL.newInstance() }
             ) {{
                     // Перекрытие обработчика кнопок
                     Function<DialogButton, ActionListener> defaultHandler = handler;
@@ -646,44 +653,31 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0)
             );
         }
-        
+
         @Override
-        public void actionPerformed(ActionEvent event) {
-            SwingUtilities.invokeLater(() -> {
-                String message; 
-                if (getContext().size() == 1) {
-                    message = MessageFormat.format(
-                            Language.get(
-                                    SelectorPresentation.class.getSimpleName(), 
-                                    "confirm@del.single"
-                            ), 
-                            getContext().get(0)
-                    );
-                } else {
-                    StringBuilder msgBuilder = new StringBuilder(
-                            Language.get(
-                                    SelectorPresentation.class.getSimpleName(), 
-                                    "confirm@del.range"
-                            )
-                    );
-                    getContext().forEach((entity) -> {
-                        msgBuilder.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(entity.toString());
-                    });
-                    message = msgBuilder.toString();
-                }
-                MessageBox.show(
-                        MessageType.CONFIRMATION, null, message,
-                        (close) -> {
-                            if (close.getID() == Dialog.OK) {
-                                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), getContext());
-                                getContext().forEach((entity) -> {
-                                    execute(entity, null);
-                                });
-                                activate();
-                            }
-                        }
+        public String acquireConfirmation() {
+            String message;
+            if (getContext().size() == 1) {
+                message = MessageFormat.format(
+                        Language.get(
+                                SelectorPresentation.class.getSimpleName(),
+                                "confirm@del.single"
+                        ),
+                        getContext().get(0)
                 );
-            });
+            } else {
+                StringBuilder msgBuilder = new StringBuilder(
+                        Language.get(
+                                SelectorPresentation.class.getSimpleName(),
+                                "confirm@del.range"
+                        )
+                );
+                getContext().forEach((entity) -> {
+                    msgBuilder.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(entity.toString());
+                });
+                message = msgBuilder.toString();
+            }
+            return message;
         }
 
         @Override

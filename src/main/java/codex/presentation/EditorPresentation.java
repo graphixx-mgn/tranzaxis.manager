@@ -11,6 +11,7 @@ import java.awt.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -20,10 +21,11 @@ import java.util.stream.Stream;
  */
 public final class EditorPresentation extends JPanel {
 
+    private final Class        entityClass;
     private final CommandPanel commandPanel;
+    private final Supplier<Entity> context;
     private final List<EntityCommand<Entity>> systemCommands  = new LinkedList<>();
     private final List<EntityCommand<Entity>> contextCommands = new LinkedList<>();
-    private final Supplier<Stream<EntityCommand<Entity>>> commands = () -> Stream.concat(systemCommands.stream(), contextCommands.stream());
     
     /**
      * Конструктор презентации. 
@@ -31,6 +33,8 @@ public final class EditorPresentation extends JPanel {
      */
     public EditorPresentation(Entity entity) {
         super(new BorderLayout());
+        entityClass = entity.getClass();
+        context = () -> entity;
 
         boolean editable = entity.model.getProperties(Access.Edit).stream()
                 .anyMatch(propName -> !entity.model.isPropertyDynamic(propName));
@@ -39,47 +43,66 @@ public final class EditorPresentation extends JPanel {
             systemCommands.add(new CommitEntity());
             systemCommands.add(new RollbackEntity());
         }
-        contextCommands.addAll(entity.getCommands());
 
-        commandPanel = new CommandPanel(systemCommands.toArray(new EntityCommand[]{}));
-        commandPanel.setContextCommands(contextCommands.toArray(new EntityCommand[]{}));
+        contextCommands.addAll(
+                entity.getCommands().stream()
+                    .filter(command -> command.getKind() != EntityCommand.Kind.System)
+                    .collect(Collectors.toList())
+        );
 
-        commands.get().forEach(command -> command.setContext(entity));
-        activateCommands();
+        commandPanel = new CommandPanel(systemCommands);
+        add(commandPanel, BorderLayout.NORTH);
 
-        boolean hasCommands = commands.get().findFirst().isPresent();
+        entity.addNodeListener(new INodeListener() {
+            @Override
+            public void childChanged(INode node) {
+                Entity changed = (Entity) node;
+                changed.model.getProperties(Access.Edit).stream()
+                        .filter((propName) -> !changed.model.isPropertyDynamic(propName))
+                        .forEach((propName) -> ((AbstractEditor) changed.model.getEditor(propName)).setLocked(changed.islocked()));
+                activateCommands();
+            }
+        });
+    }
 
-        if (!entity.model.getProperties(Access.Edit).isEmpty() || hasCommands) {
-            commandPanel.setVisible(hasCommands);
-            add(commandPanel, BorderLayout.NORTH);
+    /**
+     * Обновление презентации и панели команд.
+     */
+    public final void refresh() {
+        add(context.get().getEditorPage());
 
-            entity.addNodeListener(new INodeListener() {
+        boolean hasCommands   = Stream.concat(systemCommands.stream(), getContextCommands().stream()).findAny().isPresent();
+        boolean hasProperties = !context.get().model.getProperties(Access.Edit).isEmpty();
 
-                @Override
-                public void childChanged(INode node) {
-                    Entity changed = (Entity) node;
-                    changed.model.getProperties(Access.Edit).stream()
-                            .filter((propName) -> !changed.model.isPropertyDynamic(propName))
-                            .forEach((propName) -> ((AbstractEditor) changed.model.getEditor(propName)).setLocked(changed.islocked()));
-                    activateCommands();
-                }
-            });
-            add(entity.getEditorPage(), BorderLayout.CENTER);
-        } else {
-            setVisible(false);
+        commandPanel.setVisible(hasCommands);
+        setVisible(hasCommands || hasProperties);
+
+        if (hasCommands) {
+            updateCommands();
+            activateCommands();
         }
     }
 
-    public final void updateCommands() {
-        commandPanel.setContextCommands(contextCommands.toArray(new EntityCommand[]{}));
-        activateCommands();
+    public Class getEntityClass() {
+        return entityClass;
+    }
+
+    private List<EntityCommand<Entity>> getContextCommands() {
+        return new LinkedList<>(contextCommands);
+    }
+
+    private void updateCommands() {
+        commandPanel.setContextCommands(getContextCommands());
     }
     
     /**
      * Актуализация состояния доступности команд.
      */
     private void activateCommands() {
-        commands.get().forEach(EntityCommand::activate);
+        Stream.concat(
+                systemCommands.stream(),
+                getContextCommands().stream()
+        ).forEach(command -> command.setContext(context.get()));
     }
     
 }

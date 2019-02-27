@@ -1,14 +1,10 @@
 package codex.command;
 
-import codex.component.button.IButton;
-import codex.component.button.PushButton;
-import codex.log.Logger;
+import codex.explorer.tree.AbstractNode;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.model.IModelListener;
 import codex.model.ParamModel;
-import codex.presentation.CommitEntity;
-import codex.presentation.RollbackEntity;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.task.ITask;
@@ -18,32 +14,18 @@ import codex.task.TaskManager;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.Language;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.text.MessageFormat;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
+import javax.swing.*;
+import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import javax.swing.AbstractAction;
-import javax.swing.ImageIcon;
-import javax.swing.InputMap;
-import javax.swing.JComponent;
-import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
 
 /**
  * Абстрактная реализация команд сущности {@link Entity}.
  * Используется для возможности производить различные действия над сущностью.
  * @param <V> Класс {@link Entity} или один из его производных.
- * @see CommitEntity
- * @see RollbackEntity
  */
-public abstract class EntityCommand<V extends Entity> implements ICommand<V, List<V>>, ActionListener, IModelListener, ICommandListener<V>, Iconified {
+public abstract class EntityCommand<V extends Entity> implements ICommand<V, List<V>>, IModelListener, Iconified {
     
     private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
     
@@ -61,31 +43,34 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
          */
         Info,
         /**
-         * Команда, запускающая действие над сущностью.
+         * Команда, запускающая действие над сущностью. Отображается в модуле ярлыков.
          */
-        Action
+        Action,
+        /**
+         * Системная команда. Встраивается в презентацию селектора как системная команда. Контекст команды - родительская
+         * сущность элементов селектора.
+         */
+        System
     }
-    
-    private KeyStroke key;
-    private String    name;
-    private String    title;
+
+    private final KeyStroke key;
+    private final String    name;
+    private final String    hint;
+    private final ImageIcon icon;
+    private final String    title;
     private List<V>   context = new LinkedList<>();
-    private IButton   button; 
     private String    groupId;
+    private Predicate<V> available;
     private final List<ICommandListener<V>> listeners = new LinkedList<>();
-    private Supplier<PropertyHolder[]>      provider  = () -> { return new PropertyHolder[] {}; };
-    
-    protected Predicate<V>      available;
-    protected Consumer<List<V>> activator = (entities) -> {
-        button.setEnabled(
-                entities != null && entities.size() > 0 && 
-                !(entities.size() > 1 && !multiContextAllowed()) && 
-                (available == null || entities.stream().allMatch(available)) && 
-                entities.stream().allMatch((entity) -> {
-                    return !entity.islocked();
-                })
-        );
-    };
+    private Supplier<PropertyHolder[]>      provider  = () -> new PropertyHolder[]{};
+
+    protected Function<List<V>, CommandStatus> activator = entities -> new CommandStatus(
+        entities != null && entities.size() > 0 &&
+              !(entities.size() > 1 && !multiContextAllowed()) && (
+                      available == null || entities.stream().allMatch(available)
+              ) &&
+              entities.stream().noneMatch(AbstractNode::islocked)
+    );
     
     /**
      * Конструктор экземпляра команды.
@@ -113,23 +98,20 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
             throw new IllegalStateException("Parameter 'icon' can not be NULL");
         }
         this.key       = key;
+        this.icon      = icon;
+        this.hint      = hint;
         this.name      = name == null ? getClass().getCanonicalName().toLowerCase() : name;
         this.available = available;
         
         if (title != null) {
             String localTitle = Language.get(this.getClass().getSimpleName(), title);
             this.title = localTitle.equals(Language.NOT_FOUND) ? title : localTitle;
+        } else {
+            this.title = Language.NOT_FOUND;
         }
-        
-        this.button = new PushButton(icon, null);
-        this.button.addActionListener(this);
-        this.button.setHint(hint + (key == null ? "" : " ("+getKeyText(key)+")"));
-        if (key != null) {
-            bindKey(key);
-        }
-        
-        addListener(this);
     }
+
+
     
     /**
      * Возвращает тип команды.
@@ -151,42 +133,60 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     public final String getTitle() {
         return title;
     }
-    
+
     @Override
-    public final IButton getButton() {
-        return button;
+    public final ImageIcon getIcon() {
+        return icon;
+    }
+
+    public final String getHint() {
+        return hint;
+    }
+
+    public final KeyStroke getKey() {
+        return key;
     }
     
     @Override
     public final void activate() {
-        activator.accept(getContext());
-    };
-    
-    /**
-     * Добавляет слушатель событий команды.
-     * @param listener Ссылка на слушатель.
-     */
+        CommandStatus status = activator.apply(getContext());
+        new LinkedList<>(listeners).forEach(listener -> {
+            listener.commandStatusChanged(status.active);
+            if (status.icon != null) {
+                listener.commandIconChanged(status.icon);
+            }
+        });
+    }
+
+    public boolean isActive() {
+        return activator.apply(getContext()).isActive();
+    }
+
+    @Override
     public final void addListener(ICommandListener<V> listener) {
         listeners.add(listener);
     }
 
     @Override
+    public final void removeListener(ICommandListener<V> listener) {
+        listeners.remove(listener);
+    }
+
+    @Override
     public final void setContext(List<V> context) {
-        this.context.forEach((contextItem) -> {
-            contextItem.model.removeModelListener(this);
-        });
+        this.context.forEach((contextItem) -> contextItem.model.removeModelListener(this));
         this.context = context;
-        listeners.forEach((listener) -> {
-            listener.contextChanged(context);
-        });
-        this.context.forEach((contextItem) -> {
-            contextItem.model.addModelListener(this);
-        });
+        new LinkedList<>(listeners).forEach((listener) -> listener.contextChanged(context));
+        this.context.forEach((contextItem) -> contextItem.model.addModelListener(this));
         activate();
     }
     
     public final void setContext(V context) {
-        setContext(Arrays.asList(context));
+        setContext(Collections.singletonList(context));
+    }
+
+    public String acquireConfirmation() {
+        return null;
     }
     
     /**
@@ -194,7 +194,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
      * гибкой настройки редакторов параметров и их взаимосвязей.
      * @param paramModel Модель набора параметров.
      */
-    public void preprocessParameters(ParamModel paramModel) {
+    protected void preprocessParameters(ParamModel paramModel) {
         // Do nothing
     }
     
@@ -204,15 +204,19 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
      */
     public EntityCommand setParameters(PropertyHolder... propHolders) {
         if (propHolders != null && propHolders.length > 0) {
-            provider = () -> { return propHolders; };
+            provider = () -> propHolders;
         }
         return this;
     }
-    
+
     /**
      * Получение вызов диалога заполнения параметров и возврат значений.
      */
     public final Map<String, IComplexType> getParameters() {
+        PropertyHolder[] params = provider.get();
+        if (params.length == 0) {
+            return new HashMap<>();
+        }
         ParametersDialog paramDialog = new ParametersDialog(this, provider);
         try {
             return paramDialog.call();
@@ -240,22 +244,8 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     }
     
     @Override
-    public void actionPerformed(ActionEvent event) {
-        Map<String, IComplexType> params = getParameters();
-        if (params != null) {
-            SwingUtilities.invokeLater(() -> {
-                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), getContext());
-                getContext().forEach((entity) -> {
-                    execute(entity, params);
-                });
-                activate();
-            });
-        }
-    }
-    
-    @Override
     @Deprecated
-    public final void execute(V context) {};
+    public final void execute(V context) {}
     
     public abstract void execute(V context, Map<String, IComplexType> params);
     
@@ -272,7 +262,9 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
                 if (context != null && !context.islocked()) {
                     try {
                         context.getLock().acquire();
-                    } catch (InterruptedException e) {}
+                    } catch (InterruptedException e) {
+                        //
+                    }
                 }
             }
             
@@ -289,7 +281,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
         } else {
             TES.enqueueTask(task);
         }
-    };
+    }
 
     @Override
     public void modelChanged(EntityModel model, List<String> changes) {
@@ -307,54 +299,9 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public final List<V> getContext() {
-        return context == null ? null : new LinkedList(context);
-    }
-    
-    /**
-     * Привязка команды к комбинации клавиш клавиатуры.
-     */
-    private void bindKey(KeyStroke key) {
-        InputMap inputMap = ((JComponent) this.button).getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
-        if (inputMap.get(key) != null && inputMap.get(key) == this) {
-            // Do nothing
-        } else if (inputMap.get(key) != null && inputMap.get(key) == this) {
-            throw new IllegalStateException(MessageFormat.format(
-                    "Key [{0}] already used by command ''{1}''", 
-                    getKeyText(key), inputMap.get(key).getClass().getSimpleName()
-            ));            
-        } else {
-            inputMap.put(key, this);
-            ((JComponent) this.button).getActionMap().put(this, new AbstractAction() {
-                @Override
-                public void actionPerformed(ActionEvent event) {
-                    if (button.isEnabled()) {
-                        EntityCommand.this.actionPerformed(event);
-                    }
-                }
-            });
-        }
-    }
-    
-    /**
-     * Возвращает строковое представление комбинации клавиш.
-     */
-    private String getKeyText(KeyStroke key) {
-        if (key.getModifiers() != 0) {
-            return KeyEvent.getKeyModifiersText(key.getModifiers())+"+"+KeyEvent.getKeyText(key.getKeyCode());
-        } else {
-            return KeyEvent.getKeyText(key.getKeyCode());
-        }
-    }
-
-    @Override
-    public void contextChanged(List<V> context) {
-        // Do nothing
-    }
-
-    @Override
-    public ImageIcon getIcon() {
-        return (ImageIcon) button.getIcon();
+        return context == null ? new LinkedList<>() : new LinkedList(context);
     }
     
     @Override
