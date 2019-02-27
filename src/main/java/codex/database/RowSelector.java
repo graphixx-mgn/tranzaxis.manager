@@ -212,7 +212,6 @@ public class RowSelector implements IDataSupplier<String> {
                             lookupEditor = new StrEditor(lookupHolder);
                             EditorCommand search = new ApplyFilter();
                             lookupEditor.addCommand(search);
-                            lookupEditor.getEditor().add((Component) search.getButton());
                             lookupHolder.addChangeListener((name, oldValue, newValue) -> {
                                 search.execute(lookupHolder);
                             });
