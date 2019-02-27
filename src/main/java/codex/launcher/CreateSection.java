@@ -1,22 +1,20 @@
 package codex.launcher;
 
+import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.model.Entity;
-import codex.presentation.EditorPage;
 import codex.presentation.SelectorPresentation;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Map;
 import java.util.function.Function;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -37,12 +35,7 @@ class CreateSection extends EntityCommand<Entity> {
                 Language.get("title"),
                 null
         );
-        activator = (entities) -> {};
-    }
-    
-    @Override
-    public void actionPerformed(ActionEvent event) {
-        execute(null, null);
+        activator = entities -> new CommandStatus(true);
     }
     
     /**
@@ -60,15 +53,15 @@ class CreateSection extends EntityCommand<Entity> {
         DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
 
         newEntity.getEditorPage().setBorder(new CompoundBorder(
-                new EmptyBorder(10, 5, 5, 5), 
+                new EmptyBorder(10, 5, 5, 5),
                 new TitledBorder(
-                        new LineBorder(Color.LIGHT_GRAY, 1), 
+                        new LineBorder(Color.LIGHT_GRAY, 1),
                         Language.get(SelectorPresentation.class.getSimpleName(), "creator@desc")
                 )
         ));
         
         Dialog editor = new Dialog(
-            SwingUtilities.getWindowAncestor((Component) getButton()),
+            FocusManager.getCurrentManager().getActiveWindow(),
             ImageUtils.getByPath("/images/createdir.png"),
             Language.get("title"), newEntity.getEditorPage(),
             (event) -> {
@@ -89,7 +82,7 @@ class CreateSection extends EntityCommand<Entity> {
                         if (event.getID() != Dialog.OK || newEntity.getInvalidProperties().isEmpty()) {
                             defaultHandler.apply(button).actionPerformed(event);
                         }
-                    }; 
+                    };
                 };
             }
 

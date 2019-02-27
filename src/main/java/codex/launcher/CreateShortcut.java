@@ -1,5 +1,6 @@
 package codex.launcher;
 
+import codex.command.CommandStatus;
 import codex.command.EditorCommand;
 import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
@@ -21,15 +22,12 @@ import codex.type.IComplexType;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.event.ActionEvent;
+import javax.swing.*;
+import java.awt.*;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
 
 /**
  * Реализация команды создания нового ярлыка.
@@ -56,7 +54,7 @@ class CreateShortcut extends EntityCommand<Entity> {
                 Language.get("title"),
                 null
         );
-        activator = (entities) -> {};
+        activator = entities -> new CommandStatus(true);
         this.proxyCommand = command;
     }
     
@@ -90,11 +88,6 @@ class CreateShortcut extends EntityCommand<Entity> {
     }
 
     @Override
-    public void actionPerformed(ActionEvent event) {
-        execute(null, null);
-    }
-
-    @Override
     public void execute(Entity context, Map<String, IComplexType> params) {
         final DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
 
@@ -105,14 +98,10 @@ class CreateShortcut extends EntityCommand<Entity> {
                     return new EntityRefEditor(propHolder) {
                         @Override
                         protected List<Object> getValues() {
-                            List<Object> values = CAS.readCatalogEntries(null, getEntityClass()).values().stream()
-                                    .filter((PID) -> {
-                                        return !PID.equals(ShortcutSection.DEFAULT);
-                                    })
-                                    .map((PID) -> {
-                                        return Entity.newInstance(getEntityClass(), null, PID);
-                                    }).collect(Collectors.toList());
-                            return values;
+                            return CAS.readCatalogEntries(null, getEntityClass()).values().stream()
+                                    .filter((PID) -> !PID.equals(ShortcutSection.DEFAULT))
+                                    .map((PID) -> Entity.newInstance(getEntityClass(), null, PID))
+                                    .collect(Collectors.toList());
                         }
                     };
                 };
@@ -120,19 +109,15 @@ class CreateShortcut extends EntityCommand<Entity> {
         };
         
         final EntityRef catalogRef = new EntityRef(Catalog.class, 
-                (entity) -> {
-                    return 
-                            entity.getChildClass() != null &&
-                            Entity.newInstance(entity.getChildClass(), null, null).getCommands().stream().filter((command) -> {
-                                return !command.getButton().isInactive() && command.getKind() == EntityCommand.Kind.Action;
-                            }).count() > 0;
-                }
+                (entity) ->
+                        entity.getChildClass() != null &&
+                        Entity.newInstance(entity.getChildClass(), null, null)
+                               .getCommands().stream()
+                               .anyMatch((command) -> command.getKind() == Kind.Action)
         ) {
             @Override
             public IEditorFactory editorFactory() {
-                return (PropertyHolder propHolder) -> {
-                    return new EntityRefTreeEditor(propHolder);
-                };
+                return EntityRefTreeEditor::new;
             }
         };
         
@@ -193,8 +178,8 @@ class CreateShortcut extends EntityCommand<Entity> {
                 }
             }
             
-            paramModel.getEditor(PARAM_ENTITY).setEditable(paramModel.getValue(PARAM_CATALOG) != null); 
-            paramModel.getEditor(PARAM_COMMAND).setEditable(paramModel.getValue(PARAM_ENTITY) != null); 
+            paramModel.getEditor(PARAM_ENTITY).setEditable(paramModel.getValue(PARAM_CATALOG) != null);
+            paramModel.getEditor(PARAM_COMMAND).setEditable(paramModel.getValue(PARAM_ENTITY) != null);
             paramModel.getEditor(PARAM_LINKNAME).setEditable(paramModel.getValue(PARAM_COMMAND)  != null);
             confirmBtn.setEnabled(paramModel.getValue(PARAM_COMMAND) != null);
         });
@@ -208,23 +193,23 @@ class CreateShortcut extends EntityCommand<Entity> {
                     void boundView(ShortcutSection section) {
                         proxyCommand.boundView(section);
                         context.setValue(section);
-                        
+
                     }
                 }.execute(null, null);
             }
         });
 
         final Dialog paramDialog = new Dialog(
-            SwingUtilities.getWindowAncestor((Component) getButton()), 
-            ImageUtils.getByPath("/images/linkage.png"), 
+            FocusManager.getCurrentManager().getActiveWindow(),
+            ImageUtils.getByPath("/images/linkage.png"),
             Language.get("title"),
             new JPanel(),
             (event) -> {
                 if (event.getID() == Dialog.OK) {
                     boundView(newShortcut(
                         (String) paramModel.getValue(PARAM_LINKNAME),
-                        (ShortcutSection) paramModel.getValue(PARAM_SECTION), 
-                        (Entity) paramModel.getValue(PARAM_ENTITY), 
+                        (ShortcutSection) paramModel.getValue(PARAM_SECTION),
+                        (Entity) paramModel.getValue(PARAM_ENTITY),
                         (String) paramModel.getValue(PARAM_COMMAND)
                     ));
                 }
@@ -246,7 +231,7 @@ class CreateShortcut extends EntityCommand<Entity> {
 
         private AddSection() {
             super(
-                    ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 18, 18), 
+                    ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 18, 18),
                     Language.get(CreateSection.class.getSimpleName(),"title")
             );
         }

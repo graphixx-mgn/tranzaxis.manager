@@ -48,7 +48,7 @@ final class LaunchShortcut extends LaunchButton implements IModelListener, INode
         DISABLED,
         LOCKED,
         LOST_COMMAND,
-        LOST_ENTITY;
+        LOST_ENTITY
     }
     
     private final JPanel    controls;
@@ -57,9 +57,7 @@ final class LaunchShortcut extends LaunchButton implements IModelListener, INode
     private       Status    status = Status.UNKNOWN;
     
     /**
-     * Конструктор ярлыка.
-     * @param entity Ссылка на сущность.
-     * @param command Ссылка на команду, доступную для класса сущности.
+     * Конструктор кнопки ярлыка.
      */
     LaunchShortcut(Shortcut shortcut) {
         super(shortcut.getPID(), LOCK);
@@ -177,20 +175,17 @@ final class LaunchShortcut extends LaunchButton implements IModelListener, INode
         if (entity == null) {
             newStatus = Status.LOST_ENTITY;
         } else if (
-            !entity.getCommands().stream().anyMatch((command) -> {
-                return command.getName().equals(cmdName);
-            })
+            entity.getCommands().stream().noneMatch((command) -> command.getName().equals(cmdName))
         ) {
             newStatus = Status.LOST_COMMAND;
         } else if (entity.islocked()) {
             newStatus = Status.LOCKED;
         } else {
-            newStatus = Status.AVAILABLE;
-            EntityCommand command = entity.getCommand(cmdName);            
+            EntityCommand<Entity> command = entity.getCommand(cmdName);
             List<Entity> prevContext = command.getContext();
             try {
                 command.setContext(entity);
-                newStatus = command.getButton().isEnabled() ? Status.AVAILABLE : Status.DISABLED;
+                newStatus = command.isActive() ? Status.AVAILABLE : Status.DISABLED;
             } finally {
                 command.setContext(prevContext);
             }
@@ -243,15 +238,7 @@ final class LaunchShortcut extends LaunchButton implements IModelListener, INode
     }
     
     private ImageIcon getCommandIcon() {
-        Entity entity = shortcut.getEntity();
-        EntityCommand command = entity.getCommand(shortcut.getCommand());
-        List<Entity> prevContext = command.getContext();
-        try {
-            command.setContext(entity);
-            return (ImageIcon) command.getButton().getIcon();
-        } finally {
-            command.setContext(prevContext);
-        }
+        return shortcut.getEntity().getCommand(shortcut.getCommand()).getIcon();
     }
     
     @Override

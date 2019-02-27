@@ -52,8 +52,6 @@ import javax.swing.tree.TreeSelectionModel;
  */
 public class EntityRefTreeEditor extends AbstractEditor {
     
-    //private final static ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
-    
     private DefaultListModel listModel;
     protected JTextField     textField;
     private final JLabel     signDelete;
@@ -65,6 +63,19 @@ public class EntityRefTreeEditor extends AbstractEditor {
                 ImageUtils.getByPath("/images/clearval.png"), 
                 textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
         ));
+
+        EntitySelector selector = new EntitySelector();
+        addCommand(selector);
+
+        textField.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                if (event.getClickCount() == 2) {
+                    selector.execute(propHolder);
+                }
+            }
+        });
+
         textField.add(signDelete, BorderLayout.EAST);
         signDelete.setCursor(Cursor.getDefaultCursor());
         signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
@@ -113,18 +124,6 @@ public class EntityRefTreeEditor extends AbstractEditor {
         list.setEnabled(false);
         list.setBorder(new EmptyBorder(2, 0, 0, 0));
         textField.add(list, BorderLayout.WEST);
-        
-        EntitySelector selector = new EntitySelector();
-        addCommand(selector);
-        
-        textField.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent event) {
-                if (event.getClickCount() == 2) {
-                    selector.execute(propHolder);
-                }
-            }
-        });
 
         Box container = new Box(BoxLayout.X_AXIS);
         container.add(textField);
