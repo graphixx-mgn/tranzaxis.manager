@@ -37,7 +37,7 @@ exception statement from your version.
 package manager.ui.splash;
 
 import java.awt.*;
-;import java.awt.image.BufferedImage;
+import java.awt.image.BufferedImage;
 import javax.swing.*;
 
 class ImagePanel extends JPanel {

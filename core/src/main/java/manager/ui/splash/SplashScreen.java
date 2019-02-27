@@ -27,6 +27,7 @@ public final class SplashScreen extends JFrame {
     public SplashScreen() {
         setUndecorated(true);
         setLayout(new BorderLayout());
+        setType(javax.swing.JFrame.Type.UTILITY);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         
         ImageIcon splash = ImageUtils.getByPath("/images/splash.png");

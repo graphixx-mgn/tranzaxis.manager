@@ -2,34 +2,16 @@ package manager.ui;
 
 import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.Insets;
-import javax.swing.GroupLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.JTabbedPane;
-import javax.swing.UIManager;
+import java.awt.*;
+import javax.swing.*;
 import javax.swing.border.MatteBorder;
 
 public final class Window extends JFrame {
-    
-    private final static ImageIcon LAUNCH  = ImageUtils.resize(ImageUtils.getByPath("/images/launch.png"),    20, 20);
-    private final static ImageIcon VIEWER  = ImageUtils.resize(ImageUtils.getByPath("/images/viewer.png"),    20, 20);
-    private final static ImageIcon SERVICE = ImageUtils.resize(ImageUtils.getByPath("/images/services.png"),  20, 20);
-    private final static ImageIcon CONNECT = ImageUtils.resize(ImageUtils.getByPath("/images/localhost.png"), 20, 20);
     
     private final JTabbedPane tabbedPanel;
     public final JPanel upgradePanel = new JPanel();
     public final JPanel taskmgrPanel = new JPanel();
     public final JPanel loggingPanel = new JPanel();
-    public final JPanel explorePanel = new JPanel();
-    public final JPanel launchPanel  = new JPanel();
-    public final JPanel servicePanel = new JPanel();
-    public final JPanel connectPanel = new JPanel();
     
     public Window(String title, ImageIcon icon) {
         super(title);
@@ -48,11 +30,6 @@ public final class Window extends JFrame {
         upgradePanel.setBorder(new MatteBorder(0, 0, 0, 1, Color.GRAY));
         loggingPanel.setBorder(new MatteBorder(0, 1, 0, 0, Color.GRAY));
         UIManager.put("TabbedPane.tabInsets", current);
-        
-        tabbedPanel.addTab(null, VIEWER,  explorePanel);
-        tabbedPanel.addTab(null, LAUNCH,  launchPanel);
-        tabbedPanel.addTab(null, SERVICE, servicePanel);
-        tabbedPanel.addTab(null, CONNECT, connectPanel);
         
         GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -93,6 +70,19 @@ public final class Window extends JFrame {
         container.setLayout(new BorderLayout());
         container.add(unit.getViewport(), BorderLayout.CENTER);
         unit.getViewport().setPreferredSize(container.getSize());
+        unit.viewportBound();
+    }
+
+    public final void addUnit(AbstractUnit unit) {
+        tabbedPanel.addTab(
+                null,
+                ImageUtils.resize(unit.getIcon(), 20, 20),
+                new JPanel(new BorderLayout()) {{
+                    add(unit.getViewport(), BorderLayout.CENTER);
+                    unit.getViewport().setPreferredSize(getSize());
+                }},
+                unit.getTitle()
+        );
         unit.viewportBound();
     }
 }
