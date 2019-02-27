@@ -1,11 +1,16 @@
 package codex.unit;
 
-import javax.swing.JComponent;
+import codex.type.Iconified;
+import codex.utils.ImageUtils;
+import codex.utils.Language;
+
+import javax.swing.*;
+import java.util.Locale;
 
 /**
  * Абстракный класс модуля приложения.
  */
-public abstract class AbstractUnit {
+public abstract class AbstractUnit implements Iconified {
     
     protected JComponent view;
     
@@ -16,7 +21,7 @@ public abstract class AbstractUnit {
     /**
      * Вызывается в момент вставки виджета в окно приложения.
      */
-    public void viewportBound() {};
+    public void viewportBound() {}
     
     /**
      * Возвращает виджет модуля.
@@ -26,6 +31,15 @@ public abstract class AbstractUnit {
             view = createViewport();
         }
         return view;
-    };
+    }
+
+    @Override
+    public ImageIcon getIcon() {
+        return ImageUtils.getByPath(Language.get(getClass().getSimpleName(), "unit.icon", Locale.US));
+    }
+
+    public String getTitle() {
+        return Language.get(getClass().getSimpleName(), "unit.title");
+    }
     
 }
