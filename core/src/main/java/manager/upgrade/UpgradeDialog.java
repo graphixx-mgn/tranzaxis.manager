@@ -19,7 +19,7 @@ import javax.swing.text.StyleConstants;
 import manager.xml.Change;
 import manager.xml.Version;
 import manager.xml.VersionsDocument;
-import sun.swing.SwingUtilities2;
+
 
 class UpgradeDialog extends Dialog {
 
@@ -31,13 +31,13 @@ class UpgradeDialog extends Dialog {
         super(
                 FocusManager.getCurrentManager().getActiveWindow(),
                 ImageUtils.getByPath("/images/upgrade.png"),
-                Language.get(UpgradeUnit.class.getSimpleName(), "info@title"),
+                Language.get(UpgradeUnit.class, "info@title"),
                 new JPanel(),
                 closeAction,
                 closeAction == null ? new DialogButton[] {
                         Dialog.Default.BTN_CANCEL.newInstance()
                 } : new DialogButton[] {
-                        Dialog.Default.BTN_OK.newInstance(Language.get(UpgradeUnit.class.getSimpleName(), "info@start")),
+                        Dialog.Default.BTN_OK.newInstance(Language.get(UpgradeUnit.class, "info@start")),
                         Dialog.Default.BTN_CANCEL.newInstance()
                 }
         );
@@ -96,7 +96,7 @@ class UpgradeDialog extends Dialog {
 
     void updateInfo(VersionsDocument changes, int providers) {
         upgradeInfo.setText(MessageFormat.format(
-                Language.get(UpgradeUnit.class.getSimpleName(), "available"),
+                Language.get(UpgradeUnit.class, "available"),
                 changes.getVersions().getCurrent(),
                 providers
         ));
@@ -106,7 +106,7 @@ class UpgradeDialog extends Dialog {
                 infoDocument.insertString(
                         infoDocument.getLength(),
                         MessageFormat.format(
-                                Language.get(UpgradeUnit.class.getSimpleName(), "info@next"),
+                                Language.get(UpgradeUnit.class, "info@next"),
                                 version.getNumber(), version.getDate()
                         ).concat("\n"), infoPane.getStyle("head")
                 );

@@ -6,14 +6,12 @@ import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.commands.offshoot.BuildWC;
-import manager.nodes.Development;
 import manager.nodes.Offshoot;
 import manager.type.BuildStatus;
 import manager.upgrade.UpgradeService;
 import org.apache.log4j.lf5.viewer.categoryexplorer.TreeModelAdapter;
 import org.apache.tools.ant.util.DateUtils;
 import org.radixware.kernel.common.check.RadixProblem;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -50,7 +48,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
     private final EventTreeModel eventsTree = new EventTreeModel();
 
     public BuildSourceTask(Offshoot offshoot, boolean clean) {
-        super(Language.get(BuildWC.class.getSimpleName(), "command@sources"));
+        super(Language.get(BuildWC.class, "command@sources"));
         this.offshoot = offshoot;
         this.clean    = clean;
     }
@@ -350,11 +348,11 @@ public class BuildSourceTask extends AbstractTask<Error> {
             long errorsCount = getErrorsCount();
             long warningsCount = getWarningsCount();
             if (errorsCount + warningsCount == 0) {
-                return Language.get(BuildWC.class.getSimpleName(), "problems@none");
+                return Language.get(BuildWC.class, "problems@none");
             } else if (errorsCount == 0) {
-                return MessageFormat.format(Language.get(BuildWC.class.getSimpleName(), "problems@warnings"), warningsCount);
+                return MessageFormat.format(Language.get(BuildWC.class, "problems@warnings"), warningsCount);
             } else {
-                return MessageFormat.format(Language.get(BuildWC.class.getSimpleName(), "problems@errors"), errorsCount, warningsCount);
+                return MessageFormat.format(Language.get(BuildWC.class, "problems@errors"), errorsCount, warningsCount);
             }
         }
     }

@@ -22,10 +22,10 @@ import manager.commands.database.CheckDatabase;
 
 public class Database extends Entity {
     
-    public final static String PROP_BASE_URL  = "dbUrl";
-    public final static String PROP_BASE_USER = "dbSchema";
-    public final static String PROP_BASE_PASS = "dbPass";
-    public final static String PROP_USER_NOTE = "userNote";
+    private final static String PROP_BASE_URL  = "dbUrl";
+    private final static String PROP_BASE_USER = "dbSchema";
+    private final static String PROP_BASE_PASS = "dbPass";
+    private final static String PROP_USER_NOTE = "userNote";
    
     private static final IDatabaseAccessService OAS = OracleAccessService.getInstance();
     
@@ -42,12 +42,12 @@ public class Database extends Entity {
             if (!CheckDatabase.checkUrlPort(url)) {
                 if (showError) {
                     MessageBox.show(MessageType.WARNING, MessageFormat.format(
-                            Language.get(Database.class.getSimpleName(), "error@unavailable"),
+                            Language.get(Database.class, "error@unavailable"),
                             getPID(), url.substring(0, url.indexOf("/"))
                     ));
                 } else {
                     Logger.getLogger().warn(
-                            Language.get(Database.class.getSimpleName(), "error@unavailable", Locale.US),
+                            Language.get(Database.class, "error@unavailable", Locale.US),
                             getPID(), url.substring(0, url.indexOf("/"))
                     );
                 }
@@ -69,11 +69,11 @@ public class Database extends Entity {
             if (showError) {
                 MessageBox.show(
                         MessageType.WARNING, 
-                        Language.get(Database.class.getSimpleName(), "error@notready")
+                        Language.get(Database.class, "error@notready")
                 );
             } else {
                 Logger.getLogger().warn(
-                        Language.get(Database.class.getSimpleName(), "error@notready", Locale.US)
+                        Language.get(Database.class, "error@notready", Locale.US)
                 );
             }
         }
@@ -132,7 +132,7 @@ public class Database extends Entity {
         model.setValue(PROP_USER_NOTE, value);
     }
     
-    public Integer getConnectionID(boolean showError) {
+    Integer getConnectionID(boolean showError) {
         return connectionGetter.apply(showError);
     }
     

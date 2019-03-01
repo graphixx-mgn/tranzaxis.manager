@@ -55,7 +55,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
         private final Offshoot offshoot;
 
         public UpdateTask(Offshoot offshoot) {
-            super(Language.get(UpdateWC.class.getSimpleName(), "title") + ": \""+offshoot.getLocalPath()+"\"");
+            super(Language.get(UpdateWC.class, "title") + ": \""+offshoot.getLocalPath()+"\"");
             this.offshoot = offshoot;
         }
         
@@ -75,7 +75,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                     .toString();
             ISVNAuthenticationManager authMgr = offshoot.getRepository().getAuthManager();
 
-            setProgress(0, Language.get(UpdateWC.class.getSimpleName(), "command@calc"));
+            setProgress(0, Language.get(UpdateWC.class, "command@calc"));
             try {
                 List<Path> changes = SVN.changes(wcPath, repoUrl, SVNRevision.HEAD, authMgr, new ISVNEventHandler() {
                     @Override
@@ -122,7 +122,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                                         setProgress(
                                                 percent > 100 ? 100 : percent,
                                                 MessageFormat.format(
-                                                        Language.get(UpdateWC.class.getSimpleName(), "command@progress"),
+                                                        Language.get(UpdateWC.class, "command@progress"),
                                                         event.getFile().getPath().replace(wcPath+File.separator, "")
                                                 )
                                         );

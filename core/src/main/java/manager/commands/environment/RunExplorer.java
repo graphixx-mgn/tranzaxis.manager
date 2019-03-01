@@ -1,36 +1,21 @@
 package manager.commands.environment;
 
 import codex.command.EntityCommand;
-import codex.component.messagebox.MessageBox;
-import codex.component.messagebox.MessageType;
 import codex.log.Logger;
 import codex.service.ServiceRegistry;
-import codex.task.AbstractTask;
-import codex.task.ITask;
-import codex.task.ITaskExecutorService;
-import codex.task.ITaskListener;
-import codex.task.Status;
-import codex.task.TaskManager;
+import codex.task.*;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.io.File;
-import java.nio.file.Path;
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.StringJoiner;
-import java.util.stream.Collectors;
-import javax.swing.SwingUtilities;
 import manager.nodes.BinarySource;
 import manager.nodes.Environment;
 import manager.nodes.Release;
-import manager.nodes.Repository;
-import manager.svn.SVN;
-import org.tmatesoft.svn.core.SVNErrorCode;
-import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
+import java.io.File;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 
 public class RunExplorer extends EntityCommand<Environment> {
@@ -40,9 +25,9 @@ public class RunExplorer extends EntityCommand<Environment> {
     public RunExplorer() {
         super(
                 "explorer", 
-                Language.get("RunTX", "explorer@title"), 
+                Language.get(Environment.class, "explorer@command"),
                 ImageUtils.resize(ImageUtils.getByPath("/images/explorer.png"), 28, 28), 
-                Language.get("RunTX", "explorer@title"),
+                Language.get(Environment.class, "explorer@command"),
                 Environment::canStartExplorer
         );
     }
@@ -70,7 +55,7 @@ public class RunExplorer extends EntityCommand<Environment> {
         
         public RunExplorerTask(Environment env) {
             super(MessageFormat.format(
-                    Language.get("RunTX", "explorer@task"),
+                    Language.get(Environment.class, "explorer@task"),
                     env, 
                     env.getBinaries().getPID()
             ));
@@ -111,9 +96,7 @@ public class RunExplorer extends EntityCommand<Environment> {
             Logger.getLogger().debug("Start explorer command:\n{0}", String.join(" ", command));
 
             final ProcessBuilder builder = new ProcessBuilder(
-                    command.stream().map((item) -> {
-                        return item.trim();
-                    }).collect(Collectors.toList())
+                command.stream().map(String::trim).collect(Collectors.toList())
             );
             builder.redirectInput(ProcessBuilder.Redirect.INHERIT);
             builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);

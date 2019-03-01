@@ -2,12 +2,10 @@ package manager.commands.database;
 
 import codex.command.CommandStatus;
 import codex.command.EntityCommand;
-import codex.model.EntityModel;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import codex.utils.NetTools;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -22,7 +20,7 @@ public class CheckDatabase extends EntityCommand<Database> {
     private final static ImageIcon PASSIVE = ImageUtils.resize(ImageUtils.getByPath("/images/event.png"), 28, 28);
 
     public CheckDatabase() {
-        super("activity", null, PASSIVE, Language.get(Database.class.getSimpleName(), "command@activity"), null);
+        super("activity", null, PASSIVE, Language.get(Database.class, "command@activity"), null);
         activator = databases -> {
             if (databases != null && databases.size() > 0 && !(databases.size() > 1 && !multiContextAllowed())) {
                 String dbUrl = databases.get(0).getDatabaseUrl(true);
@@ -56,19 +54,19 @@ public class CheckDatabase extends EntityCommand<Database> {
         return Kind.Info;
     }
     
-    @Override
-    public void modelSaved(EntityModel model, List<String> changes) {
-        super.modelSaved(model, changes);
-        if (changes.contains(Database.PROP_BASE_URL)) {
-            activate();
-        }
-    }
+//    @Override
+//    public void modelSaved(EntityModel model, List<String> changes) {
+//        super.modelSaved(model, changes);
+//        if (changes.contains(Database.PROP_BASE_URL)) {
+//            activate();
+//        }
+//    }
     
     public static boolean checkUrlPort(String dbUrl) {
         Matcher verMatcher = SPLIT.matcher(dbUrl);
         if (verMatcher.find()) {
-            String  host = verMatcher.group(1);
-            Integer port = Integer.valueOf(verMatcher.group(2));
+            String host = verMatcher.group(1);
+            int    port = Integer.valueOf(verMatcher.group(2));
             try {
                 return NetTools.isPortAvailable(host, port, 100);
             } catch (IllegalStateException e) {

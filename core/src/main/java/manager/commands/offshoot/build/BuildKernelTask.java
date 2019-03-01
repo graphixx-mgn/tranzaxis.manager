@@ -7,10 +7,9 @@ import codex.utils.Language;
 import manager.commands.offshoot.BuildWC;
 import manager.nodes.Offshoot;
 import manager.type.BuildStatus;
-import manager.ui.splash.SplashScreen;
 import manager.upgrade.UpgradeService;
 import org.apache.tools.ant.util.DateUtils;
-
+import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
@@ -32,7 +31,7 @@ public class BuildKernelTask extends AbstractTask<Void> {
     });
 
     public BuildKernelTask(Offshoot offshoot) {
-        super(Language.get(BuildWC.class.getSimpleName(), "command@kernel"));
+        super(Language.get(BuildWC.class, "command@kernel"));
         this.offshoot = offshoot;
     }
 
@@ -55,14 +54,41 @@ public class BuildKernelTask extends AbstractTask<Void> {
         } else {
             classPath = System.getProperty("java.class.path");
         }
+
         String javac;
-        URL url = ToolProvider.getSystemJavaCompiler().getClass().getProtectionDomain().getCodeSource().getLocation();
-        try {
-            String urlDecoded = URLDecoder.decode(url.getPath(), "UTF-8");
-            javac = new File(urlDecoded).getPath();
-        } catch (UnsupportedEncodingException e) {
-            javac = System.getenv("JAVA_HOME")+File.separator+"lib"+File.separator+"tools.jar";
+        //javac = System.getenv("JAVA_HOME")+File.separator+"lib"+File.separator+"tools.jar";
+        //Logger.getLogger().warn("java.home="+System.getProperty("java.home"));
+        //Logger.getLogger().warn("JAVA_HOME="+System.getenv("JAVA_HOME"));
+
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        if (compiler == null) {
+            throw new ExecuteException("Java compiler not found", "Java compiler not found");
+        } else {
+            URL url = compiler.getClass().getProtectionDomain().getCodeSource().getLocation();
+            try {
+                String urlDecoded = URLDecoder.decode(url.getPath(), "UTF-8");
+                javac = new File(urlDecoded).getPath();
+            } catch (UnsupportedEncodingException e) {
+                throw new ExecuteException("Java compiler not found", "Java compiler not found");
+            }
         }
+//        String javac;
+//        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+//        if (compiler == null) {
+//            if (!new File(System.getenv("JAVA_HOME")+File.separator+"lib"+File.separator+"tools.jar").exists()) {
+//                throw new ExecuteException("Java compiler not found", "Java compiler not found");
+//            } else {
+//                javac = System.getenv("JAVA_HOME")+File.separator+"lib"+File.separator+"tools.jar";
+//            }
+//        } else {
+//            URL url = compiler.getClass().getProtectionDomain().getCodeSource().getLocation();
+//            try {
+//                String urlDecoded = URLDecoder.decode(url.getPath(), "UTF-8");
+//                javac = new File(urlDecoded).getPath();
+//            } catch (UnsupportedEncodingException e) {
+//                throw new ExecuteException("Java compiler not found", "Java compiler not found");
+//            }
+//        }
         StringJoiner radixBinPath = new StringJoiner(File.separator)
             .add(offshoot.getLocalPath())
             .add("org.radixware")
@@ -147,7 +173,7 @@ public class BuildKernelTask extends AbstractTask<Void> {
             );
             throw new ExecuteException(
                     MessageFormat.format(
-                            Language.get(BuildWC.class.getSimpleName(), "command@seelog"),
+                            Language.get(BuildWC.class, "command@seelog"),
                             offshoot.getLocalPath()+File.separator+"build-kernel.log"
                     ),
                     message.concat("\n").concat(Logger.stackTraceToString(errorRef.get()))

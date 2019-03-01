@@ -125,10 +125,10 @@ public class KernelBuilder {
 
             try {
                 ant.fireBuildStarted();
-                notifier.description(uuid, Language.get(BuildWC.class.getSimpleName(), "command@clean"));
+                notifier.description(uuid, Language.get(BuildWC.class, "command@clean"));
                 ant.executeTarget(targetClean.getName());
 
-                notifier.description(uuid, Language.get(BuildWC.class.getSimpleName(), "command@distributive"));
+                notifier.description(uuid, Language.get(BuildWC.class, "command@distributive"));
                 ant.executeTarget(targetBuild.getName());
 
                 ant.fireBuildFinished(null);

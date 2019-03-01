@@ -1,34 +1,22 @@
 package manager.commands.environment;
 
 import codex.command.EntityCommand;
-import codex.component.messagebox.MessageBox;
-import codex.component.messagebox.MessageType;
 import codex.log.Logger;
 import codex.service.ServiceRegistry;
-import codex.task.AbstractTask;
-import codex.task.ITask;
-import codex.task.ITaskExecutorService;
-import codex.task.ITaskListener;
-import codex.task.Status;
-import codex.task.TaskManager;
+import codex.task.*;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.io.File;
-import java.nio.file.Path;
-import java.text.MessageFormat;
-import java.util.*;
-import java.util.stream.Collectors;
-import javax.swing.SwingUtilities;
 import manager.nodes.BinarySource;
 import manager.nodes.Database;
 import manager.nodes.Environment;
 import manager.nodes.Release;
-import manager.nodes.Repository;
-import manager.svn.SVN;
-import org.tmatesoft.svn.core.SVNErrorCode;
-import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
+import java.io.File;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 
 public class RunServer extends EntityCommand<Environment> {
@@ -38,9 +26,9 @@ public class RunServer extends EntityCommand<Environment> {
     public RunServer() {
         super(
                 "server", 
-                Language.get("RunTX", "server@title"), 
+                Language.get(Environment.class, "server@command"),
                 ImageUtils.resize(ImageUtils.getByPath("/images/server.png"), 28, 28), 
-                Language.get("RunTX", "server@title"),
+                Language.get(Environment.class, "server@command"),
                 Environment::canStartServer
         );
     }
@@ -68,7 +56,7 @@ public class RunServer extends EntityCommand<Environment> {
         
         public RunServerTask(Environment env) {
             super(MessageFormat.format(
-                    Language.get("RunTX", "server@task"),
+                    Language.get(Environment.class, "server@task"),
                     env, 
                     env.getBinaries().getPID(),
                     env.getDataBase(false)
@@ -124,9 +112,7 @@ public class RunServer extends EntityCommand<Environment> {
             Logger.getLogger().debug("Start server command:\n{0}", String.join(" ", command));
 
             final ProcessBuilder builder = new ProcessBuilder(
-                    command.stream().map((item) -> {
-                        return item.trim();
-                    }).collect(Collectors.toList())
+                command.stream().map(String::trim).collect(Collectors.toList())
             );
             builder.redirectInput(ProcessBuilder.Redirect.INHERIT);
             builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);

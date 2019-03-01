@@ -49,7 +49,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
     private final static IConfigStoreService    CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private static final ITaskExecutorService   TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
     
-    private static final String SIZE_FORMAT = Language.get(DiskUsageReport.class.getSimpleName(), "task@total");
+    private static final String SIZE_FORMAT = Language.get(DiskUsageReport.class, "task@total");
     
     private static final NotifableLong SIZE_TOTAL  = new NotifableLong(0);
     private static final NotifableLong SIZE_UNUSED = new NotifableLong(0);
@@ -72,7 +72,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
     class BuildStructure extends AbstractTask<Map<String, List<Entry>>> {
 
         BuildStructure() {
-            super(Language.get(DiskUsageReport.class.getSimpleName(), "task@structure"));
+            super(Language.get(DiskUsageReport.class, "task@structure"));
         }
 
         @Override
@@ -106,7 +106,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
                                 boolean isBranch = false;
                                 try {
                                     isBranch = ((BranchCatalog) Entity.newInstance(
-                                            ReleaseList.class, repoIndex.get(repositoryDir.getName()).toRef(), Language.get(ReleaseList.class.getSimpleName(), "title")
+                                            ReleaseList.class, repoIndex.get(repositoryDir.getName()).toRef(), Language.get(ReleaseList.class, "title")
                                     )).getBranchItems().stream()
                                             .anyMatch(svnDirEntry -> svnDirEntry.getName().equals(cacheDir.getName()));
                                 } catch (SVNException e) {
@@ -142,7 +142,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
                                 boolean isBranch = false;
                                 try {
                                     isBranch = ((BranchCatalog) Entity.newInstance(
-                                            Development.class, repoIndex.get(repositoryDir.getName()).toRef(), Language.get(Development.class.getSimpleName(), "title")
+                                            Development.class, repoIndex.get(repositoryDir.getName()).toRef(), Language.get(Development.class, "title")
                                     )).getBranchItems().stream()
                                             .anyMatch(svnDirEntry -> svnDirEntry.getName().equals(offshootDir.getName()));
                                 } catch (SVNException e) {
@@ -199,7 +199,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
             if (isCancelled() || isFailed()) {
                 // Return
             } else if (result.isEmpty()) {
-                MessageBox.show(MessageType.INFORMATION, Language.get(DiskUsageReport.class.getSimpleName(), "task@empty"));
+                MessageBox.show(MessageType.INFORMATION, Language.get(DiskUsageReport.class, "task@empty"));
                 
             } else {
                 List<RepoEntity> repoEntities = result.entrySet().stream()
@@ -253,7 +253,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
                 Dialog dialog = new Dialog(
                         null,
                         getIcon(),
-                        Language.get(DiskUsageReport.class.getSimpleName(), "title"),
+                        Language.get(DiskUsageReport.class, "title"),
                         view,
                         (event) -> {
                             if (event.getID() == Dialog.EXIT || event.getID() == Dialog.CLOSE) {
@@ -299,7 +299,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
         
         private JPanel createRepoView(RepoEntity repoEntity) {
             JLabel repoName = new JLabel(MessageFormat.format(
-                    Language.get(DiskUsageReport.class.getSimpleName(), "task@repo"), 
+                    Language.get(DiskUsageReport.class, "task@repo"),
                     repoEntity.getPID()
             )) {{
                 setOpaque(true);
@@ -336,7 +336,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
         private final List<RepoEntity> repoEntities;
 
         public CalculateDirsSize(List<RepoEntity> repoEntities) {
-            super(Language.get(DiskUsageReport.class.getSimpleName(), "task@title"));
+            super(Language.get(DiskUsageReport.class, "task@title"));
             this.repoEntities = repoEntities;
         }
 
@@ -441,13 +441,13 @@ public class DiskUsageReport extends EntityCommand<Common> {
 
     enum EntryKind implements Iconified {
 
-        None(Language.get(DiskUsageReport.class.getSimpleName(), "kind@none"), ImageUtils.getByPath("/images/clearval.png")),
-        Sources(Language.get(DiskUsageReport.class.getSimpleName(), "kind@sources"), ImageUtils.getByPath("/images/branch.png")),
-        Cache(Language.get(DiskUsageReport.class.getSimpleName(), "kind@cache"), ImageUtils.getByPath("/images/release.png")),
-        Dump(Language.get(DiskUsageReport.class.getSimpleName(), "kind@dump"), ImageUtils.getByPath("/images/thread.png")),
+        None(Language.get(DiskUsageReport.class,    "kind@none"), ImageUtils.getByPath("/images/clearval.png")),
+        Sources(Language.get(DiskUsageReport.class, "kind@sources"), ImageUtils.getByPath("/images/branch.png")),
+        Cache(Language.get(DiskUsageReport.class,   "kind@cache"), ImageUtils.getByPath("/images/release.png")),
+        Dump(Language.get(DiskUsageReport.class,    "kind@dump"), ImageUtils.getByPath("/images/thread.png")),
 
-        File(Language.get(DiskUsageReport.class.getSimpleName(), "kind@file"), ImageUtils.getByPath("/images/unknown_file.png")),
-        Dir(Language.get(DiskUsageReport.class.getSimpleName(), "kind@dir"), ImageUtils.getByPath("/images/unknown_dir.png"));
+        File(Language.get(DiskUsageReport.class,    "kind@file"), ImageUtils.getByPath("/images/unknown_file.png")),
+        Dir(Language.get(DiskUsageReport.class,     "kind@dir"), ImageUtils.getByPath("/images/unknown_dir.png"));
 
         private final String    title;
         private final ImageIcon icon;
@@ -516,7 +516,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
         private final long initialSize;
 
         public DeleteDirectory(EntryEntity entryEntity) {
-            super(Language.get(DiskUsageReport.class.getSimpleName(), "delete@title") + ": " + entryEntity.entry.file);
+            super(Language.get(DiskUsageReport.class, "delete@title") + ": " + entryEntity.entry.file);
             this.entryEntity = entryEntity;
             this.initialSize = entryEntity.getSize();
         }
@@ -528,7 +528,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
 
         @Override
         public Void execute() throws Exception {
-            setProgress(0, Language.get(DiskUsageReport.class.getSimpleName(), "delete@calc"));
+            setProgress(0, Language.get(DiskUsageReport.class, "delete@calc"));
             long totalFiles = entryEntity.getFilesCount();
 
             AtomicInteger processed = new AtomicInteger(0);
@@ -556,7 +556,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
                         setProgress(
                                 (int) (processed.get() * 100 / totalFiles),
                                 MessageFormat.format(
-                                        Language.get(DiskUsageReport.class.getSimpleName(), "delete@progress"),
+                                        Language.get(DiskUsageReport.class, "delete@progress"),
                                         fileName
                                 )
                         );

@@ -50,7 +50,7 @@ class LoadUpgrade extends AbstractTask<Void> {
     private final Dialog dialog;
 
     LoadUpgrade(Instance instance) {
-        super(Language.get(UpgradeUnit.class.getSimpleName(), "process@task"));
+        super(Language.get(UpgradeUnit.class, "process@task"));
         this.instance = instance;
         this.originalFile = UpgradeService.getCurrentJar();
         this.upgradedFile = new File(
@@ -61,13 +61,13 @@ class LoadUpgrade extends AbstractTask<Void> {
     }
 
     {
-        restartBtn.setText(Language.get(UpgradeUnit.class.getSimpleName(), "process@restart"));
+        restartBtn.setText(Language.get(UpgradeUnit.class, "process@restart"));
         restartBtn.setEnabled(false);
         closeBtn.setEnabled(false);
         dialog = new Dialog(
                 null,
                 ImageUtils.getByPath("/images/upgrade.png"),
-                Language.get(UpgradeUnit.class.getSimpleName(), "process@title"),
+                Language.get(UpgradeUnit.class, "process@title"),
                 new JPanel(new BorderLayout()) {{
                     setBorder(new EmptyBorder(5, 5, 5, 5));
                     AbstractTaskView taskView = LoadUpgrade.this.createView(null);
@@ -101,7 +101,7 @@ class LoadUpgrade extends AbstractTask<Void> {
 
         Registry rmiRegistry = LocateRegistry.getRegistry(host, port);
         IUpgradeService remoteUpService = (IUpgradeService) rmiRegistry.lookup(UpgradeService.class.getCanonicalName());
-        Logger.getLogger().info(Language.get(UpgradeUnit.class.getSimpleName(), "process@connect"), host, String.valueOf(port));
+        Logger.getLogger().info(Language.get(UpgradeUnit.class, "process@connect"), host, String.valueOf(port));
 
         Version localVersion  = UpgradeService.getVersion();
         Version remoteVersion = remoteUpService.getCurrentVersion();
@@ -109,7 +109,7 @@ class LoadUpgrade extends AbstractTask<Void> {
         List<Version> chain = new LinkedList<>(Arrays.asList(diff.getVersions().getVersionArray()));
         chain.add(0, localVersion);
         Logger.getLogger().info(
-                Language.get(UpgradeUnit.class.getSimpleName(), "process@sequence"),
+                Language.get(UpgradeUnit.class, "process@sequence"),
                 chain.stream()
                         .map(Version::getNumber)
                         .collect(Collectors.joining(" => "))
@@ -124,7 +124,7 @@ class LoadUpgrade extends AbstractTask<Void> {
 
             long fileSize = inStream.available();
             Logger.getLogger().info(
-                    Language.get(UpgradeUnit.class.getSimpleName(), "process@file"),
+                    Language.get(UpgradeUnit.class, "process@file"),
                     "\n", formatFileSize(fileSize), remoteChecksum
             );
             byte[] data = new byte[1024];
@@ -138,7 +138,7 @@ class LoadUpgrade extends AbstractTask<Void> {
                 setProgress((int) (100 * totalRead / fileSize), getDescription());
                 bytesRead = inStream.read(data);
             }
-            Logger.getLogger().info(Language.get(UpgradeUnit.class.getSimpleName(), "process@loaded"));
+            Logger.getLogger().info(Language.get(UpgradeUnit.class, "process@loaded"));
             try {
                 inStream.close();
             } catch (IOException e) {
@@ -148,15 +148,15 @@ class LoadUpgrade extends AbstractTask<Void> {
             e.printStackTrace();
             closeBtn.setEnabled(true);
             upgradedFile.delete();
-            Logger.getLogger().warn(Language.get(UpgradeUnit.class.getSimpleName(), "process@transmission.error"));
+            Logger.getLogger().warn(Language.get(UpgradeUnit.class, "process@transmission.error"));
         } finally {
             if (DatatypeConverter.printHexBinary(localChecksum.digest()).equals(remoteChecksum)) {
-                Logger.getLogger().info(Language.get(UpgradeUnit.class.getSimpleName(), "process@result.success"));
+                Logger.getLogger().info(Language.get(UpgradeUnit.class, "process@result.success"));
             } else {
                 closeBtn.setEnabled(true);
                 throw new ExecuteException(
-                        Language.get(UpgradeUnit.class.getSimpleName(), "process@error"),
-                        Language.get(UpgradeUnit.class.getSimpleName(), "process@result.error")
+                        Language.get(UpgradeUnit.class, "process@error"),
+                        Language.get(UpgradeUnit.class, "process@result.error")
                 );
             }
         }

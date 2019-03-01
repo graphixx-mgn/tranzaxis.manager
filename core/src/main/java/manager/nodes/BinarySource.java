@@ -3,6 +3,7 @@ package manager.nodes;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.model.Catalog;
+import codex.model.Entity;
 import codex.type.EntityRef;
 import codex.utils.Language;
 import manager.svn.SVN;
@@ -14,7 +15,7 @@ import javax.swing.ImageIcon;
 
 public abstract class BinarySource extends Catalog {
     
-    public static final Comparator<String> VERSION_SORTER = new Comparator<String>() {
+    static final Comparator<String> VERSION_SORTER = new Comparator<String>() {
         @Override
         public int compare(String prev, String next) {
             if ("trunk".equals(prev)) {
@@ -36,12 +37,12 @@ public abstract class BinarySource extends Catalog {
         }
     };
 
-    public BinarySource(EntityRef parent, ImageIcon icon, String title) {
+    BinarySource(EntityRef parent, ImageIcon icon, String title) {
         super(parent, icon, title, null);
     }
 
     @Override
-    public Class getChildClass() {
+    public Class<? extends Entity> getChildClass() {
         return null;
     }
     
@@ -57,7 +58,7 @@ public abstract class BinarySource extends Catalog {
             if (code != SVNErrorCode.RA_SVN_IO_ERROR && code != SVNErrorCode.RA_SVN_MALFORMED_DATA && showDilaog) {
                 MessageBox.show(MessageType.WARNING,
                         MessageFormat.format(
-                                Language.get(Repository.class.getSimpleName(), "error@message"),
+                                Language.get(Repository.class, "error@message"),
                                 getRepository().getPID(),
                                 e.getMessage()
                         )

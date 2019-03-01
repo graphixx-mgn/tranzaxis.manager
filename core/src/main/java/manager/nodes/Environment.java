@@ -405,7 +405,7 @@ public class Environment extends Entity implements INodeListener {
         public SynkRelease() {
             super(
                 UNKNOWN,
-                Language.get(Environment.class.getSimpleName(), "release.command@synk"),
+                Language.get(Environment.class, "release.command@synk"),
                 null
             );
             activator = holder -> {

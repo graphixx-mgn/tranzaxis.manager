@@ -4,10 +4,7 @@ import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.explorer.tree.INode;
 import codex.mask.DirMask;
-import codex.model.Access;
-import codex.model.Catalog;
-import codex.model.EntityModel;
-import codex.model.IModelListener;
+import codex.model.*;
 import codex.type.Enum;
 import codex.type.FilePath;
 import codex.utils.ImageUtils;
@@ -24,8 +21,8 @@ public final class Common extends Catalog {
     
     private final Preferences   PREFERENCES    = Preferences.userRoot().node(Manager.class.getSimpleName());
     
-    public  final static String PROP_WORK_DIR  = "workDir";
-    public  final static String PROP_GUI_LANG  = "guiLang";
+    private final static String PROP_WORK_DIR  = "workDir";
+    private final static String PROP_GUI_LANG  = "guiLang";
 
     public Common() {
         super(null, ImageUtils.getByPath("/images/settings.png"), "title", Language.get("desc"));
@@ -48,7 +45,7 @@ public final class Common extends Catalog {
                         case PROP_GUI_LANG:
                             PREFERENCES.put(propName, ((Locale) model.getValue(propName)).name());
                             SwingUtilities.invokeLater(() -> {
-                                MessageBox.show(MessageType.INFORMATION, Language.get(Common.class.getSimpleName(), "guiLang.notify"));
+                                MessageBox.show(MessageType.INFORMATION, Language.get(Common.class, "guiLang.notify"));
                             });
                             break;
                     }
@@ -85,7 +82,7 @@ public final class Common extends Catalog {
     }
     
     @Override
-    public Class getChildClass() {
+    public Class<? extends Entity> getChildClass() {
         return null;
     }
     

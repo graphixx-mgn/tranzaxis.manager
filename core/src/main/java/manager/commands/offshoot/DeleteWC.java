@@ -79,7 +79,7 @@ public class DeleteWC extends EntityCommand<Offshoot> {
         private final Offshoot offshoot;
 
         public DeleteTask(Offshoot offshoot) {
-            super(Language.get(DeleteWC.class.getSimpleName(), "title") + ": "+offshoot.getLocalPath());
+            super(Language.get(DeleteWC.class, "title") + ": "+offshoot.getLocalPath());
             this.offshoot = offshoot;
         }
 
@@ -94,7 +94,7 @@ public class DeleteWC extends EntityCommand<Offshoot> {
             offshoot.setWCLoaded(false);
             offshoot.model.commit(false);
             
-            setProgress(0, Language.get(DeleteWC.class.getSimpleName(), "command@calc"));
+            setProgress(0, Language.get(DeleteWC.class, "command@calc"));
             long totalFiles = Files.walk(Paths.get(wcPath)).count();
 
             AtomicInteger processed = new AtomicInteger(0);
@@ -127,7 +127,7 @@ public class DeleteWC extends EntityCommand<Offshoot> {
                         setProgress(
                                 (int) (processed.get() * 100 / totalFiles),
                                 MessageFormat.format(
-                                        Language.get(DeleteWC.class.getSimpleName(), "command@progress"),
+                                        Language.get(DeleteWC.class, "command@progress"),
                                         fileName
                                 )
                         );

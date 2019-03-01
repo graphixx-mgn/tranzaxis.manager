@@ -169,9 +169,9 @@ class EntryEntity extends Catalog {
         DeleteEntry() {
             super(
                     "delete",
-                    Language.get(DiskUsageReport.class.getSimpleName(), "delete@title"),
+                    Language.get(DiskUsageReport.class, "delete@title"),
                     ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28),
-                    Language.get(DiskUsageReport.class.getSimpleName(), "delete@title"), 
+                    Language.get(DiskUsageReport.class, "delete@title"),
                     (entryEntity) ->
                             entryEntity.model.getValue(PROP_SIZE) != null && (
                                 entryEntity.entry.kind == DiskUsageReport.EntryKind.File  ||

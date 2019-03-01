@@ -41,7 +41,7 @@ class CheckCache extends AbstractTask<Void> {
 
     CheckCache(Environment environment, ITask... planningTasks) {
         super(MessageFormat.format(
-                Language.get(Release.class.getSimpleName(), "cache@check.title"),
+                Language.get(Release.class, "cache@check.title"),
                 environment.getBinaries().getLocalPath()
         ));
         this.environment   = environment;
@@ -66,7 +66,7 @@ class CheckCache extends AbstractTask<Void> {
                 .findFirst();
         if (lostLayer.isPresent()) {
             MessageBox.show(MessageType.WARNING,
-                    MessageFormat.format(Language.get("RunTX", "error@structure"), release.getRepository())
+                    MessageFormat.format(Language.get(Release.class, "error@structure"), release.getRepository())
             );
             return null;
         }
@@ -90,13 +90,13 @@ class CheckCache extends AbstractTask<Void> {
             if (!repoOnline) {
                 MessageBox.show(
                         MessageType.WARNING,
-                        MessageFormat.format(Language.get("RunTX", "error@structure"), release.getRepository())
+                        MessageFormat.format(Language.get(Release.class, "error@structure"), release.getRepository())
                 );
                 return null;
             }
             try {
                 release.getLock().acquire();
-                setProgress(0, Language.get(Release.class.getSimpleName(), "cache@check.index"));
+                setProgress(0, Language.get(Release.class, "cache@check.index"));
 
                 Map<String, String> layerToUrl = release.getLayerPaths(new LinkedList<>(requiredLayers.keySet()));
                 Map<String, Map<Path, IndexEntryFile>> layerToIndex = requiredLayers.keySet().stream()
@@ -276,7 +276,7 @@ class CheckCache extends AbstractTask<Void> {
                     setProgress(
                             current.get() * 100 / gapsList.size(),
                             MessageFormat.format(
-                                    Language.get(Release.class.getSimpleName(), "cache@task.progress"),
+                                    Language.get(Release.class, "cache@task.progress"),
                                     gap.getValue().path
                             )
                     );

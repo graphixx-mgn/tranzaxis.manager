@@ -24,6 +24,7 @@ import manager.nodes.ReleaseList;
 import manager.nodes.Repository;
 import static manager.nodes.Repository.*;
 import manager.svn.SVN;
+import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
@@ -33,14 +34,14 @@ public class LoadWC extends EntityCommand<Repository> {
     
     private final static ImageIcon ENABLED  = ImageUtils.resize(ImageUtils.getByPath("/images/switch_on.png"),  28, 28);
     private final static ImageIcon DISABLED = ImageUtils.resize(ImageUtils.getByPath("/images/switch_off.png"), 28, 28);
-    private final static List<String> DIRS  = Arrays.asList(new String[] {"releases", "dev"});
+    private final static List<String> DIRS  = Arrays.asList("releases", "dev");
 
     public LoadWC() {
         super(
                 "load", 
-                Language.get(Repository.class.getSimpleName(), "command@load"), 
+                Language.get(Repository.class, "command@load"),
                 DISABLED, 
-                Language.get(Repository.class.getSimpleName(), "command@load"), 
+                Language.get(Repository.class, "command@load"),
                 null
         );
         activator = entities -> {
@@ -54,9 +55,7 @@ public class LoadWC extends EntityCommand<Repository> {
 
     @Override
     public void execute(Repository repository, Map<String, IComplexType> map) {
-        boolean load = getContext().isEmpty() ? 
-                repository.isLocked(true) : 
-                !repository.isLocked(true);
+        boolean load = getContext().isEmpty() == repository.isLocked(true);
         if (load) {
             load(repository);
         } else {
@@ -69,9 +68,7 @@ public class LoadWC extends EntityCommand<Repository> {
     }
     
     private void unload(Repository repository) {
-        new LinkedList<>(repository.childrenList()).forEach((child) -> {
-            repository.delete(child);
-        });
+        new LinkedList<>(repository.childrenList()).forEach(repository::delete);
         switchLock(repository, false);
     }
     
@@ -93,9 +90,9 @@ public class LoadWC extends EntityCommand<Repository> {
         
         final Repository repository;
 
-        public LoadTask(Repository repository) {
+        LoadTask(Repository repository) {
             super(MessageFormat.format(
-                    Language.get(Catalog.class.getSimpleName(), "task@load"),
+                    Language.get(Catalog.class, "task@load"),
                     repository.getPathString()
             ));
             this.repository = repository;
@@ -107,18 +104,18 @@ public class LoadWC extends EntityCommand<Repository> {
             ISVNAuthenticationManager authMgr = repository.getAuthManager();
             try {
                 if (SVN.checkConnection(rootUrl, authMgr)) {
-                    boolean valid = SVN.list(rootUrl, authMgr).stream().map((entry) -> {
-                        return entry.getName();
-                    }).collect(Collectors.toList()).containsAll(DIRS);
+                    boolean valid = SVN.list(rootUrl, authMgr).stream()
+                            .map(SVNDirEntry::getName)
+                            .collect(Collectors.toList()).containsAll(DIRS);
 
                     if (!valid) {
                         MessageBox.show(MessageType.ERROR,
                                 MessageFormat.format(
-                                        Language.get(Repository.class.getSimpleName(), "error@message"),
+                                        Language.get(Repository.class, "error@message"),
                                         repository.getPID(),
                                         MessageFormat.format(
-                                            Language.get(Repository.class.getSimpleName(), "error@invalid"),
-                                            DIRS.stream().collect(Collectors.joining(", "))
+                                            Language.get(Repository.class, "error@invalid"),
+                                            String.join(", ", DIRS)
                                         )
                                 )
                         );
@@ -130,17 +127,17 @@ public class LoadWC extends EntityCommand<Repository> {
                         return true;
                     }
                 } else {
-                    if (getContext() == null) {
+                    if (getContext().isEmpty()) {
                         Logger.getLogger().warn(
                                 "Repository ''{0}'' not loaded. Reason: {1}", repository, 
-                                Language.get(Repository.class.getSimpleName(), "error@auth", Locale.US)
+                                Language.get(Repository.class, "error@auth", Locale.US)
                         );
                     } else {
                         MessageBox.show(MessageType.WARNING, 
                                 MessageFormat.format(
-                                        Language.get(Repository.class.getSimpleName(), "error@message"),
+                                        Language.get(Repository.class, "error@message"),
                                         repository.getPID(),
-                                        Language.get(Repository.class.getSimpleName(), "error@auth")
+                                        Language.get(Repository.class, "error@auth")
                                 )
                         );
                     }
@@ -153,12 +150,12 @@ public class LoadWC extends EntityCommand<Repository> {
                     Logger.getLogger().warn("Repository ''{0}'' loaded in OFFLINE mode", repository);
                     return true;
                 } else {
-                    if (getContext() == null) {
+                    if (getContext().isEmpty()) {
                         Logger.getLogger().warn("Repository ''{0}'' not loaded. Reason: {1}", repository, e.getErrorMessage().getMessage());
                     } else {
                         MessageBox.show(MessageType.ERROR, 
                                 MessageFormat.format(
-                                        Language.get(Repository.class.getSimpleName(), "error@message"),
+                                        Language.get(Repository.class, "error@message"),
                                         repository.getPID(),
                                         e.getMessage()
                                 )

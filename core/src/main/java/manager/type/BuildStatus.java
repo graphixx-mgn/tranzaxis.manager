@@ -2,7 +2,6 @@ package manager.type;
 
 import codex.editor.AbstractEditor;
 import codex.editor.IEditor;
-import static codex.editor.IEditor.FONT_VALUE;
 import codex.editor.IEditorFactory;
 import codex.editor.PlaceHolder;
 import codex.property.PropertyHolder;
@@ -61,19 +60,17 @@ public final class BuildStatus extends ArrStr {
     
     @Override
     public IEditorFactory editorFactory() {
-        return (PropertyHolder propHolder) -> {
-            return new BuildStatusEditor(propHolder);
-        };
+        return BuildStatusEditor::new;
     }
     
     class StatusHolder extends LinkedList<String> implements Iconified {
 
-        public StatusHolder(Collection<? extends String> c) {
+        StatusHolder(Collection<? extends String> c) {
             super(c);
         }
 
-        public StatusHolder(Long revision, Boolean failed) {
-            super(Arrays.asList(new String[] {revision.toString(), failed ? "1" : "0"}));
+        StatusHolder(Long revision, Boolean failed) {
+            super(Arrays.asList(revision.toString(), failed ? "1" : "0"));
         }
         
         @Override
@@ -90,18 +87,18 @@ public final class BuildStatus extends ArrStr {
     enum StatusIcon implements Iconified {
 
         Fail(
-            Language.get(BuildWC.class.getSimpleName(), "command@fail"), 
+            Language.get(BuildWC.class, "command@fail"),
             ImageUtils.getByPath("/images/svn_erroneous.png")
         ),
         Success(
-            Language.get(BuildWC.class.getSimpleName(), "command@success"), 
+            Language.get(BuildWC.class, "command@success"),
             ImageUtils.getByPath("/images/svn_successful.png"
         ));
         
         private final String    title;
         private final ImageIcon icon;
 
-        private StatusIcon(String title, ImageIcon icon) {
+        StatusIcon(String title, ImageIcon icon) {
             this.title = title;
             this.icon  = icon;
         }
@@ -124,7 +121,7 @@ public final class BuildStatus extends ArrStr {
         private JLabel      iconLabel;
         private PlaceHolder placeHolder;
 
-        public BuildStatusEditor(PropertyHolder propHolder) {
+        BuildStatusEditor(PropertyHolder propHolder) {
             super(propHolder);
         }
 
