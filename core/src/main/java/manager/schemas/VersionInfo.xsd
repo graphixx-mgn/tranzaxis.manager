@@ -34,16 +34,17 @@
         <xs:attribute name="scope" use="required">
             <xs:simpleType>
                 <xs:restriction base="xs:string">
-                    <xs:enumeration value="APP" />
+                    <xs:enumeration value="APP"  />
                     <xs:enumeration value="CORE" />
+                    <xs:enumeration value="API"  />
                 </xs:restriction>
             </xs:simpleType>
         </xs:attribute>
         <xs:attribute name="type" use="required">
             <xs:simpleType>
                 <xs:restriction base="xs:string">
-                    <xs:enumeration value="Bugfix" />
-                    <xs:enumeration value="Change" />
+                    <xs:enumeration value="Bugfix"  />
+                    <xs:enumeration value="Change"  />
                     <xs:enumeration value="Feature" />
                 </xs:restriction>
             </xs:simpleType>

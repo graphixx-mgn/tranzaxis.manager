@@ -70,6 +70,7 @@ class UpgradeDialog extends Dialog {
         Style defStyle  = infoPane.addStyle(Change.Type.CHANGE.toString(),  null);
         Style addStyle  = infoPane.addStyle(Change.Type.FEATURE.toString(), defStyle);
         Style fixStyle  = infoPane.addStyle(Change.Type.BUGFIX.toString(),  defStyle);
+        Style apiStyle  = infoPane.addStyle(Change.Scope.API.toString(),    defStyle);
         Style headStyle = infoPane.addStyle("head", null);
 
         StyleConstants.setFontSize(headStyle, 14);
@@ -77,6 +78,7 @@ class UpgradeDialog extends Dialog {
         StyleConstants.setFontFamily(headStyle, "Arial Black");
         StyleConstants.setForeground(addStyle, Color.decode("#00822C"));
         StyleConstants.setForeground(fixStyle, Color.decode("#FF3333"));
+        StyleConstants.setForeground(apiStyle, Color.decode("#006FC2"));
 
         JScrollPane scrollPane = new JScrollPane();
         scrollPane.setLayout(new ScrollPaneLayout());
@@ -118,7 +120,9 @@ class UpgradeDialog extends Dialog {
                                     String.format("%4s", change.getScope()),
                                     change.getDescription().trim().replaceAll("\\n\\s*", " ")
                             ),
-                            infoPane.getStyle(change.getType().toString())
+                            change.getScope().equals(Change.Scope.API) ?
+                                    infoPane.getStyle(Change.Scope.API.toString()) :
+                                    infoPane.getStyle(change.getType().toString())
                     );
                 }
                 infoDocument.insertString(infoDocument.getLength(), "\n", infoPane.getStyle(Change.Type.CHANGE.toString()));
