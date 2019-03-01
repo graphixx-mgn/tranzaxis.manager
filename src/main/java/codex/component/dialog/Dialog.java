@@ -70,7 +70,7 @@ public class Dialog extends JDialog {
         Default (String iconPath, String titleLocaleKey, int keyCode, int id) {
             this.ID    = id;
             this.icon  = ImageUtils.resize(ImageUtils.getByPath(iconPath), 26, 26);
-            this.title = Language.get("Dialog", titleLocaleKey);
+            this.title = Language.get(Dialog.class, titleLocaleKey);
             this.key   = keyCode;
         }
         

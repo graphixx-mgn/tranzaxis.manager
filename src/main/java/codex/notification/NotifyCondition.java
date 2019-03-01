@@ -10,23 +10,19 @@ import javax.swing.ImageIcon;
 
 public enum NotifyCondition implements Iconified {
     
-    ALWAYS(ImageUtils.resize(ImageUtils.getByPath("/images/lamp.png"), 17, 17), () -> {
-        return true;
-    }),
+    ALWAYS(ImageUtils.resize(ImageUtils.getByPath("/images/lamp.png"), 17, 17), () -> true),
     INACTIVE(ImageUtils.resize(ImageUtils.getByPath("/images/event.png"), 17, 17), () -> {
         Window wnd = FocusManager.getCurrentManager().getActiveWindow();
         return wnd == null || !wnd.isActive();
     }),
-    NEVER(ImageUtils.resize(ImageUtils.getByPath("/images/close.png"), 17, 17), () -> {
-        return false;
-    });
+    NEVER(ImageUtils.resize(ImageUtils.getByPath("/images/close.png"), 17, 17), () -> false);
 
     private final String    title;
     private final ImageIcon icon;
     private final Supplier<Boolean> condition;
 
-    private NotifyCondition(ImageIcon icon, Supplier<Boolean> condition) {
-        this.title = Language.get(NotifyCondition.class.getSimpleName(), name().toLowerCase());
+    NotifyCondition(ImageIcon icon, Supplier<Boolean> condition) {
+        this.title = Language.get(NotifyCondition.class, name().toLowerCase());
         this.icon  = icon;
         this.condition = condition;
     }

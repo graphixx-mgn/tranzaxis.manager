@@ -3,7 +3,6 @@ package codex.unit;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-
 import javax.swing.*;
 import java.util.Locale;
 
@@ -35,11 +34,11 @@ public abstract class AbstractUnit implements Iconified {
 
     @Override
     public ImageIcon getIcon() {
-        return ImageUtils.getByPath(Language.get(getClass().getSimpleName(), "unit.icon", Locale.US));
+        return ImageUtils.getByPath(Language.get(getClass(), "unit.icon", Locale.US));
     }
 
     public String getTitle() {
-        return Language.get(getClass().getSimpleName(), "unit.title");
+        return Language.get(getClass(), "unit.title");
     }
     
 }

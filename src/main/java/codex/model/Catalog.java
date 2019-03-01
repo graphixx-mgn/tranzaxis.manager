@@ -78,7 +78,7 @@ public abstract class Catalog extends Entity {
 
         public LoadChildren(Collection<String> childrenPIDs) {
             super(MessageFormat.format(
-                    Language.get(Catalog.class.getSimpleName(), "task@load"),
+                    Language.get(Catalog.class, "task@load"),
                     Catalog.this.getPathString()
             ));
             this.childrenPIDs = childrenPIDs;

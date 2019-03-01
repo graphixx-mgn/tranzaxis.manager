@@ -15,7 +15,7 @@ public class CommunicationServiceOptions extends CommonServiceOptions {
         super(owner, title);
         
         model.addUserProp(PROP_SHOW_NET_OPS, new Bool(true), false, Access.Select);
-        model.addPropertyGroup(Language.get(CommonServiceOptions.class.getSimpleName(), "debug@options"), PROP_SHOW_NET_OPS);
+        model.addPropertyGroup(Language.get(CommonServiceOptions.class, "debug@options"), PROP_SHOW_NET_OPS);
     }
     
     public final boolean isShowNetOps() {

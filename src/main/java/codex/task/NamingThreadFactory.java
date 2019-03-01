@@ -10,16 +10,13 @@ import java.util.concurrent.ThreadFactory;
  */
 class NamingThreadFactory implements ThreadFactory {
     
-    public  static final String IDLE = Language.get(TaskMonitor.class.getSimpleName(), "idle");
+    public  static final String IDLE = Language.get(TaskMonitor.class, "idle");
     private static final String NAME_FORMAT = "{0}.{1}Thread #{2}: {3}";
             
     private final ThreadPoolKind threadKind;
     private Integer threadCount = 0;
 
-    /**
-     * Конструктор фабрики.
-     * @param namePrefix Начальная часть имени потока.
-     */
+
     NamingThreadFactory(ThreadPoolKind threadKind) {
         this.threadKind = threadKind;
     }

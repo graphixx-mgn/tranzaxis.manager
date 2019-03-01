@@ -67,7 +67,7 @@ public interface IComplexType<T, M extends IMask<T>> extends Serializable {
             @Override
             public Box createEditor() {
                 JTextField textField = new JTextField(MessageFormat.format(
-                        Language.get("IComplexType", "error@noeditor"), 
+                        Language.get(IComplexType.class, "error@noeditor"),
                         propHolder.getPropValue().getClass().getCanonicalName()
                 ));
                 textField.setBorder(new EmptyBorder(0, 3, 0, 3));

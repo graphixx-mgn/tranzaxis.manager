@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 
 /**
  * Класс утилит для работы с локализующими ресурсами.
@@ -13,40 +14,41 @@ import java.util.ResourceBundle;
 public class Language {
     
     public  static final String NOT_FOUND = "<not defined>";
-    private static final Map<String, ResourceBundle> bundles = new HashMap<>();
+    private static final Map<Class, ResourceBundle> bundles = new HashMap<>();
     
     /**
      * Получить строку по ключу. Класс-владелец определяется по стеку вызовов.
      */
     public static String get(String key) {
-        String className = new Exception().getStackTrace()[1].getClassName().replaceAll(".*[\\.\\$](\\w+)", "$1");
-        return get(className, key);
+        List<Class> stack = Caller.getInstance().getClassStack().stream()
+                .filter(aClass -> aClass != Language.class)
+                .collect(Collectors.toList());
+        return getValue(stack.get(0), key, getLocale(), stack.get(0).getClassLoader());
     }
     
     /**
      * Получить строку по имени класса-владельца и ключу.
      */
-    public static String get(String className, String key) {
+    public static String get(Class callerClass, String key) {
+        return getValue(callerClass, key, getLocale(), callerClass.getClassLoader());
+    }
+    
+    public static String get(Class callerClass, String key, Locale locale) {
+        return getValue(callerClass, key, locale, callerClass.getClassLoader());
+    }
+
+    private static String getValue(Class callerClass, String key, Locale locale, ClassLoader classLoader) {
         ResourceBundle bundle;
-        if (bundles.containsKey(className)) {
-            bundle = bundles.get(className);
+        if (bundles.containsKey(callerClass)) {
+            bundle = bundles.get(callerClass);
         } else {
-            if (ClassLoader.getSystemClassLoader().getResource("locale/"+className+"_"+getLocale().toString()+".properties") != null) {
-                bundle = ResourceBundle.getBundle("locale/"+className, getLocale());
-                bundles.put(className, bundle);
+            String className = callerClass.getSimpleName().replaceAll(".*[\\.\\$](\\w+)", "$1");
+            if (classLoader.getResource("locale/"+className+"_"+locale.toString()+".properties") != null) {
+                bundle = ResourceBundle.getBundle("locale/"+className, locale, classLoader);
+                bundles.put(callerClass, bundle);
             } else {
                 return NOT_FOUND;
             }
-        }
-        return bundle.containsKey(key) ? bundle.getString(key) : NOT_FOUND;
-    }
-    
-    public static String get(String className, String key, Locale locale) {
-        ResourceBundle bundle;
-        if (ClassLoader.getSystemClassLoader().getResource("locale/"+className+"_"+(locale == null ? getLocale(): locale).toString()+".properties") != null) {
-            bundle = ResourceBundle.getBundle("locale/"+className, locale == null ? getLocale(): locale);
-        } else {
-            return NOT_FOUND;
         }
         return bundle.containsKey(key) ? bundle.getString(key) : NOT_FOUND;
     }
@@ -55,19 +57,28 @@ public class Language {
      * Поиск строки в списке классов. Используется для загрузки названий и описаний
      * свойств {@link PropertyHolder}.
      */
-    public static String lookup(List<String> classNames, String key) {
+    public static String lookup(String key) {
         if (key == null) {
             return NOT_FOUND;
-        }
-        for (String className : classNames) {
-            if (bundles.containsKey(className) && bundles.get(className).containsKey(key)) {
-                return bundles.get(className).getString(key);
-            } else if (ClassLoader.getSystemClassLoader().getResource("locale/"+className+"_"+getLocale().toString()+".properties") != null) {
-                ResourceBundle bundle = ResourceBundle.getBundle("locale/"+className, getLocale());
-                if (bundle.containsKey(key)) {
-                    bundles.put(className, bundle);
-                    return bundles.get(className).getString(key);
+        } else {
+            List<Class> stack = Caller.getInstance().getClassStack().stream()
+                    .filter(aClass -> aClass != Language.class)
+                    .collect(Collectors.toList());
+            try {
+                for (Class callerClass : stack) {
+                    String className = callerClass.getSimpleName().replaceAll(".*[\\.\\$](\\w+)", "$1");
+                    if (bundles.containsKey(callerClass) && bundles.get(callerClass).containsKey(key)) {
+                        return bundles.get(callerClass).getString(key);
+                    } else if (callerClass.getClassLoader() != null && callerClass.getClassLoader().getResource("locale/" + className + "_" + getLocale().toString() + ".properties") != null) {
+                        ResourceBundle bundle = ResourceBundle.getBundle("locale/" + className, getLocale(), callerClass.getClassLoader());
+                        if (bundle.containsKey(key)) {
+                            bundles.put(callerClass, bundle);
+                            return bundles.get(callerClass).getString(key);
+                        }
+                    }
                 }
+            } catch (Throwable e) {
+                e.printStackTrace();
             }
         }
         return NOT_FOUND;

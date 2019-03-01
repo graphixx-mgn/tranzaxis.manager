@@ -7,10 +7,8 @@ import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.utils.Language;
 import java.text.MessageFormat;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /** 
  * Класс реализует модель свойства сущности {@link AbstractModel}.
@@ -37,11 +35,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
      * @param require Свойство обязательно должно иметь значение.
      */
     public PropertyHolder(String name, IComplexType<V, ?> value, boolean require) {
-        this(getOwners(), name, value, require);
-    }
-    
-    private PropertyHolder(List<String> callers, String name, IComplexType<V, ?> value, boolean require) {
-        this(name, Language.lookup(callers, name+".title"), Language.lookup(callers, name+".desc"), value, require);
+        this(name, Language.lookup(name+".title"), Language.lookup(name+".desc"), value, require);
     }
     
     /**
@@ -64,8 +58,8 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
         this.require = require;
         this.value   = value;
         
-        String propPlaceHolder = Language.lookup(getOwners(), name+".placeholder");
-        String typePlaceHolder = Language.lookup(getTypes(getType()), "placeholder");
+        String propPlaceHolder = Language.lookup(/*getOwners(), */name+".placeholder");
+        String typePlaceHolder = Language.lookup(/*getTypes(getType()), */"placeholder");
         
         this.placeholder = 
                 Language.NOT_FOUND.equals(propPlaceHolder) ? (
@@ -176,7 +170,6 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
      * Установить свойство для наследования значения.
      */
     public void setInherited(PropertyHolder propHolder) {
-        V prevValue = getPropValue().getValue();
         inherit = propHolder;
     }
     
@@ -268,22 +261,6 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
         } else {
             return getPropValue().getValue().toString();
         }
-    }
-    
-    /**
-     * Формирует восходящий список классов по стеку вызовов.
-     * Используется для поиска локализованных строк методом {@link Language#lookup}.
-     */
-    private static List<String> getOwners() {
-        return Arrays.asList(new Exception().getStackTrace())
-                .stream()
-                .map((stackItem) -> {
-                    return stackItem.getClassName().replaceAll(".*[\\.$](\\w+)", "$1");
-                })
-                .filter((className) -> {
-                    return !className.equals(PropertyHolder.class.getSimpleName());
-                })
-                .collect(Collectors.toList());
     }
     
     private static List<String> getTypes(Class type) {

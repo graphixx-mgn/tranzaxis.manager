@@ -98,9 +98,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         EditEntity editEntity = new EditEntity();
         systemCommands.add(editEntity);
         if (entity.allowModifyChild()) {
-            CreateEntity createEntity = new CreateEntity();
-            createEntity.setContext(entity);
-            systemCommands.add(createEntity);
+            systemCommands.add(new CreateEntity());
 
             systemCommands.add(new CloneEntity());
             systemCommands.add(new DeleteEntity());
@@ -224,6 +222,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 context.forEach((contextItem) -> contextItem.removeNodeListener(this));
                 command.setContext(context);
                 context.forEach((contextItem) -> contextItem.addNodeListener(this));
+            } else {
+                command.setContext(entity);
             }
         });
     }
@@ -246,7 +246,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             super(
                     "create", null,
                     IMAGE_CREATE, 
-                    Language.get(SelectorPresentation.class.getSimpleName(), "command@create"),
+                    Language.get(SelectorPresentation.class, "command@create"),
                     null,
                     KeyStroke.getKeyStroke(KeyEvent.VK_ADD, InputEvent.CTRL_MASK)
             );
@@ -289,14 +289,14 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
                     ImageUtils.getByPath("/images/plus.png"),
-                    Language.get(SelectorPresentation.class.getSimpleName(), "creator@title"),
+                    Language.get(SelectorPresentation.class, "creator@title"),
                     new JPanel(new BorderLayout()) {{
                         add(newEntity.getEditorPage());
                         setBorder(new CompoundBorder(
                                 new EmptyBorder(10, 5, 5, 5),
                                 new TitledBorder(
                                         new LineBorder(Color.LIGHT_GRAY, 1),
-                                        Language.get(SelectorPresentation.class.getSimpleName(), "creator@desc")
+                                        Language.get(SelectorPresentation.class, "creator@desc")
                                 )
                         ));
                     }},
@@ -391,7 +391,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             super(
                     "clone", null,
                     IMAGE_CLONE, 
-                    Language.get(SelectorPresentation.class.getSimpleName(), "command@clone"),
+                    Language.get(SelectorPresentation.class, "command@clone"),
                     (entity) -> true,
                     KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_MASK)
             );
@@ -444,14 +444,14 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
                     ImageUtils.getByPath("/images/clone.png"),
-                    Language.get(SelectorPresentation.class.getSimpleName(), "copier@title"),
+                    Language.get(SelectorPresentation.class, "copier@title"),
                     new JPanel(new BorderLayout()) {{
                         add(newEntity.getEditorPage());
                         setBorder(new CompoundBorder(
                                 new EmptyBorder(10, 5, 5, 5),
                                 new TitledBorder(
                                         new LineBorder(Color.LIGHT_GRAY, 1),
-                                        Language.get(SelectorPresentation.class.getSimpleName(), "copier@desc")
+                                        Language.get(SelectorPresentation.class, "copier@desc")
                                 )
                         ));
                     }},
@@ -546,7 +546,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             super(
                     "edit", null,
                     IMAGE_EDIT, 
-                    Language.get(SelectorPresentation.class.getSimpleName(), "command@edit"),
+                    Language.get(SelectorPresentation.class, "command@edit"),
                     (entity) -> true
             );
             activator = entities -> {
@@ -571,10 +571,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
                     allDisabled ? IMAGE_VIEW : IMAGE_EDIT,
-                    Language.get(
-                            SelectorPresentation.class.getSimpleName(),
-                            allDisabled ? "viewer@title" : "editor@title"
-                    ),
+                    Language.get(SelectorPresentation.class, allDisabled ? "viewer@title" : "editor@title"),
                     new JPanel(new BorderLayout()) {{
                         add(context.getEditorPage());
                         setBorder(new CompoundBorder(
@@ -648,7 +645,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             super(
                     "delete", null,
                     IMAGE_REMOVE, 
-                    Language.get(SelectorPresentation.class.getSimpleName(), "command@delete"),
+                    Language.get(SelectorPresentation.class, "command@delete"),
                     (entity) -> true,
                     KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0)
             );
@@ -659,18 +656,12 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             String message;
             if (getContext().size() == 1) {
                 message = MessageFormat.format(
-                        Language.get(
-                                SelectorPresentation.class.getSimpleName(),
-                                "confirm@del.single"
-                        ),
+                        Language.get(SelectorPresentation.class, "confirm@del.single"),
                         getContext().get(0)
                 );
             } else {
                 StringBuilder msgBuilder = new StringBuilder(
-                        Language.get(
-                                SelectorPresentation.class.getSimpleName(),
-                                "confirm@del.range"
-                        )
+                        Language.get(SelectorPresentation.class, "confirm@del.range")
                 );
                 getContext().forEach((entity) -> {
                     msgBuilder.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(entity.toString());

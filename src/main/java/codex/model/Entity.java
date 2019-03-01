@@ -58,9 +58,9 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     public Entity(EntityRef owner, ImageIcon icon, String title, String hint) {
         String PID = null;
         if (title != null) {
-            String name = Language.get(this.getClass().getSimpleName(), title, new java.util.Locale("en", "US"));
+            String name = Language.get(this.getClass(), title, new java.util.Locale("en", "US"));
             PID  = name.equals(Language.NOT_FOUND) ? title : name;
-            String localTitle = Language.get(this.getClass().getSimpleName(), title);
+            String localTitle = Language.get(this.getClass(), title);
             this.title = localTitle.equals(Language.NOT_FOUND) ? PID : localTitle;
         }
         this.icon  = icon;

@@ -54,7 +54,7 @@ import javax.swing.event.DocumentListener;
 public class ShortcutSection extends Entity implements IModelListener {
     
     private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
-    final static String DEFAULT = Language.get(ShortcutSection.class.getSimpleName(), "default", Locale.US);
+    final static String DEFAULT = Language.get(ShortcutSection.class, "default", Locale.US);
     
     private JPanel view;
 

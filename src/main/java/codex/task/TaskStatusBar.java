@@ -33,8 +33,8 @@ import org.bridj.jawt.JAWTUtils;
  */
 final class TaskStatusBar extends JPanel implements ITaskListener {
     
-    private final String PATTERN_NORMAL = Language.get("TaskStatus", "total@normal");
-    private final String PATTERN_ERRORS = Language.get("TaskStatus", "total@errors");
+    private final String PATTERN_NORMAL = Language.get(Status.class, "total@normal");
+    private final String PATTERN_ERRORS = Language.get(Status.class, "total@errors");
     
     private final JLabel       status;
     private final JProgressBar progress;

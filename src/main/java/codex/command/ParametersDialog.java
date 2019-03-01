@@ -36,11 +36,11 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
      * @param command Ссылка на команду.
      * @param paramProps Поставщик, подготавливающий массив свойств для редактора.
      */
-    public ParametersDialog(EntityCommand command, Supplier<PropertyHolder[]> paramProps) {
+    ParametersDialog(EntityCommand command, Supplier<PropertyHolder[]> paramProps) {
         dialog = new Dialog(
                 FocusManager.getCurrentManager().getActiveWindow(),
                 ImageUtils.getByPath("/images/param.png"),
-                Language.get(EntityCommand.class.getSimpleName(), "params@title"),
+                Language.get(EntityCommand.class, "params@title"),
                 new JPanel(),
                 (event) -> {
                     if (event.getID() == Dialog.OK) {

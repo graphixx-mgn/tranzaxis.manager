@@ -55,7 +55,7 @@ public class InstanceUnit extends AbstractUnit {
             
             Navigator navigator  = (Navigator) navigatorField.get(explorer);
             navigator.setModel(instancesTree);
-        } catch (Exception e) {}
+        } catch (Exception e) {/**/}
         
         ICS.getInstances().forEach((instance) -> {
             INode root = (INode) instancesTree.getRoot();
@@ -97,7 +97,7 @@ public class InstanceUnit extends AbstractUnit {
             JPanel panel = new JPanel();
             panel.setLayout(new GridBagLayout());
             panel.add(new JLabel(
-                    Language.get(InstanceUnit.class.getSimpleName(), "error@notstarted"),
+                    Language.get(InstanceUnit.class, "error@notstarted"),
                     ICON_ERROR, SwingConstants.CENTER));
             return panel;
         }
@@ -110,9 +110,9 @@ public class InstanceUnit extends AbstractUnit {
     }
     
     private List<RemoteHost> getViews() {
-        return ((INode) instancesTree.getRoot()).childrenList().stream().map((node) -> {
-            return (RemoteHost) node;
-        }).collect(Collectors.toList());
+        return ((INode) instancesTree.getRoot()).childrenList().stream()
+                .map((node) -> (RemoteHost) node)
+                .collect(Collectors.toList());
     }
     
 }

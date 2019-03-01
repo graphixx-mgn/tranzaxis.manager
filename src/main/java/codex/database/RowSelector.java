@@ -206,7 +206,7 @@ public class RowSelector implements IDataSupplier<String> {
 
                             PropertyHolder lookupHolder = new PropertyHolder(
                                     "filter", null, 
-                                    Language.get(RowSelector.class.getSimpleName(), "filter"), 
+                                    Language.get(RowSelector.class, "filter"),
                                     new Str(null), false
                             );
                             lookupEditor = new StrEditor(lookupHolder);

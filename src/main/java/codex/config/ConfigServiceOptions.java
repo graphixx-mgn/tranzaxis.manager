@@ -23,7 +23,7 @@ public class ConfigServiceOptions extends CommonServiceOptions {
             return System.getProperty("user.home")+ConfigServiceOptions.this.getService().getOption("file");
         });
         model.addUserProp(PROP_SHOW_SQL,   new Bool(true), false, Access.Select);
-        model.addPropertyGroup(Language.get(CommonServiceOptions.class.getSimpleName(), "debug@options"), PROP_SHOW_SQL);
+        model.addPropertyGroup(Language.get(CommonServiceOptions.class, "debug@options"), PROP_SHOW_SQL);
     }
     
     public final boolean isShowSQL() {

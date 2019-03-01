@@ -4,6 +4,8 @@ import codex.editor.IEditorFactory;
 import codex.editor.AnyTypeView;
 import codex.mask.IMask;
 
+import java.text.MessageFormat;
+
 /**
  * Тип-обертка {@link IComplexType} для класса {@link Object}.
  */
@@ -33,6 +35,6 @@ public class AnyType implements IComplexType<Object, IMask<Object>> {
 
     @Override
     public String getQualifiedValue(Object val) {
-        return null;
+        return val == null ? "<NULL>" : MessageFormat.format("\"{0}\"", val);
     }
 }

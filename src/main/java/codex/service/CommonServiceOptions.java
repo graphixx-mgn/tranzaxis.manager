@@ -106,9 +106,9 @@ public class CommonServiceOptions extends Catalog {
         public StartService() {
             super(
                     "start", 
-                    Language.get("CommonServiceOptions", "start@title"), 
+                    Language.get(CommonServiceOptions.class, "start@title"),
                     ImageUtils.resize(ICON_STARTED, 28, 28), 
-                    Language.get("CommonServiceOptions", "start@title"), 
+                    Language.get(CommonServiceOptions.class, "start@title"),
                     (control) -> {
                         return control.getService().isStoppable() && !control.isStarted();
                     }
@@ -127,9 +127,9 @@ public class CommonServiceOptions extends Catalog {
         public StopService() {
             super(
                     "stop", 
-                    Language.get("CommonServiceOptions", "stop@title"), 
+                    Language.get(CommonServiceOptions.class, "stop@title"),
                     ImageUtils.resize(ICON_STOPPED, 28, 28), 
-                    Language.get("CommonServiceOptions", "stop@title"), 
+                    Language.get(CommonServiceOptions.class, "stop@title"),
                     (control) -> {
                         return control.getService().isStoppable() && control.isStarted();
                     }

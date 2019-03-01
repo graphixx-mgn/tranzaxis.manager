@@ -56,7 +56,7 @@ class CreateSection extends EntityCommand<Entity> {
                 new EmptyBorder(10, 5, 5, 5),
                 new TitledBorder(
                         new LineBorder(Color.LIGHT_GRAY, 1),
-                        Language.get(SelectorPresentation.class.getSimpleName(), "creator@desc")
+                        Language.get(SelectorPresentation.class, "creator@desc")
                 )
         ));
         

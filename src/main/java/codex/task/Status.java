@@ -38,10 +38,10 @@ public enum Status implements Iconified {
     private final ImageIcon icon;
     private final String    desc;
     
-    private Status(String title, ImageIcon icon) {
+    Status(String title, ImageIcon icon) {
         this.title = title;
         this.icon  = icon;
-        this.desc  = Language.get("TaskStatus", title.toLowerCase());
+        this.desc  = Language.get(title.toLowerCase());
     }
     
     @Override

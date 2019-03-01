@@ -15,7 +15,7 @@ public class Localhost extends Catalog {
     private static final ImageIcon ICON_LOCAL = ImageUtils.getByPath("/images/localhost.png");
     
     public Localhost() {
-        super(null, ICON_LOCAL, Language.get(InstanceUnit.class.getSimpleName(), "this.instance"), null);
+        super(null, ICON_LOCAL, Language.get(InstanceUnit.class, "this.instance"), null);
     }
 
     @Override

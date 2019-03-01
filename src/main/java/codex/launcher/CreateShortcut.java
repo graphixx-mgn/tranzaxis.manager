@@ -232,7 +232,7 @@ class CreateShortcut extends EntityCommand<Entity> {
         private AddSection() {
             super(
                     ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 18, 18),
-                    Language.get(CreateSection.class.getSimpleName(),"title")
+                    Language.get(CreateSection.class,"title")
             );
         }
 

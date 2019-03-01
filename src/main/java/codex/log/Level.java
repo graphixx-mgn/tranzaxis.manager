@@ -15,9 +15,9 @@ public enum Level implements Iconified {
     private final ImageIcon icon;
     final org.apache.log4j.Level log4jLevel;
     
-    private Level(org.apache.log4j.Level level, ImageIcon icon) {
+    Level(org.apache.log4j.Level level, ImageIcon icon) {
         this.log4jLevel = level;
-        this.title = Language.get(LogUnit.class.getSimpleName(), "level@"+level.toString().toLowerCase()+".title", Language.getLocale());
+        this.title = Language.get(LogUnit.class, "level@"+level.toString().toLowerCase()+".title", Language.getLocale());
         this.icon  = icon;
     }
     

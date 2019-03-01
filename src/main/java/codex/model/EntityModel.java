@@ -945,10 +945,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     
     private final class UniqueMask implements IMask<String> {
         
-        private final String ERROR = Language.get(
-                SelectorPresentation.class.getSimpleName(), 
-                "creator@pid.hint"
-        );
+        private final String ERROR = Language.get(SelectorPresentation.class, "creator@pid.hint");
         private final String propName;
         
         UniqueMask(String propName) {

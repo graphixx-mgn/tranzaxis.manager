@@ -22,7 +22,7 @@ class CommitEntity extends EntityCommand<Entity> {
         super(
                 "commit", null,
                 ImageUtils.resize(ImageUtils.getByPath("/images/save.png"), 28, 28), 
-                Language.get(EditorPresentation.class.getSimpleName(), "command@commit"),
+                Language.get(EditorPresentation.class, "command@commit"),
                 (entity) -> entity.model.hasChanges(),
                 KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_MASK)
         );

@@ -1,53 +1,25 @@
 package codex.task;
 
 import codex.component.panel.ScrollablePanel;
-import codex.component.render.GeneralRenderer;
-import codex.editor.IEditor;
 import codex.notification.INotificationService;
 import codex.notification.NotificationService;
 import codex.notification.NotifyCondition;
 import codex.service.ServiceRegistry;
-import codex.type.Str;
-import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Insets;
-import java.awt.Point;
-import java.awt.TrayIcon;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.text.MessageFormat;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.FocusManager;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JProgressBar;
-import javax.swing.JScrollPane;
-import javax.swing.JTabbedPane;
-import javax.swing.JTable;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
-import javax.swing.plaf.basic.BasicProgressBarUI;
-import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 /**
  * Монитор исполнения задач. Popup окно, появляющееся при нажатии на панель задач 
@@ -184,10 +156,7 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
     @Override
     public void statusChanged(ITask task, Status status) {
         if (task.getStatus() == Status.FAILED || task.getStatus() == Status.FINISHED) {
-            String msgTitle = Language.get(
-                    TaskMonitor.class.getSimpleName(),
-                    "notify@"+task.getStatus().name().toLowerCase()
-            );
+            String msgTitle = Language.get(TaskMonitor.class,"notify@"+task.getStatus().name().toLowerCase());
             ((INotificationService) ServiceRegistry.getInstance().lookupService(NotificationService.class)).showMessage(
                     NS_SOURCE,
                     msgTitle, 
