@@ -25,7 +25,7 @@ import java.util.function.Supplier;
  * Используется для возможности производить различные действия над сущностью.
  * @param <V> Класс {@link Entity} или один из его производных.
  */
-public abstract class EntityCommand<V extends Entity> implements ICommand<V, List<V>>, IModelListener, Iconified {
+public abstract class EntityCommand<V extends Entity> implements ICommand<V, List<V>>, Iconified {
     
     private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
     
@@ -71,6 +71,24 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
               ) &&
               entities.stream().noneMatch(AbstractNode::islocked)
     );
+
+    private final IModelListener modelListener = new IModelListener() {
+        @Override
+        public void modelChanged(EntityModel model, List<String> changes) {
+            activate();
+        }
+
+        @Override
+        public void modelSaved(EntityModel model, List<String> changes) {
+            activate();
+        }
+
+        @Override
+        public void modelRestored(EntityModel model, List<String> changes) {
+            activate();
+        }
+    };
+
     
     /**
      * Конструктор экземпляра команды.
@@ -104,7 +122,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
         this.available = available;
         
         if (title != null) {
-            String localTitle = Language.get(this.getClass().getSimpleName(), title);
+            String localTitle = Language.get(this.getClass(), title);
             this.title = localTitle.equals(Language.NOT_FOUND) ? title : localTitle;
         } else {
             this.title = Language.NOT_FOUND;
@@ -174,10 +192,10 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
 
     @Override
     public final void setContext(List<V> context) {
-        this.context.forEach((contextItem) -> contextItem.model.removeModelListener(this));
+        this.context.forEach((contextItem) -> contextItem.model.removeModelListener(modelListener));
         this.context = context;
         new LinkedList<>(listeners).forEach((listener) -> listener.contextChanged(context));
-        this.context.forEach((contextItem) -> contextItem.model.addModelListener(this));
+        this.context.forEach((contextItem) -> contextItem.model.addModelListener(modelListener));
         activate();
     }
     
@@ -281,21 +299,6 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
         } else {
             TES.enqueueTask(task);
         }
-    }
-
-    @Override
-    public void modelChanged(EntityModel model, List<String> changes) {
-        activate();
-    }
-
-    @Override
-    public void modelRestored(EntityModel model, List<String> changes) {
-        activate();
-    }
-
-    @Override
-    public void modelSaved(EntityModel model, List<String> changes) {
-        activate();
     }
 
     @Override
