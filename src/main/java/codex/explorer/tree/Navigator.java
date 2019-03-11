@@ -146,7 +146,7 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
 
     @Override
     public void childDeleted(INode parentNode, INode childNode, int index) {
-        if (path.getLastPathComponent().equals(childNode)) {
+        if (path != null && path.getLastPathComponent() != null && path.getLastPathComponent().equals(childNode)) {
             TreePath parentPath = path.getParentPath();
             while (
                     !parentPath.getLastPathComponent().equals(getModel().getRoot()) &&
