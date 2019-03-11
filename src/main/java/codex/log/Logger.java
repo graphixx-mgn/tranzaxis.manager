@@ -6,6 +6,8 @@ import codex.notification.INotificationService;
 import codex.notification.NotificationService;
 import codex.service.ServiceRegistry;
 import java.awt.TrayIcon;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.MessageFormat;
 import java.util.EnumSet;
 import java.util.stream.Collectors;
@@ -181,13 +183,9 @@ public class Logger extends org.apache.log4j.Logger implements Thread.UncaughtEx
     }
     
     public static String stackTraceToString(Throwable exception) {
-        return exception.toString().concat("\n\t").concat(String.join(
-                "\n\t", 
-                Stream.of(exception.getStackTrace())
-                .map((stackElement) -> {
-                    return stackElement.toString();
-                }).collect(Collectors.toList())
-        ));
+        StringWriter sw = new StringWriter();
+        exception.printStackTrace(new PrintWriter(sw));
+        return exception.toString().concat("\n\t").concat(sw.toString());
     }
     
     private String offset(String message) {
