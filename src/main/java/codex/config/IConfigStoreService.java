@@ -26,7 +26,7 @@ public interface IConfigStoreService extends IService {
      */
     default Map<String, Integer> initClassInstance(Class clazz, String PID, Map<String, IComplexType> propDefinition, Integer ownerId) throws Exception {
         return null;
-    };
+    }
     
     /**
      * Сохранить свойства сущности в каталог. 
@@ -62,7 +62,7 @@ public interface IConfigStoreService extends IService {
      */
     default Map<String, String> readClassInstance(Class clazz, Integer ID) {
         return new HashMap<>();
-    };
+    }
     
     /**Получить список значений свойств сущности.
      * @param clazz Класс сущности.
@@ -71,7 +71,7 @@ public interface IConfigStoreService extends IService {
      */
     default Map<String, String> readClassInstance(Class clazz, String PID, Integer ownerId) {
         return new HashMap<>();
-    };
+    }
     
     /**
      * Получить список (ID, PID) всех записей каталога.
@@ -80,7 +80,7 @@ public interface IConfigStoreService extends IService {
      */
     default Map<Integer, String> readCatalogEntries(Integer ownerId, Class clazz) {
         return new LinkedHashMap<>();
-    };
+    }
     
     /**
      * Удалить запись в каталоге по её уникальному ключу.
@@ -88,7 +88,7 @@ public interface IConfigStoreService extends IService {
      * @param ID Уникальный числовой идентификатор сущности.
      * @throws Exception
      */
-    default void removeClassInstance(Class clazz, Integer ID) throws Exception {};
+    default void removeClassInstance(Class clazz, Integer ID) throws Exception {}
 
     /**
      * Поиск ссылок на сущность
@@ -106,14 +106,14 @@ public interface IConfigStoreService extends IService {
      * @param newProperties Список новых колонок
      * @throws Exception
      */
-    default public void maintainClassCatalog(Class clazz, List<String> unusedProperties, Map<String, IComplexType> newProperties) throws Exception {}
+    default void maintainClassCatalog(Class clazz, List<String> unusedProperties, Map<String, IComplexType> newProperties) throws Exception {}
     
     /**
      * Получение класса владельца сущности
      * @param clazz Класс сущности
      * @throws Exception
      */
-    default public Class getOwnerClass(Class clazz) throws Exception {
+    default Class getOwnerClass(Class clazz) throws Exception {
         return null;
     }
     
@@ -125,7 +125,7 @@ public interface IConfigStoreService extends IService {
     /**
      * Класс содержащий основную информацию о ссылке.
      */
-    public class ForeignLink { 
+    class ForeignLink {
         /**
          * Класс сущности.
          */
@@ -150,7 +150,7 @@ public interface IConfigStoreService extends IService {
          * @param entryPID Наименование сущности.
          * @param incoming Признак входящей ссылки.
          */
-        public ForeignLink(String  entryClass, Integer entryID, String entryPID, boolean incoming) {
+        ForeignLink(String  entryClass, Integer entryID, String entryPID, boolean incoming) {
             this.entryClass = entryClass;
             this.entryID    = entryID;
             this.entryPID   = entryPID;

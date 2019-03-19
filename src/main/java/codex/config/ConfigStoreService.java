@@ -1,10 +1,8 @@
 package codex.config;
 
 import codex.database.IDatabaseAccessService;
-import codex.log.LogManagementService;
 import codex.log.Logger;
 import codex.service.AbstractService;
-import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import java.io.File;
@@ -18,14 +16,7 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.sqlite.JDBC;
 import org.sqlite.core.Codes;
@@ -35,8 +26,7 @@ import org.sqlite.core.Codes;
  * SQLite.
  */
 public final class ConfigStoreService extends AbstractService<ConfigServiceOptions> implements IConfigStoreService {
-    
-    private final File configFile;
+
     private Connection connection;
     private final Map<String, TableInfo> tableRegistry = new HashMap<>();
 
@@ -44,21 +34,18 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
      * Конструктор сервиса.
      */
     public ConfigStoreService() {
-        this.configFile = new File(System.getProperty("user.home")+getOption("file"));
-        if (!this.configFile.exists()) {
-            this.configFile.getParentFile().mkdirs();
+        File configFile = new File(System.getProperty("user.home") + getOption("file"));
+        if (!configFile.exists()) {
+            configFile.getParentFile().mkdirs();
         }
 
         try {
             DriverManager.registerDriver(new JDBC());
-            connection = DriverManager.getConnection("jdbc:sqlite:"+configFile.getPath());       
+            connection = DriverManager.getConnection("jdbc:sqlite:"+ configFile.getPath());
             connection.createStatement().executeUpdate("PRAGMA foreign_keys = ON");
             if (connection != null) {
                 final DatabaseMetaData meta = connection.getMetaData();
-                List<String> sysTables = new ArrayList(){{
-                    add("sqlite_master");
-                    add("sqlite_sequence");
-                }};
+                List<String> sysTables = Arrays.asList("sqlite_master", "sqlite_sequence");
                 
                 try (ResultSet rs = meta.getTables(null, null, "%", new String[] { "TABLE" })) {
                     while (rs.next()) {
@@ -100,14 +87,16 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         return false;
     }
     
-    public boolean isShowSql() {
+    private boolean isShowSql() {
         return getConfig().isShowSQL();
     }
     
     private synchronized void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {
         final String className = clazz.getSimpleName().toUpperCase();
-        
-        Map<String, String> columns = new LinkedHashMap() {{
+
+
+
+        Map<String, String> columns = new LinkedHashMap<String, String>() {{
             put("ID",  "INTEGER PRIMARY KEY AUTOINCREMENT");
             put("SEQ", "INTEGER NOT NULL");
             put("PID", "TEXT NOT NULL");
@@ -121,20 +110,15 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         }
         String nameFormat = "%-".concat(
                 Integer.toString(
-                        columns.keySet().stream()
-                            .mapToInt((columnName) -> {
-                                return columnName.length();
-                        }).max().getAsInt()
+                        columns.keySet().stream().mapToInt(String::length).max().orElse(0)
                 ).concat("s ")
         );
         String createSQL = MessageFormat.format(
                     "CREATE TABLE IF NOT EXISTS {0} (\n\t{1}\n);",
                     className,
-                    String.join(",\n\t", columns.entrySet().stream()
-                        .map((entry) -> {
-                            return String.format(nameFormat, entry.getKey()).concat(entry.getValue());
-                        }).collect(Collectors.toList())
-                    )
+                    columns.entrySet().stream()
+                            .map((entry) -> String.format(nameFormat, entry.getKey()).concat(entry.getValue()))
+                            .collect(Collectors.joining(",\n\t"))
             );
         String indexSQL = MessageFormat.format(
                 "CREATE UNIQUE INDEX IF NOT EXISTS IDX_{0}_PID_OWN ON {0} (PID, OWN)",
@@ -179,9 +163,8 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                     clazz.getCanonicalName(), 
                     className, 
                     tableRegistry.get(className).columnInfos.stream()
-                            .map((columnInfo) -> {
-                                return columnInfo.name;
-                            }).collect(Collectors.joining(",")),
+                            .map((columnInfo) -> columnInfo.name)
+                            .collect(Collectors.joining(",")),
                     isShowSql() ? "\n".concat(tableRegistry.get(className).toString()) : ""
             ));
             connection.releaseSavepoint(savepoint);
@@ -210,31 +193,28 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                         return 
                                 entry.getValue() instanceof EntityRef &&
                                 ((EntityRef) entry.getValue()).getEntityClass() != null &&
-                                !tableRegistry.get(className).refInfos.stream().anyMatch((refInfo) -> {
-                                    return refInfo.fkColumn.equals(entry.getKey());
-                                });
+                                tableRegistry.get(className).refInfos.stream()
+                                        .noneMatch((refInfo) -> refInfo.fkColumn.equals(entry.getKey()));
                     }).collect(Collectors.toMap(
-                            (entry) -> entry.getKey(), 
-                            (entry) -> entry.getValue()
+                            Map.Entry::getKey,
+                            Map.Entry::getValue
                     ));
             List<String> deleteProps = tableRegistry.get(className).columnInfos.stream()
                     .filter((columnInfo) -> {
                         return 
                                 !propDefinition.keySet().contains(columnInfo.name) ||
                                 invalidReferencies.keySet().contains(columnInfo.name);
-                    }).map((columnInfo) -> {
-                        return columnInfo.name;
-                    }).collect(Collectors.toList());
+                    })
+                    .map((columnInfo) -> columnInfo.name)
+                    .collect(Collectors.toList());
             Map<String, IComplexType> addedProps = propDefinition.entrySet().stream()
                     .filter((entry) -> {
                         return 
                                 invalidReferencies.keySet().contains(entry.getKey()) ||
-                                !tableRegistry.get(className).columnInfos.stream().anyMatch((columnInfo) -> {
-                                    return columnInfo.name.equals(entry.getKey());
-                                });
+                                tableRegistry.get(className).columnInfos.stream().noneMatch((columnInfo) -> columnInfo.name.equals(entry.getKey()));
                     }).collect(Collectors.toMap(
-                            (entry) -> entry.getKey(), 
-                            (entry) -> entry.getValue()
+                            Map.Entry::getKey,
+                            Map.Entry::getValue
                     ));
             if (!deleteProps.isEmpty() || !addedProps.keySet().isEmpty()) {
                 maintainClassCatalog(clazz, deleteProps, addedProps);
@@ -321,7 +301,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             try (
                 PreparedStatement update = connection.prepareStatement(updateSQL);
             ) {
-                List keys = new ArrayList(properties.keySet());
+                List<String> keys = new ArrayList<>(properties.keySet());
                 for (Map.Entry<String, IComplexType> entry : properties.entrySet()) {
                     update.setString(
                             keys.indexOf(entry.getKey())+1, 
@@ -419,7 +399,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     
     @Override
     public Map<Integer, String> readCatalogEntries(Integer ownerId, Class clazz) { 
-        Map rows = new LinkedHashMap();
+        Map<Integer, String> rows = new LinkedHashMap<>();
         final String className = clazz.getSimpleName().toUpperCase();
         if (tableRegistry.containsKey(className)) {
             final String selectSQL;
@@ -445,7 +425,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             }
         }
         return rows;
-    };
+    }
     
     @Override
     public List<ForeignLink> findReferencedEntries(Class clazz, Integer ID) {        
@@ -462,11 +442,9 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                                 });
                 }).forEach((tableInfo) -> {
                     String fkColumnName = tableInfo.refInfos.stream()
-                            .filter((refInfo) -> {
-                                return refInfo.pkTable.equals(className);
-                            }).map((refInfo) -> {
-                                return refInfo.fkColumn;
-                            }).findFirst().get();
+                            .filter((refInfo) -> refInfo.pkTable.equals(className))
+                            .map((refInfo) -> refInfo.fkColumn).findFirst()
+                            .get();
                     
                     String selectSQL = MessageFormat.format(
                             "SELECT TABLE_CLASS, ID, PID FROM {0}, CLASSDEF WHERE {1} = ? AND TABLE_NAME = ?",
@@ -485,7 +463,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                                 );
                             }
                         }
-                    } catch (SQLException e) {}
+                    } catch (SQLException e) {/**/}
                 });
         return links;
     }    
@@ -531,17 +509,15 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     public Class getOwnerClass(Class clazz) throws Exception {
         final String className = clazz.getSimpleName().toUpperCase();
         if (!tableRegistry.containsKey(className)) {
-            buildClassCatalog(clazz, new HashMap() {{
+            buildClassCatalog(clazz, new HashMap<String, IComplexType>() {{
                 put("OWN", new EntityRef(null));
             }});
         }
         Optional<ReferenceInfo> ownReference = tableRegistry.get(className).refInfos.stream()
-                .filter((refInfo) -> {
-                    return "OWN".equals(refInfo.fkColumn);
-                }).findFirst();
+                .filter((refInfo) -> "OWN".equals(refInfo.fkColumn))
+                .findFirst();
         if (ownReference.isPresent()) {
-            Class ownClass = getCatalogClass(ownReference.get().pkTable);
-            return ownClass;
+            return getCatalogClass(ownReference.get().pkTable);
         } else {
             throw new IllegalStateException("Column OWN is not a foreign key");
         }
@@ -557,7 +533,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         final List<String> modified = new LinkedList<>();
         
         if (unusedProperties != null && !unusedProperties.isEmpty()) {
-            Map<String, String> columns = new LinkedHashMap();
+            Map<String, String> columns = new LinkedHashMap<>();
             for (ColumnInfo columnInfo : tableRegistry.get(className).columnInfos) {
                 if (!columns.containsKey(columnInfo.name)) {
                     if (unusedProperties.contains(columnInfo.name) && !newProperties.keySet().contains(columnInfo.name)) {
@@ -584,20 +560,15 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             }
             String nameFormat = "%-".concat(
                 Integer.toString(
-                        columns.keySet().stream()
-                            .mapToInt((columnName) -> {
-                                return columnName.length();
-                        }).max().getAsInt()
+                        columns.keySet().stream().mapToInt(String::length).max().orElse(0)
                 ).concat("s ")
             );
             queries.add(MessageFormat.format(
                 "CREATE TABLE IF NOT EXISTS {0} (\n\t{1}\n)",
                 className.concat("_NEW"),
-                String.join(",\n\t", columns.entrySet().stream()
-                    .map((entry) -> {
-                        return String.format(nameFormat, entry.getKey()).concat(entry.getValue());
-                    }).collect(Collectors.toList())
-                )
+                    columns.entrySet().stream()
+                        .map((entry) -> String.format(nameFormat, entry.getKey()).concat(entry.getValue()))
+                        .collect(Collectors.joining(",\n\t"))
             ));
             
             try (
@@ -607,16 +578,10 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 if (rs.next()) {
                     queries.add(MessageFormat.format("INSERT INTO {0} ({1}) SELECT {1} FROM {2}",
                         className.concat("_NEW"),
-                        String.join(", ", 
-                                tableRegistry.get(className).columnInfos.stream()
-                                    .filter((info) -> {
-                                        return !unusedProperties.contains(info.name);
-                                    })
-                                    .map((info) -> {
-                                        return info.name;
-                                    })
-                                    .collect(Collectors.toList())
-                        ),
+                            tableRegistry.get(className).columnInfos.stream()
+                                .filter((info) -> !unusedProperties.contains(info.name))
+                                .map((info) -> info.name)
+                                .collect(Collectors.joining(", ")),
                         className
                     ));
                 }
@@ -638,7 +603,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             queries.add(generateTriggerCode(className, TriggerKind.Before_Update));
             
         } else {
-            Map<String, String> columns = new LinkedHashMap();
+            Map<String, String> columns = new LinkedHashMap<>();
             for (Map.Entry<String, IComplexType> entry : newProperties.entrySet()) {
                 if (!columns.containsKey(entry.getKey())) {
                     columns.put(entry.getKey(), getColumnDefinition(entry.getValue(), true));
@@ -657,9 +622,9 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         if (isShowSql()) {
             Logger.getLogger().debug(
                     "CAS: Alter table queries:\n{0}", 
-                    queries.stream().map((query) -> {
-                        return "[".concat(Integer.toString(queries.indexOf(query)+1).concat("] ").concat(query));
-                    }).collect(Collectors.joining("\n"))
+                    queries.stream()
+                        .map((query) -> "[".concat(Integer.toString(queries.indexOf(query)+1).concat("] ").concat(query)))
+                        .collect(Collectors.joining("\n"))
             );
         }
         
@@ -744,7 +709,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             }
         }
         throw new IllegalStateException("Catalog class could not be identified");
-    };
+    }
     
     private String getColumnDefinition(IComplexType propVal, boolean nullable) throws Exception {
         StringJoiner joiner = new StringJoiner(" ");
@@ -753,7 +718,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             Class refClazz;
             if ((refClazz = ((EntityRef) propVal).getEntityClass()) != null) {
                 if (!tableRegistry.containsKey(refClazz.getSimpleName().toUpperCase())) {
-                    buildClassCatalog(refClazz, new HashMap() {{
+                    buildClassCatalog(refClazz, new HashMap<String, IComplexType>() {{
                         put("OWN", new EntityRef(null));
                     }});
                 }
@@ -839,9 +804,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 while (rs.next()) {
                     String indexName = rs.getString("INDEX_NAME");
                     indexInfoList.stream()
-                            .filter((info) -> {
-                                return info.name.equals(indexName);
-                            })
+                            .filter((info) -> info.name.equals(indexName))
                             .findFirst()
                             .orElseGet(() -> {
                                 IndexInfo indexInfo = new IndexInfo(indexName);
@@ -869,9 +832,9 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         }
         
         final String getColumnDefinition(ColumnInfo info) {
-            Optional<ReferenceInfo> ref = refInfos.stream().filter((refInfo) -> {
-                return info.name.equals(refInfo.fkColumn);
-            }).findFirst();
+            Optional<ReferenceInfo> ref = refInfos.stream()
+                    .filter((refInfo) -> info.name.equals(refInfo.fkColumn))
+                    .findFirst();
             
             if (info.name.equals(pkey.toUpperCase())) {
                 return "INTEGER PRIMARY KEY AUTOINCREMENT";
@@ -898,7 +861,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                         names.add(rs.getString("NAME"));
                     }
                 }
-            } catch (SQLException e) {}
+            } catch (SQLException e) {/**/}
             return names;
         }
         
@@ -908,9 +871,8 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             String nameFormat = "%-".concat(
                     Integer.toString(
                             columnInfos.stream()
-                                .mapToInt((columnInfo) -> {
-                                    return columnInfo.name.length();
-                            }).max().getAsInt()
+                                .mapToInt((columnInfo) -> columnInfo.name.length())
+                                .max().orElse(0)
                     ).concat("s ")
             );
             builder.append(MessageFormat.format(
@@ -919,9 +881,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                         return " * "
                                 .concat(
                                         columnInfo.name.equals(pkey.toUpperCase()) ? "[PK] " : (
-                                                refInfos.stream().anyMatch((refInfo) -> {
-                                                    return columnInfo.name.equals(refInfo.fkColumn);
-                                                }) ? "[FK] " : "     "
+                                                refInfos.stream().anyMatch((refInfo) -> columnInfo.name.equals(refInfo.fkColumn)) ? "[FK] " : "     "
                                         )
                                 )
                                 .concat(String.format(nameFormat, columnInfo.name))
@@ -931,19 +891,17 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             if (!indexInfos.isEmpty()) {
                 builder.append(MessageFormat.format(
                         "\nIndexes:\n{0}", 
-                        indexInfos.stream().map((indexInfo) -> {
-                            return " * "
-                                    .concat(indexInfo.name)
-                                    .concat(" (").concat(String.join(", ", indexInfo.columns)).concat(")");
-                        }).collect(Collectors.joining("\n"))
+                        indexInfos.stream().map((indexInfo) -> " * "
+                                .concat(indexInfo.name)
+                                .concat(" (").concat(String.join(", ", indexInfo.columns)).concat(")")).collect(Collectors.joining("\n"))
                 ));
             }
             if (!getTriggerNames(name).isEmpty()) {
                 builder.append(MessageFormat.format(
                         "\nTriggers:\n{0}", 
-                        getTriggerNames(name).stream().map((name) -> {
-                            return " * ".concat(name);
-                        }).collect(Collectors.joining("\n"))
+                        getTriggerNames(name).stream()
+                                .map(" * "::concat)
+                                .collect(Collectors.joining("\n"))
                 ));
             }
             return builder.toString();
