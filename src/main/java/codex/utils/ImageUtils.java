@@ -7,18 +7,34 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.net.URL;
+import java.util.List;
+import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
 
 public class ImageUtils {
     
     public static ImageIcon getByPath(String path) {
         path = path.replaceFirst("^/", "");
-        URL resource = ClassLoader.getSystemClassLoader().getResource(path);
+        List<Class> stack = Caller.getInstance().getClassStack().stream()
+                .filter(aClass -> aClass != ImageUtils.class)
+                .collect(Collectors.toList());
+        URL resource = stack.get(0).getClassLoader().getResource(path);
         if (resource != null) {
             return new ImageIcon(resource);
         } else {
             Logger.getLogger().error("Image ''{0}'' not found", path);
-            return null;
+        }
+        return new ImageIcon();
+    }
+
+    public static ImageIcon getByPath(Class callerClass, String path) {
+        path = path.replaceFirst("^/", "");
+        URL resource = callerClass.getClassLoader().getResource(path);
+        if (resource != null) {
+            return new ImageIcon(resource);
+        } else {
+            Logger.getLogger().error("Image ''{0}'' not found", path);
+            return new ImageIcon();
         }
     }
     
