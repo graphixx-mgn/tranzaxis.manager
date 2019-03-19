@@ -167,12 +167,15 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             @Override
             public void childDeleted(INode parentNode, INode childNode, int index) {
                 tableModel.removeRow(index);
-                if (index < tableModel.getRowCount()) {
-                    table.getSelectionModel().setSelectionInterval(index, index);
-                } else if (index == tableModel.getRowCount()) {
-                    table.getSelectionModel().setSelectionInterval(index-1, index-1);
-                } else {
-                    table.getSelectionModel().clearSelection();
+                // Если родительская сущность не удалена
+                if (entity.getParent() != null) {
+                    if (index < tableModel.getRowCount()) {
+                        table.getSelectionModel().setSelectionInterval(index, index);
+                    } else if (index == tableModel.getRowCount()) {
+                        table.getSelectionModel().setSelectionInterval(index - 1, index - 1);
+                    } else {
+                        table.getSelectionModel().clearSelection();
+                    }
                 }
             }
         });
@@ -664,7 +667,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                         Language.get(SelectorPresentation.class, "confirm@del.range")
                 );
                 getContext().forEach((entity) -> {
-                    msgBuilder.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(entity.toString());
+                    msgBuilder.append("<br>&bull;&nbsp;<b>").append(entity.toString()).append("</b>");
                 });
                 message = msgBuilder.toString();
             }
