@@ -31,7 +31,7 @@ import javax.swing.ImageIcon;
 public abstract class Entity extends AbstractNode implements IPropertyChangeListener, Iconified {
    
     private static final Boolean DEV_MODE = "1".equals(java.lang.System.getProperty("showSysProps"));
-    private static final EnityCache CACHE = EnityCache.getInstance();
+    private static final EntityCache CACHE = EntityCache.getInstance();
 
     private       String    title;
     private final ImageIcon icon;
@@ -107,7 +107,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                     PID
                 );
                 if (found == null) {
-                    CACHE.cache(this);
+                    CACHE.cache(this, title, owner == null ? null : owner.getId());
                 }
             }
         }
@@ -421,14 +421,12 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                     Constructor ctor = entityClass.getDeclaredConstructor(EntityRef.class, String.class);
                     ctor.setAccessible(true);
                     final Entity created = (Entity) ctor.newInstance(owner, PID);
-                    if (created.getPID() != null) {
-                        CACHE.cache(created);
-                    } else {
+                    if (created.getPID() == null) {
                         created.model.addModelListener(new IModelListener() {
                             @Override
                             public void modelSaved(EntityModel model, List<String> changes) {
                                 if (changes.contains(EntityModel.PID)) {
-                                    CACHE.cache(created);
+                                    CACHE.cache(created, PID, owner == null ? null : owner.getId());
                                 }
                             }
                         });
