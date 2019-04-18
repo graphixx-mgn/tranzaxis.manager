@@ -1,10 +1,12 @@
 package codex.utils;
 
 import codex.property.PropertyHolder;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
@@ -14,7 +16,8 @@ import java.util.stream.Collectors;
 public class Language {
     
     public  static final String NOT_FOUND = "<not defined>";
-    private static final Map<Class, ResourceBundle> bundles = new HashMap<>();
+    private static final Map<Class, ResourceBundle> BUNDLES = new HashMap<>();
+    private static final List<Class> EXCLUDES = new ArrayList<>();
     
     /**
      * Получить строку по ключу. Класс-владелец определяется по стеку вызовов.
@@ -39,14 +42,15 @@ public class Language {
 
     private static String getValue(Class callerClass, String key, Locale locale, ClassLoader classLoader) {
         ResourceBundle bundle;
-        if (bundles.containsKey(callerClass)) {
-            bundle = bundles.get(callerClass);
+        if (BUNDLES.containsKey(callerClass)) {
+            bundle = BUNDLES.get(callerClass);
         } else {
-            String className = callerClass.getSimpleName().replaceAll(".*[\\.\\$](\\w+)", "$1");
-            if (classLoader.getResource("locale/"+className+"_"+locale.toString()+".properties") != null) {
+            try {
+                String className = callerClass.getSimpleName().replaceAll(".*[\\.\\$](\\w+)", "$1");
                 bundle = ResourceBundle.getBundle("locale/"+className, locale, classLoader);
-                bundles.put(callerClass, bundle);
-            } else {
+                BUNDLES.put(callerClass, bundle);
+            } catch (MissingResourceException e) {
+                EXCLUDES.add(callerClass);
                 return NOT_FOUND;
             }
         }
@@ -66,14 +70,21 @@ public class Language {
                     .collect(Collectors.toList());
             try {
                 for (Class callerClass : stack) {
-                    String className = callerClass.getSimpleName().replaceAll(".*[\\.\\$](\\w+)", "$1");
-                    if (bundles.containsKey(callerClass) && bundles.get(callerClass).containsKey(key)) {
-                        return bundles.get(callerClass).getString(key);
-                    } else if (callerClass.getClassLoader() != null && callerClass.getClassLoader().getResource("locale/" + className + "_" + getLocale().toString() + ".properties") != null) {
-                        ResourceBundle bundle = ResourceBundle.getBundle("locale/" + className, getLocale(), callerClass.getClassLoader());
-                        if (bundle.containsKey(key)) {
-                            bundles.put(callerClass, bundle);
-                            return bundles.get(callerClass).getString(key);
+                    if (EXCLUDES.contains(callerClass)) {
+                        continue;
+                    }
+                    if (BUNDLES.containsKey(callerClass) && BUNDLES.get(callerClass).containsKey(key)) {
+                        return BUNDLES.get(callerClass).getString(key);
+                    } else if (callerClass.getClassLoader() != null) {
+                        try {
+                            String className = callerClass.getSimpleName().replaceAll(".*[\\.\\$](\\w+)", "$1");
+                            ResourceBundle bundle = ResourceBundle.getBundle("locale/" + className, getLocale(), callerClass.getClassLoader());
+                            if (bundle.containsKey(key)) {
+                                BUNDLES.put(callerClass, bundle);
+                                return BUNDLES.get(callerClass).getString(key);
+                            }
+                        } catch (MissingResourceException e) {
+                            EXCLUDES.add(callerClass);
                         }
                     }
                 }
@@ -84,8 +95,9 @@ public class Language {
         return NOT_FOUND;
     }
     
+    private static final Locale LOCALE = new Locale(System.getProperty("user.language"), System.getProperty("user.country"));
     public static Locale getLocale() {
-        return new Locale(System.getProperty("user.language"), System.getProperty("user.country"));
+        return LOCALE;
     }
     
 }
