@@ -18,8 +18,8 @@ import java.util.stream.Collectors;
 public class AbstractModel {
    
     final Map<String, PropertyHolder> properties = new LinkedHashMap<>();
-    final Map<String, IEditor> editors = new LinkedHashMap<>();
-    final Map<String, Access>  restrictions = new LinkedHashMap<>();
+    final Map<String, IEditor> editors = new HashMap<>();
+    final Map<String, Access>  restrictions = new HashMap<>();
     final Map<String, String>  propertyGroups = new HashMap<>();
     
     /**
