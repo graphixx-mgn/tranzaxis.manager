@@ -3,6 +3,7 @@ package codex.property;
 import codex.editor.IEditor;
 import codex.mask.IMask;
 import codex.model.AbstractModel;
+import codex.model.EntityModel;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.utils.Language;
@@ -35,7 +36,13 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
      * @param require Свойство обязательно должно иметь значение.
      */
     public PropertyHolder(String name, IComplexType<V, ?> value, boolean require) {
-        this(name, Language.lookup(name+".title"), Language.lookup(name+".desc"), value, require);
+        this(
+                name, 
+                EntityModel.SYSPROPS.contains(name) ? Language.get(EntityModel.class, name+".title") : Language.lookup(name+".title"), 
+                EntityModel.SYSPROPS.contains(name) ? Language.get(EntityModel.class, name+".desc")  : Language.lookup(name+".desc"), 
+                value, 
+                require
+        );
     }
     
     /**
@@ -58,8 +65,8 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
         this.require = require;
         this.value   = value;
         
-        String propPlaceHolder = Language.lookup(/*getOwners(), */name+".placeholder");
-        String typePlaceHolder = Language.lookup(/*getTypes(getType()), */"placeholder");
+        String propPlaceHolder = Language.lookup(name+".placeholder");
+        String typePlaceHolder = Language.lookup("placeholder");
         
         this.placeholder = 
                 Language.NOT_FOUND.equals(propPlaceHolder) ? (
@@ -126,7 +133,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     public final void setValue(V value) {
         V prevValue = getPropValue().getValue();
         if (value == null) {
-            this.value.setValue(value);
+            this.value.setValue(null);
         } else {
             if (IComplexType.class.isAssignableFrom(value.getClass())) {
                 if (value.getClass().equals(this.value.getClass())) {
