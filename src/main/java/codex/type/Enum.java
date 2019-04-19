@@ -3,7 +3,10 @@ package codex.type;
 import codex.editor.EnumEditor;
 import codex.editor.IEditorFactory;
 import codex.mask.IMask;
-import codex.property.PropertyHolder;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.text.MessageFormat;
 import java.util.Objects;
 
@@ -11,12 +14,14 @@ import java.util.Objects;
  * Тип-обертка {@link IComplexType} для перечислений Enum.
  */
 public class Enum implements IComplexType<java.lang.Enum, IMask<java.lang.Enum>> {
+
+    @Target({ElementType.FIELD})
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface Undefined {}
     
-    private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
-        return new EnumEditor(propHolder);
-    };
+    private final static IEditorFactory EDITOR_FACTORY = EnumEditor::new;
     
-    private java.lang.Enum value = null;
+    private java.lang.Enum value;
     
     /**
      * Конструктор типа.
@@ -40,6 +45,20 @@ public class Enum implements IComplexType<java.lang.Enum, IMask<java.lang.Enum>>
             throw new IllegalStateException(MessageFormat.format("Type ''{0}'' does not support NULL value", this.getClass().getName()));
         }
         this.value = value;
+    }
+
+    public static boolean isUndefined(java.lang.Enum value) {
+        try {
+            return value.getClass().getDeclaredField(value.name()).getAnnotation(Undefined.class) != null;
+        } catch (NoSuchFieldException e) {
+            //
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return isUndefined(value);
     }
 
     @Override
