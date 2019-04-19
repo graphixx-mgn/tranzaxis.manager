@@ -1,17 +1,10 @@
 package manager.nodes;
 
-import codex.component.messagebox.MessageBox;
-import codex.component.messagebox.MessageType;
 import codex.model.Catalog;
 import codex.model.Entity;
 import codex.type.EntityRef;
-import codex.utils.Language;
-import manager.svn.SVN;
-import org.tmatesoft.svn.core.SVNErrorCode;
-import org.tmatesoft.svn.core.SVNException;
-import java.text.MessageFormat;
+import javax.swing.*;
 import java.util.Comparator;
-import javax.swing.ImageIcon;
 
 public abstract class BinarySource extends Catalog {
     
@@ -48,24 +41,6 @@ public abstract class BinarySource extends Catalog {
     
     public Repository getRepository() {
         return (Repository) this.getOwner();
-    }
-
-    public boolean isRepositoryOnline(boolean showDilaog) {
-        try {
-            return SVN.checkConnection(getRepository().getRepoUrl(), getRepository().getAuthManager());
-        } catch (SVNException e) {
-            SVNErrorCode code = e.getErrorMessage().getErrorCode();
-            if (code != SVNErrorCode.RA_SVN_IO_ERROR && code != SVNErrorCode.RA_SVN_MALFORMED_DATA && showDilaog) {
-                MessageBox.show(MessageType.WARNING,
-                        MessageFormat.format(
-                                Language.get(Repository.class, "error@message"),
-                                getRepository().getPID(),
-                                e.getMessage()
-                        )
-                );
-            }
-            return false;
-        }
     }
     
     public abstract String getLocalPath();
