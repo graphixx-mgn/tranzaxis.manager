@@ -3,10 +3,14 @@ package manager.svn;
 import codex.log.Logger;
 
 import java.io.*;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.text.MessageFormat;
+import java.util.*;
+
+import codex.type.Str;
+import codex.utils.NetTools;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNDirEntry;
@@ -41,22 +45,60 @@ import org.tmatesoft.svn.core.wc2.SvnTarget;
 
 
 public class SVN {
+
+    private static final String SVN_PROTOCOL   = "svn";
+    private static final String SSH_PROTOCOL   = "svn+";
+    private static final String HTTP_PROTOCOL  = "http";
+    private static final String HTTPS_PROTOCOL = "https";
+
+    private static int getDefaultPortNumber(String protocol) {
+        int port = -1;
+        if (SVN_PROTOCOL.equals(protocol)) {
+            port = 3690;
+        } else if (HTTP_PROTOCOL.equals(protocol)) {
+            port = 80;
+        } else if (HTTPS_PROTOCOL.equals(protocol)) {
+            port = 443;
+        } else if (protocol != null && protocol.startsWith(SSH_PROTOCOL)) {
+            port = 22;
+        }
+        return port;
+    }
+
+    private static int getPortNumber(SVNURL url) {
+        int port = url.getPort();
+        return port != 0 ? port : getDefaultPortNumber(url.getProtocol());
+    }
     
-    public static boolean checkConnection(String url, ISVNAuthenticationManager authMgr) throws SVNException {
-        SVNRepository repository = SVNRepositoryFactory.create(SVNURL.parseURIEncoded(url));
-        try {
-            repository.setAuthenticationManager(authMgr);
-            repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
-            repository.testConnection();
-            return true;
-        } catch (SVNException e) {
-            if (e.getErrorMessage().getErrorCode() == SVNErrorCode.RA_NOT_AUTHORIZED) {
-                return false;
-            } else {
-                throw e;
+    public static boolean checkConnection(String path, ISVNAuthenticationManager authMgr) throws SVNException, IOException {
+        final SVNURL url  = SVNURL.parseURIEncoded(path);
+        final String host = url.getHost();
+        final int    port = getPortNumber(url);
+
+        if (port == -1) {
+            throw new IOException(MessageFormat.format("Can not get port number from SVN url ''{0}''", path));
+        } else {
+            try {
+                try (Socket socket = new Socket()) {
+                    socket.connect(new InetSocketAddress(host, port), 500);
+                    SVNRepository repository = SVNRepositoryFactory.create(url);
+                    try {
+                        repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
+                        repository.testConnection();
+                        return true;
+                    } catch (SVNException e) {
+                        if (e.getErrorMessage().getErrorCode() == SVNErrorCode.RA_NOT_AUTHORIZED) {
+                            return false;
+                        } else {
+                            throw e;
+                        }
+                    } finally {
+                        repository.closeSession();
+                    }
+                }
+            } catch (IOException e) {
+                throw new IOException(MessageFormat.format("Can not connect to remote host ''{0}:{1}''", host, port));
             }
-        } finally {
-            repository.closeSession();
         }
     }
     
