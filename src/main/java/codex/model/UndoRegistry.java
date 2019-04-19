@@ -1,6 +1,5 @@
 package codex.model;
 
-import codex.log.Logger;
 import java.text.MessageFormat;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,7 +37,7 @@ final class UndoRegistry {
      * Возвращает начальное значение свойства.
      */
     public final Object previous(String key) {
-        return registry.get(key).previousValue;
+        return registry.containsKey(key) ? registry.get(key).previousValue : null;
     }
     
     /**
