@@ -32,9 +32,7 @@ public class DeleteWC extends EntityCommand<Offshoot> {
                 "title", 
                 ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28), 
                 Language.get("desc"),
-                (offshoot) -> {
-                    return !offshoot.getWCStatus().equals(WCStatus.Absent);
-                }
+                (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Absent)
         );
     }
     
@@ -45,7 +43,9 @@ public class DeleteWC extends EntityCommand<Offshoot> {
 
     @Override
     public void execute(Offshoot offshoot, Map<String, IComplexType> map) {
-        executeTask(offshoot, new DeleteTask(offshoot), true);
+        if (!offshoot.model.existReferencies()) {
+            executeTask(offshoot, new DeleteTask(offshoot), true);
+        }
     }
 
     @Override
@@ -58,9 +58,7 @@ public class DeleteWC extends EntityCommand<Offshoot> {
             );
         } else {
             StringBuilder entityList = new StringBuilder();
-            getContext().forEach((entity) -> {
-                entityList.append("<br>&emsp;&#9913&nbsp;&nbsp;").append(entity.toString());
-            });
+            getContext().forEach((entity) -> entityList.append("<br>&bull;&nbsp;<b>").append(entity.toString()).append("</b>"));
             message = MessageFormat.format(
                     Language.get("confirm@clean.range"),
                     entityList.toString()
