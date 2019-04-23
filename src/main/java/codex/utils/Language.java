@@ -42,13 +42,15 @@ public class Language {
 
     private static String getValue(Class callerClass, String key, Locale locale, ClassLoader classLoader) {
         ResourceBundle bundle;
-        if (BUNDLES.containsKey(callerClass)) {
+        if (BUNDLES.containsKey(callerClass) && BUNDLES.get(callerClass).getLocale() == locale) {
             bundle = BUNDLES.get(callerClass);
         } else {
             try {
                 String className = callerClass.getSimpleName().replaceAll(".*[\\.\\$](\\w+)", "$1");
                 bundle = ResourceBundle.getBundle("locale/"+className, locale, classLoader);
-                BUNDLES.put(callerClass, bundle);
+                if (!BUNDLES.containsKey(callerClass) && getLocale() == locale) {
+                    BUNDLES.put(callerClass, bundle);
+                }
             } catch (MissingResourceException e) {
                 EXCLUDES.add(callerClass);
                 return NOT_FOUND;
