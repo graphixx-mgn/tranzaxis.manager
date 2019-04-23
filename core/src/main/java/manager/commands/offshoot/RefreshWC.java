@@ -8,7 +8,6 @@ import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.util.Map;
-
 import manager.commands.offshoot.build.BuildKernelTask;
 import manager.commands.offshoot.build.BuildSourceTask;
 import manager.nodes.Offshoot;
@@ -23,9 +22,9 @@ public class RefreshWC extends EntityCommand<Offshoot> {
                 "title", 
                 ImageUtils.resize(ImageUtils.getByPath("/images/rebuild.png"), 28, 28), 
                 Language.get("desc"), 
-                (offshoot) -> {
-                    return !offshoot.getWCStatus().equals(WCStatus.Invalid);
-                }
+                (offshoot) ->
+                        !offshoot.getWCStatus().equals(WCStatus.Invalid) &&
+                        offshoot.getRepository().isRepositoryOnline(false)
         );
         setParameters(
                 new PropertyHolder("clean", new Bool(Boolean.FALSE), true)
