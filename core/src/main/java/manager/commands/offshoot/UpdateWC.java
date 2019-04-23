@@ -36,9 +36,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                 "title", 
                 ImageUtils.resize(ImageUtils.getByPath("/images/update.png"), 28, 28), 
                 Language.get("desc"), 
-                (offshoot) ->
-                        !offshoot.getWCStatus().equals(WCStatus.Invalid) &&
-                        offshoot.getRepository().isRepositoryOnline(false)
+                (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Invalid)
         );
     }
 
@@ -68,6 +66,8 @@ public class UpdateWC extends EntityCommand<Offshoot> {
 
         @Override
         public Void execute() throws Exception {
+            if (!offshoot.getRepository().isRepositoryOnline(true)) return null;
+
             String wcPath  = offshoot.getLocalPath();
             String repoUrl = offshoot.getRemotePath();
             SVNRevision R1 = offshoot.getWorkingCopyRevision(false);

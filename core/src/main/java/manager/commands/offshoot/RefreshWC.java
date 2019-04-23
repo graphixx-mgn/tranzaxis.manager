@@ -22,9 +22,7 @@ public class RefreshWC extends EntityCommand<Offshoot> {
                 "title", 
                 ImageUtils.resize(ImageUtils.getByPath("/images/rebuild.png"), 28, 28), 
                 Language.get("desc"), 
-                (offshoot) ->
-                        !offshoot.getWCStatus().equals(WCStatus.Invalid) &&
-                        offshoot.getRepository().isRepositoryOnline(false)
+                (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Invalid)
         );
         setParameters(
                 new PropertyHolder("clean", new Bool(Boolean.FALSE), true)
@@ -38,6 +36,7 @@ public class RefreshWC extends EntityCommand<Offshoot> {
 
     @Override
     public void execute(Offshoot offshoot, Map<String, IComplexType> map) {
+        if (!offshoot.getRepository().isRepositoryOnline(true)) return;
         executeTask(
                 offshoot, 
                 new GroupTask<>(
