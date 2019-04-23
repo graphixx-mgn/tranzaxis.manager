@@ -538,7 +538,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         Set<Entity> autoReferences = (propList == null ? getChanges() : propList).stream()
                 .filter((propName) -> {
                     return
-                            getPropertyType(propName) == EntityRef.class &&
+                            EntityRef.class.isAssignableFrom(getPropertyType(propName)) &&
                             (create ? getUnsavedValue(propName) : getValue(propName)) != null;
                 }).map((propName) -> {
                     return (Entity) (create ? getUnsavedValue(propName) : getValue(propName));
@@ -550,29 +550,47 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 })
                 .collect(Collectors.toSet());
         if (!autoReferences.isEmpty() && create) {
-            Logger.getLogger().debug(
-                    "Perform automatic entities creation: {0}", 
-                    autoReferences.stream()
-                            .map((entity) -> entity.model.getQualifiedName())
-                            .collect(Collectors.joining(", "))
-            );
             for (Entity entity : autoReferences) {
-                CAS.initClassInstance(
-                        entity.getClass(), 
-                        entity.getPID(), 
-                        getPropDefinitions(entity.model), 
-                        entity.getOwner() == null ? null : entity.getOwner().getID()
-                ).forEach(entity.model::setValue);
+                synchronized (entity) {
+                    Entity owner = entity.getOwner();
+                    boolean exists = CAS.isInstanceExists(entity.getClass(), entity.getPID(), owner == null ? null : owner.getID());
+                    if (!exists) {
+                        Logger.getLogger().debug(
+                                "Perform automatic entity creation: {0}",
+                                entity.model.getQualifiedName()
+                        );
+                        CAS.initClassInstance(
+                                entity.getClass(),
+                                entity.getPID(),
+                                getPropDefinitions(entity.model),
+                                owner == null ? null : owner.getID()
+                        ).forEach(entity.model::setValue);
+                    } else {
+                        Logger.getLogger().debug(
+                                "Skip automatic entity creation: {0} [Already exists]",
+                                entity.model.getQualifiedName()
+                        );
+                    }
+                }
             }
-        } else if (!autoReferences.isEmpty() && !create) {
-            Logger.getLogger().debug(
-                    "Perform automatic entities deletion: {0}", 
-                    autoReferences.stream()
-                            .map((entity) -> entity.model.getQualifiedName())
-                            .collect(Collectors.joining(", "))
-            );
+        } else if (!autoReferences.isEmpty()) {
             for (Entity entity : autoReferences) {
-                entity.model.remove();
+                synchronized (entity) {
+                    Entity owner = entity.getOwner();
+                    boolean exists = CAS.isInstanceExists(entity.getClass(), entity.getPID(), owner == null ? null : owner.getID());
+                    if (exists) {
+                        Logger.getLogger().debug(
+                                "Perform automatic entities deletion: {0}",
+                                entity.model.getQualifiedName()
+                        );
+                        entity.model.remove();
+                    } else {
+                        Logger.getLogger().debug(
+                                "Skip automatic entity deletion: {0} [Already deleted]",
+                                entity.model.getQualifiedName()
+                        );
+                    }
+                }
             }
         }
     }
