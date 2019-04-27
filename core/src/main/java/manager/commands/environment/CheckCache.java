@@ -7,12 +7,14 @@ import codex.task.*;
 import codex.utils.Language;
 import manager.nodes.Environment;
 import manager.nodes.Release;
+import manager.nodes.Repository;
 import manager.svn.SVN;
 import manager.xml.Directory;
 import manager.xml.DirectoryDocument;
 import org.apache.commons.io.FileUtils;
 import org.apache.xmlbeans.XmlException;
 import org.tmatesoft.svn.core.SVNDepth;
+import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import java.io.File;
 import java.io.IOException;
@@ -26,6 +28,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -53,11 +56,17 @@ class CheckCache extends AbstractTask<Void> {
     public Void execute() throws Exception {
         Release release = (Release) environment.getBinaries();
         ISVNAuthenticationManager authMgr = release.getRepository().getAuthManager();
-        boolean repoOnline = release.isRepositoryOnline(true);
+        AtomicReference<Exception> errorRef = new AtomicReference<>();
+        try {
+            SVN.checkConnection(release.getRepository().getRepoUrl(), authMgr);
+        } catch (SVNException | IOException e) {
+            errorRef.set(e);
+        }
+
         String  topLayer   = environment.getLayerUri(false);
 
         Map<String, Path> requiredLayers = release.getRequiredLayers(topLayer, false);
-        if (requiredLayers.values().stream().anyMatch(Objects::isNull) && repoOnline) {
+        if (requiredLayers.values().stream().anyMatch(Objects::isNull) && errorRef.get() == null) {
             requiredLayers = release.getRequiredLayers(topLayer, true);
         }
         Optional<String> lostLayer = requiredLayers.entrySet().stream()
@@ -65,8 +74,9 @@ class CheckCache extends AbstractTask<Void> {
                 .map(Map.Entry::getKey)
                 .findFirst();
         if (lostLayer.isPresent()) {
-            MessageBox.show(MessageType.WARNING,
-                    MessageFormat.format(Language.get(Release.class, "error@structure"), release.getRepository())
+            MessageBox.show(
+                    MessageType.WARNING,
+                    Repository.formatErrorMessage(MessageFormat.format(Language.get(Release.class, "fail@load.layers"), lostLayer.get()), errorRef.get())
             );
             return null;
         }
@@ -87,10 +97,10 @@ class CheckCache extends AbstractTask<Void> {
         });
 
         if (!indexCheckResult) {
-            if (!repoOnline) {
+            if (errorRef.get() != null) {
                 MessageBox.show(
                         MessageType.WARNING,
-                        MessageFormat.format(Language.get(Release.class, "error@structure"), release.getRepository())
+                        Repository.formatErrorMessage(Language.get(Release.class, "fail@load.cache"), errorRef.get())
                 );
                 return null;
             }

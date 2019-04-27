@@ -86,12 +86,6 @@ public class SVN {
                         repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
                         repository.testConnection();
                         return true;
-                    } catch (SVNException e) {
-                        if (e.getErrorMessage().getErrorCode() == SVNErrorCode.RA_NOT_AUTHORIZED) {
-                            return false;
-                        } else {
-                            throw e;
-                        }
                     } finally {
                         repository.closeSession();
                     }

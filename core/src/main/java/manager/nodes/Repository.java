@@ -34,6 +34,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Repository extends Entity {
+
+    static final int ERR_AUTH_FAILED   = 170000;
+    static final int ERR_NOT_AVAILABLE = 210000;
     
     public final static String PROP_REPO_URL  = "repoUrl";
     public final static String PROP_AUTH_MODE = "authMode";
@@ -204,30 +207,30 @@ public class Repository extends Entity {
     public boolean isRepositoryOnline(boolean showDialog) {
         try {
             return SVN.checkConnection(getRepoUrl(), getAuthManager());
-        } catch (SVNException e) {
-            SVNErrorCode code = e.getErrorMessage().getErrorCode();
+        } catch (SVNException | IOException e) {
             if (showDialog) {
-                MessageBox.show(MessageType.WARNING,
-                        MessageFormat.format(
-                                Language.get(Repository.class, "error@message"),
-                                getPID(),
-                                code.getDescription()
-                        )
-                );
-            }
-            return false;
-        } catch (IOException e) {
-            if (showDialog) {
-                MessageBox.show(MessageType.WARNING,
-                        MessageFormat.format(
-                                Language.get(Repository.class, "error@message"),
-                                getPID(),
-                                e.getMessage()
-                        )
+                MessageBox.show(
+                        MessageType.WARNING,
+                        formatErrorMessage(MessageFormat.format(Language.get(Repository.class, "fail@connect"), getPID()), e)
                 );
             }
             return false;
         }
+    }
+
+    public static String formatErrorMessage(String whatsWrong, Exception exception) {
+        if (exception instanceof SVNException) {
+            SVNErrorCode code = ((SVNException) exception).getErrorMessage().getErrorCode();
+            switch (code.getCategory()) {
+                case ERR_AUTH_FAILED:
+                    return MessageFormat.format(Language.get(Repository.class, "error@unavailable.auth"), whatsWrong);
+                case ERR_NOT_AVAILABLE:
+                    return MessageFormat.format(Language.get(Repository.class, "error@unavailable.repo"), whatsWrong);
+                default:
+                    return MessageFormat.format(Language.get(Repository.class, "error@unavailable.other"), whatsWrong, code.getDescription());
+            }
+        }
+        return MessageFormat.format(Language.get(Repository.class, "error@unavailable.other"), whatsWrong, exception.getMessage());
     }
     
     public static String urlToDirName(String url) {
