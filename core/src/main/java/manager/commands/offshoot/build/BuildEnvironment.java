@@ -19,6 +19,7 @@ import org.radixware.kernel.common.defs.Definition;
 import org.radixware.kernel.common.defs.ads.build.BuildOptions;
 import org.radixware.kernel.common.defs.ads.build.IFlowLogger;
 import org.radixware.kernel.common.enums.ERuntimeEnvironmentType;
+import org.radixware.kernel.common.preferences.KernelParameters;
 
 public abstract class BuildEnvironment implements IBuildEnvironment {
     
@@ -38,6 +39,8 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
         checkOptions.setCheckSqlClassQuerySyntax(true);
         checkOptions.setMaxSqlQueryVariants(16);
         checkOptions.setCheckDocumentation(false);
+
+        KernelParameters.setAppName("extmanager");
         
         buildOptions = BuildOptions.Factory.newInstance();
         buildOptions.setEnvironment(env);

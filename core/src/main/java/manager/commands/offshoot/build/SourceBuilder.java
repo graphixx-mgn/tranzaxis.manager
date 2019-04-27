@@ -38,6 +38,7 @@ import org.radixware.kernel.common.enums.ERuntimeEnvironmentType;
 import org.radixware.kernel.common.repository.Branch;
 import org.radixware.kernel.common.repository.Layer;
 import org.radixware.kernel.common.repository.ads.AdsSegment;
+import org.radixware.kernel.common.resources.icons.RadixIcon;
 import org.radixware.kernel.common.types.Id;
 import javax.swing.*;
 
@@ -185,28 +186,37 @@ public class SourceBuilder {
             }
         });
 
+        Map<String, ImageIcon> IMG_CACHE = new HashMap<>();
+
         final AtomicInteger totalModules = new AtomicInteger(0);
         IBuildEnvironment env = new BuildEnvironment(
             TARGET_ENV,
             new BuildFlowLogger() {
                 @Override
                 public void problem(RadixProblem problem) {
-                    ImageIcon icon = null;
+                    final Definition definition = problem.getSource().getDefinition();
+                    final RadixIcon  radixIcon  = definition != null ? definition.getIcon() : problem.getSource().getIcon();
+                    final String defId   = definition != null ? definition.getId().toString() : problem.getSource().getQualifiedName();
+                    final String defName = problem.getSource().getQualifiedName();
+                    final String imgUri  = definition != null ? radixIcon.getResourceUri() : radixIcon.getResourceUri();
+                    final String message = problem.getMessage();
+
+                    if (!IMG_CACHE.containsKey(imgUri)) {
+                        try {
+                            IMG_CACHE.put(
+                                    imgUri,
+                                    new ImageIcon(SvgImageLoader.loadSvg(
+                                            ClassLoader.getSystemClassLoader().getResource(imgUri),
+                                            radixIcon.getIcon().getIconWidth()
+                                    ))
+                            );
+                        } catch (IOException e) {
+                            //
+                        }
+                    }
+                    final ImageIcon icon = IMG_CACHE.get(imgUri);
                     try {
-                        icon = new ImageIcon(SvgImageLoader.loadSvg(
-                                ClassLoader.getSystemClassLoader().getResource(problem.getSource().getDefinition().getIcon().getResourceUri()),
-                                problem.getSource().getDefinition().getIcon().getIcon().getIconWidth()
-                        ));
-                    } catch (IOException e) {}
-                    try {
-                        notifier.event(
-                                uuid,
-                                problem.getSeverity(),
-                                problem.getSource().getDefinition().getId().toString(),
-                                problem.getSource().getQualifiedName(),
-                                icon,
-                                problem.getMessage()
-                        );
+                        notifier.event(uuid, problem.getSeverity(), defId, defName, icon, message);
                     } catch (RemoteException e) {
                         throw new RuntimeException(e.getMessage());
                     }

@@ -26,6 +26,7 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class BuildSourceTask extends AbstractTask<Error> {
@@ -44,8 +45,14 @@ public class BuildSourceTask extends AbstractTask<Error> {
         }
     });
 
-    private final List<CompilerEvent> eventsList = new LinkedList<>();
-    private final EventTreeModel eventsTree = new EventTreeModel();
+    private final EventTreeModel eventsTreeModel = new EventTreeModel();
+    private final List<CompilerEvent> eventsList = new LinkedList<CompilerEvent>() {
+        @Override
+        public boolean add(CompilerEvent compilerEvent) {
+            eventsTreeModel.addEvent(compilerEvent);
+            return super.add(compilerEvent);
+        }
+    };
 
     public BuildSourceTask(Offshoot offshoot, boolean clean) {
         super(Language.get(BuildWC.class, "command@sources"));
@@ -114,8 +121,10 @@ public class BuildSourceTask extends AbstractTask<Error> {
             @Override
             public void event(RadixProblem.ESeverity severity, String defId, String name, ImageIcon icon, String message) {
                 CompilerEvent event = new CompilerEvent(severity, defId, name, icon, message);
-                eventsList.add(event);
-                eventsTree.addEvent(event);
+                synchronized (eventsList) {
+                    eventsList.add(event);
+                    //eventsTreeModel.addEvent(event);
+                }
                 setProgress(getProgress(), getDescription());
             }
 
@@ -161,7 +170,9 @@ public class BuildSourceTask extends AbstractTask<Error> {
             offshoot.setBuiltStatus(new BuildStatus(offshoot.getWorkingCopyRevision(false).getNumber(), true));
             try {
                 offshoot.model.commit(false);
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                //
+            }
             String message = MessageFormat.format(
                     "BUILD SOURCE [{0}] failed. Total time: {1}",
                     offshoot.getLocalPath(), DateUtils.formatElapsedTime(getDuration())
@@ -184,7 +195,9 @@ public class BuildSourceTask extends AbstractTask<Error> {
             offshoot.setBuiltStatus(new BuildStatus(offshoot.getWorkingCopyRevision(false).getNumber(), true));
             try {
                 offshoot.model.commit(false);
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                //
+            }
             String message = MessageFormat.format(
                     "BUILD SOURCE [{0}] failed. Total time: {1}. Errors: {2}",
                     offshoot.getLocalPath(), DateUtils.formatElapsedTime(getDuration()), getErrorsCount()
@@ -213,7 +226,9 @@ public class BuildSourceTask extends AbstractTask<Error> {
             offshoot.setBuiltStatus(new BuildStatus(offshoot.getWorkingCopyRevision(false).getNumber(), false));
             try {
                 offshoot.model.commit(false);
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                //
+            }
         }
         Logger.getLogger().info(MessageFormat.format(
                 "BUILD SOURCE [{0}] {2}. Total time: {1}",
@@ -232,35 +247,64 @@ public class BuildSourceTask extends AbstractTask<Error> {
 
     @Override
     public AbstractTaskView createView(Consumer<ITask> cancelAction) {
-        return new BuildTaskView(this, cancelAction);
+        return new BuildTaskView(this, eventsTreeModel, cancelAction);
     }
 
     private class BuildTaskView extends TaskView {
 
+        private final JCheckBox showWarnings = new JCheckBox(Language.get(BuildWC.class, "switch@warnings"), false) {{
+            setOpaque(false);
+        }};
         private final JLabel problemsStatus = new JLabel(getProblemStatusText(), getProblemsStatusIcon(), SwingConstants.LEFT) {{
             setBorder(new EmptyBorder(0, 0, 3, 0));
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         }};
         private final JLabel problemsStatusSwitch = new JLabel(ICON_COLLAPSE) {{
             setBorder(new EmptyBorder(0, 0, 3, 3));
         }};
 
-        BuildTaskView(ITask task, Consumer<ITask> cancelAction) {
+        BuildTaskView(ITask task, EventTreeModel treeModel, Consumer<ITask> cancelAction) {
             super(task, cancelAction);
             JComponent statusLabel = (JComponent) getComponent(2);
             statusLabel.setBorder(new EmptyBorder(0, 0, 3, 0));
 
+            JPanel controlPanel = new JPanel(new BorderLayout());
+            controlPanel.setOpaque(false);
+            controlPanel.add(showWarnings, BorderLayout.WEST);
+            controlPanel.add(problemsStatusSwitch, BorderLayout.CENTER);
+            controlPanel.add(problemsStatus, BorderLayout.EAST);
+
             JPanel statusPanel = new JPanel(new BorderLayout());
             statusPanel.setOpaque(false);
-
             statusPanel.add(statusLabel, BorderLayout.NORTH);
-            statusPanel.add(problemsStatusSwitch, BorderLayout.WEST);
-            statusPanel.add(problemsStatus, BorderLayout.CENTER);
+            statusPanel.add(controlPanel, BorderLayout.WEST);
 
             JPanel problemsView = new JPanel(new BorderLayout());
             problemsView.setVisible(false);
             problemsView.setPreferredSize(new Dimension(getPreferredSize().width, getPreferredSize().height*5));
 
-            JTree tree = new JTree(eventsTree) {
+            DefaultMutableTreeNode root = (DefaultMutableTreeNode) treeModel.getRoot();
+            treeModel.setFilter(compilerEvent ->
+                    compilerEvent.getSeverity().equals(RadixProblem.ESeverity.ERROR) || showWarnings.isSelected()
+            );
+            showWarnings.addItemListener(event -> {
+                synchronized (eventsList) {
+                    root.removeAllChildren();
+                    treeModel.nodeStructureChanged(root);
+                    eventsList.forEach(treeModel::addEvent);
+                }
+            });
+            problemsStatus.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (getErrorsCount() + getWarningsCount() > 0) {
+                        problemsStatusSwitch.setIcon(problemsView.isVisible() ? ICON_COLLAPSE : ICON_EXPAND);
+                        problemsView.setVisible(!problemsView.isVisible());
+                    }
+                }
+            });
+
+            JTree tree = new JTree(treeModel) {
                 @Override
                 protected void setExpandedState(TreePath path, boolean state) {
                     super.setExpandedState(path, true);
@@ -271,19 +315,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
                 @Override
                 public void treeStructureChanged(TreeModelEvent event) {
                     super.treeStructureChanged(event);
-                    TreeNode root = (TreeNode) tree.getModel().getRoot();
-                    expandAll(tree, new TreePath(root));
-                }
-                private void expandAll(JTree tree, TreePath parent) {
-                    TreeNode node = (TreeNode) parent.getLastPathComponent();
-                    if (node.getChildCount() >= 0) {
-                        for (Enumeration e = node.children(); e.hasMoreElements();) {
-                            TreeNode n = (TreeNode) e.nextElement();
-                            TreePath path = parent.pathByAddingChild(n);
-                            expandAll(tree, path);
-                        }
-                    }
-                    tree.expandPath(parent);
+                    tree.expandPath(event.getTreePath());
                 }
             });
             tree.setCellRenderer((tree1, value, selected, expanded, leaf, row, hasFocus) -> {
@@ -311,16 +343,6 @@ public class BuildSourceTask extends AbstractTask<Error> {
             problemsView.add(scroll, BorderLayout.CENTER);
             statusPanel.add(problemsView, BorderLayout.SOUTH);
             add(statusPanel, BorderLayout.SOUTH);
-
-            problemsStatus.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    if (getErrorsCount() + getWarningsCount() != 0) {
-                        problemsStatusSwitch.setIcon(problemsView.isVisible() ? ICON_COLLAPSE : ICON_EXPAND);
-                        problemsView.setVisible(!problemsView.isVisible());
-                    }
-                }
-            });
         }
 
         @Override
@@ -329,6 +351,14 @@ public class BuildSourceTask extends AbstractTask<Error> {
             if (problemsStatus != null) {
                 problemsStatus.setText(getProblemStatusText());
                 problemsStatus.setIcon(getProblemsStatusIcon());
+            }
+        }
+
+        @Override
+        public void statusChanged(ITask task, Status taskStatus) {
+            super.statusChanged(task, taskStatus);
+            if (taskStatus.equals(Status.FAILED) && eventsList.stream().anyMatch(event -> event.getSeverity() == RadixProblem.ESeverity.ERROR)) {
+                showWarnings.setSelected(false);
             }
         }
 
@@ -359,23 +389,33 @@ public class BuildSourceTask extends AbstractTask<Error> {
 
     private class EventTreeModel extends DefaultTreeModel {
 
+        private final DefaultMutableTreeNode root;
+        private Predicate<CompilerEvent> filter = compilerEvent -> true;
+
         EventTreeModel() {
             super(new DefaultMutableTreeNode("Problems"));
+            root = (DefaultMutableTreeNode) getRoot();
+        }
+
+        void setFilter(Predicate<CompilerEvent> filter) {
+            this.filter = filter;
         }
 
         @SuppressWarnings("unchecked")
         void addEvent(CompilerEvent event) {
-            DefaultMutableTreeNode root = (DefaultMutableTreeNode) getRoot();
-            Definition definition =((List<Definition>) Collections.list(root.children())).stream()
-                    .filter(childDef -> childDef.defId.equals(event.getDefId()))
-                    .findFirst().orElse(new Definition(event.getDefId(), event.getName(), event.getIcon()));
-            if (definition.getParent() == null) {
-                root.add(definition);
-                nodeStructureChanged(root);
+            if (filter.test(event)) {
+                Definition definition = ((List<Definition>) Collections.list(root.children())).stream()
+                        .filter(childDef -> childDef.defId.equals(event.getDefId()))
+                        .findFirst().orElse(new Definition(event.getDefId(), event.getName(), event.getIcon()));
+                Problem problem = new Problem(event.getSeverity(), event.getMessage());
+
+                if (definition.getParent() == null) {
+                    root.add(definition);
+                    nodesWereInserted(root, new int[]{root.getIndex(definition)});
+                }
+                definition.add(problem);
+                nodeStructureChanged(definition);
             }
-            Problem problem = new Problem(event.getSeverity(), event.getMessage());
-            definition.add(problem);
-            nodeStructureChanged(definition);
         }
 
     }

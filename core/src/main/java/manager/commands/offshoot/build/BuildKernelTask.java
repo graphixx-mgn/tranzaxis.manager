@@ -6,7 +6,6 @@ import codex.task.*;
 import codex.utils.Language;
 import manager.commands.offshoot.BuildWC;
 import manager.nodes.Offshoot;
-import manager.type.BuildStatus;
 import manager.upgrade.UpgradeService;
 import org.apache.tools.ant.util.DateUtils;
 import javax.tools.JavaCompiler;
@@ -163,10 +162,12 @@ public class BuildKernelTask extends AbstractTask<Void> {
         if (process.isAlive()) process.destroy();
 
         if (errorRef.get() != null) {
-            offshoot.setBuiltStatus(new BuildStatus(offshoot.getWorkingCopyRevision(false).getNumber(), true));
+            offshoot.setBuiltStatus(null);
             try {
                 offshoot.model.commit(false);
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                //
+            }
             String message = MessageFormat.format(
                     "BUILD KERNEL [{0}] failed. Total time: {1}",
                     offshoot.getLocalPath(), DateUtils.formatElapsedTime(getDuration())
@@ -185,7 +186,7 @@ public class BuildKernelTask extends AbstractTask<Void> {
     @Override
     public void finished(Void t) {
         Logger.getLogger().info(MessageFormat.format(
-                "BUILD SOURCE [{0}] {2}. Total time: {1}",
+                "BUILD KERNEL [{0}] {2}. Total time: {1}",
                 offshoot.getLocalPath(), DateUtils.formatElapsedTime(getDuration()),
                 isCancelled() ? "canceled" : "finished"
         ));
