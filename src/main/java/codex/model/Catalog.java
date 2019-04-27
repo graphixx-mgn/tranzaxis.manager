@@ -67,8 +67,8 @@ public abstract class Catalog extends Entity {
     public abstract Class<? extends Entity> getChildClass();
     
     protected Collection<String> getChildrenPIDs() {
-        EntityRef owner = Entity.findOwner(this);
-        Integer ownerId = owner == null ? null : owner.getId();
+        Entity owner = this.getOwner();
+        Integer ownerId = owner == null ? null : owner.getID();
         return CAS.readCatalogEntries(ownerId, getChildClass()).values();
     }
     
