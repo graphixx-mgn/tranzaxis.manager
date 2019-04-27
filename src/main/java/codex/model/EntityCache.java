@@ -33,13 +33,15 @@ class EntityCache {
                 new CacheKey(PID, ownerId),
                 entity
         );
+        //Logger.getLogger().info("ADD / Cached entities [{0}]: {1}", entity.getClass(), registry.get(entity.getClass()).size());
     }
     
     void remove(Entity entity) {
         if (registry.containsKey(entity.getClass())) {
             Entity owner = entity.getOwner();
-            registry.get(entity.getClass()).remove(new CacheKey(entity.getPID(), owner == null ? null : owner.getID()));
+            registry.get(entity.getClass()).remove(new CacheKey(entity.origTitle, owner == null ? null : owner.getID()));
         }
+        //Logger.getLogger().info("DEL / Cached entities [{0}]: {1}", entity.getClass(), registry.get(entity.getClass()).size());
     }
     
     private class CacheKey {
