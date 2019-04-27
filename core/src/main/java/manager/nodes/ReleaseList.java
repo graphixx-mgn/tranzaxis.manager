@@ -3,10 +3,10 @@ package manager.nodes;
 import codex.model.Entity;
 import codex.type.EntityRef;
 import codex.utils.ImageUtils;
+import java.util.LinkedList;
 
-public class ReleaseList extends BranchCatalog {
-
-    private static final String SUB_DIR = "/releases";
+@RepositoryBranch.Branch(directory = "releases", hasArchive = true)
+public class ReleaseList extends RepositoryBranch {
 
     public ReleaseList(EntityRef owner) {
         this(owner, "title");
@@ -17,22 +17,21 @@ public class ReleaseList extends BranchCatalog {
     }
 
     @Override
+    public void loadBranch() {
+        getChildrenPIDs().forEach((childPID) -> {
+            Entity instance = Entity.newInstance(getChildClass(), getOwner().toRef(), childPID);
+            insert(instance);
+        });
+    }
+
+    @Override
+    public void unloadBranch() {
+        new LinkedList<>(childrenList()).forEach(this::delete);
+    }
+
+    @Override
     public Class<? extends Entity> getChildClass() {
         return Release.class;
     }
 
-    @Override
-    String getSubDirectory() {
-        return SUB_DIR;
-    }
-
-    @Override
-    public boolean allowModifyChild() {
-        return false;
-    }
-    
-    Repository getRepository() {
-        return (Repository) this.getOwner();
-    }
-    
 }

@@ -2,9 +2,6 @@ package manager.nodes;
 
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
-import codex.explorer.ExplorerAccessService;
-import codex.explorer.IExplorerAccessService;
-import codex.explorer.tree.INode;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
@@ -17,7 +14,6 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.StringJoiner;
 import manager.commands.offshoot.BuildWC;
 import manager.commands.offshoot.DeleteWC;
 import manager.commands.offshoot.RefreshWC;
@@ -29,10 +25,8 @@ import manager.type.WCStatus;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.wc.*;
 
-
 public class Offshoot extends BinarySource {
-    
-    public final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+
     public final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm");
     
     public final static String PROP_VERSION     = "version";
@@ -40,6 +34,8 @@ public class Offshoot extends BinarySource {
     public final static String PROP_WC_REVISION = "wcRevision";
     public final static String PROP_WC_BUILT    = "built";
     public final static String PROP_WC_LOADED   = "loaded";
+
+    private final static String LOCAL_DIR = "sources";
 
     public Offshoot(EntityRef owner, String title) {
         super(owner, ImageUtils.getByPath("/images/branch.png"), title);
@@ -54,7 +50,8 @@ public class Offshoot extends BinarySource {
             }
         });
         model.addDynamicProp(PROP_WC_REVISION, new Str(null), null, () -> {
-            if (this.getOwner() != null && (getWCStatus().equals(WCStatus.Succesfull) || getWCStatus().equals(WCStatus.Erroneous))) {
+            WCStatus status = getWCStatus();
+            if (status.equals(WCStatus.Succesfull) || status.equals(WCStatus.Erroneous)) {
                 return getWorkingCopyRevision(false).getNumber()+" / "+DATE_FORMAT.format(getWorkingCopyRevisionDate(false));
             } else {
                 return null;
@@ -103,27 +100,15 @@ public class Offshoot extends BinarySource {
         model.setValue(PROP_WC_LOADED, value);
         return this;
     }
-    
-    @Override
-    public final String getRemotePath() {
-        return new StringJoiner("/")
-            .add(getRepository().getRepoUrl())
-            .add("dev")
-            .add(getVersion())
-            .toString();
-    }
-    
-    @Override
-    public final String getLocalPath() {
-        String workDir = ((Common) EAS.getRoot()).getWorkDir().toString();
-        String repoUrl = getRepository().getRepoUrl();
 
-        return new StringJoiner(File.separator)
-            .add(workDir)
-            .add("sources")
-            .add(Repository.urlToDirName(repoUrl))
-            .add(getVersion())
-            .toString();
+    @Override
+    protected Class<? extends RepositoryBranch> getParentClass() {
+        return Development.class;
+    }
+
+    @Override
+    protected String getLocalDir() {
+        return LOCAL_DIR;
     }
 
     public final List<String> getJvmDesigner() {
@@ -160,6 +145,8 @@ public class Offshoot extends BinarySource {
             ) {
                 status = WCStatus.Interrupted;
             } else {
+                status = WCStatus.Succesfull;
+
 //                final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
 //                try {
 //                    System.out.println("Check "+wcPath);
@@ -176,13 +163,11 @@ public class Offshoot extends BinarySource {
 //                } catch (SVNException e) {
 //                    Logger.getLogger().warn("SVN operation ''status'' error: {0}", e.getErrorMessage());
 //                }
-
-
-                if (SVN.status(wcPath, false, authMgr).isConflicted()) {
-                    status = WCStatus.Erroneous;
-                } else {
-                    status = WCStatus.Succesfull;
-                }
+//                if (SVN.status(wcPath, false, authMgr).isConflicted()) {
+//                    status = WCStatus.Erroneous;
+//                } else {
+//                    status = WCStatus.Succesfull;
+//                }
             }
         }
         return status;

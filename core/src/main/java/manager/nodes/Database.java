@@ -132,7 +132,7 @@ public class Database extends Entity {
         model.setValue(PROP_USER_NOTE, value);
     }
     
-    Integer getConnectionID(boolean showError) {
+    public Integer getConnectionID(boolean showError) {
         return connectionGetter.apply(showError);
     }
     
