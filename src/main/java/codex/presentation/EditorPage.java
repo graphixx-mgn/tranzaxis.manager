@@ -1,6 +1,5 @@
 package codex.presentation;
 
-import codex.command.EditorCommand;
 import codex.component.border.RoundedBorder;
 import codex.editor.IEditor;
 import codex.model.AbstractModel;

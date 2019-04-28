@@ -84,12 +84,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
      */
     public SelectorPresentation(Entity entity) {
         super(new BorderLayout());
-        if (!entity.model.getProperties(Access.Edit).isEmpty()) {
-            setBorder(new CompoundBorder(
-                    new EmptyBorder(0, 5, 3, 5), 
-                    new LineBorder(Color.GRAY, 1)
-            ));
-        }
         this.entity = entity;
         entityClass = entity.getChildClass();
 

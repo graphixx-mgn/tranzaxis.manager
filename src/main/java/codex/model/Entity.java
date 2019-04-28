@@ -284,7 +284,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
 
     @Override
     public final EditorPresentation getEditorPresentation() {
-        if (editorPresentation == null) {
+        if (editorPresentation == null && !model.getProperties(Access.Edit).isEmpty()) {
             editorPresentation = new EditorPresentation(this);
         }
         return editorPresentation;
