@@ -5,7 +5,7 @@ import codex.type.EntityRef;
 import codex.utils.ImageUtils;
 import java.util.LinkedList;
 
-@RepositoryBranch.Branch(directory = "releases", hasArchive = true)
+@RepositoryBranch.Branch(remoteDir = "releases", localDir = "releases", hasArchive = true)
 public class ReleaseList extends RepositoryBranch {
 
     public ReleaseList(EntityRef owner) {

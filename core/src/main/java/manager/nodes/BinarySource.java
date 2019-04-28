@@ -62,13 +62,11 @@ public abstract class BinarySource extends Catalog {
 
     protected abstract Class<? extends RepositoryBranch> getParentClass();
 
-    protected abstract String getLocalDir();
-
     public final String getLocalPath() {
         String workDir = ((Common) EAS.getRoot()).getWorkDir().toString();
         return new StringJoiner(File.separator)
                 .add(workDir)
-                .add(getLocalDir())
+                .add(getParentClass().getAnnotation(RepositoryBranch.Branch.class).localDir())
                 .add(Repository.urlToDirName(getRepository().getRepoUrl()))
                 .add(getPID())
                 .toString();
@@ -81,12 +79,12 @@ public abstract class BinarySource extends Catalog {
 
         StringJoiner defPath = new StringJoiner("/")
                 .add(repo.getRepoUrl())
-                .add(getParentClass().getAnnotation(RepositoryBranch.Branch.class).directory());
+                .add(getParentClass().getAnnotation(RepositoryBranch.Branch.class).remoteDir());
 
         if (hasArchive) {
             StringJoiner archPath = new StringJoiner("/")
                     .add(repo.getRepoUrl())
-                    .add(RepositoryBranch.ARCHIVE_DIR + "/" + getParentClass().getAnnotation(RepositoryBranch.Branch.class).directory());
+                    .add(RepositoryBranch.ARCHIVE_DIR + "/" + getParentClass().getAnnotation(RepositoryBranch.Branch.class).remoteDir());
             ISVNAuthenticationManager authMgr = repo.getAuthManager();
 
             try {

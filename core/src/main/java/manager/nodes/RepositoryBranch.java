@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @IndexSubclasses
-@RepositoryBranch.Branch(directory = "", hasArchive = false)
+@RepositoryBranch.Branch(remoteDir = "", localDir="", hasArchive = false)
 public abstract class RepositoryBranch extends Catalog {
 
     static String ARCHIVE_DIR = "archive";
@@ -22,7 +22,8 @@ public abstract class RepositoryBranch extends Catalog {
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Branch {
-        String directory();
+        String remoteDir();
+        String localDir();
         boolean hasArchive();
     }
 
@@ -34,11 +35,11 @@ public abstract class RepositoryBranch extends Catalog {
     private List<String> getDirectories() {
         if (this.getClass().getAnnotation(Branch.class).hasArchive()) {
             return Arrays.asList(
-                    this.getClass().getAnnotation(Branch.class).directory(),
-                    ARCHIVE_DIR + "/" + this.getClass().getAnnotation(Branch.class).directory()
+                    this.getClass().getAnnotation(Branch.class).remoteDir(),
+                    ARCHIVE_DIR + "/" + this.getClass().getAnnotation(Branch.class).remoteDir()
             );
         } else {
-            return Collections.singletonList(this.getClass().getAnnotation(Branch.class).directory());
+            return Collections.singletonList(this.getClass().getAnnotation(Branch.class).remoteDir());
         }
     }
 
@@ -55,7 +56,7 @@ public abstract class RepositoryBranch extends Catalog {
     }
 
     @Override
-    protected final Collection<String> getChildrenPIDs() {
+    public final Collection<String> getChildrenPIDs() {
         List<String> PIDs = new LinkedList<>();
         if (getRepository().isLocked(true)) {
             PIDs.addAll(getDirectories().stream()

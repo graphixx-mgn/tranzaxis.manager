@@ -23,9 +23,8 @@ import java.util.regex.Pattern;
 public class Release extends BinarySource {
 
     private final static Pattern LAYER = Pattern.compile("\\sBaseLayerURIs=\"([\\w\\.]*)\"\\s");
-    private final static String LOCAL_DIR = "releases";
     
-    public  final static String PROP_VERSION = "version";
+    public final static String PROP_VERSION = "version";
 
     public Release(EntityRef parent, String title) {
         super(parent, ImageUtils.getByPath("/images/release.png"), title);
@@ -46,11 +45,6 @@ public class Release extends BinarySource {
     @Override
     protected Class<? extends RepositoryBranch> getParentClass() {
         return ReleaseList.class;
-    }
-
-    @Override
-    protected String getLocalDir() {
-        return LOCAL_DIR;
     }
     
     public Map<String, Path> getRequiredLayers(String topLayer, boolean online) {

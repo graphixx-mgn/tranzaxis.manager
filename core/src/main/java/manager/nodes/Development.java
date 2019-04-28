@@ -8,7 +8,7 @@ import codex.utils.ImageUtils;
 import java.util.LinkedList;
 import java.util.List;
 
-@RepositoryBranch.Branch(directory = "dev", hasArchive = false)
+@RepositoryBranch.Branch(remoteDir = "dev", localDir = "sources", hasArchive = false)
 public class Development extends RepositoryBranch {
 
     private final static String PROP_JVM_DESIGNER = "jvmDesigner";

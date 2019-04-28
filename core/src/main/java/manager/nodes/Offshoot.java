@@ -35,8 +35,6 @@ public class Offshoot extends BinarySource {
     public final static String PROP_WC_BUILT    = "built";
     public final static String PROP_WC_LOADED   = "loaded";
 
-    private final static String LOCAL_DIR = "sources";
-
     public Offshoot(EntityRef owner, String title) {
         super(owner, ImageUtils.getByPath("/images/branch.png"), title);
         
@@ -104,11 +102,6 @@ public class Offshoot extends BinarySource {
     @Override
     protected Class<? extends RepositoryBranch> getParentClass() {
         return Development.class;
-    }
-
-    @Override
-    protected String getLocalDir() {
-        return LOCAL_DIR;
     }
 
     public final List<String> getJvmDesigner() {

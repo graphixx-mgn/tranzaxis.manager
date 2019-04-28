@@ -50,7 +50,7 @@ public class Repository extends Entity {
 
     static {
         ClassIndex.getSubclasses(RepositoryBranch.class).forEach(branchClass ->
-                BRANCHES.put(branchClass.getAnnotation(RepositoryBranch.Branch.class).directory(), branchClass));
+                BRANCHES.put(branchClass.getAnnotation(RepositoryBranch.Branch.class).remoteDir(), branchClass));
     }
 
     public Repository(EntityRef owner, String title) {
