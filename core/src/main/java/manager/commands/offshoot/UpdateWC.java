@@ -129,11 +129,11 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                                                 )
                                         );
                                         SVNEventAction action = event.getAction();
-                                        if (action == SVNEventAction.UPDATE_ADD) {
+                                        if (action == SVNEventAction.UPDATE_ADD || action == SVNEventAction.UPDATE_SHADOWED_ADD) {
                                             added.addAndGet(1);
-                                        } else if (action == SVNEventAction.UPDATE_DELETE) {
+                                        } else if (action == SVNEventAction.UPDATE_DELETE || action == SVNEventAction.UPDATE_SHADOWED_DELETE) {
                                             deleted.addAndGet(1);
-                                        } else if (action == SVNEventAction.UPDATE_UPDATE) {
+                                        } else if (action == SVNEventAction.UPDATE_UPDATE || action == SVNEventAction.UPDATE_SHADOWED_UPDATE) {
                                             changed.addAndGet(1);
                                         } else if (action == SVNEventAction.RESTORE) {
                                             restored.addAndGet(1);
