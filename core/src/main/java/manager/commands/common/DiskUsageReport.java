@@ -6,7 +6,6 @@ import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
-import codex.log.Logger;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.task.*;
@@ -42,12 +41,14 @@ import javax.swing.border.MatteBorder;
 import manager.commands.offshoot.DeleteWC;
 import manager.nodes.*;
 import org.apache.commons.io.FileDeleteStrategy;
-import org.tmatesoft.svn.core.SVNException;
+import org.atteo.classindex.ClassIndex;
 
 public class DiskUsageReport extends EntityCommand<Common> {
-    
-    private final static IConfigStoreService    CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
-    private static final ITaskExecutorService   TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
+
+    final static String TRASH = "trash@title";
+
+    private final static IConfigStoreService  CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
     
     private static final String SIZE_FORMAT = Language.get(DiskUsageReport.class, "task@total");
     
@@ -71,114 +72,32 @@ public class DiskUsageReport extends EntityCommand<Common> {
     
     class BuildStructure extends AbstractTask<Map<String, List<Entry>>> {
 
+        private Map<String, Repository> repoIndex = CAS.readCatalogEntries(null, Repository.class)
+                .entrySet().stream()
+                .map((entry) -> (Repository) EntityRef.build(Repository.class, entry.getKey()).getValue()).collect(Collectors.toMap(
+                        entry -> Repository.urlToDirName(entry.getRepoUrl()),
+                        entry -> entry
+                ));
+
         BuildStructure() {
             super(Language.get(DiskUsageReport.class, "task@structure"));
         }
 
         @Override
-        public Map<String, List<Entry>> execute() throws Exception {
+        public Map<String, List<Entry>> execute() {
             final File workDir = DiskUsageReport.this.getContext().get(0).getWorkDir().toFile();
-            final File srcDir  = new File(workDir, "sources");
-            final File binDir  = new File(workDir, "releases");
             
             final Map<String, List<Entry>> structureMap = new LinkedHashMap<>();
-            Map<String, Repository> repoIndex = CAS.readCatalogEntries(null, Repository.class)
-                    .entrySet().stream()
-                    .map((entry) -> {
-                        return (Repository) EntityRef.build(Repository.class, entry.getKey()).getValue();
-                    }).collect(Collectors.toMap(
-                        entry -> Repository.urlToDirName(entry.getRepoUrl()), 
-                        entry -> entry
-                    ));
-            
-            if (binDir.exists()) {
-                Stream.of(binDir.listFiles()).forEach((repositoryDir) -> {
-                    if (repoIndex.containsKey(repositoryDir.getName())) {
-                        if (!structureMap.containsKey(repositoryDir.getName())) {
-                            structureMap.put(repositoryDir.getName(), new LinkedList<>());
-                        }
-                        Stream.of(repositoryDir.listFiles()).forEach((cacheDir) -> {
-                            if (cacheDir.isFile()) {
-                                structureMap.get(repositoryDir.getName()).add(
-                                        new Entry(EntryKind.File, repoIndex.get(repositoryDir.getName()), cacheDir)
-                                );
-                            } else {
-                                boolean isBranch = false;
-                                try {
-                                    isBranch = ((BranchCatalog) Entity.newInstance(
-                                            ReleaseList.class, repoIndex.get(repositoryDir.getName()).toRef(), Language.get(ReleaseList.class, "title")
-                                    )).getBranchItems().stream()
-                                            .anyMatch(svnDirEntry -> svnDirEntry.getName().equals(cacheDir.getName()));
-                                } catch (SVNException e) {
-                                    // Do nothing
-                                }
-                                structureMap.get(repositoryDir.getName()).add(
-                                        new Entry(
-                                                isBranch ? EntryKind.Cache : EntryKind.Dir,
-                                                repoIndex.get(repositoryDir.getName()),
-                                                cacheDir
-                                        )
-                                );
-                            }
-                        });
-                    } else {
-                        Logger.getLogger().warn("Found repository directory ''{0}'' does not match to any existing repository", repositoryDir.getAbsolutePath());
-                    }
-                });
-            }
-            
-            if (srcDir.exists()) {
-                Stream.of(srcDir.listFiles()).forEach((repositoryDir) -> {
-                    if (repoIndex.containsKey(repositoryDir.getName())) { 
-                        if (!structureMap.containsKey(repositoryDir.getName())) {
-                            structureMap.put(repositoryDir.getName(), new LinkedList<>());
-                        }
-                        Stream.of(repositoryDir.listFiles()).forEach((offshootDir) -> {
-                            if (offshootDir.isFile()) {
-                                structureMap.get(repositoryDir.getName()).add(
-                                        new Entry(EntryKind.File, repoIndex.get(repositoryDir.getName()), offshootDir)
-                                );
-                            } else {
-                                boolean isBranch = false;
-                                try {
-                                    isBranch = ((BranchCatalog) Entity.newInstance(
-                                            Development.class, repoIndex.get(repositoryDir.getName()).toRef(), Language.get(Development.class, "title")
-                                    )).getBranchItems().stream()
-                                            .anyMatch(svnDirEntry -> svnDirEntry.getName().equals(offshootDir.getName()));
-                                } catch (SVNException e) {
-                                    // Do nothing
-                                }
-                                structureMap.get(repositoryDir.getName()).add(
-                                        new Entry(
-                                                isBranch ? EntryKind.Sources : EntryKind.Dir,
-                                                repoIndex.get(repositoryDir.getName()),
-                                                offshootDir
-                                        )
-                                );
 
-                                StringJoiner logPath = new StringJoiner(File.separator);
-                                logPath.add(offshootDir.getAbsolutePath());
-                                logPath.add(".config");
-                                logPath.add("var");
-                                logPath.add("log");
-
-                                File logDir = new File(logPath.toString());
-                                if (logDir.exists()) {
-                                    for (File file : logDir.listFiles()) {
-                                        if (file.getName().startsWith("heapdump")) {
-                                            structureMap.get(repositoryDir.getName()).add(
-                                                    new Entry(EntryKind.Dump, repoIndex.get(repositoryDir.getName()), file)
-                                            );
-                                        }
-                                    }
-                                }
-                            }
-                        });
-                    } else {
-                        Logger.getLogger().warn("Found repository directory ''{0}'' does not match to any existing repository", repositoryDir.getAbsolutePath());
+            ClassIndex.getSubclasses(RepositoryBranch.class).forEach(branchClass -> {
+                buildBranchStructure(workDir, branchClass).entrySet().forEach(entry -> {
+                    if (!structureMap.containsKey(entry.getKey())) {
+                        structureMap.put(entry.getKey(), new LinkedList<>());
                     }
+                    structureMap.get(entry.getKey()).addAll(entry.getValue());
+                    structureMap.get(entry.getKey()).sort(Comparator.comparingInt(entry2 -> entry2.kind.ordinal()));
                 });
-            }
+            });
             List<String> repoOrder = new ArrayList<>(repoIndex.keySet());
             return structureMap.entrySet().stream()
                     .sorted(new Comparator<Map.Entry<String, List<Entry>>>() {
@@ -271,6 +190,67 @@ public class DiskUsageReport extends EntityCommand<Common> {
             }
         }
 
+        private Map<String, List<Entry>> buildBranchStructure(File workDir, Class<? extends RepositoryBranch> branchClass) {
+            Map<String, List<Entry>> branchEntries = new LinkedHashMap<>();
+
+            File localDir = new File(workDir, branchClass.getAnnotation(RepositoryBranch.Branch.class).localDir());
+            if (localDir.exists()) {
+                Stream.of(IComplexType.coalesce(localDir.listFiles(), new File[]{})).forEach(directory -> {
+                    if (repoIndex.containsKey(directory.getName())) {
+                        RepositoryBranch branch = (RepositoryBranch) Entity.newInstance(branchClass, repoIndex.get(directory.getName()).toRef(), "title");
+                        Collection<String> PIDs = branch.getChildrenPIDs();
+
+                        Stream.of(IComplexType.coalesce(directory.listFiles(), new File[]{})).forEach(repoBoundDir -> {
+                            String repoDirName = directory.getName();
+                            if (!branchEntries.containsKey(repoDirName)) {
+                                branchEntries.put(repoDirName, new LinkedList<>());
+                            }
+
+                            if (repoBoundDir.isFile()) {
+                                branchEntries.get(repoDirName).add(new Entry(EntryKind.File, repoIndex.get(repoDirName), repoBoundDir));
+                            } else {
+                                if (PIDs.contains(repoBoundDir.getName())) {
+                                    branchEntries.get(repoDirName).add(
+                                            new Entry(EntryKind.fromClass(branch.getChildClass()), repoIndex.get(repoDirName), repoBoundDir)
+                                    );
+                                } else {
+                                    branchEntries.get(repoDirName).add(
+                                            new Entry(EntryKind.Dir, repoIndex.get(repoDirName), repoBoundDir)
+                                    );
+                                }
+                                if (branchClass.equals(Development.class)) {
+                                    StringJoiner logPath = new StringJoiner(File.separator);
+                                    logPath.add(repoBoundDir.getAbsolutePath());
+                                    logPath.add(".config");
+                                    logPath.add("var");
+                                    logPath.add("log");
+
+                                    File logDir = new File(logPath.toString());
+                                    if (logDir.exists()) {
+                                        Stream.of(IComplexType.coalesce(logDir.listFiles(), new File[]{})).forEach(file -> {
+                                            if (file.getName().startsWith("heapdump")) {
+                                                branchEntries.get(repoDirName).add(
+                                                        new Entry(EntryKind.Dump, repoIndex.get(repoDirName), file)
+                                                );
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        if (!branchEntries.containsKey(TRASH)) {
+                            branchEntries.put(TRASH, new LinkedList<>());
+                        }
+                        branchEntries.get(TRASH).add(
+                                new Entry(directory.isDirectory() ? EntryKind.Dir : EntryKind.File, null, directory)
+                        );
+                    }
+                });
+            }
+            return branchEntries;
+        }
+
         private JPanel createView(List<RepoEntity> repoEntities) {
             JTabbedPane tabPanel = new JTabbedPane(JTabbedPane.LEFT) {{
                 setFocusable(false);
@@ -279,7 +259,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
             repoEntities.forEach((repoEntity) -> {
                 tabPanel.addTab(
                         null, 
-                        ImageUtils.resize(ImageUtils.getByPath("/images/repository.png"), 20, 20),
+                        ImageUtils.resize(repoEntity.getIcon(), 20, 20),
                         createRepoView(repoEntity)
                 );
             });
@@ -300,7 +280,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
         private JPanel createRepoView(RepoEntity repoEntity) {
             JLabel repoName = new JLabel(MessageFormat.format(
                     Language.get(DiskUsageReport.class, "task@repo"),
-                    repoEntity.getPID()
+                    repoEntity.getPID().equals(TRASH) ? Language.get(DiskUsageReport.class, TRASH) : repoEntity.getPID()
             )) {{
                 setOpaque(true);
                 setBorder(new EmptyBorder(3, 5, 3, 0));
@@ -330,18 +310,18 @@ public class DiskUsageReport extends EntityCommand<Common> {
         }
         
     }
-    
+
     class CalculateDirsSize extends AbstractTask<Void> {
         
         private final List<RepoEntity> repoEntities;
 
-        public CalculateDirsSize(List<RepoEntity> repoEntities) {
+        CalculateDirsSize(List<RepoEntity> repoEntities) {
             super(Language.get(DiskUsageReport.class, "task@title"));
             this.repoEntities = repoEntities;
         }
 
         @Override
-        public Void execute() throws Exception {
+        public Void execute() {
             final long totalFiles = repoEntities.parallelStream()
                     .mapToLong((repoEntity) -> {
                         return repoEntity.childrenList().parallelStream()
@@ -441,20 +421,46 @@ public class DiskUsageReport extends EntityCommand<Common> {
 
     enum EntryKind implements Iconified {
 
-        None(Language.get(DiskUsageReport.class,    "kind@none"), ImageUtils.getByPath("/images/clearval.png")),
-        Sources(Language.get(DiskUsageReport.class, "kind@sources"), ImageUtils.getByPath("/images/branch.png")),
-        Cache(Language.get(DiskUsageReport.class,   "kind@cache"), ImageUtils.getByPath("/images/release.png")),
-        Dump(Language.get(DiskUsageReport.class,    "kind@dump"), ImageUtils.getByPath("/images/thread.png")),
-
-        File(Language.get(DiskUsageReport.class,    "kind@file"), ImageUtils.getByPath("/images/unknown_file.png")),
-        Dir(Language.get(DiskUsageReport.class,     "kind@dir"), ImageUtils.getByPath("/images/unknown_dir.png"));
+        None(
+                Language.get(DiskUsageReport.class,"kind@none"),
+                ImageUtils.getByPath("/images/clearval.png"),
+                null,false
+        ),
+        File(
+                Language.get(DiskUsageReport.class,"kind@file"),
+                ImageUtils.getByPath("/images/unknown_file.png"),
+                null,false
+        ),
+        Dump(
+                Language.get(DiskUsageReport.class,"kind@dump"),
+                ImageUtils.getByPath("/images/thread.png"),
+                null,false
+        ),
+        Dir(
+                Language.get(DiskUsageReport.class,"kind@dir"),
+                ImageUtils.getByPath("/images/unknown_dir.png"),
+                null,false
+        ),
+        Sources(
+                Language.get(DiskUsageReport.class,"kind@sources"),
+                ImageUtils.getByPath("/images/branch.png"),
+                Offshoot.class,true
+        ),
+        Cache(Language.get(DiskUsageReport.class,"kind@cache"),
+                ImageUtils.getByPath("/images/release.png"),
+                Release.class,true
+        );
 
         private final String    title;
         private final ImageIcon icon;
+        private final boolean   used;
+        final Class<? extends BinarySource> clazz;
 
-        EntryKind(String title, ImageIcon icon) {
-            this.title  = title;
-            this.icon   = icon;
+        EntryKind(String title, ImageIcon icon, Class<? extends BinarySource> clazz, boolean used) {
+            this.title = title;
+            this.icon  = icon;
+            this.used  = used;
+            this.clazz = clazz;
         }
 
         @Override
@@ -467,15 +473,26 @@ public class DiskUsageReport extends EntityCommand<Common> {
             return title;
         }
 
+        public boolean isUsed() {
+            return used;
+        }
+
+        public static EntryKind fromClass(Class<? extends Entity> clazz) {
+            for (EntryKind kind : EntryKind.values()) {
+                if (kind.clazz != null && kind.clazz.equals(clazz)) {
+                    return kind;
+                }
+            }
+            return None;
+        }
     }
     
     class Entry {
-        
         final EntryKind  kind;
         final Repository repo;
         final File       file;
 
-        public Entry(EntryKind kind, Repository repo, File file) {
+        Entry(EntryKind kind, Repository repo, File file) {
             this.kind = kind;
             this.repo = repo;
             this.file = file;

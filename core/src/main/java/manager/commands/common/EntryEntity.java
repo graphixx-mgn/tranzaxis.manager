@@ -3,6 +3,7 @@ package manager.commands.common;
 import codex.command.EntityCommand;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
+import codex.model.Access;
 import codex.model.Catalog;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
@@ -28,13 +29,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import manager.nodes.*;
 
-
 class EntryEntity extends Catalog {
     
     private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     
     public final static String PROP_KIND = "kind";
     public final static String PROP_NAME = "name";
+    public final static String PROP_PATH = "path";
     public final static String PROP_USED = "used";
     public final static String PROP_SIZE = "size";
     
@@ -45,7 +46,7 @@ class EntryEntity extends Catalog {
         super(null, null, title, null);
         
         model.addDynamicProp(PROP_KIND, new Enum(DiskUsageReport.EntryKind.None), null, () -> entry.kind);
-        model.addDynamicProp(PROP_NAME, new Str(null), null, () -> {
+        model.addDynamicProp(PROP_NAME, new Str(null), Access.Edit, () -> {
             switch (entry.kind) {
                 case Dump:
                     return entry.file
@@ -89,9 +90,12 @@ class EntryEntity extends Catalog {
             if (entityRef.getValue().islocked()) {
                 try {
                     getLock().acquire();
-                } catch (InterruptedException e) {}
+                } catch (InterruptedException e) {
+                    //
+                }
             }
         }
+        model.getEditor(PROP_USED).setVisible(entry.kind.isUsed());
         
         if (entry.kind == DiskUsageReport.EntryKind.Cache || entry.kind == DiskUsageReport.EntryKind.Sources) {
             StringJoiner starterPath = new StringJoiner(File.separator);
@@ -107,7 +111,9 @@ class EntryEntity extends Catalog {
             if (starter.exists() && !starter.renameTo(starter)) {
                 try {
                     getLock().acquire();
-                } catch (InterruptedException e) {}
+                } catch (InterruptedException e) {
+                    //
+                }
             }
         }
     }
@@ -117,20 +123,9 @@ class EntryEntity extends Catalog {
     }
     
     private static EntityRef findEntity(DiskUsageReport.Entry entry) {
-        Class entityClass;
-        switch (entry.kind) {
-            case Cache:
-                entityClass = Release.class;
-                break;
-            case Sources:
-                entityClass = Offshoot.class;
-                break;
-
-            default: return null;
-        }
-        return CAS.findReferencedEntries(Repository.class, entry.repo.getID()).stream()
-                .filter(foreignLink -> !foreignLink.isIncoming && foreignLink.entryClass.equals(entityClass.getCanonicalName()))
-                .map(foreignLink -> EntityRef.build(entityClass, foreignLink.entryID))
+        return entry.kind.clazz == null ? null : CAS.findReferencedEntries(Repository.class, entry.repo.getID()).stream()
+                .filter(foreignLink -> !foreignLink.isIncoming && foreignLink.entryClass.equals(entry.kind.clazz.getCanonicalName()))
+                .map(foreignLink -> EntityRef.build(entry.kind.clazz, foreignLink.entryID))
                 .filter(entityRef -> ((BinarySource) entityRef.getValue()).getLocalPath().equals(entry.file.getAbsolutePath())).findFirst().orElse(null);
     }
 
@@ -174,13 +169,7 @@ class EntryEntity extends Catalog {
                     Language.get(DiskUsageReport.class, "delete@title"),
                     (entryEntity) ->
                             entryEntity.model.getValue(PROP_SIZE) != null && (
-                                entryEntity.entry.kind == DiskUsageReport.EntryKind.File  ||
-                                entryEntity.entry.kind == DiskUsageReport.EntryKind.Dir   ||
-                                entryEntity.entry.kind == DiskUsageReport.EntryKind.Cache ||
-                                entryEntity.entry.kind == DiskUsageReport.EntryKind.Dump  || (
-                                    entryEntity.entry.kind == DiskUsageReport.EntryKind.Sources &&
-                                    entryEntity.getUsed() == null
-                                )
+                                entryEntity.entry.kind != DiskUsageReport.EntryKind.Sources || entryEntity.getUsed() == null
                             )
             );
         }
