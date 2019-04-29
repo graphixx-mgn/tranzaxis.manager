@@ -103,5 +103,17 @@ public abstract class BinarySource extends Catalog {
             return defPath.add(PID).toString();
         }
     }
+
+    final String getStarterPath() {
+        return new StringJoiner(File.separator)
+                .add(getLocalPath())
+                .add("org.radixware")
+                .add("kernel")
+                .add("starter")
+                .add("bin")
+                .add("dist")
+                .add("starter.jar")
+                .toString();
+    }
     
 }

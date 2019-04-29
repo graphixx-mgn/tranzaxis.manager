@@ -65,39 +65,7 @@ public class RunExplorer extends EntityCommand<Environment> {
         @Override
         public Void execute() throws Exception {
             BinarySource source = env.getBinaries();
-
-            final ArrayList<String> command = new ArrayList<>();
-            command.add("java");
-
-            command.addAll(env.getJvmExplorer());
-            command.add("-jar");
-
-            StringJoiner starterPath = new StringJoiner(File.separator);
-            starterPath.add(source.getLocalPath());
-            starterPath.add("org.radixware");
-            starterPath.add("kernel");
-            starterPath.add("starter");
-            starterPath.add("bin");
-            starterPath.add("dist");
-            starterPath.add("starter.jar");
-            command.add(starterPath.toString());
-
-            // Starter arguments
-            command.add("\n -workDir="+source.getLocalPath());
-            command.add("\n -topLayerUri="+env.getLayerUri(false));
-            command.add("\n -showSplashScreen=Server: "+env);
-            command.add("\n -disableHardlinks");
-            command.add("\norg.radixware.kernel.explorer.Explorer");
-
-            // Explorer arguments
-            command.add("\n -language=en");
-            command.add("\n -development");
-
-            Logger.getLogger().debug("Start explorer command:\n{0}", String.join(" ", command));
-
-            final ProcessBuilder builder = new ProcessBuilder(
-                command.stream().map(String::trim).collect(Collectors.toList())
-            );
+            final ProcessBuilder builder = new ProcessBuilder(env.getExplorerCommand(true));
             builder.redirectInput(ProcessBuilder.Redirect.INHERIT);
             builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
             builder.redirectError(ProcessBuilder.Redirect.INHERIT);

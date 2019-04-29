@@ -14,6 +14,7 @@ import manager.nodes.Release;
 import java.io.File;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
@@ -65,55 +66,9 @@ public class RunServer extends EntityCommand<Environment> {
         }
 
         @Override
-        public Void execute() throws Exception {      
-            Database     database = env.getDataBase(false);
-            BinarySource source   = env.getBinaries();
-
-            final ArrayList<String> command = new ArrayList<>();
-            command.add("java");
-
-            command.addAll(env.getJvmServer());
-            command.add("-jar");
-
-            StringJoiner starterPath = new StringJoiner(File.separator);
-            starterPath.add(source.getLocalPath());
-            starterPath.add("org.radixware");
-            starterPath.add("kernel");
-            starterPath.add("starter");
-            starterPath.add("bin");
-            starterPath.add("dist");
-            starterPath.add("starter.jar");
-            command.add(starterPath.toString());
-
-            // Starter arguments
-            command.add("\n -workDir="+source.getLocalPath());
-            command.add("\n -topLayerUri="+env.getLayerUri(false));
-            command.add("\n -showSplashScreen=Server: "+env+" ("+source.getPID()+")");
-            command.add("\n -disableHardlinks");
-            command.add("\norg.radixware.kernel.server.Server");
-
-            // Server arguments
-            command.add("\n -dbUrl");
-            command.add("jdbc:oracle:thin:@"+database.getDatabaseUrl(false));
-            command.add("\n -user    ");
-            command.add(database.getDatabaseUser(false));
-            command.add("\n -pwd     ");
-            command.add(database.getDatabasePassword(false));
-            command.add("\n -dbSchema");
-            command.add(database.getDatabaseUser(false));
-            command.add("\n -instance");
-            command.add(env.getInstanceId().toString());
-            command.add("\n -switchEasVerChecksOff");
-            command.add("\n -useLocalJobExecutor");
-            command.add("\n -ignoreDdsWarnings");
-            command.add("\n -development");
-            command.add("\n -autostart");
-
-            Logger.getLogger().debug("Start server command:\n{0}", String.join(" ", command));
-
-            final ProcessBuilder builder = new ProcessBuilder(
-                command.stream().map(String::trim).collect(Collectors.toList())
-            );
+        public Void execute() throws Exception {
+            BinarySource source = env.getBinaries();
+            final ProcessBuilder builder = new ProcessBuilder(env.getServerCommand(true));
             builder.redirectInput(ProcessBuilder.Redirect.INHERIT);
             builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
             builder.redirectError(ProcessBuilder.Redirect.INHERIT);
