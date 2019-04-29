@@ -5,9 +5,7 @@ import codex.command.EditorCommand;
 import codex.database.IDatabaseAccessService;
 import codex.database.OracleAccessService;
 import codex.database.RowSelector;
-import codex.editor.AbstractEditor;
-import codex.editor.EntityRefEditor;
-import codex.editor.IEditorFactory;
+import codex.editor.*;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.log.Logger;
@@ -24,6 +22,7 @@ import codex.type.Enum;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.sql.ResultSet;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
 import java.util.Map;
@@ -37,8 +36,6 @@ import manager.type.SourceType;
 public class Environment extends Entity implements INodeListener {
 
     // General properties
-    public final static String PROP_JVM_SERVER   = "jvmServer";
-    public final static String PROP_JVM_EXPLORER = "jvmExplorer";
     public final static String PROP_LAYER_URI    = "layerURI";
     public final static String PROP_DATABASE     = "database";
     public final static String PROP_VERSION      = "version";
@@ -52,9 +49,12 @@ public class Environment extends Entity implements INodeListener {
     public final static String PROP_AUTO_RELEASE = "autoRelease";
 
     // Extra properties
+    public final static String PROP_JVM_SERVER   = "jvmServer";
+    public final static String PROP_JVM_EXPLORER = "jvmExplorer";
     public final static String PROP_STARTER_OPTS  = "starterOpts";
     public final static String PROP_SERVER_OPTS   = "serverOpts";
     public final static String PROP_EXPLORER_OPTS = "explorerOpts";
+    public final static String PROP_RUN_COMMANDS  = "commands";
 
     private final IDataSupplier<String> layerSupplier = new RowSelector(
             RowSelector.Mode.Value,
@@ -103,10 +103,8 @@ public class Environment extends Entity implements INodeListener {
     
     public Environment(EntityRef parent, String title) {
         super(parent, ImageUtils.getByPath("/images/instance.png"), title, null);
-        
+
         // General properties
-        model.addUserProp(PROP_JVM_SERVER,   new ArrStr(new ArrayList<>()),   false, Access.Select);
-        model.addUserProp(PROP_JVM_EXPLORER, new ArrStr(new ArrayList<>()),   false, Access.Select);
         model.addUserProp(PROP_LAYER_URI,    new Str(null),             true,  Access.Select);
         model.addUserProp(PROP_DATABASE,     new EntityRef(Database.class),   false, null);
         model.addDynamicProp(PROP_VERSION,   new Str(null), Access.Select, () -> {
@@ -177,18 +175,41 @@ public class Environment extends Entity implements INodeListener {
         model.addUserProp(PROP_AUTO_RELEASE, new Bool(false), false, Access.Any);
 
         // Extra properties
-        model.addExtraProp(PROP_STARTER_OPTS,  new ArrStr(Collections.singletonList("-disableHardlinks")), true);
-        model.addExtraProp(PROP_SERVER_OPTS,   new ArrStr(Arrays.asList(
-                "-switchEasVerChecksOff",
-                "-useLocalJobExecutor",
-                "-ignoreDdsWarnings",
-                "-development",
-                "-autostart"
-        )), true);
-        model.addExtraProp(PROP_EXPLORER_OPTS, new ArrStr(Arrays.asList(
-                "-language=en",
-                "-development"
-        )), true);
+        model.addExtraProp(PROP_JVM_SERVER,    new ArrStr(),false);
+        model.addExtraProp(PROP_JVM_EXPLORER,  new ArrStr(),false);
+        model.addExtraProp(PROP_STARTER_OPTS,  new ArrStr(), true);
+        model.addExtraProp(PROP_SERVER_OPTS,   new ArrStr(), true);
+        model.addExtraProp(PROP_EXPLORER_OPTS, new ArrStr(), true);
+        model.addDynamicProp(
+                PROP_RUN_COMMANDS,
+                new Str(null) {
+                    @Override
+                    public IEditorFactory editorFactory() {
+                        return TextView::new;
+                    }
+                },
+                Access.Extra,
+                () -> {
+                    List<String> serverCmd   = getServerCommand(false);
+                    List<String> explorerCmd = getExplorerCommand(false);
+                    return MessageFormat.format(
+                            "<html><b><u>RW Server:</u></b><br>{0}<hr><b><u>RW Explorer:</u></b><br>{1}",
+                            serverCmd.isEmpty() ? "<font color=\"red\">(not available)</font>" : String.join(" ", serverCmd),
+                            explorerCmd.isEmpty() ? "<font color=\"red\">(not available)</font>" : String.join(" ", explorerCmd)
+                    );
+                },
+                PROP_JVM_SERVER,
+                PROP_JVM_EXPLORER,
+                PROP_LAYER_URI,
+                PROP_DATABASE,
+                PROP_INSTANCE_ID,
+                PROP_BINARIES,
+                PROP_OFFSHOOT,
+                PROP_RELEASE,
+                PROP_STARTER_OPTS,
+                PROP_SERVER_OPTS,
+                PROP_EXPLORER_OPTS
+        );
         
         // Property settings
         if (getRelease(false) != null) {
@@ -196,6 +217,8 @@ public class Environment extends Entity implements INodeListener {
         }
         model.addPropertyGroup(Language.get("group@database"), PROP_DATABASE, PROP_INSTANCE_ID, PROP_VERSION);
         model.addPropertyGroup(Language.get("group@binaries"), PROP_REPOSITORY, PROP_SOURCE_TYPE, PROP_OFFSHOOT, PROP_RELEASE);
+        model.addPropertyGroup(Language.get(EnvironmentRoot.class,"group@jvm"), PROP_JVM_SERVER, PROP_JVM_EXPLORER);
+        model.addPropertyGroup(Language.get(EnvironmentRoot.class,"group@app"), PROP_STARTER_OPTS, PROP_SERVER_OPTS, PROP_EXPLORER_OPTS);
         
         // Editor settings
         model.getEditor(PROP_LAYER_URI).addCommand(layerSelector);
@@ -268,15 +291,6 @@ public class Environment extends Entity implements INodeListener {
                         }
                     }
                     break;
-                    
-                /*case PROP_OFFSHOOT:
-                    if (newValue != null) {
-                        setRelease(null);
-                        setAutoRelease(false);
-                        synkRelease.activate();
-                    }
-                    model.getProperty(PROP_RELEASE).setRequired(newValue == null);
-                    break;*/
             }
         });
         
@@ -302,6 +316,51 @@ public class Environment extends Entity implements INodeListener {
                 super.execute(environment, map);
             }
         });
+    }
+
+    public List<String> getServerCommand(boolean addSplash) {
+        Database db = getDataBase(true);
+        return canStartServer() ? new LinkedList<String>(){{
+                add("java");
+                add(String.join(" ", getJvmServer()));
+                add("-jar");
+                add(getBinaries().getStarterPath());
+                add("-workDir=" + getBinaries().getLocalPath());
+                add("-topLayerUri=" + getLayerUri(true));
+                if (addSplash) {
+                    add("-showSplashScreen=Server: "+Environment.this+" ("+getBinaries().getPID()+")");
+                }
+                addAll(getStarterFlags(true));
+                add("org.radixware.kernel.server.Server");
+                add("-dbUrl");
+                add("jdbc:oracle:thin:@" + db.getDatabaseUrl(false));
+                add("-user");
+                add(db.getDatabaseUser(false));
+                add("-pwd");
+                add(db.getDatabasePassword(false));
+                add("-dbSchema");
+                add(db.getDatabaseUser(false));
+                add("-instance");
+                add(getInstanceId().toString());
+                addAll(getServerFlags(true));
+            }} : Collections.emptyList();
+    }
+
+    public List<String> getExplorerCommand(boolean addSplash) {
+        return canStartExplorer() ? new LinkedList<String>(){{
+                add("java");
+                addAll(getJvmExplorer());
+                add("-jar");
+                add(getBinaries().getStarterPath());
+                add("-workDir="+getBinaries().getLocalPath());
+                add("-topLayerUri="+getLayerUri(true));
+                if (addSplash) {
+                    add("-showSplashScreen=Explorer: "+Environment.this+" ("+getBinaries().getPID()+")");
+                }
+                addAll(getStarterFlags(true));
+                add("org.radixware.kernel.explorer.Explorer");
+                addAll(getExplorerFlags(true));
+        }} : Collections.emptyList();
     }
     
     public final List<String> getJvmServer() {
@@ -354,6 +413,18 @@ public class Environment extends Entity implements INodeListener {
     
     public String getUserNote() {
         return (String) model.getValue(PROP_USER_NOTE);
+    }
+
+    public final List<String> getStarterFlags(boolean unsaved) {
+        return (List<String>) (unsaved ? model.getUnsavedValue(PROP_STARTER_OPTS) : model.getValue(PROP_STARTER_OPTS));
+    }
+
+    public final List<String> getServerFlags(boolean unsaved) {
+        return (List<String>) (unsaved ? model.getUnsavedValue(PROP_SERVER_OPTS) : model.getValue(PROP_SERVER_OPTS));
+    }
+
+    public final List<String> getExplorerFlags(boolean unsaved) {
+        return (List<String>) (unsaved ? model.getUnsavedValue(PROP_EXPLORER_OPTS) : model.getValue(PROP_EXPLORER_OPTS));
     }
     
     public boolean getAutoRelease(boolean unsaved) {
