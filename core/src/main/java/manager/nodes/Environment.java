@@ -35,7 +35,8 @@ import manager.commands.environment.RunServer;
 import manager.type.SourceType;
 
 public class Environment extends Entity implements INodeListener {
-    
+
+    // General properties
     public final static String PROP_JVM_SERVER   = "jvmServer";
     public final static String PROP_JVM_EXPLORER = "jvmExplorer";
     public final static String PROP_LAYER_URI    = "layerURI";
@@ -49,6 +50,11 @@ public class Environment extends Entity implements INodeListener {
     public final static String PROP_RELEASE      = "release";
     public final static String PROP_USER_NOTE    = "userNote";
     public final static String PROP_AUTO_RELEASE = "autoRelease";
+
+    // Extra properties
+    public final static String PROP_STARTER_OPTS  = "starterOpts";
+    public final static String PROP_SERVER_OPTS   = "serverOpts";
+    public final static String PROP_EXPLORER_OPTS = "explorerOpts";
 
     private final IDataSupplier<String> layerSupplier = new RowSelector(
             RowSelector.Mode.Value,
@@ -98,7 +104,7 @@ public class Environment extends Entity implements INodeListener {
     public Environment(EntityRef parent, String title) {
         super(parent, ImageUtils.getByPath("/images/instance.png"), title, null);
         
-        // Properties
+        // General properties
         model.addUserProp(PROP_JVM_SERVER,   new ArrStr(new ArrayList<>()),   false, Access.Select);
         model.addUserProp(PROP_JVM_EXPLORER, new ArrStr(new ArrayList<>()),   false, Access.Select);
         model.addUserProp(PROP_LAYER_URI,    new Str(null),             true,  Access.Select);
@@ -169,28 +175,40 @@ public class Environment extends Entity implements INodeListener {
         );
         model.addUserProp(PROP_USER_NOTE,    new Str(null), false, null);
         model.addUserProp(PROP_AUTO_RELEASE, new Bool(false), false, Access.Any);
+
+        // Extra properties
+        model.addExtraProp(PROP_STARTER_OPTS,  new ArrStr(Collections.singletonList("-disableHardlinks")), true);
+        model.addExtraProp(PROP_SERVER_OPTS,   new ArrStr(Arrays.asList(
+                "-switchEasVerChecksOff",
+                "-useLocalJobExecutor",
+                "-ignoreDdsWarnings",
+                "-development",
+                "-autostart"
+        )), true);
+        model.addExtraProp(PROP_EXPLORER_OPTS, new ArrStr(Arrays.asList(
+                "-language=en",
+                "-development"
+        )), true);
         
         // Property settings
         if (getRelease(false) != null) {
             getRelease(false).addNodeListener(this);
         }
-        
-        // Editor settings
         model.addPropertyGroup(Language.get("group@database"), PROP_DATABASE, PROP_INSTANCE_ID, PROP_VERSION);
         model.addPropertyGroup(Language.get("group@binaries"), PROP_REPOSITORY, PROP_SOURCE_TYPE, PROP_OFFSHOOT, PROP_RELEASE);
-
+        
+        // Editor settings
         model.getEditor(PROP_LAYER_URI).addCommand(layerSelector);
-
         model.getEditor(PROP_SOURCE_TYPE).setVisible(getRepository(true) != null);
-        sourceUpdater.accept(PROP_OFFSHOOT);
-        sourceUpdater.accept(PROP_RELEASE);
-
         model.getEditor(PROP_INSTANCE_ID).setVisible(getDataBase(true) != null);
         model.getEditor(PROP_VERSION).setVisible(getDataBase(true)     != null);
         
         SyncRelease syncRelease = new SyncRelease();
         model.addModelListener(syncRelease);
         model.getEditor(PROP_RELEASE).addCommand(syncRelease);
+
+        sourceUpdater.accept(PROP_OFFSHOOT);
+        sourceUpdater.accept(PROP_RELEASE);
         
         // Handlers
         model.addChangeListener((name, oldValue, newValue) -> {
