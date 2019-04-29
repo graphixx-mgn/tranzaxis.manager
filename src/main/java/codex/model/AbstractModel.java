@@ -108,7 +108,7 @@ public class AbstractModel {
                 .stream()
                 .filter((PropertyHolder propHolder) -> {
                     Access propRestriction = restrictions.get(propHolder.getName());
-                    return (propRestriction != grant && propRestriction != Access.Any)  || grant == Access.Any;
+                    return (propRestriction != grant && propRestriction != Access.Any && propRestriction != Access.Extra) || grant == Access.Any;
                 })
                 .map((propHolder) -> {
                     return propHolder.getName();

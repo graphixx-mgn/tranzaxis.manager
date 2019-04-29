@@ -51,8 +51,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     
     private final Class           entityClass;
     private final DynamicResolver dynamicResolver = new DynamicResolver();
-    private final List<String>    dynamicProps = new LinkedList<>();
-    private final UndoRegistry    undoRegistry = new UndoRegistry();
+    private final List<String>    dynamicProps    = new LinkedList<>();
+    private final UndoRegistry    undoRegistry    = new UndoRegistry();
     private final Map<String, String>           databaseValues;
     private final Map<String, Object>           initialValues   = new HashMap<>();
     private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
@@ -199,6 +199,33 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             getProperty(propHolder.getName()).getPropValue().valueOf(databaseValues.get(propHolder.getName()));
         }
     }
+
+    /**
+     * Добавление опционального свойства в сущность.
+     * @param name Идентификатор свойства.
+     * @param value Начальное значение свойства.
+     * @param require Признак того что свойство должно иметь значение.
+     * селекторе.
+     */
+    public final void addExtraProp(String name, IComplexType value, boolean require) {
+        addProperty(name, value, require, Access.Extra);
+        if (databaseValues != null && databaseValues.get(name) != null) {
+            getProperty(name).getPropValue().valueOf(databaseValues.get(name));
+        }
+    }
+
+    public final boolean hasExtraProps() {
+        return restrictions.values().contains(Access.Extra);
+    }
+
+    public final boolean isPropertyExtra(String propName) {
+        if (!properties.containsKey(propName)) {
+            throw new IllegalStateException(
+                    MessageFormat.format("Model already has property ''{0}''", propName)
+            );
+        }
+        return Access.Extra.equals(restrictions.get(propName));
+    }
     
     /**
      * Добавление динамического (не хранимого) свойства в сущность.
@@ -336,8 +363,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         return getProperty(name).getTitle();
     }
     
-    public final boolean isPropertyDynamic(String name) {
-        return dynamicProps.contains(name);
+    public final boolean isPropertyDynamic(String propName) {
+        if (!properties.containsKey(propName)) {
+            throw new IllegalStateException(
+                    MessageFormat.format("Model already has property ''{0}''", propName)
+            );
+        }
+        return dynamicProps.contains(propName);
     }
     
     /**
@@ -452,6 +484,23 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             Logger.getLogger().debug(MessageFormat.format("Perform rollback model {0}", getQualifiedName()));
             changes.forEach((name) -> getProperty(name).setValue(undoRegistry.previous(name)));
             new LinkedList<>(modelListeners).forEach((listener) -> listener.modelRestored(this, changes));
+        }
+    }
+
+    /**
+     * Частичный откат изменений модели.
+     * @param propNames Список свойств для отката.
+     */
+    public final void rollback(String... propNames) {
+        if (propNames != null && propNames.length > 0) {
+            List<String> changes = getChanges().stream()
+                    .filter(propName -> Arrays.asList(propNames).contains(propName))
+                    .collect(Collectors.toList());
+            if (!changes.isEmpty()) {
+                Logger.getLogger().debug(MessageFormat.format("Perform partial rollback model {0} {1}", getQualifiedName(), changes));
+                changes.forEach((name) -> getProperty(name).setValue(undoRegistry.previous(name)));
+                new LinkedList<>(modelListeners).forEach((listener) -> listener.modelRestored(this, changes));
+            }
         }
     }
     

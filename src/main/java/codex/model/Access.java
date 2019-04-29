@@ -9,5 +9,6 @@ package codex.model;
 public enum Access {
     Any,
     Edit,
-    Select
+    Select,
+    Extra
 }
