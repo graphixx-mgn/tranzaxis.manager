@@ -3,9 +3,8 @@ package codex.presentation;
 import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
-import codex.model.Access;
-import codex.model.Entity;
-import codex.model.ParamModel;
+import codex.editor.IEditor;
+import codex.model.*;
 import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.type.IComplexType;
@@ -38,38 +37,71 @@ class ShowExtraProps extends EntityCommand<Entity> {
         DialogButton btnSubmit = Dialog.Default.BTN_OK.newInstance();
         DialogButton btnCancel = Dialog.Default.BTN_CANCEL.newInstance();
 
-        List<PropertyHolder> extraProps = context.model.getProperties(Access.Any).stream()
+        List<String> extraPropNames = context.model.getProperties(Access.Any).stream()
                 .filter(context.model::isPropertyExtra)
+                .collect(Collectors.toList());
+
+        List<PropertyHolder> extraProps = extraPropNames.stream()
                 .map(context.model::getProperty)
                 .collect(Collectors.toList());
 
-        Predicate<Entity> changedExtraProps = entity -> {
-              List<String> changes = entity.model.getChanges();
-              changes.retainAll(extraProps.stream().map(PropertyHolder::getName).collect(Collectors.toList()));
-              return !changes.isEmpty();
-        };
-
         ParamModel paramModel = new ParamModel();
-        extraProps.forEach(paramModel::addProperty);
+        extraProps.forEach(propertyHolder -> {
+            paramModel.addProperty(propertyHolder);
+            paramModel.addPropertyGroup(context.model.getPropertyGroup(propertyHolder.getName()), propertyHolder.getName());
+        });
+
+        EntityModel childModel  = context.model;
+        EntityModel parentModel = ((Entity) context.getParent()).model;
+        List<String> overrideProps = parentModel.getProperties(Access.Edit)
+                .stream()
+                .filter(
+                        propName ->
+                                extraPropNames.contains(propName) &&
+                                childModel.hasProperty(propName) &&
+                                        !childModel.isPropertyDynamic(propName) &&
+                                        !EntityModel.SYSPROPS.contains(propName) &&
+                                        parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
+                ).collect(Collectors.toList());
+        if (!overrideProps.isEmpty()) {
+            overrideProps.forEach((propName) -> {
+                if (!paramModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
+                    return command instanceof OverrideProperty;
+                })) {
+                    paramModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName, paramModel.getEditor(propName)));
+                }
+            });
+        }
+
+        Predicate<Entity> changedExtraProps = entity -> entity.model.getChanges().stream()
+                .anyMatch(changedProp ->
+                        extraPropNames.contains(changedProp) || (
+                                !overrideProps.isEmpty() && changedProp.equals("OVR")
+                        )
+                );
 
         Listener editorListener = new Listener(context, paramModel);
         IPropertyChangeListener buttonListener = (name, oldValue, newValue) -> btnSubmit.setEnabled(changedExtraProps.test(context));
 
-        btnSubmit.setEnabled(changedExtraProps.test(context));
         extraProps.forEach(propertyHolder -> {
-            paramModel.getEditor(propertyHolder.getName()).getLabel().setText(
+            IEditor editor = paramModel.getEditor(propertyHolder.getName());
+            editor.getLabel().setText(
                     propertyHolder.getTitle() + (context.model.getChanges().contains(propertyHolder.getName()) ? " *" : "")
             );
             propertyHolder.addChangeListener(editorListener);
             propertyHolder.addChangeListener(buttonListener);
         });
+        if (!overrideProps.isEmpty()) {
+            context.model.getProperty("OVR").addChangeListener(buttonListener);
+        }
 
-        new Dialog(
+        btnSubmit.setEnabled(changedExtraProps.test(context));
+        Dialog dialog = new Dialog(
                 null,
                 ImageUtils.getByPath("/images/param.png"),
                 Language.get(EditorPresentation.class, "extender@title"),
                 new JPanel(new BorderLayout()) {{
-                    add(new EditorPage(paramModel));
+                    add(new EditorPage(paramModel), BorderLayout.NORTH);
                     setBorder(new CompoundBorder(
                             new EmptyBorder(10, 5, 5, 5),
                             new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())
@@ -88,13 +120,23 @@ class ShowExtraProps extends EntityCommand<Entity> {
                     }
                 },
                 btnSubmit, btnCancel
-        ).setVisible(true);
+        ){
+            @Override
+            public Dimension getPreferredSize() {
+                return new Dimension(900, super.getPreferredSize().height);
+            }
+        };
+        dialog.setResizable(false);
+        dialog.setVisible(true);
 
         extraProps.forEach(propertyHolder -> {
             propertyHolder.removeChangeListener(paramModel);
             propertyHolder.removeChangeListener(editorListener);
             propertyHolder.removeChangeListener(buttonListener);
         });
+        if (!overrideProps.isEmpty()) {
+            context.model.getProperty("OVR").removeChangeListener(buttonListener);
+        }
     }
 
 

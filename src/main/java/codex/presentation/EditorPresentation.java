@@ -6,14 +6,10 @@ import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.model.Access;
 import codex.model.Entity;
-import codex.type.IComplexType;
-import codex.utils.ImageUtils;
-
 import javax.swing.*;
 import java.awt.*;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -76,7 +72,7 @@ public final class EditorPresentation extends JPanel {
      * Обновление презентации и панели команд.
      */
     public final void refresh() {
-        add(context.get().getEditorPage());
+        add(context.get().getEditorPage(), BorderLayout.CENTER);
 
         boolean hasCommands   = Stream.concat(systemCommands.stream(), getContextCommands().stream()).findAny().isPresent();
         boolean hasProperties = !context.get().model.getProperties(Access.Edit).isEmpty();

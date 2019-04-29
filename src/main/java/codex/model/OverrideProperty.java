@@ -5,6 +5,7 @@ import codex.command.EditorCommand;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.editor.AbstractEditor;
+import codex.editor.IEditor;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.IComplexType;
@@ -27,6 +28,10 @@ public final class OverrideProperty extends EditorCommand {
     
     private Consumer<PropertyHolder> updater;
 
+    public OverrideProperty(EntityModel parentModel, EntityModel childModel, String propName) {
+        this(parentModel, childModel, propName, childModel.getEditor(propName));
+    }
+
     /**
      * Конструктор команды.
      * @param parentModel Ссылка на родительскую модель.
@@ -34,7 +39,7 @@ public final class OverrideProperty extends EditorCommand {
      * @param propName Свойство которое следует перекрыть.
      */
     @SuppressWarnings("unchecked")
-    public OverrideProperty(EntityModel parentModel, EntityModel childModel, String propName) {
+    public OverrideProperty(EntityModel parentModel, EntityModel childModel, String propName, IEditor propEditor) {
         super(childModel.getProperty(propName).isInherited() ? OVERRIDE : INHERIT, Language.get("title"));
         
         PropertyHolder parentHolder = parentModel.getProperty(propName);
@@ -44,7 +49,7 @@ public final class OverrideProperty extends EditorCommand {
             boolean newOverride = newValue != null && ((List<String>) newValue).contains(propName);
 
             childHolder.setInherited(newOverride ? null : parentHolder);
-            ((AbstractEditor) childModel.getEditor(propName)).updateUI();
+            ((AbstractEditor) propEditor).updateUI();
             
             boolean oldOverride = ((List<String>) IComplexType.coalesce(
                     childModel.getValue(EntityModel.OVR),
@@ -52,7 +57,7 @@ public final class OverrideProperty extends EditorCommand {
             )).contains(propName);
             
             if (oldOverride != newOverride) {
-                childModel.getEditor(propName).getLabel().setText(childModel.getProperty(propName).getTitle() + " *");
+                propEditor.getLabel().setText(childModel.getProperty(propName).getTitle() + " *");
             }
         });
         
