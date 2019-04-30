@@ -1,7 +1,6 @@
 package manager.commands.environment;
 
 import codex.command.EntityCommand;
-import codex.log.Logger;
 import codex.service.ServiceRegistry;
 import codex.task.*;
 import codex.type.IComplexType;
@@ -12,10 +11,7 @@ import manager.nodes.Environment;
 import manager.nodes.Release;
 import java.io.File;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Map;
-import java.util.StringJoiner;
-import java.util.stream.Collectors;
 
 
 public class RunExplorer extends EntityCommand<Environment> {

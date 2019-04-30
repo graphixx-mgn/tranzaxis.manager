@@ -103,7 +103,6 @@ public final class SplashScreen extends JFrame {
                     (int)(descriptionArea.getY()+g.getFontMetrics().getHeight())
             );
         }
-        try { Thread.sleep(100); } catch (InterruptedException e) {}
     }
     
     public void setProgress(int progress) {

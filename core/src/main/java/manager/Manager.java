@@ -5,28 +5,24 @@ import codex.explorer.tree.NodeTreeModel;
 import codex.instance.InstanceUnit;
 import codex.launcher.LauncherUnit;
 import codex.log.LogUnit;
-import codex.log.Logger;
 import codex.service.ServiceUnit;
 import codex.task.TaskManager;
-import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import it.sauronsoftware.junique.AlreadyLockedException;
 import it.sauronsoftware.junique.JUnique;
-import java.util.prefs.Preferences;
-import javax.swing.JFrame;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 import manager.nodes.Common;
 import manager.nodes.DatabaseRoot;
 import manager.nodes.EnvironmentRoot;
 import manager.nodes.RepositoryRoot;
 import manager.type.Locale;
-import manager.ui.splash.SplashScreen;
 import manager.ui.Window;
-import manager.upgrade.UpgradeService;
+import manager.ui.splash.SplashScreen;
 import manager.upgrade.UpgradeUnit;
+import plugin.PluginManager;
 import sun.util.logging.PlatformLogger;
+import javax.swing.*;
+import java.util.prefs.Preferences;
 
 public class Manager {
     
@@ -34,27 +30,14 @@ public class Manager {
         try {
             UIManager.setLookAndFeel(new WindowsLookAndFeel());
             UIManager.put("Tree.drawDashedFocusIndicator", false);
-            
         } catch (UnsupportedLookAndFeelException e) {}
+        PlatformLogger.getLogger("java.util.prefs").setLevel(PlatformLogger.Level.OFF);
     }
-    private final AbstractUnit 
-        logViewer, 
-        upgradeUnit, 
-        configExplorer, 
-        commandLauncher, 
-        serviceOptions,
-        networkBrowser,
-        taskManager
-    ;
 
     public Manager() {
-        System.out.println(UpgradeService.getCurrentJar());
+        //new NotifyMessage("Test", "TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST", 0, null).setVisible(true);
         SplashScreen splash = new SplashScreen();
-        
         loadSystemProps();
-        PlatformLogger platformLogger = PlatformLogger.getLogger("java.util.prefs");
-        platformLogger.setLevel(PlatformLogger.Level.OFF);
-        
         Window window = new Window("TranzAxis Manager", ImageUtils.getByPath("/images/project.png"));
         String uniqueAppId = Manager.class.getCanonicalName();
         try {
@@ -69,14 +52,15 @@ public class Manager {
             JUnique.sendMessage(uniqueAppId, "OPEN");
             System.exit(0);
         }
-        
-        splash.setProgress(10, "Initialize logging system");
-        logViewer = LogUnit.getInstance();
 
-        Logger.getLogger().info(System.getProperty("java.class.path"));
+        splash.setProgress(10, "Initialize logging system");
+        LogUnit logViewer = LogUnit.getInstance();
+
+//        splash.setProgress(20, "Load plugin manager");
+//        PluginManager pluginManager = PluginManager.getInstance();
 
         splash.setProgress(40, "Start task management system");
-        taskManager = new TaskManager();
+        TaskManager taskManager = new TaskManager();
 
         splash.setProgress(50, "Build configuration root");
         Common root = new Common();
@@ -85,29 +69,31 @@ public class Manager {
         root.insert(new EnvironmentRoot());
         
         NodeTreeModel objectsTree = new NodeTreeModel(root);
-        configExplorer = ExplorerUnit.getInstance();
-        ((ExplorerUnit) configExplorer).setModel(objectsTree);
+        ExplorerUnit configExplorer = ExplorerUnit.getInstance();
+        configExplorer.setModel(objectsTree);
         
         splash.setProgress(70, "Start command launcher unit");
-        commandLauncher = new LauncherUnit();
+        LauncherUnit commandLauncher = new LauncherUnit();
 
         splash.setProgress(80, "Start service management unit");
-        serviceOptions = new ServiceUnit();
+        ServiceUnit serviceOptions = new ServiceUnit();
         
         splash.setProgress(90, "Start instance control unit");
-        networkBrowser = InstanceUnit.getInstance();
+        InstanceUnit networkBrowser = InstanceUnit.getInstance();
 
         splash.setProgress(90, "Start upgrade unit");
-        upgradeUnit = new UpgradeUnit();
+        UpgradeUnit upgradeUnit = new UpgradeUnit();
         
         splash.setProgress(100, "Initialize user interface");
-        window.addUnit(logViewer,       window.loggingPanel);
-        window.addUnit(serviceOptions,  window.servicePanel);
-        window.addUnit(upgradeUnit,     window.upgradePanel);
-        window.addUnit(configExplorer,  window.explorePanel);
-        window.addUnit(commandLauncher, window.launchPanel);
-        window.addUnit(networkBrowser,  window.connectPanel);
-        window.addUnit(taskManager,     window.taskmgrPanel);
+        window.addUnit(logViewer,   window.loggingPanel);
+        window.addUnit(upgradeUnit, window.upgradePanel);
+        window.addUnit(taskManager, window.taskmgrPanel);
+
+        window.addUnit(configExplorer);
+        window.addUnit(commandLauncher);
+        window.addUnit(serviceOptions);
+        window.addUnit(networkBrowser);
+        //window.addUnit(pluginManager);
 
         splash.setVisible(false);
         window.setVisible(true);
