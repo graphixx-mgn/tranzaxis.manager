@@ -6,10 +6,7 @@ import codex.mask.IArrMask;
 import codex.mask.StrSetMask;
 import codex.property.PropertyHolder;
 import java.text.MessageFormat;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Тип-обертка {@link IComplexType} для интерфейса {@literal List<String>}.
@@ -20,8 +17,8 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
         return new ArrStrEditor(propHolder);
     };
     
-    private List<String> value = null;
-    private IArrMask    mask;
+    private List<String> value;
+    private IArrMask mask;
     
     /**
      * Конструктор типа.
@@ -43,7 +40,7 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
             // Может быть передан immutable List (Arrays.asList(...)) 
             this.value = new FormattedList(value);
         } else {
-            this.value = null;
+            this.value = new FormattedList(new LinkedList<>());
         }
     }
 
@@ -55,10 +52,9 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
     @Override
     public void setValue(List<String> value) {
         if (value != null && !value.isEmpty()) {
-            // Может быть передан immutable List (Arrays.asList(...)) 
             this.value = new FormattedList(value);
         } else {
-            this.value = null;
+            this.value = new FormattedList(new LinkedList<>());
         }
     }
     
