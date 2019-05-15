@@ -22,7 +22,6 @@ import javax.swing.JList;
 import javax.swing.JTable;
 import javax.swing.JTree;
 import javax.swing.ListCellRenderer;
-import static javax.swing.SwingConstants.CENTER;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
@@ -140,6 +139,8 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
             boolean isEntityInvalid = false;
             boolean isEntityLocked  = false;
             PropertyState propState = PropertyState.Good;
+            Color bgColor = table.getBackground();
+            Color fgColor = IEditor.COLOR_NORMAL;
             
             if (table.getModel() instanceof SelectorTableModel) {
                 SelectorTableModel selectorModel = (SelectorTableModel) table.getModel();
@@ -147,7 +148,12 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                 String propName = entity.model.getProperties(Access.Select).get(column);
                 
                 cellBox.setValue(value, entity.model.getProperty(propName).getPlaceholder());
-                
+
+                if (entity.model.getChanges().contains(propName)) {
+                    bgColor = blend(bgColor, Color.decode("#AAFFAA"));
+                    fgColor = Color.decode("#213200");
+                }
+
                 isEntityInvalid = !entity.model.isValid();
                 isEntityLocked  = entity.islocked();
                 propState = entity.model.getPropState(propName);
@@ -162,33 +168,25 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                 default:
                     cellBox.state.setIcon(null);
             }
-            
             cellBox.setDisabled(isEntityLocked || !table.isEnabled());
-            if (cellBox.isDisabled()) {
-                // Do nothing
-            } else if (isEntityInvalid) {
-                cellBox.setBackground(Color.decode("#FFEEEE"));
-            } else {
-                if (row % 2 == 1) {
-                    cellBox.setBackground(table.getBackground());
-                } else {
-                    cellBox.setBackground(Color.decode("#F5F5F5"));
-                }
+
+            if (isEntityInvalid) {
+                bgColor = blend(bgColor, Color.decode("#FFEEEE"));
             }
-            
+            if (row % 2 == 0) {
+                bgColor = blend(bgColor, Color.decode("#F5F5F5"));
+            }
             if (isSelected) {
-                cellBox.setBackground(blend(Color.decode("#BBD8FF"), cellBox.getBackground()));
+                bgColor = blend(bgColor, Color.decode("#BBD8FF"));
             }
+            cellBox.setBackground(bgColor);
             
-            if (cellBox.isDisabled()) {
-                // Do nothing
-            } else if (isEntityInvalid && value != null) {
-                cellBox.setForeground(Color.RED);
+            if (isEntityInvalid && value != null) {
+                fgColor = Color.RED;
             } else if (value == null) {
-                cellBox.setForeground(IEditor.COLOR_DISABLED);
-            } else {
-                cellBox.setForeground(IEditor.COLOR_NORMAL);
+                fgColor = IEditor.COLOR_DISABLED;
             }
+            cellBox.setForeground(fgColor);
             
             if (column == 0) {
                 int iconSize = table.getRowHeight() - 6;
