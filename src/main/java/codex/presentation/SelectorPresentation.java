@@ -48,19 +48,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     private final CommandPanel commandPanel;
     private final Supplier<List<Entity>>      context;
     private final List<EntityCommand<Entity>> systemCommands  = new LinkedList<>();
-    private final List<EntityCommand<Entity>> contextCommands = new LinkedList<EntityCommand<Entity>>() {
-        @Override
-        public boolean add(EntityCommand<Entity> entityEntityCommand) {
-            clear();
-            return super.add(entityEntityCommand);
-        }
-
-        @Override
-        public boolean addAll(Collection<? extends EntityCommand<Entity>> c) {
-            clear();
-            return super.addAll(c);
-        }
-    };
     
     /**
      * Конструктор презентации. 
@@ -151,6 +138,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 }
             }
         });
+        refresh();
     }
 
     /**
