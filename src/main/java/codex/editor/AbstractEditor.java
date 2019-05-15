@@ -7,23 +7,19 @@ import codex.component.button.PushButton;
 import codex.property.PropertyHolder;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
-import java.awt.Color;
-import java.awt.event.ActionEvent;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.LinkedList;
-import java.util.List;
+import net.java.balloontip.BalloonTip;
+import net.java.balloontip.styles.EdgedBalloonStyle;
+import net.java.balloontip.utils.TimingUtils;
+
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
-
-import net.java.balloontip.BalloonTip;
-import net.java.balloontip.styles.EdgedBalloonStyle;
-import net.java.balloontip.utils.TimingUtils;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Абстрактный редактор свойств {@link PropertyHolder}. Содержит основные функции
@@ -114,6 +110,12 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     @Override
     public final void setBorder(Border border) {
         editor.setBorder(border);
+    }
+
+    @Override
+    public final Object getValue() {
+        stopEditing();
+        return propHolder.getPropValue().getValue();
     }
 
     /**

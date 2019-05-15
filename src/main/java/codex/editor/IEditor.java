@@ -3,17 +3,13 @@ package codex.editor;
 import codex.command.EditorCommand;
 import codex.property.PropertyHolder;
 import codex.utils.Language;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Font;
-import java.util.List;
-import javax.swing.Box;
-import javax.swing.JLabel;
-import javax.swing.UIManager;
+import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import java.awt.*;
+import java.util.List;
 
 /**
  * Интерфейс GUI редакторов свойств {@link PropertyHolder}
@@ -100,6 +96,11 @@ public interface IEditor<T> {
      * @param border Новый бордюр.
      */
     public void setBorder(Border border);
+
+    /**
+     * Получение значения редактора, отображаемое в GUI.
+     */
+    public T getValue();
     
     /** 
      * Установка значения редактора, отображаемое в GUI.
