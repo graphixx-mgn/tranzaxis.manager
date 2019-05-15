@@ -169,21 +169,27 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                     cellBox.state.setIcon(null);
             }
             cellBox.setDisabled(isEntityLocked || !table.isEnabled());
+            if (cellBox.isDisabled()) {
+                if (isSelected) {
+                    bgColor = blend(cellBox.getBackground(), Color.decode("#BBD8FF"));
+                    cellBox.setBackground(bgColor);
+                }
+            } else {
+                if (isEntityInvalid) {
+                    bgColor = blend(bgColor, Color.decode("#FFEEEE"));
+                }
+                if (row % 2 == 0) {
+                    bgColor = blend(bgColor, Color.decode("#F5F5F5"));
+                }
+                if (isSelected) {
+                    bgColor = blend(bgColor, Color.decode("#BBD8FF"));
+                }
+                cellBox.setBackground(bgColor);
+            }
 
-            if (isEntityInvalid) {
-                bgColor = blend(bgColor, Color.decode("#FFEEEE"));
-            }
-            if (row % 2 == 0) {
-                bgColor = blend(bgColor, Color.decode("#F5F5F5"));
-            }
-            if (isSelected) {
-                bgColor = blend(bgColor, Color.decode("#BBD8FF"));
-            }
-            cellBox.setBackground(bgColor);
-            
             if (isEntityInvalid && value != null) {
                 fgColor = Color.RED;
-            } else if (value == null) {
+            } else if (value == null || cellBox.isDisabled()) {
                 fgColor = IEditor.COLOR_DISABLED;
             }
             cellBox.setForeground(fgColor);
