@@ -132,7 +132,6 @@ class LoadUpgrade extends AbstractTask<Void> {
             int  bytesRead = inStream.read(data);
             while (bytesRead != -1) {
                 totalRead = totalRead + bytesRead;
-                Thread.sleep(1);
                 outStream.write(data, 0, bytesRead);
                 localChecksum.update(data, 0, bytesRead);
                 setProgress((int) (100 * totalRead / fileSize), getDescription());
