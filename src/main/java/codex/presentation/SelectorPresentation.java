@@ -4,45 +4,28 @@ import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
-import codex.component.render.GeneralRenderer;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.model.OverrideProperty;
-import codex.type.Bool;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
+import javax.swing.*;
+import javax.swing.border.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import java.awt.*;
 import java.awt.event.*;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.swing.DropMode;
-import javax.swing.ImageIcon;
-import javax.swing.JComponent;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.KeyStroke;
-import javax.swing.ListSelectionModel;
-import javax.swing.SwingUtilities;
-import javax.swing.TransferHandler;
-import javax.swing.WindowConstants;
-import javax.swing.border.CompoundBorder;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
-import javax.swing.border.MatteBorder;
-import javax.swing.border.TitledBorder;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 
 /**
  * Презентация селектора сущности. Реализует как функциональность отображения и 
@@ -110,11 +93,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         tableModel = new SelectorTableModel(entity, prototype);
         table = new SelectorTable(tableModel);
         table.getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        
-        GeneralRenderer renderer = new GeneralRenderer();
-        table.setDefaultRenderer(Bool.class,         renderer);
-        table.setDefaultRenderer(IComplexType.class, renderer);
-        table.getTableHeader().setDefaultRenderer(renderer);
         
         if (entity.allowModifyChild()) {
             table.setDragEnabled(true);
