@@ -9,7 +9,7 @@ import java.awt.image.ImageObserver;
 import java.net.URL;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.swing.ImageIcon;
+import javax.swing.*;
 
 public class ImageUtils {
     
@@ -87,18 +87,45 @@ public class ImageUtils {
     }
     
     public static ImageIcon combine(ImageIcon bgIcon, ImageIcon fgIcon) {
+        return combine(bgIcon, fgIcon, SwingConstants.CENTER);
+    }
+
+    public static ImageIcon combine(ImageIcon bgIcon, ImageIcon fgIcon, int position) {
         Image srcImage = bgIcon.getImage();
         int width  = bgIcon.getIconWidth();
         int height = bgIcon.getIconHeight();
 
-        final BufferedImage combinedImage = new BufferedImage( 
-                width, 
-                height, 
+        int fgPosX, fgPosY;
+        switch (position) {
+            case SwingConstants.NORTH_WEST:
+                fgPosX = 0;
+                fgPosY = 0;
+                break;
+            case SwingConstants.NORTH_EAST:
+                fgPosX = width - fgIcon.getIconWidth();
+                fgPosY = 0;
+                break;
+            case SwingConstants.SOUTH_WEST:
+                fgPosX = 0;
+                fgPosY = height - fgIcon.getIconHeight();
+                break;
+            case SwingConstants.SOUTH_EAST:
+                fgPosX = width - fgIcon.getIconWidth();
+                fgPosY = height - fgIcon.getIconHeight();
+                break;
+            default:
+                fgPosX = width / 2 - fgIcon.getIconWidth() / 2;
+                fgPosY = height / 2 - fgIcon.getIconHeight() / 2;
+        }
+
+        final BufferedImage combinedImage = new BufferedImage(
+                width,
+                height,
                 BufferedImage.TYPE_INT_ARGB
         );
         Graphics2D g = combinedImage.createGraphics();
         g.drawImage(srcImage, 0, 0, null);
-        g.drawImage(fgIcon.getImage(), 0, 0, null);
+        g.drawImage(fgIcon.getImage(), fgPosX, fgPosY, null);
         return new ImageIcon(combinedImage);
     }
     
