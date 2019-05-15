@@ -1,5 +1,6 @@
 package codex.config;
 
+import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.service.IService;
 import codex.type.IComplexType;
@@ -113,7 +114,7 @@ public interface IConfigStoreService extends IService {
      * @param clazz Класс сущности
      * @throws Exception
      */
-    default Class getOwnerClass(Class clazz) throws Exception {
+    default Class<? extends Entity> getOwnerClass(Class clazz) throws Exception {
         return null;
     }
     
