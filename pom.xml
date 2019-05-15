@@ -69,43 +69,6 @@
 
     <build>
         <plugins>
-            <!--<plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-install-plugin</artifactId>
-                <version>3.0.0-M1</version>
-                <executions>
-                    <execution>
-                        <id>install:com.oracle:ojdbc6</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
-                            <file>${basedir}/lib/ojdbc6.jar</file>
-                            <groupId>com.oracle</groupId>
-                            <artifactId>ojdbc6</artifactId>
-                            <version>11.2.0.3</version>
-                            <packaging>jar</packaging>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>install:com.oracle:ucp</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
-                            <file>${basedir}/lib/ucp.jar</file>
-                            <groupId>com.oracle</groupId>
-                            <artifactId>ucp</artifactId>
-                            <version>11.1.0.7</version>
-                            <packaging>jar</packaging>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>-->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>xmlbeans-maven-plugin</artifactId>
@@ -124,7 +87,7 @@
                         <xmlConfig implementation="java.io.File">src/main/java/codex/schemas/.xsdconfig</xmlConfig>
                     </xmlConfigs>
                     <verbose>false</verbose>
-                    <quiet>false</quiet>
+                    <quiet>true</quiet>
                     <javaSource>${maven.compiler.source}</javaSource>
                 </configuration>
             </plugin>
