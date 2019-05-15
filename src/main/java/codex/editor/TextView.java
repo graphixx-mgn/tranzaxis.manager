@@ -56,7 +56,6 @@ public class TextView extends AbstractEditor {
 
     @Override
     public void setValue(Object value) {
-        System.out.println("TextView.setValue: "+value);
         if (value == null) {
             pane.setText("");
         } else {

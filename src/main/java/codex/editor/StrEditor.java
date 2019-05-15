@@ -1,36 +1,20 @@
 package codex.editor;
 
-import static codex.editor.IEditor.BORDER_ERROR;
-import static codex.editor.IEditor.BORDER_NORMAL;
 import codex.mask.IMask;
 import codex.property.PropertyHolder;
 import codex.type.Str;
 import codex.utils.ImageUtils;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.KeyboardFocusManager;
-import java.awt.event.FocusEvent;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
-import javax.swing.border.EmptyBorder;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import net.java.balloontip.BalloonTip;
 import net.java.balloontip.styles.EdgedBalloonStyle;
 import net.java.balloontip.utils.TimingUtils;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Редактор свойств типа {@link Str}, представляет собой поле ввода.
@@ -59,7 +43,6 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     /**
      * Внутренний конструктор редактора, вызывается публичным конструктором.
      * @param propHolder Редактируемое свойство.
-     * @param checker Функция-предикат для непрерывной проверки ввода.
      * @param transformer Функция-конвертер, вызывается для получения значения 
      * свойства из введенного текста при фиксации изменения.
      */
@@ -163,12 +146,10 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
 
     @Override
     public void setValue(Object value) {
-        SwingUtilities.invokeLater(() -> {
-            textField.getDocument().removeDocumentListener(this);
-            textField.setText(value == null ? "" : value.toString());
-            textField.getDocument().addDocumentListener(this);
-            verify();
-        });
+        textField.getDocument().removeDocumentListener(this);
+        textField.setText(value == null ? "" : value.toString());
+        textField.getDocument().addDocumentListener(this);
+        verify();
     }
     
     @Override
