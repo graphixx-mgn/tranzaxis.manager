@@ -2,6 +2,7 @@ package codex.presentation;
 
 import codex.command.EntityCommand;
 import codex.model.Entity;
+import codex.model.OverrideProperty;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -23,7 +24,19 @@ class RollbackEntity extends EntityCommand<Entity> {
                 "rollback", null,
                 ImageUtils.resize(ImageUtils.getByPath("/images/undo.png"), 28, 28), 
                 Language.get(EditorPresentation.class, "command@rollback"),
-                (entity) -> entity.model.hasChanges(),
+                (entity) -> entity.model.getChanges().stream()
+                        .anyMatch(propName -> (
+                                !entity.model.isPropertyExtra(propName) &&
+                                !"OVR".equals(propName)
+                            ) || (
+                                "OVR".equals(propName) &&
+                                OverrideProperty.getOverrideChanges(entity.model).entrySet().stream()
+                                        .anyMatch(entry ->
+                                            entry.getValue() &&
+                                            !entity.model.isPropertyExtra(entry.getKey())
+                                        )
+                            )
+                        ),
                 KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_MASK)
         );
     }
