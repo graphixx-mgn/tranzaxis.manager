@@ -4,10 +4,8 @@ import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
-import codex.editor.IEditor;
+import codex.log.Logger;
 import codex.model.*;
-import codex.property.IPropertyChangeListener;
-import codex.property.PropertyHolder;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -52,19 +50,16 @@ class ShowExtraProps extends EntityCommand<Entity> {
         DialogButton btnSubmit = Dialog.Default.BTN_OK.newInstance();
         DialogButton btnCancel = Dialog.Default.BTN_CANCEL.newInstance();
 
-        List<String> extraPropNames = context.model.getProperties(Access.Any).stream()
-                .filter(context.model::isPropertyExtra)
-                .collect(Collectors.toList());
-
-        List<PropertyHolder> extraProps = extraPropNames.stream()
-                .map(context.model::getProperty)
-                .collect(Collectors.toList());
+        List<String> extraPropNames = getExtraProperties(context.model);
 
         ParamModel paramModel = new ParamModel();
-        extraProps.forEach(propertyHolder -> {
-            paramModel.addProperty(propertyHolder);
-            paramModel.addPropertyGroup(context.model.getPropertyGroup(propertyHolder.getName()), propertyHolder.getName());
-        });
+
+        extraPropNames.stream()
+                .map(context.model::getProperty)
+                .forEach(propertyHolder -> {
+                    paramModel.addProperty(propertyHolder);
+                    paramModel.addPropertyGroup(context.model.getPropertyGroup(propertyHolder.getName()), propertyHolder.getName());
+                });
 
         EntityModel childModel  = context.model;
         EntityModel parentModel = ((Entity) context.getParent()).model;
@@ -80,7 +75,7 @@ class ShowExtraProps extends EntityCommand<Entity> {
                 ).collect(Collectors.toList());
         if (!overrideProps.isEmpty()) {
             overrideProps.forEach((propName) -> {
-                if (!paramModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
+                if (paramModel.getEditor(propName).getCommands().stream().noneMatch((command) -> {
                     return command instanceof OverrideProperty;
                 })) {
                     paramModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName, paramModel.getEditor(propName)));
@@ -88,29 +83,22 @@ class ShowExtraProps extends EntityCommand<Entity> {
             });
         }
 
-        Predicate<Entity> changedExtraProps = entity -> entity.model.getChanges().stream()
+        Predicate<Entity> hasChanges = entity -> entity.model.getChanges().stream()
                 .anyMatch(changedProp ->
                         extraPropNames.contains(changedProp) || (
-                                !overrideProps.isEmpty() && changedProp.equals("OVR")
+                                !overrideProps.isEmpty()   &&
+                                 changedProp.equals("OVR") &&
+                                 OverrideProperty.getOverrideChanges(entity.model).entrySet().stream()
+                                     .anyMatch(entry -> entry.getValue() && extraPropNames.contains(entry.getKey()))
                         )
                 );
 
-        Listener editorListener = new Listener(context, paramModel);
-        IPropertyChangeListener buttonListener = (name, oldValue, newValue) -> btnSubmit.setEnabled(changedExtraProps.test(context));
+        btnSubmit.setEnabled(hasChanges.test(context));
+        context.model.addChangeListener((name, oldValue, newValue) -> btnSubmit.setEnabled(hasChanges.test(context)));
 
-        extraProps.forEach(propertyHolder -> {
-            IEditor editor = paramModel.getEditor(propertyHolder.getName());
-            editor.getLabel().setText(
-                    propertyHolder.getTitle() + (context.model.getChanges().contains(propertyHolder.getName()) ? " *" : "")
-            );
-            propertyHolder.addChangeListener(editorListener);
-            propertyHolder.addChangeListener(buttonListener);
-        });
-        if (!overrideProps.isEmpty()) {
-            context.model.getProperty("OVR").addChangeListener(buttonListener);
-        }
+        List<String> savedOverridden = context.getOverride();
+        Map<String, Boolean> initialOverriddenDiff = OverrideProperty.getOverrideChanges(childModel);
 
-        btnSubmit.setEnabled(changedExtraProps.test(context));
         Dialog dialog = new Dialog(
                 null,
                 ImageUtils.getByPath("/images/param.png"),
@@ -124,14 +112,9 @@ class ShowExtraProps extends EntityCommand<Entity> {
                 }},
                 (event) -> {
                     if (event.getID() == Dialog.OK) {
-                        //
+                        acceptChanges(context.model, overrideProps, savedOverridden, initialOverriddenDiff);
                     } else {
-                        context.model.rollback(
-                                extraProps.stream()
-                                        .map(propertyHolder -> propertyHolder.getName())
-                                        .collect(Collectors.toList())
-                                        .toArray(new String[]{})
-                        );
+                        declineChanges(context.model, overrideProps, savedOverridden, initialOverriddenDiff);
                     }
                 },
                 btnSubmit, btnCancel
@@ -143,32 +126,59 @@ class ShowExtraProps extends EntityCommand<Entity> {
         };
         dialog.setResizable(false);
         dialog.setVisible(true);
+    }
 
-        extraProps.forEach(propertyHolder -> {
-            propertyHolder.removeChangeListener(paramModel);
-            propertyHolder.removeChangeListener(editorListener);
-            propertyHolder.removeChangeListener(buttonListener);
-        });
+    private List<String> getExtraProperties(EntityModel model) {
+        return model.getProperties(Access.Any).stream()
+                    .filter(model::isPropertyExtra)
+                    .collect(Collectors.toList());
+    }
+
+    private void acceptChanges(EntityModel model, List<String> overrideProps, List<String> savedOverridden, Map<String, Boolean> initialOverriddenDiff) {
+        try {
+            List<String> changes = model.getChanges();
+            model.commit(true, getExtraProperties(model).stream()
+                    .filter(propName -> !model.isPropertyDynamic(propName) && changes.contains(propName))
+                    .collect(Collectors.toList())
+                    .toArray(new String[]{}));
+        } catch (Exception e) {
+            Logger.getLogger().error(e.getMessage());
+        }
+
         if (!overrideProps.isEmpty()) {
-            context.model.getProperty("OVR").removeChangeListener(buttonListener);
+            Map<String, Boolean> currentOverriddenDiff = OverrideProperty.getOverrideChanges(model);
+            if (!initialOverriddenDiff.equals(currentOverriddenDiff)) {
+                model.getProperty("OVR").getOwnPropValue().setValue(
+                        OverrideProperty.applyOverrideChanges(
+                                savedOverridden,
+                                currentOverriddenDiff.entrySet().stream()
+                                        .filter(entry -> getExtraProperties(model).contains(entry.getKey()))
+                                        .collect(Collectors.toMap(
+                                                Map.Entry::getKey,
+                                                Map.Entry::getValue
+                                        ))
+                        )
+                );
+                try {
+                    model.commit(true, "OVR");
+                } catch (Exception e) {
+                    Logger.getLogger().error(e.getMessage());
+                }
+                model.setValue("OVR", OverrideProperty.applyOverrideChanges(savedOverridden, currentOverriddenDiff));
+            }
         }
     }
 
+    private void declineChanges(EntityModel model, List<String> overrideProps, List<String> savedOverridden, Map<String, Boolean> initialOverriddenDiff) {
+        model.rollback(getExtraProperties(model).toArray(new String[]{}));
 
-    class Listener implements IPropertyChangeListener {
-
-        private final Entity     context;
-        private final ParamModel paramModel;
-        Listener(Entity context, ParamModel paramModel) {
-            this.context    = context;
-            this.paramModel = paramModel;
-        }
-
-        @Override
-        public void propertyChange(String name, Object oldValue, Object newValue) {
-            paramModel.getEditor(name).getLabel().setText(
-                    paramModel.getProperty(name).getTitle() + (context.model.getChanges().contains(name) ? " *" : "")
-            );
+        if (!overrideProps.isEmpty()) {
+            Map<String, Boolean> currentOverriddenDiff = OverrideProperty.getOverrideChanges(model);
+            if (!initialOverriddenDiff.equals(currentOverriddenDiff)) {
+                Logger.getLogger().debug("Rollback overridden extra properties of [Environment/#1-'Wirecard Trunk']");
+                model.setValue("OVR", OverrideProperty.applyOverrideChanges(savedOverridden, initialOverriddenDiff));
+            }
         }
     }
+
 }
