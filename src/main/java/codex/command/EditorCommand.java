@@ -8,11 +8,14 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
- * Абстрактная реализация команд редактора свойств {@link PropertyHolder}.
+ * Абстрактная реализация команды редактора свойств {@link PropertyHolder}.
  * Используется для возможности производить различные действия над свойством.
  */
 public abstract class EditorCommand implements ICommand<PropertyHolder, PropertyHolder> {
-    
+
+    /**
+     * Свойство связанное с данным редактором.
+     */
     protected PropertyHolder context;
 
     private final ImageIcon icon;
@@ -20,6 +23,9 @@ public abstract class EditorCommand implements ICommand<PropertyHolder, Property
     private Predicate<PropertyHolder> available;
     private final List<ICommandListener<PropertyHolder>> listeners = new LinkedList<>();
 
+    /**
+     * Функция расчета доступности каманды.
+     */
     protected Function<PropertyHolder, CommandStatus> activator = holder -> new CommandStatus(
             holder != null && (
                     available == null || available.test(holder)

@@ -47,7 +47,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
          */
         Action,
         /**
-         * Системная команда. Встраивается в презентацию селектора как системная команда. Контекст команды - родительская
+         * Команда родительской сущности. Встраивается в презентацию селектора как системная команда. Контекст команды - родительская
          * сущность элементов селектора.
          */
         System
@@ -64,6 +64,9 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     private final List<ICommandListener<V>> listeners = new LinkedList<>();
     private Supplier<PropertyHolder[]>      provider  = () -> new PropertyHolder[]{};
 
+    /**
+     * Функция расчета доступности каманды.
+     */
     protected Function<List<V>, CommandStatus> activator = entities -> new CommandStatus(
         entities != null && entities.size() > 0 &&
               !(entities.size() > 1 && !multiContextAllowed()) && (
@@ -132,7 +135,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
 
     
     /**
-     * Возвращает тип команды.
+     * Возвращает тип команды (По-умолчанию - {@link Kind#Action}).
      */
     public Kind getKind() {
         return Kind.Action;
@@ -161,6 +164,9 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
         return hint;
     }
 
+    /**
+     * Возвращает код комбинации клавиш клавиатуры для запуска команды.
+     */
     public final KeyStroke getKey() {
         return key;
     }
@@ -176,6 +182,9 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
         });
     }
 
+    /**
+     * Проверка доступности команды для текущего контекста.
+     */
     public boolean isActive() {
         return activator.apply(getContext()).isActive();
     }
@@ -203,6 +212,10 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
         setContext(Collections.singletonList(context));
     }
 
+    /**
+     * Текст вопроса, отображаемого пользователю для подтверждения перед исполнением команды.
+     * Если запрос не требуется, метод должен вернуть NULL.
+     */
     public String acquireConfirmation() {
         return null;
     }
