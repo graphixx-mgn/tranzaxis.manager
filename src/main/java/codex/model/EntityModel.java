@@ -455,21 +455,35 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             return true;
         }
     }
+
+    public boolean commit(boolean showError, String... propNames) throws Exception {
+        if (propNames != null && propNames.length > 0) {
+            if (getID() == null) {
+                throw new IllegalStateException(MessageFormat.format("Update failed: model {0} does not exist in database", getQualifiedName()));
+            } else {
+                List<String> updateProps = Arrays.asList(propNames);
+                Logger.getLogger().debug(MessageFormat.format("Perform partial commit model {0} {1}", getQualifiedName(), updateProps));
+                return update(showError, updateProps);
+            }
+        }
+        return true;
+    }
     
     /**
      * Сохранение изменений модели.
      */
     public final void commit(boolean showError) throws Exception {
-        if (!getChanges().isEmpty()) {
+        List<String> changes = getChanges();
+        if (!changes.isEmpty()) {
             if (getID() == null) {
                 Logger.getLogger().debug(MessageFormat.format("Perform commit (create) model {0}", getQualifiedName()));
                 if (create(showError)) {
-                    update(showError);
+                    update(showError, changes);
                 }
             } else {
                 if (maintenance(showError)) {
                     Logger.getLogger().debug(MessageFormat.format("Perform commit (update) model {0}", getQualifiedName()));
-                    update(showError);
+                    update(showError, changes);
                 }
             }
         }
@@ -482,7 +496,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         List<String> changes = getChanges();
         if (!changes.isEmpty()) {
             Logger.getLogger().debug(MessageFormat.format("Perform rollback model {0}", getQualifiedName()));
-            changes.forEach((name) -> getProperty(name).setValue(undoRegistry.previous(name)));
+            changes.forEach((name) -> {
+                if (undoRegistry.exists(name)) {
+                    getProperty(name).setValue(undoRegistry.previous(name));
+                }
+            });
             new LinkedList<>(modelListeners).forEach((listener) -> listener.modelRestored(this, changes));
         }
     }
@@ -540,16 +558,15 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
     }
     
-    private boolean update(boolean showError) throws Exception {
+    private boolean update(boolean showError, List<String> changes) throws Exception {
         Map<String, String> dbValues = CAS.readClassInstance(entityClass, getID());
-        List<String>   changedValues = getChanges();
         try {
             synchronized (this) {
                 processAutoReferences(true, null);
                 CAS.updateClassInstance(
                         entityClass, 
-                        getID(), 
-                        changedValues.stream()
+                        getID(),
+                        changes.stream()
                             .filter((propName) -> !getProperty(propName).getOwnPropValue().toString().equals(dbValues.get(propName)))
                             .collect(Collectors.toMap(
                                     propName -> propName, 
@@ -557,12 +574,16 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                             ))
                 );
                 processAutoReferences(false, null);
-                undoRegistry.clear();
+                changes.forEach(propName -> {
+                    if (undoRegistry.exists(propName)) {
+                        undoRegistry.put(propName, undoRegistry.current(propName), undoRegistry.previous(propName));
+                    }
+                });
             }
             new LinkedList<>(modelListeners).forEach((listener) -> {
-                listener.modelSaved(this, new LinkedList<>(changedValues));
+                listener.modelSaved(this, new LinkedList<>(changes));
             });
-            changedValues.forEach((propName) -> {
+            changes.forEach((propName) -> {
                 ((List<EditorCommand>) getEditor(propName).getCommands()).forEach((command) -> {
                     command.activate();
                 });
