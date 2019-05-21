@@ -35,16 +35,15 @@ import java.util.stream.Collectors;
  * Реализация модели сущности.
  */
 public class EntityModel extends AbstractModel implements IPropertyChangeListener {
-    
-    final static String ID  = "ID";  // Primary unique identifier
-    final static String OWN = "OWN"; // Reference to owner entity
-    final static String SEQ = "SEQ"; // Order sequence number
-    final static String PID = "PID"; // Title or name 
-    final static String OVR = "OVR"; // List of overridden values
+
+    public final static String ID   = "ID";   // Primary unique identifier
+    public final static String OWN  = "OWN";  // Reference to owner entity
+    public final static String SEQ  = "SEQ";  // Order sequence number
+    public final static String PID  = "PID";  // Title or name
+    public final static String OVR  = "OVR";  // List of overridden values
     
     private static final Boolean      DEV_MODE  = "1".equals(java.lang.System.getProperty("showSysProps"));
     public  final static List<String> SYSPROPS  = Arrays.asList(new String[] {ID, OWN, SEQ, PID, OVR});
-    private final static List<String> GENERATED = Arrays.asList(new String[] {ID, SEQ});
     
     private final static IConfigStoreService    CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
@@ -158,7 +157,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             }
         }
         return isValid;
-    };
+    }
     
     @Override
     protected void addProperty(PropertyHolder propHolder, Access restriction) {
@@ -478,7 +477,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             if (getID() == null) {
                 Logger.getLogger().debug(MessageFormat.format("Perform commit (create) model {0}", getQualifiedName()));
                 if (create(showError)) {
-                    update(showError, changes);
+                    update(showError, getChanges() /* +SEQ */);
                 }
             } else {
                 if (maintenance(showError)) {
