@@ -10,16 +10,21 @@ import codex.editor.AbstractEditor;
 import codex.editor.IEditor;
 import codex.explorer.tree.AbstractNode;
 import codex.explorer.tree.INode;
+import codex.explorer.tree.INodeListener;
 import codex.log.Logger;
 import codex.presentation.EditorPage;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.property.IPropertyChangeListener;
 import codex.service.ServiceRegistry;
+import codex.type.AnyType;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Iconified;
+import codex.utils.ImageUtils;
 import codex.utils.Language;
+
+import java.awt.image.BufferedImage;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
@@ -32,6 +37,9 @@ import javax.swing.ImageIcon;
  * Также является узлом дерева проводника, реализуя интерфейс {@link INode}.
  */
 public abstract class Entity extends AbstractNode implements IPropertyChangeListener, Iconified {
+
+    private static final ImageIcon ICON_INVALID = ImageUtils.getByPath("/images/warn.png");
+    private static final ImageIcon ICON_LOCKED  = ImageUtils.getByPath("/images/lock.png");
    
     private static final Boolean DEV_MODE = "1".equals(java.lang.System.getProperty("showSysProps"));
     private static final EntityCache CACHE = EntityCache.getInstance();
@@ -40,7 +48,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     private final ImageIcon icon;
     private final String    hint;
 
-    final String origTitle;
+    final String  origTitle;
+    private Boolean isPrototype = false;
 
     private EditorPage           editorPage;
     private EditorPresentation   editorPresentation;
@@ -67,7 +76,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             this.title = localTitle.equals(Language.NOT_FOUND) ? PID : localTitle;
         }
         origTitle  = title;
-        this.icon  = icon;
+        this.icon  = icon != null ? icon : new ImageIcon(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB));
         this.hint  = hint;
         this.model = new EntityModel(
                 owner,
@@ -125,6 +134,22 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 }
             }
         }
+
+        //Properties
+        model.addDynamicProp(EntityModel.THIS, new AnyType(),
+                Access.Edit,
+                () -> new Iconified() {
+                    @Override
+                    public ImageIcon getIcon() {
+                        return Entity.this.getIcon();
+                    }
+
+                    @Override
+                    public String toString() {
+                        return getPID();
+                    }
+                }
+        );
     }
     
     /**
@@ -146,13 +171,22 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      */
     @Override
     public final ImageIcon getIcon() {
-        return icon;
+        if (isPrototype) {
+            return icon;
+        } else if (islocked()) {
+            return ImageUtils.combine(ImageUtils.grayscale(icon), ICON_LOCKED);
+        } else if (!model.isValid()) {
+            return ImageUtils.combine(icon, ICON_INVALID);
+        } else {
+            return (getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED ? icon : ImageUtils.grayscale(icon);
+        }
     }
 
     protected final void setIcon(ImageIcon icon) {
         if (icon != null) {
             this.icon.setImage(icon.getImage());
             fireChangeEvent();
+            model.updateDynamicProps(EntityModel.THIS);
         }
     }
     
@@ -311,6 +345,12 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 .collect(Collectors.toList());
     }
 
+    protected void setPropertyRestriction(String propName, Access access) {
+        if (model.hasProperty(propName)) {
+            model.restrictions.put(propName, access);
+        }
+    }
+
     @Override
     public final void propertyChange(String name, Object oldValue, Object newValue) {
         if (
@@ -409,7 +449,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             Constructor ctor = entityClass.getDeclaredConstructor(EntityRef.class, String.class);
             ctor.setAccessible(true);
             Entity prototype = (Entity) ctor.newInstance(null, null);
-            //prototype.isPrototype = true;
+            prototype.isPrototype = true;
             return prototype;
         } catch (InvocationTargetException | ExceptionInInitializerError | InstantiationException | IllegalAccessException e) {
             Throwable exception = e;
