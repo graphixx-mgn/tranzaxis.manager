@@ -131,12 +131,10 @@ public class ShortcutSection extends Entity implements IModelListener {
     private void updateProperties() {
         List<LaunchShortcut> launchers = getLaunchers();
         List<Integer> sequences = launchers.stream()
-                .map((launcher) -> {
-                    return launcher.getShortcut().getSEQ();
-                })
+                .map((launcher) -> launcher.getShortcut().getSEQ())
+                .sorted()
                 .collect(Collectors.toList());
-        
-        Collections.sort(sequences);
+
         Iterator<Integer> seqIterator = sequences.iterator();
         
         launchers.forEach((launcher) -> {
