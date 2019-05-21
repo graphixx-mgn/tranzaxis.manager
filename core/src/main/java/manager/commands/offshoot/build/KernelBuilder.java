@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -27,6 +26,7 @@ import org.apache.tools.ant.BuildLogger;
 import org.apache.tools.ant.DefaultLogger;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.ProjectHelper;
+import org.radixware.kernel.common.preferences.KernelParameters;
 import org.radixware.kernel.common.repository.Branch;
 import org.radixware.kernel.common.repository.Layer;
 
@@ -53,6 +53,8 @@ public class KernelBuilder {
                 e.printStackTrace();
             }
         });
+
+        KernelParameters.setAppName("extmanager");
         try {
             ProjectDocument projectDoc = ProjectDocument.Factory.newInstance();
             ProjectDocument.Project project = projectDoc.addNewProject();
