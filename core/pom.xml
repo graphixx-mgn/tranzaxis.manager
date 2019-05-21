@@ -9,21 +9,16 @@
 	<parent>
         <artifactId>manager</artifactId>
         <groupId>com.compassplus</groupId>
-        <version>[2.0.0, 3.0.0]</version>
+        <version>1.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-
-    <properties>
-        <aspectj.version>1.9.2</aspectj.version>
-        <aspectj.skip>false</aspectj.skip>
-    </properties>
 
     <profiles>
         <profile>
             <id>production</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
+            <properties>
+                <aspectj.skip>false</aspectj.skip>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -35,6 +30,24 @@
                                     <exclude>com.compassplus:codex</exclude>
                                 </excludes>
                             </artifactSet>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-clean-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>target/</directory>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                    <excludes>
+                                        <exclude>**/plugins/*</exclude>
+                                    </excludes>
+                                </fileset>
+                            </filesets>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -131,7 +144,7 @@
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjrt</artifactId>
-            <version>${aspectj.version}</version>
+            <version>1.9.2</version>
         </dependency>
     </dependencies>
 
@@ -191,58 +204,24 @@
                     <dependency>
                         <groupId>org.aspectj</groupId>
                         <artifactId>aspectjtools</artifactId>
-                        <version>${aspectj.version}</version>
+                        <version>1.9.2</version>
                     </dependency>
                 </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
-                <configuration>
-                    <compilerArguments>
-                        <bootclasspath>${sun.boot.class.path}${path.separator}${java.home}/lib/jfxrt.jar</bootclasspath>
-                    </compilerArguments>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.1</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                    </execution>
-                </executions>
                 <configuration>
-                    <createDependencyReducedPom>false</createDependencyReducedPom>
-                    <filters>
-                        <filter>
-                            <artifact>*:*</artifact>
-                            <excludes>
-                                <exclude>*build.properties</exclude>
-                                <exclude>.netbeans_*</exclude>
-                                <exclude>META-INF/LICENSE*</exclude>
-                                <exclude>META-INF/NOTICE*</exclude>
-                                <exclude>META-INF/maven/**</exclude>
-                                <exclude>META-INF/RadixWare*</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
                     <finalName>${project.parent.artifactId}-${project.version}</finalName>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.1.0</version>
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>Loader</mainClass>
+                            <mainClass>manager.Manager</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
