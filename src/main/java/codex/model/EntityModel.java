@@ -14,12 +14,9 @@ import codex.presentation.SelectorPresentation;
 import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
-import codex.type.ArrStr;
-import codex.type.EntityRef;
-import codex.type.IComplexType;
-import codex.type.Int;
-import codex.type.Str;
+import codex.type.*;
 import codex.utils.Language;
+import javax.swing.*;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -41,9 +38,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public final static String SEQ  = "SEQ";  // Order sequence number
     public final static String PID  = "PID";  // Title or name
     public final static String OVR  = "OVR";  // List of overridden values
+    public final static String THIS = "THIS"; // List of overridden values
     
     private static final Boolean      DEV_MODE  = "1".equals(java.lang.System.getProperty("showSysProps"));
-    public  final static List<String> SYSPROPS  = Arrays.asList(new String[] {ID, OWN, SEQ, PID, OVR});
+    public  final static List<String> SYSPROPS  = Arrays.asList(ID, OWN, SEQ, PID, OVR);
     
     private final static IConfigStoreService    CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
@@ -80,9 +78,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         );
         addUserProp(EntityModel.PID, new Str(PID),  
                 true,
-                DEV_MODE ? null : (
-                    Catalog.class.isAssignableFrom(entityClass) ? Access.Any : null
-                )
+                Catalog.class.isAssignableFrom(entityClass) ? Access.Any : Access.Select
         );
         addUserProp(EntityModel.OWN, owner != null ? owner : new EntityRef(null),
                 false, 

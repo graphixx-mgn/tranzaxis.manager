@@ -3,10 +3,10 @@ package codex.explorer.tree;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.model.IModelListener;
+import javax.swing.tree.DefaultTreeModel;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import javax.swing.tree.DefaultTreeModel;
 
 /**
  * Модель дерева проводника.
@@ -74,7 +74,7 @@ public final class NodeTreeModel extends DefaultTreeModel implements Iterable<IN
     public Iterator<INode> iterator() {
         return new NodeIterator((INode) root);
     }
-    
+
     private class NodeIterator implements Iterator<INode> {
         
         private final List<INode> list = new LinkedList<>();
