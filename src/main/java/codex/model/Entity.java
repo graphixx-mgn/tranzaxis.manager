@@ -4,6 +4,8 @@ import codex.command.EntityCommand;
 import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
+import codex.config.ConfigStoreService;
+import codex.config.IConfigStoreService;
 import codex.editor.AbstractEditor;
 import codex.editor.IEditor;
 import codex.explorer.tree.AbstractNode;
@@ -13,6 +15,7 @@ import codex.presentation.EditorPage;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.property.IPropertyChangeListener;
+import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Iconified;
@@ -98,6 +101,16 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 if (changes.contains(EntityModel.PID)) {
                     setTitle(model.getPID(false));
                 }
+                ((IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class)).findReferencedEntries(Entity.this.getClass(), getID()).stream()
+                        .filter(link -> link.isIncoming)
+                        .forEach(link -> {
+                            try {
+                                EntityRef ref = EntityRef.build(Class.forName(link.entryClass), link.entryID);
+                                ref.getValue().fireChangeEvent();
+                            } catch (ClassNotFoundException e) {
+                                e.printStackTrace();
+                            }
+                        });
             }
         });
         if (getPID() != null) {
@@ -139,6 +152,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     protected final void setIcon(ImageIcon icon) {
         if (icon != null) {
             this.icon.setImage(icon.getImage());
+            fireChangeEvent();
         }
     }
     
