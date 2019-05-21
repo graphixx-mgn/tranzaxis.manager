@@ -42,8 +42,10 @@ public abstract class AbstractNode implements INode {
     
     @Override
     public final void setMode(int mode) {
-        this.mode = mode;
-        fireChangeEvent();
+        if (this.mode != mode) {
+            this.mode = mode;
+            fireChangeEvent();
+        }
     }
     
     /**
