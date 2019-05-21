@@ -36,10 +36,7 @@ import javax.swing.tree.TreeCellRenderer;
 public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, TableCellRenderer, TreeCellRenderer {
     
     private static final Boolean DEV_MODE = "1".equals(java.lang.System.getProperty("showHashes"));
-    
-    private static final ImageIcon ICON_INVALID = ImageUtils.getByPath("/images/warn.png");
-    private static final ImageIcon ICON_LOCKED  = ImageUtils.getByPath("/images/lock.png");
-    private static final ImageIcon ICON_ERROR   = ImageUtils.getByPath("/images/red.png");
+    private static final ImageIcon ICON_ERROR = ImageUtils.getByPath("/images/red.png");
     
     private static Color blend(Color c0, Color c1) {
         double totalAlpha = c0.getAlpha() + c1.getAlpha();
@@ -72,7 +69,7 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
      */
     @Override
     public Component getListCellRendererComponent(JList<? extends E> list, E value, int index, boolean isSelected, boolean hasFocus) {
-        JLabel label = new JLabel(
+        return new JLabel(
                 value.toString().concat(DEV_MODE && !(value instanceof AbstractEditor.NullValue) ? ", hash="+value.hashCode() : "")
         ) {{
             setOpaque(true);
@@ -80,30 +77,18 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
             setVerticalAlignment(CENTER);
             setFont(IEditor.FONT_VALUE);
             setBackground(isSelected ? IButton.PRESS_COLOR : list.getBackground());
+
             if (Iconified.class.isAssignableFrom(value.getClass())) {
-                if (value instanceof Entity && !((Entity) value).model.isValid()) {
-                    setIcon(ImageUtils.resize(ImageUtils.combine(
-                        ((Iconified) value).getIcon(),
-                        ICON_INVALID
-                    ), 17, 17));
-                } else if (value instanceof Entity && ((Entity) value).islocked()) {
-                    setIcon(ImageUtils.resize(ImageUtils.combine(
-                        ((Iconified) value).getIcon(),
-                        ICON_LOCKED
-                    ), 17, 17));
-                } else {
-                    setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 17, 17));
+                ImageIcon icon = ((Iconified) value).getIcon();
+                if (icon != null) {
+                    icon = ImageUtils.resize(icon, 17, 17);
+                    setDisabledIcon(ImageUtils.grayscale(icon));
+                    setIcon(icon);
                 }
-            } else {
-                setIcon(null);
-            }
-            if (getIcon() != null) {
-                setDisabledIcon(ImageUtils.grayscale((ImageIcon) getIcon()));
             }
             setBorder(new EmptyBorder(1, 4, 1, 2));
             setForeground(value instanceof AbstractEditor.NullValue ? Color.GRAY : IEditor.COLOR_NORMAL);
         }};
-        return label;
     }
 
     /**
@@ -146,6 +131,10 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                 SelectorTableModel selectorModel = (SelectorTableModel) table.getModel();
                 Entity entity = selectorModel.getEntityAt(row);
                 String propName = entity.model.getProperties(Access.Select).get(column);
+
+                isEntityInvalid = !entity.model.isValid();
+                isEntityLocked  = entity.islocked();
+                propState = entity.model.getPropState(propName);
                 
                 cellBox.setValue(value, entity.model.getProperty(propName).getPlaceholder());
 
@@ -154,9 +143,6 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                     fgColor = Color.decode("#213200");
                 }
 
-                isEntityInvalid = !entity.model.isValid();
-                isEntityLocked  = entity.islocked();
-                propState = entity.model.getPropState(propName);
             } else {
                 cellBox.setValue(value, IEditor.NOT_DEFINED);
             }
@@ -176,7 +162,7 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                 }
             } else {
                 if (isEntityInvalid) {
-                    bgColor = blend(bgColor, Color.decode("#FFEEEE"));
+                    bgColor = blend(bgColor, Color.decode("#FFAAAA"));
                 }
                 if (row % 2 == 0) {
                     bgColor = blend(bgColor, Color.decode("#F5F5F5"));
@@ -193,19 +179,6 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                 fgColor = IEditor.COLOR_DISABLED;
             }
             cellBox.setForeground(fgColor);
-            
-            if (column == 0) {
-                int iconSize = table.getRowHeight() - 6;
-                if (isEntityLocked) {
-                    cellBox.setIcon(
-                        ImageUtils.resize(ICON_LOCKED, iconSize, iconSize)
-                    );
-                } else if (isEntityInvalid) {
-                    cellBox.setIcon(
-                        ImageUtils.resize(ICON_INVALID, iconSize, iconSize)
-                    );
-                }
-            }
             cellBox.setBorder(new CompoundBorder(
                     new MatteBorder(0, 0, 1, column == table.getColumnCount()-1 ? 0 : 1, Color.LIGHT_GRAY), 
                     new EmptyBorder(0, 6, 0, 0)
@@ -229,35 +202,24 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
     public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) {
         if (tree.getModel() instanceof NodeTreeModel) {
             Entity entity = (Entity) value;
-            int iconSize  = tree.getRowHeight()-2;
-            ImageIcon icon;
-            if (entity.islocked()) {
-                icon = ImageUtils.resize(ImageUtils.combine(
-                    entity.getIcon(),
-                    ICON_LOCKED
-                ), iconSize, iconSize);
-            } else if (!entity.model.isValid()) {
-                icon = ImageUtils.resize(ImageUtils.combine(
-                    entity.getIcon(),
-                    ICON_INVALID
-                ), iconSize, iconSize);
-            } else {
-                icon = ImageUtils.resize(entity.getIcon(), iconSize, iconSize);
-            }
-            JLabel label = new JLabel(entity.toString().concat(DEV_MODE ? ", hash="+entity.hashCode() : "")) {{
+            return new JLabel(entity.toString().concat(DEV_MODE ? ", hash="+entity.hashCode() : "")) {{
                 setOpaque(true);
                 setIconTextGap(6);
                 setVerticalAlignment(CENTER);
 
-                setDisabledIcon(ImageUtils.grayscale(icon));
-                setIcon(icon);
+                ImageIcon icon = entity.getIcon();
+                if (icon != null) {
+                    int iconSize  = tree.getRowHeight()-2;
+                    icon = ImageUtils.resize(icon, iconSize, iconSize);
+                    setDisabledIcon(ImageUtils.grayscale(icon));
+                    setIcon(icon);
+                }
 
                 setForeground(selected ? Color.WHITE : IEditor.COLOR_NORMAL);
                 setBackground(selected ? Color.decode("#55AAFF") : Color.WHITE);
                 setBorder(new EmptyBorder(15, 2, 15, 7));
-                setEnabled((entity.getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED); 
+                setEnabled((entity.getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED);
             }};
-            return label;
         } else {
             return new DefaultTreeCellRenderer().getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
         }
