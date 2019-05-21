@@ -7,22 +7,92 @@
     <groupId>com.compassplus</groupId>
     <artifactId>manager</artifactId>
     <packaging>pom</packaging>
-    <version>2.1.2</version>
+    <version>1.0.0</version>
+
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <author>I.Gredyaev</author>
+    </properties>
+
+    <modules>
+        <module>plugins/sap.config</module>
+        <module>core</module>
+    </modules>
+
+    <profiles>
+        <profile>
+            <id>production</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+        </profile>
+        <profile>
+            <id>development</id>
+        </profile>
+    </profiles>
 
     <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.3.2</version>
-                <configuration>
-                    <debug>true</debug>
-                </configuration>
-            </plugin>
-        </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.1</version>
+                    <configuration>
+                        <compilerArguments>
+                            <bootclasspath>${sun.boot.class.path}${path.separator}${java.home}/lib/jfxrt.jar</bootclasspath>
+                        </compilerArguments>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>3.2.1</version>
+                    <executions>
+                        <execution>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>shade</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <createDependencyReducedPom>false</createDependencyReducedPom>
+                        <filters>
+                            <filter>
+                                <artifact>*:*</artifact>
+                                <excludes>
+                                    <exclude>*build.properties</exclude>
+                                    <exclude>.netbeans_*</exclude>
+                                    <exclude>META-INF/LICENSE*</exclude>
+                                    <exclude>META-INF/NOTICE*</exclude>
+                                    <exclude>META-INF/maven/**</exclude>
+                                    <exclude>META-INF/RadixWare*</exclude>
+                                </excludes>
+                            </filter>
+                        </filters>
+                        <finalName>${project.artifactId}-${project.version}</finalName>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.1.0</version>
+                    <configuration>
+                        <archive>
+                            <manifest>
+                                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            </manifest>
+                            <manifestEntries>
+                                <Built-By>${author}</Built-By>
+                            </manifestEntries>
+                        </archive>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
-    <modules>
-        <module>core</module>
-        <module>plugins/example</module>
-    </modules>
+
 </project>
