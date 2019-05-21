@@ -23,7 +23,7 @@ public abstract class AbstractNode implements INode {
      * Возвращает перечисление потомков узла.
      */
     @Override
-    public final Enumeration children() {
+    public synchronized final Enumeration children() {
         return Collections.enumeration(new ArrayList<>(children));
     }
     
@@ -38,13 +38,13 @@ public abstract class AbstractNode implements INode {
     @Override
     public final int getMode() {
         return mode;
-    };
+    }
     
     @Override
     public final void setMode(int mode) {
         this.mode = mode;
         fireChangeEvent();
-    };
+    }
     
     /**
      * Гнерирует событие изменения узла.

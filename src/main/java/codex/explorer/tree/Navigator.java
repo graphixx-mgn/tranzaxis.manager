@@ -4,11 +4,9 @@ import codex.component.render.GeneralRenderer;
 import codex.editor.IEditor;
 import codex.log.Logger;
 import codex.model.Entity;
-import codex.model.EntityModel;
 import codex.model.IModelListener;
 import codex.utils.ImageUtils;
 import java.awt.Color;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import javax.swing.JLabel;
@@ -16,8 +14,8 @@ import javax.swing.JTree;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeSelectionEvent;
-import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
@@ -62,11 +60,7 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
                 if (path != getSelectionModel().getSelectionPath()) {
                     path = getSelectionModel().getSelectionPath();
                     Logger.getLogger().debug("Selected path: {0}", node.getPathString());
-                    new LinkedList<>(listeners).stream().forEach((listener) -> {
-                        SwingUtilities.invokeLater(() -> {
-                            listener.nodeChanged(path);
-                        });
-                    });
+                    new LinkedList<>(listeners).stream().forEach((listener) -> SwingUtilities.invokeLater(() -> listener.nodeChanged(path)));
                 }
             });
         });
@@ -86,14 +80,24 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
     public void setModel(TreeModel model) {
         super.setModel(model);
         if (model instanceof NodeTreeModel) {
-            final Iterator<INode> it = ((NodeTreeModel) model).iterator();
-            INode node;
-            while (it.hasNext()) {
-                node = it.next();
-                setToolTip(new TreePath(((DefaultTreeModel) model).getPathToRoot(node)), node);
-                node.addNodeListener(this);
-                ((Entity) node).model.addModelListener(this);
-            }
+            model.addTreeModelListener(new TreeModelHandler() {
+                @Override
+                public void treeNodesRemoved(TreeModelEvent e) {
+                    super.treeNodesRemoved(e);
+
+// TODO: Если удалили выделенный элемент -> перейти на родителя
+//                    if (path != null && path.getLastPathComponent() != null && path.getLastPathComponent().equals(childNode)) {
+//                        TreePath parentPath = path.getParentPath();
+//                        while (
+//                                !parentPath.getLastPathComponent().equals(getModel().getRoot()) &&
+//                                        ((INode) parentPath.getLastPathComponent()).getParent() == null
+//                        ) {
+//                            parentPath = parentPath.getParentPath();
+//                        }
+//                        getSelectionModel().setSelectionPath(parentPath);
+//                    }
+                }
+            });
         }
     }
     
@@ -120,62 +124,6 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
     }
 
     @Override
-    public void modelRestored(EntityModel model, List<String> changes) {
-        ((INode) (getModel()).getRoot()).flattened()
-                .filter((node) -> ((Entity) node).model == model)
-                .findFirst()
-                .ifPresent(iNode -> ((DefaultTreeModel) getModel()).nodeChanged(iNode));
-    }
-
-    @Override
-    public void modelSaved(EntityModel model, List<String> changes) {
-        ((INode) (getModel()).getRoot()).flattened()
-                .filter((node) -> ((Entity) node).model == model)
-                .findFirst()
-                .ifPresent(iNode -> ((DefaultTreeModel) getModel()).nodeChanged(iNode));
-    }
-    
-    @Override
-    public void childInserted(INode parentNode, INode childNode) {
-        attachListeners(childNode);
-        ((DefaultTreeModel) getModel()).nodesWereInserted(
-                parentNode, 
-                new int[] {parentNode.getIndex(childNode)}
-        );
-    }
-
-    @Override
-    public void childDeleted(INode parentNode, INode childNode, int index) {
-        if (path != null && path.getLastPathComponent() != null && path.getLastPathComponent().equals(childNode)) {
-            TreePath parentPath = path.getParentPath();
-            while (
-                    !parentPath.getLastPathComponent().equals(getModel().getRoot()) &&
-                    ((INode) parentPath.getLastPathComponent()).getParent() == null
-            ) {
-                parentPath = parentPath.getParentPath();
-            }
-            getSelectionModel().setSelectionPath(parentPath);
-        }
-
-        detachListeners(childNode);
-        ((DefaultTreeModel) getModel()).nodesWereRemoved(
-                parentNode, 
-                new int[] {index}, 
-                new Object[] {childNode}
-        );
-    }
-    
-    @Override
-    public void childMoved(INode parentNode, INode childNode) {
-        ((DefaultTreeModel) getModel()).nodeStructureChanged(parentNode);
-    }
-
-    @Override
-    public void childChanged(INode node) {
-        ((DefaultTreeModel) getModel()).nodeChanged(node);
-    }
-
-    @Override
     protected void setExpandedState(TreePath path, boolean state) {
         if ((((INode) path.getLastPathComponent()).getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED) {
             super.setExpandedState(path, state);
@@ -183,24 +131,6 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
         if (path.getPathCount() == 1) {
             super.setExpandedState(path, true);
         }
-    }
-
-    private void attachListeners(INode node) {
-        node.addNodeListener(this);
-        ((Entity) node).model.addModelListener(this);
-        node.childrenList().forEach(child -> {
-            child.addNodeListener(this);
-            ((Entity) child).model.addModelListener(this);
-        });
-    }
-
-    private void detachListeners(INode node) {
-        node.removeNodeListener(this);
-        ((Entity) node).model.removeModelListener(this);
-        node.childrenList().forEach(child -> {
-            child.removeNodeListener(this);
-            ((Entity) child).model.removeModelListener(this);
-        });
     }
     
 }

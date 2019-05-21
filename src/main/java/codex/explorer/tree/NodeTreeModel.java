@@ -1,5 +1,8 @@
 package codex.explorer.tree;
 
+import codex.model.Entity;
+import codex.model.EntityModel;
+import codex.model.IModelListener;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -8,7 +11,7 @@ import javax.swing.tree.DefaultTreeModel;
 /**
  * Модель дерева проводника.
  */
-public final class NodeTreeModel extends DefaultTreeModel implements Iterable<INode> {
+public final class NodeTreeModel extends DefaultTreeModel implements Iterable<INode>, INodeListener, IModelListener {
 
     /**
      * Конструктор модели дерева.
@@ -16,6 +19,55 @@ public final class NodeTreeModel extends DefaultTreeModel implements Iterable<IN
      */
     public NodeTreeModel(INode root) {
         super(root);
+        root.addNodeListener(this);
+        ((Entity) root).model.addModelListener(this);
+    }
+
+    @Override
+    public void childInserted(INode parentNode, INode childNode) {
+        childNode.addNodeListener(this);
+        ((Entity) childNode).model.addModelListener(this);
+        nodesWereInserted(
+                parentNode,
+                new int[] {parentNode.getIndex(childNode)}
+        );
+    }
+
+    @Override
+    public void childDeleted(INode parentNode, INode childNode, int index) {
+        childNode.removeNodeListener(this);
+        ((Entity) childNode).model.removeModelListener(this);
+        nodesWereRemoved(
+                parentNode,
+                new int[] {index},
+                new Object[] {childNode}
+        );
+    }
+
+    @Override
+    public void childMoved(INode parentNode, INode childNode) {
+        nodeStructureChanged(parentNode);
+    }
+
+    @Override
+    public void childChanged(INode node) {
+        nodeChanged(node);
+    }
+
+    @Override
+    public void modelRestored(EntityModel model, List<String> changes) {
+        ((INode) getRoot()).flattened()
+                .filter((node) -> ((Entity) node).model == model)
+                .findFirst()
+                .ifPresent(this::nodeChanged);
+    }
+
+    @Override
+    public void modelSaved(EntityModel model, List<String> changes) {
+        ((INode) getRoot()).flattened()
+                .filter((node) -> ((Entity) node).model == model)
+                .findFirst()
+                .ifPresent(this::nodeChanged);
     }
 
     @Override
