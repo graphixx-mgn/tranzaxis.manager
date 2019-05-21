@@ -21,26 +21,26 @@ import javax.swing.ImageIcon;
  * должен существовать в дереве в единственном экземпляре.
  */
 public abstract class Catalog extends Entity {
-    
+
     private final static IConfigStoreService  CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private final static ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class);
-    
+
     public Catalog(EntityRef owner, ImageIcon icon, String title, String hint) {
         super(owner, icon, title, hint);
     }
-    
+
     @Override
     public void setParent(INode parent) {
         super.setParent(parent);
-        if (parent == null) return;
-        
-        Collection<String> childrenPIDs;
-        if (getChildClass() != null && !(childrenPIDs = getChildrenPIDs()).isEmpty()) {
+        if (parent == null || getChildClass() == null) return;
+
+        Collection<String> childrenPIDs = getChildrenPIDs();
+        if (!childrenPIDs.isEmpty()) {
             ITask task = new LoadChildren(childrenPIDs);
             task.addListener(new ITaskListener() {
-                
+
                 private int previousMode;
-                
+
                 @Override
                 public void statusChanged(ITask task, Status status) {
                     if (!status.isFinal()) {
