@@ -5,24 +5,15 @@ import codex.editor.IEditor;
 import codex.log.Logger;
 import codex.model.Entity;
 import codex.model.IModelListener;
-import codex.utils.ImageUtils;
-import java.awt.Color;
-import java.util.LinkedList;
-import java.util.List;
-import javax.swing.JLabel;
-import javax.swing.JTree;
-import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
-import net.java.balloontip.BalloonTip;
-import net.java.balloontip.TreeNodeBalloonTip;
-import net.java.balloontip.styles.EdgedBalloonStyle;
-import net.java.balloontip.utils.ToolTipUtils;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Дерево навигации проводника.
@@ -84,8 +75,7 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
                 @Override
                 public void treeNodesRemoved(TreeModelEvent e) {
                     super.treeNodesRemoved(e);
-
-// TODO: Если удалили выделенный элемент -> перейти на родителя
+//                    TODO: Если удалили выделенный элемент -> перейти на родителя
 //                    if (path != null && path.getLastPathComponent() != null && path.getLastPathComponent().equals(childNode)) {
 //                        TreePath parentPath = path.getParentPath();
 //                        while (
@@ -99,28 +89,6 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
                 }
             });
         }
-    }
-    
-    private void setToolTip(TreePath path, INode node) {
-        if (((Entity) node).getHint() == null) {
-            return;
-        }
-        TreeNodeBalloonTip tip = new TreeNodeBalloonTip(
-                this, 
-                new JLabel(
-                        ((Entity) node).getHint(),
-                        ImageUtils.resize(
-                            ImageUtils.getByPath("/images/event.png"), 
-                            16, 16
-                        ), SwingConstants.LEADING
-                ),
-                path, 
-                new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
-                BalloonTip.Orientation.LEFT_BELOW, 
-                BalloonTip.AttachLocation.ALIGNED, 
-                10, 10, false
-        );
-        ToolTipUtils.balloonToToolTip(tip, 1500, 3000);
     }
 
     @Override
