@@ -90,7 +90,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         context = () -> Arrays
                 .stream(table.getSelectedRows())
                 .boxed()
-                .map(tableModel::getEntityAt)
+                .map(tableModel::getEntityForRow)
                 .collect(Collectors.toList());
         
         final JScrollPane scrollPane = new JScrollPane();
@@ -107,7 +107,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             @Override
             public void mouseClicked(MouseEvent event) {
                 if (event.getClickCount() == 2 && editEntity.isActive()) {
-                    editEntity.execute(tableModel.getEntityAt(table.getSelectedRow()), null);
+                    editEntity.execute(tableModel.getEntityForRow(table.getSelectedRow()), null);
                 }
             }
         });
@@ -287,7 +287,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                                     public void childChanged(INode node) {
                                         int rowCount = tableModel.getRowCount();
                                         for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-                                            if (tableModel.getEntityAt(rowIdx).model.equals(childModel)) {
+                                            if (tableModel.getEntityForRow(rowIdx).model.equals(childModel)) {
                                                 tableModel.fireTableRowsUpdated(rowIdx, rowIdx);
                                                 break;
                                             }
@@ -443,7 +443,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                                     public void childChanged(INode node) {
                                         int rowCount = tableModel.getRowCount();
                                         for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-                                            if (tableModel.getEntityAt(rowIdx).model.equals(childModel)) {
+                                            if (tableModel.getEntityForRow(rowIdx).model.equals(childModel)) {
                                                 tableModel.fireTableRowsUpdated(rowIdx, rowIdx);
                                                 break;
                                             }
