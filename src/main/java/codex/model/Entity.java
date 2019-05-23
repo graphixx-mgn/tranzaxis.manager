@@ -49,7 +49,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     private final String    hint;
 
     final String  origTitle;
-    private Boolean isPrototype = false;
+    Boolean isPrototype = false;
 
     private EditorPage           editorPage;
     private EditorPresentation   editorPresentation;
@@ -113,12 +113,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 ((IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class)).findReferencedEntries(Entity.this.getClass(), getID()).stream()
                         .filter(link -> link.isIncoming)
                         .forEach(link -> {
-                            try {
-                                EntityRef ref = EntityRef.build(Class.forName(link.entryClass), link.entryID);
-                                ref.getValue().fireChangeEvent();
-                            } catch (ClassNotFoundException e) {
-                                e.printStackTrace();
-                            }
+                            EntityRef ref = EntityRef.build(link.entryClass, link.entryID);
+                            ref.getValue().fireChangeEvent();
                         });
             }
         });
@@ -146,7 +142,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
 
                     @Override
                     public String toString() {
-                        return getPID();
+                        return Entity.this.toString();
                     }
                 }
         );
@@ -236,33 +232,39 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         model.setOverride(value);
     }
 
+    public boolean isOverridable() {
+        return true;
+    }
+
     @Override
     public void insert(INode child) {
         if (child.getParent() != this) {
             super.insert(child);
         }
-        
-        Entity      childEntity = (Entity) child;
-        EntityModel childModel  = childEntity.model;
-        EntityModel parentModel = this.model;
 
-        List<String> overrideProps = parentModel.getProperties(Access.Edit)
-                .stream()
-                .filter(
-                        propName -> 
-                                childModel.hasProperty(propName) && 
-                                !childModel.isPropertyDynamic(propName) &&
-                                !EntityModel.SYSPROPS.contains(propName) &&
-                                parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
-                ).collect(Collectors.toList());
-        if (!overrideProps.isEmpty()) {
-            overrideProps.forEach((propName) -> {
-                if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
-                    return command instanceof OverrideProperty;
-                })) {
-                    childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
-                }
-            });
+        if (isOverridable()) {
+            Entity childEntity = (Entity) child;
+            EntityModel childModel = childEntity.model;
+            EntityModel parentModel = this.model;
+
+            List<String> overrideProps = parentModel.getProperties(Access.Edit)
+                    .stream()
+                    .filter(
+                            propName ->
+                                    childModel.hasProperty(propName) &&
+                                            !childModel.isPropertyDynamic(propName) &&
+                                            !EntityModel.SYSPROPS.contains(propName) &&
+                                            parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
+                    ).collect(Collectors.toList());
+            if (!overrideProps.isEmpty()) {
+                overrideProps.forEach((propName) -> {
+                    if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
+                        return command instanceof OverrideProperty;
+                    })) {
+                        childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
+                    }
+                });
+            }
         }
     }
     
@@ -353,6 +355,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
 
     @Override
     public final void propertyChange(String name, Object oldValue, Object newValue) {
+        if (name.equals(EntityModel.THIS)) return;
+
         if (
                 (oldValue == null && newValue != null) || 
                 (oldValue != null && newValue == null) ||
@@ -437,7 +441,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return ref;
     }
     
-    public static Entity newPrototype(Class entityClass) {
+    public static <E extends Entity> E newPrototype(Class<E> entityClass) {
         if (entityClass.isMemberClass()) {
             throw new IllegalStateException(MessageFormat.format(
                     "Entity class ''{0}'' is inner class of ''{1}''", 
@@ -446,9 +450,9 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             ));
         }
         try {
-            Constructor ctor = entityClass.getDeclaredConstructor(EntityRef.class, String.class);
+            Constructor<E> ctor = entityClass.getDeclaredConstructor(EntityRef.class, String.class);
             ctor.setAccessible(true);
-            Entity prototype = (Entity) ctor.newInstance(null, null);
+            E prototype = ctor.newInstance(null, null);
             prototype.isPrototype = true;
             return prototype;
         } catch (InvocationTargetException | ExceptionInInitializerError | InstantiationException | IllegalAccessException e) {
@@ -467,7 +471,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return null;
     }
     
-    public static Entity newInstance(Class entityClass, EntityRef owner, String PID) {
+    public static <E extends Entity> E  newInstance(Class<E> entityClass, EntityRef owner, String PID) {
         synchronized (entityClass) {
             final Entity found = CACHE.find(
                     entityClass,
@@ -476,9 +480,9 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             );
             if (found == null) {
                 try {
-                    Constructor ctor = entityClass.getDeclaredConstructor(EntityRef.class, String.class);
+                    Constructor<E> ctor = entityClass.getDeclaredConstructor(EntityRef.class, String.class);
                     ctor.setAccessible(true);
-                    final Entity created = (Entity) ctor.newInstance(owner, PID);
+                    final E created = ctor.newInstance(owner, PID);
                     if (created.getPID() == null) {
                         created.model.addModelListener(new IModelListener() {
                             @Override
@@ -504,7 +508,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                     );
                 }
             }
-            return found;
+            //noinspection unchecked
+            return (E) found;
         }
     }
     
