@@ -1,10 +1,8 @@
 package codex.component.editor;
 
-import codex.model.Access;
 import codex.model.EntityModel;
-import codex.presentation.SelectorTableModel;
+import codex.presentation.ISelectorTableModel;
 import codex.type.Bool;
-
 import javax.swing.*;
 import javax.swing.table.TableCellEditor;
 import java.awt.*;
@@ -44,8 +42,9 @@ public class GeneralEditor extends AbstractCellEditor implements TableCellEditor
 
     @Override
     public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-        model = ((SelectorTableModel) table.getModel()).getEntityAt(row).model;
-        propName  = model.getProperties(Access.Select).get(column);
+        ISelectorTableModel selectorModel = (ISelectorTableModel) table.getModel();
+        model = selectorModel.getEntityForRow(row).model;
+        propName  = selectorModel.getPropertyForColumn(column);
         prevValue = model.getUnsavedValue(propName);
 
         EventQueue.invokeLater(() -> model.getEditor(propName).getFocusTarget().requestFocusInWindow());
@@ -73,8 +72,11 @@ public class GeneralEditor extends AbstractCellEditor implements TableCellEditor
     }
 
     public boolean stopCellEditing() {
-        detachKeyBinding();
-        return model.getEditor(propName).stopEditing() && super.stopCellEditing();
+        boolean stopEditing = model.getEditor(propName).stopEditing();
+        if (stopEditing) {
+            detachKeyBinding();
+        }
+        return stopEditing && super.stopCellEditing();
     }
 
     @Override
