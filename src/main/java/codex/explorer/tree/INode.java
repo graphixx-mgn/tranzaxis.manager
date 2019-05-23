@@ -1,5 +1,6 @@
 package codex.explorer.tree;
 
+import codex.model.Entity;
 import codex.presentation.EditorPage;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
@@ -152,9 +153,9 @@ public interface INode extends TreeNode {
     /**
      * Возвращает класс потомков узла.
      */
-    default Class getChildClass() {
+    default Class<? extends Entity> getChildClass() {
         return null;
-    };
+    }
     
     /**
      * Разрешено ли редактирование списка дочерних сущностей (

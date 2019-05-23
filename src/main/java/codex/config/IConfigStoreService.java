@@ -130,7 +130,7 @@ public interface IConfigStoreService extends IService {
         /**
          * Класс сущности.
          */
-        public final String  entryClass;
+        public final Class<? extends Entity> entryClass;
         /**
          * Идентификатор сущности.
          */
@@ -151,7 +151,7 @@ public interface IConfigStoreService extends IService {
          * @param entryPID Наименование сущности.
          * @param incoming Признак входящей ссылки.
          */
-        ForeignLink(String  entryClass, Integer entryID, String entryPID, boolean incoming) {
+        ForeignLink(Class<? extends Entity>  entryClass, Integer entryID, String entryPID, boolean incoming) {
             this.entryClass = entryClass;
             this.entryID    = entryID;
             this.entryPID   = entryPID;

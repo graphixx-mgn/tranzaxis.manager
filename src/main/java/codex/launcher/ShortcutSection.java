@@ -27,7 +27,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -247,7 +246,7 @@ public class ShortcutSection extends Entity implements IModelListener {
                                             return !PID.equals(ShortcutSection.DEFAULT) && !PID.equals(getPID());
                                         })
                                         .map((PID) -> {
-                                            return Entity.newInstance(getEntityClass(), null, PID);
+                                            return Entity.newInstance((Class<Entity>) getEntityClass(), null, PID);
                                         }).collect(Collectors.toList());
                                 return values;
                             }

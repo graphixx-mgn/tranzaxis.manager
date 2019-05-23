@@ -64,7 +64,7 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener, I
     }
     
     protected List<Object> getValues() {
-        Class             entityClass  = ((EntityRef) propHolder.getPropValue()).getEntityClass();
+        Class<? extends Entity> entityClass  = ((EntityRef) propHolder.getPropValue()).getEntityClass();
         Predicate<Entity> entityFilter = ((EntityRef) propHolder.getPropValue()).getEntityFilter();
         ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
         return entityClass != null ? EAS.getEntitiesByClass(entityClass)

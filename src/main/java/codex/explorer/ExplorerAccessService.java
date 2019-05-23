@@ -27,28 +27,20 @@ public class ExplorerAccessService implements IExplorerAccessService {
     }
 
     @Override
-    public List<Entity> getEntitiesByClass(Class entityClass) {
+    public List<Entity> getEntitiesByClass(Class<? extends Entity> entityClass) {
         return getRoot()
                 .flattened()
-                .filter((node) -> {
-                    return entityClass.isAssignableFrom(node.getClass());
-                })
-                .map((node) -> {
-                    return (Entity) node;
-                })
+                .filter((node) -> entityClass.isAssignableFrom(node.getClass()))
+                .map((node) -> (Entity) node)
                 .collect(Collectors.toList());
     }
     
     @Override
-    public Entity getEntity(Class entityClass, Integer ID) {
+    public Entity getEntity(Class<? extends Entity> entityClass, Integer ID) {
         return getRoot()
                 .flattened()
-                .filter((node) -> {
-                    return entityClass.isAssignableFrom(node.getClass()) && ((Entity) node).getID() == ID;
-                })
-                .map((node) -> {
-                    return (Entity) node;
-                })
+                .filter((node) -> entityClass.isAssignableFrom(node.getClass()) && ((Entity) node).getID() == ID)
+                .map((node) -> (Entity) node)
                 .findFirst().orElse(null);
     }
     

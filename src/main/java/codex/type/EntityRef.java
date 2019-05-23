@@ -41,7 +41,7 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
     
     private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
 
-    private Class             entityClass;
+    private Class<? extends Entity> entityClass;
     private Entity            entityInstance;
     private Predicate<Entity> entityFilter;
     private Function<Entity, Match> entityMatcher;
@@ -50,7 +50,7 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
      * Констуктор типа.
      * @param entityClass Класс сущности для поиска допустимых значений.
      */
-    public EntityRef(Class entityClass) {
+    public EntityRef(Class<? extends Entity> entityClass) {
         this(entityClass, null);
     }
     
@@ -59,7 +59,7 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
      * @param entityClass Класс сущности для поиска допустимых значений.
      * @param entityFilter Пользовательский фильтр допустимых значений.
      */
-    public EntityRef(Class entityClass, Predicate<Entity> entityFilter) {
+    public EntityRef(Class<? extends Entity> entityClass, Predicate<Entity> entityFilter) {
         this(entityClass, entityFilter, null);
     }
     
@@ -70,7 +70,7 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
      * @param entityMatcher Условие соответствия сущности. Используется для 
      * подсветки цветом в выпадающем списке {@link EntityRefEditor}.
      */
-    public EntityRef(Class entityClass, Predicate<Entity> entityFilter, Function<Entity, Match> entityMatcher) {
+    public EntityRef(Class<? extends Entity> entityClass, Predicate<Entity> entityFilter, Function<Entity, Match> entityMatcher) {
         setEntityClass(entityClass, entityFilter, entityMatcher);
     }
     
@@ -82,20 +82,16 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
      * @param entityMatcher Условие соответствия сущности. Используется для 
      * подсветки цветом в выпадающем списке {@link EntityRefEditor}.
      */
-    public final void setEntityClass(Class entityClass, Predicate<Entity> entityFilter, Function<Entity, Match> entityMatcher) {
+    private void setEntityClass(Class<? extends Entity> entityClass, Predicate<Entity> entityFilter, Function<Entity, Match> entityMatcher) {
         this.entityClass  = entityClass;
-        this.entityFilter = entityFilter != null ? entityFilter : (entity) -> {
-            return true;
-        };
-        this.entityMatcher = entityMatcher != null ? entityMatcher : (entity) -> {
-            return Match.Unknown;
-        };
+        this.entityFilter = entityFilter != null ? entityFilter : (entity) -> true;
+        this.entityMatcher = entityMatcher != null ? entityMatcher : (entity) -> Match.Unknown;
     }
     
     /**
      * Возвращает класс сущности, используется редактором {@link EntityRefEditor}.
      */
-    public final Class getEntityClass() {
+    public final Class<? extends Entity> getEntityClass() {
         return entityClass;
     }
     
@@ -137,9 +133,7 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
     
     @Override
     public IEditorFactory editorFactory() {
-        return (PropertyHolder propHolder) -> {
-            return new EntityRefEditor(propHolder);
-        };
+        return (PropertyHolder propHolder) -> new EntityRefEditor(propHolder);
     }
     
     @Override
@@ -166,7 +160,7 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
      * @param entityClass Класс сущности.
      * @param entityId Идентификатор сущности в строковом виде.
      */
-    public final static EntityRef build(Class entityClass, String entityId) {
+    public static EntityRef build(Class<? extends Entity> entityClass, String entityId) {
         return build(entityClass, entityId == null || entityId.isEmpty() ? null : Integer.valueOf(entityId));
     }
     
@@ -175,14 +169,16 @@ public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
      * @param entityClass Класс сущности.
      * @param entityId Идентификатор сущности.
      */
-    public final static EntityRef build(Class entityClass, Integer entityId) {
+    public static EntityRef build(Class<? extends Entity> entityClass, Integer entityId) {
         if (entityClass != null && entityId != null && CAS.isInstanceExists(entityClass, entityId)) {
             Map<String, String> dbValues = CAS.readClassInstance(entityClass, entityId);
             
             EntityRef ownerRef = null;
             try {
                 ownerRef = build(CAS.getOwnerClass(entityClass), dbValues.get("OWN"));
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                //
+            }
             return Entity.newInstance(entityClass, ownerRef, dbValues.get("PID")).toRef();
         }
         return null;

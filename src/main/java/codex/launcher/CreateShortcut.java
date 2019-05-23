@@ -66,17 +66,19 @@ class CreateShortcut extends EntityCommand<Entity> {
      * @param command Имя конманды.
      */
     private Shortcut newShortcut(String PID, ShortcutSection section, Entity entity, String command) {
-        Shortcut shortcut = (Shortcut) Entity.newInstance(Shortcut.class, null, PID);
+        Shortcut shortcut = Entity.newInstance(Shortcut.class, null, PID);
         shortcut
                 .setSection(
                         section != null ? section :
-                        (ShortcutSection) Entity.newInstance(ShortcutSection.class, null, ShortcutSection.DEFAULT)
+                        Entity.newInstance(ShortcutSection.class, null, ShortcutSection.DEFAULT)
                 )
                 .setEntity(entity)
                 .setCommand(command);
         try {
             shortcut.model.commit(true);
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            //
+        }
         return shortcut;
     }
     
@@ -139,7 +141,7 @@ class CreateShortcut extends EntityCommand<Entity> {
             if (name != null) {
                 switch (name) {
                     case PARAM_CATALOG:
-                        Class entityClass = newValue != null ? ((Catalog) newValue).getChildClass() : null;
+                        Class<? extends Entity> entityClass = newValue != null ? ((Catalog) newValue).getChildClass() : null;
                         EntityRef entityRef;
                         if (entityClass != null) {
                             entityRef = new EntityRef(entityClass, (entity) -> entity.getID() != null && entity.getParent().equals(newValue));

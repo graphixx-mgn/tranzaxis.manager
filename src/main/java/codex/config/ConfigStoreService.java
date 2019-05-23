@@ -2,6 +2,7 @@ package codex.config;
 
 import codex.database.IDatabaseAccessService;
 import codex.log.Logger;
+import codex.model.Entity;
 import codex.service.AbstractService;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
@@ -455,12 +456,19 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                         select.setString(2, tableInfo.name.toUpperCase());
                         try (ResultSet selectRS = select.executeQuery()) {
                             while (selectRS.next()) {
-                                links.add(new ForeignLink(
-                                        selectRS.getString(1), 
-                                        selectRS.getInt(2), 
-                                        selectRS.getString(3),
-                                        !fkColumnName.toUpperCase().equals("OWN"))
-                                );
+                                Class<? extends Entity> entityClass;
+                                String entityClassName = selectRS.getString(1);
+                                try {
+                                    entityClass = Class.forName(entityClassName).asSubclass(Entity.class);
+                                    links.add(new ForeignLink(
+                                            entityClass,
+                                            selectRS.getInt(2),
+                                            selectRS.getString(3),
+                                            !fkColumnName.toUpperCase().equals("OWN"))
+                                    );
+                                } catch (ClassNotFoundException e) {
+                                    Logger.getLogger().warn("CAS: Class '{0}' is not found", entityClassName);
+                                }
                             }
                         }
                     } catch (SQLException e) {/**/}
@@ -506,7 +514,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     }
     
     @Override
-    public Class getOwnerClass(Class clazz) throws Exception {
+    public Class<? extends Entity> getOwnerClass(Class clazz) throws Exception {
         final String className = clazz.getSimpleName().toUpperCase();
         if (!tableRegistry.containsKey(className)) {
             buildClassCatalog(clazz, new HashMap<String, IComplexType>() {{
@@ -688,7 +696,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         );
     }
     
-    private void   initClassDef() {
+    private void initClassDef() {
         String createSQL = "CREATE TABLE IF NOT EXISTS CLASSDEF (TABLE_NAME TEXT, TABLE_CLASS TEXT)";
         try (final Statement statement = connection.createStatement()) {
             statement.execute(createSQL);
@@ -698,13 +706,13 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         }
     } 
     
-    private Class  getCatalogClass(String tableName) throws Exception {
+    private Class<? extends Entity>  getCatalogClass(String tableName) throws Exception {
         String selectSQL = "SELECT TABLE_CLASS FROM CLASSDEF WHERE TABLE_NAME = ?";
         try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
             select.setString(1, tableName.toUpperCase());
             try (ResultSet selectRS = select.executeQuery()) {
                 if (selectRS.next()) {
-                    return Class.forName(selectRS.getString(1));
+                    return Class.forName(selectRS.getString(1)).asSubclass(Entity.class);
                 }
             }
         }
