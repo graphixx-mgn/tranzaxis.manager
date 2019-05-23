@@ -7,6 +7,7 @@ import codex.explorer.tree.INode;
 import codex.explorer.tree.NodeTreeModel;
 import codex.model.Access;
 import codex.model.Entity;
+import codex.presentation.ISelectorTableModel;
 import codex.presentation.SelectorTableModel;
 import codex.property.PropertyState;
 import codex.type.ArrStr;
@@ -120,29 +121,39 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
             } else {
                 cellBox = ComplexCellRenderer.getInstance();
             }
+
+            Color bgColor = Color.WHITE;
+            Color fgColor = IEditor.COLOR_NORMAL;
             
             boolean isEntityInvalid = false;
             boolean isEntityLocked  = false;
             PropertyState propState = PropertyState.Good;
-            Color bgColor = table.getBackground();
-            Color fgColor = IEditor.COLOR_NORMAL;
             
-            if (table.getModel() instanceof SelectorTableModel) {
-                SelectorTableModel selectorModel = (SelectorTableModel) table.getModel();
-                Entity entity = selectorModel.getEntityAt(row);
+            if (table.getModel() instanceof ISelectorTableModel) {
+                ISelectorTableModel selectorModel = (ISelectorTableModel) table.getModel();
+                Entity entity = selectorModel.getEntityForRow(row);
                 String propName = entity.model.getProperties(Access.Select).get(column);
 
                 isEntityInvalid = !entity.model.isValid();
                 isEntityLocked  = entity.islocked();
                 propState = entity.model.getPropState(propName);
                 
-                cellBox.setValue(value, entity.model.getProperty(propName).getPlaceholder());
-
-                if (entity.model.getChanges().contains(propName)) {
-                    bgColor = blend(bgColor, Color.decode("#AAFFAA"));
+                cellBox.setValue(
+                        entity.model.getProperty(propName).isEmpty() ? null : value,
+                        entity.model.getProperty(propName).getPlaceholder()
+                );
+                if (entity.model.getProperty(propName).isEmpty()) {
+                    fgColor = Color.decode("#999999");
+                }
+                if (isEntityInvalid) {
+                    bgColor = Color.decode("#FFDDDD");
+                    if (!entity.model.getProperty(propName).isEmpty()) {
+                        fgColor = Color.decode("#DD0000");
+                    }
+                } else if (entity.model.getChanges().contains(propName)) {
+                    bgColor = Color.decode("#AAFFAA");
                     fgColor = Color.decode("#213200");
                 }
-
             } else {
                 cellBox.setValue(value, IEditor.NOT_DEFINED);
             }
@@ -155,30 +166,24 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                     cellBox.state.setIcon(null);
             }
             cellBox.setDisabled(isEntityLocked || !table.isEnabled());
+
             if (cellBox.isDisabled()) {
-                if (isSelected) {
-                    bgColor = blend(cellBox.getBackground(), Color.decode("#BBD8FF"));
-                    cellBox.setBackground(bgColor);
+                bgColor = Color.decode("#E5E5E5");
+                fgColor = Color.decode("#999999");
+                if (column != 0 && cellBox.getIcon() != null) {
+                    cellBox.setIcon(ImageUtils.grayscale((ImageIcon) cellBox.getIcon()));
                 }
-            } else {
-                if (isEntityInvalid) {
-                    bgColor = blend(bgColor, Color.decode("#FFAAAA"));
-                }
-                if (row % 2 == 0) {
-                    bgColor = blend(bgColor, Color.decode("#F5F5F5"));
-                }
-                if (isSelected) {
-                    bgColor = blend(bgColor, Color.decode("#BBD8FF"));
-                }
-                cellBox.setBackground(bgColor);
             }
 
-            if (isEntityInvalid && value != null) {
-                fgColor = Color.RED;
-            } else if (value == null || cellBox.isDisabled()) {
-                fgColor = IEditor.COLOR_DISABLED;
+            if (row % 2 == 0) {
+                bgColor = blend(bgColor, Color.decode("#F0F0F0"));
+            }
+            if (isSelected) {
+                bgColor = blend(bgColor, Color.decode("#BBD8FF"));
             }
             cellBox.setForeground(fgColor);
+            cellBox.setBackground(bgColor);
+
             cellBox.setBorder(new CompoundBorder(
                     new MatteBorder(0, 0, 1, column == table.getColumnCount()-1 ? 0 : 1, Color.LIGHT_GRAY), 
                     new EmptyBorder(0, 6, 0, 0)

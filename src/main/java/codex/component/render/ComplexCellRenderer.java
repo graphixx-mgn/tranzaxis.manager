@@ -1,7 +1,6 @@
 package codex.component.render;
 
 import codex.editor.IEditor;
-import codex.model.Entity;
 import codex.presentation.SelectorTableModel;
 import codex.type.IComplexType;
 import codex.type.Iconified;
@@ -17,9 +16,8 @@ import javax.swing.SwingConstants;
 final class ComplexCellRenderer extends CellRenderer<Object> {
     
     private final static ComplexCellRenderer INSTANCE = new ComplexCellRenderer();
-    private final static ImageIcon ICON_INVALID = ImageUtils.getByPath("/images/warn.png");
     
-    public final static ComplexCellRenderer getInstance() {
+    public static ComplexCellRenderer getInstance() {
         return INSTANCE;
     }
 
@@ -34,11 +32,7 @@ final class ComplexCellRenderer extends CellRenderer<Object> {
     public void setValue(Object value, String placeholder) {
         ImageIcon icon;
         if (value != null && Iconified.class.isAssignableFrom(value.getClass())) {
-            if (value instanceof Entity && !((Entity) value).model.isValid()) {
-                icon = ImageUtils.resize(ImageUtils.combine(((Iconified) value).getIcon(),ICON_INVALID), 18, 18);
-            } else {
-                icon = ImageUtils.resize(((Iconified) value).getIcon(), 18, 18);
-            }
+            icon = ImageUtils.resize(((Iconified) value).getIcon(), 18, 18);
         } else {
             icon = null;
         }

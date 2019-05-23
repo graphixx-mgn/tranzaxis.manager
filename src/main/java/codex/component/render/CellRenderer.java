@@ -1,9 +1,7 @@
 package codex.component.render;
 
-import codex.editor.IEditor;
 import codex.presentation.SelectorTableModel;
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.LayoutManager;
 import javax.swing.Box;
@@ -40,8 +38,6 @@ abstract class CellRenderer<T> extends JLabel implements ICellRenderer<T> {
     private boolean disabled = false;
     public void setDisabled(boolean disabled) {
         this.disabled = disabled;
-        setBackground(disabled ? Color.decode("#E5E5E5") : new Color(0, 0, 0, 0));
-        setForeground(disabled ? IEditor.COLOR_DISABLED : IEditor.COLOR_NORMAL);
     }
 
     public boolean isDisabled() {
