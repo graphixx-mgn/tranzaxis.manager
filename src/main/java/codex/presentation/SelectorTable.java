@@ -3,8 +3,6 @@ package codex.presentation;
 import codex.component.editor.GeneralEditor;
 import codex.component.render.GeneralRenderer;
 import codex.editor.IEditor;
-import codex.model.Access;
-import codex.model.Entity;
 import codex.type.Bool;
 import codex.type.IComplexType;
 import javax.swing.*;
@@ -17,7 +15,7 @@ import java.util.List;
 /**
  * Виджет таблицы селекторов (презентации и диалога).
  */
-public final class SelectorTable extends JTable {
+public final class SelectorTable extends JTable implements IEditableTable {
 
     private final List<String> editableProps = new LinkedList<>();
     
@@ -38,22 +36,22 @@ public final class SelectorTable extends JTable {
         setDefaultEditor(IComplexType.class, new GeneralEditor());
     }
 
+    @Override
     public void setPropertiesEditable(String... propNames) {
         if (propNames != null) {
             editableProps.addAll(Arrays.asList(propNames));
         }
     }
 
+    @Override
     public void setPropertyEditable(String propName) {
         editableProps.add(propName);
     }
 
     @Override
     public boolean isCellEditable(int row, int column) {
-        if (getModel() instanceof SelectorTableModel) {
-            Entity entity = ((SelectorTableModel) getModel()).getEntityAt(row);
-            String propName = entity.model.getProperties(Access.Select).get(column);
-            return editableProps.contains(propName);
+        if (getModel() instanceof ISelectorTableModel) {
+            return editableProps.contains(((ISelectorTableModel) getModel()).getPropertyForColumn(column));
         } else {
             return false;
         }

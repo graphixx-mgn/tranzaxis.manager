@@ -17,10 +17,11 @@ import java.util.stream.Collectors;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 
-public class SelectorTableModel extends DefaultTableModel implements IModelListener {
+public class SelectorTableModel extends DefaultTableModel implements IModelListener, ISelectorTableModel {
 
     private final List<Class<? extends IComplexType>> columnClasses = new LinkedList<>();
     private final Entity entity;
+    private final Entity prototype;
     
     public SelectorTableModel(Entity entity, final Entity prototype) {
         super(generateData(entity), generateHeader(entity, prototype));
@@ -33,7 +34,7 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
                 public void childChanged(INode node) {
                     int rowCount = getRowCount();
                     for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-                        if (getEntityAt(rowIdx).model.equals(childModel)) {
+                        if (getEntityForRow(rowIdx).model.equals(childModel)) {
                             fireTableRowsUpdated(rowIdx, rowIdx);
                             break;
                         }
@@ -53,9 +54,20 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
         prototype.model.getProperties(Access.Select).forEach((propName) -> {
             columnClasses.add(prototype.model.getPropertyType(propName));
         });
-        this.entity = entity;
+        this.entity    = entity;
+        this.prototype = prototype;
     }
-    
+
+    @Override
+    public Entity getEntityForRow(int row) {
+        return (Entity) entity.childrenList().get(row);
+    }
+
+    @Override
+    public String getPropertyForColumn(int column) {
+        return prototype.model.getProperties(Access.Select).get(column);
+    }
+
     @Override
     public Class<?> getColumnClass(int columnIndex) {
         return columnClasses.get(columnIndex) == Bool.class ? Bool.class : IComplexType.class;
@@ -65,15 +77,11 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
     public boolean isCellEditable(int row, int column) {
         return false;
     }
-    
-    public final Entity getEntityAt(int row) {
-        return (Entity) entity.childrenList().get(row);
-    }
 
     @Override
     public void moveRow(int start, int end, int to) {
         super.moveRow(start, end, to);
-        entity.move(getEntityAt(start), to);
+        entity.move(getEntityForRow(start), to);
         
         SwingUtilities.invokeLater(() -> {
             List<Integer> sequences = entity.childrenList().stream()
@@ -102,7 +110,7 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
     public void modelSaved(EntityModel model, List<String> changes) {
         int rowCount = getRowCount();
         for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-            if (getEntityAt(rowIdx).model.equals(model)) {
+            if (getEntityForRow(rowIdx).model.equals(model)) {
                 final int entityIdx = rowIdx;
                 List<String> selectorProps = model.getProperties(Access.Select);
                 selectorProps.forEach((propName) -> {
@@ -121,7 +129,7 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
     public void modelDeleted(EntityModel model) {
         int rowCount = getRowCount();
         for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-            if (getEntityAt(rowIdx).model.equals(model)) {
+            if (getEntityForRow(rowIdx).model.equals(model)) {
                 final int entityIdx = rowIdx;
                 List<String> selectorProps = model.getProperties(Access.Select);
                 selectorProps.forEach((propName) -> {
@@ -154,5 +162,5 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
         });
         return dataVector;
     }
-    
+
 }
