@@ -34,8 +34,12 @@ public class Manager {
         PlatformLogger.getLogger("java.util.prefs").setLevel(PlatformLogger.Level.OFF);
     }
 
+    public static void main(String[] args) {
+        new Manager();
+    }
+
     public Manager() {
-        //new NotifyMessage("Test", "TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST", 0, null).setVisible(true);
+//        new NotifyMessage("Test", "TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST", 0, null).setVisible(true);
         SplashScreen splash = new SplashScreen();
         loadSystemProps();
         Window window = new Window("TranzAxis Manager", ImageUtils.getByPath("/images/project.png"));
@@ -56,22 +60,22 @@ public class Manager {
         splash.setProgress(10, "Initialize logging system");
         LogUnit logViewer = LogUnit.getInstance();
 
-//        splash.setProgress(20, "Load plugin manager");
-//        PluginManager pluginManager = PluginManager.getInstance();
+        splash.setProgress(20, "Load plugin manager");
+        PluginManager pluginManager = PluginManager.getInstance();
 
         splash.setProgress(40, "Start task management system");
         TaskManager taskManager = new TaskManager();
 
         splash.setProgress(50, "Build configuration root");
         Common root = new Common();
-        root.insert(new RepositoryRoot());
-        root.insert(new DatabaseRoot());
-        root.insert(new EnvironmentRoot());
-        
         NodeTreeModel objectsTree = new NodeTreeModel(root);
         ExplorerUnit configExplorer = ExplorerUnit.getInstance();
         configExplorer.setModel(objectsTree);
-        
+
+        root.insert(new RepositoryRoot());
+        root.insert(new DatabaseRoot());
+        root.insert(new EnvironmentRoot());
+
         splash.setProgress(70, "Start command launcher unit");
         LauncherUnit commandLauncher = new LauncherUnit();
 
@@ -93,7 +97,7 @@ public class Manager {
         window.addUnit(commandLauncher);
         window.addUnit(serviceOptions);
         window.addUnit(networkBrowser);
-        //window.addUnit(pluginManager);
+        window.addUnit(pluginManager);
 
         splash.setVisible(false);
         window.setVisible(true);
