@@ -13,21 +13,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
-import manager.nodes.Development;
 import manager.nodes.Offshoot;
 import manager.type.WCStatus;
 
-/**
- *
- * @author igredyaev
- */
 public class RunDesigner extends EntityCommand<Offshoot> {
 
     public RunDesigner() {
         super(
                 "designer", 
                 "title", 
-                ImageUtils.resize(ImageUtils.getByPath("/images/designer.png"), 28, 28), 
+                ImageUtils.getByPath("/images/designer.png"),
                 Language.get("desc"), 
                 (offshoot) -> {
                     return offshoot.getWCStatus().equals(WCStatus.Succesfull);

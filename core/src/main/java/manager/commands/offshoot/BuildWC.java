@@ -19,6 +19,7 @@ import java.rmi.AlreadyBoundException;
 import java.rmi.registry.LocateRegistry;
 import java.util.Map;
 
+@EntityCommand.Definition(parentCommand = RefreshWC.class)
 public class BuildWC extends EntityCommand<Offshoot> {
 
     private static BuildingNotifier BUILD_NOTIFIER;
@@ -52,7 +53,7 @@ public class BuildWC extends EntityCommand<Offshoot> {
         super(
                 "build", 
                 "title", 
-                ImageUtils.resize(ImageUtils.getByPath("/images/build.png"), 28, 28), 
+                ImageUtils.getByPath("/images/build.png"),
                 Language.get("desc"), 
                 (offshoot) -> offshoot.getWCStatus().equals(WCStatus.Succesfull)
         );

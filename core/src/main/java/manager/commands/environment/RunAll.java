@@ -12,7 +12,6 @@ import manager.nodes.BinarySource;
 import manager.nodes.Environment;
 import manager.nodes.Release;
 
-
 public class RunAll extends EntityCommand<Environment> {
     
     private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
@@ -21,7 +20,7 @@ public class RunAll extends EntityCommand<Environment> {
         super(
                 "whole", 
                 Language.get(Environment.class, "whole@command"),
-                ImageUtils.resize(ImageUtils.getByPath("/images/start.png"), 28, 28), 
+                ImageUtils.getByPath("/images/start.png"),
                 Language.get(Environment.class, "whole@command"),
                 (environment) -> environment.canStartServer() && environment.canStartExplorer()
         );
@@ -29,6 +28,7 @@ public class RunAll extends EntityCommand<Environment> {
 
     @Override
     public void execute(Environment environment, Map<String, IComplexType> map) {
+        environment.setVersion(environment.getLayerVersion());
         BinarySource source = environment.getBinaries();
         if (source instanceof Release) {
             TES.executeTask(new CheckCache(

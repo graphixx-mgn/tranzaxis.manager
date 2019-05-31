@@ -23,14 +23,13 @@ import manager.nodes.Offshoot;
 import manager.type.WCStatus;
 import org.apache.commons.io.FileDeleteStrategy;
 
-
 public class DeleteWC extends EntityCommand<Offshoot> {
     
     public DeleteWC() {
         super(
                 "clean", 
                 "title", 
-                ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28), 
+                ImageUtils.getByPath("/images/minus.png"),
                 Language.get("desc"),
                 (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Absent)
         );

@@ -21,14 +21,12 @@ import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Map;
-
 import static manager.nodes.Repository.*;
-
 
 public class LoadWC extends EntityCommand<Repository> {
     
-    private final static ImageIcon ENABLED  = ImageUtils.resize(ImageUtils.getByPath("/images/switch_on.png"),  28, 28);
-    private final static ImageIcon DISABLED = ImageUtils.resize(ImageUtils.getByPath("/images/switch_off.png"), 28, 28);
+    private final static ImageIcon ENABLED  = ImageUtils.getByPath("/images/switch_on.png");
+    private final static ImageIcon DISABLED = ImageUtils.getByPath("/images/switch_off.png");
 
     public LoadWC() {
         super(

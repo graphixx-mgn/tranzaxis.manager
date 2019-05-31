@@ -27,14 +27,14 @@ import org.tmatesoft.svn.core.wc.SVNEvent;
 import org.tmatesoft.svn.core.wc.SVNEventAction;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 
-
+@EntityCommand.Definition(parentCommand = RefreshWC.class)
 public class UpdateWC extends EntityCommand<Offshoot> {
 
     public UpdateWC() {
         super(
                 "update", 
                 "title", 
-                ImageUtils.resize(ImageUtils.getByPath("/images/update.png"), 28, 28), 
+                ImageUtils.getByPath("/images/update.png"),
                 Language.get("desc"), 
                 (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Invalid)
         );
@@ -196,7 +196,9 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                 offshoot.setWCLoaded(offshoot.getWCStatus().equals(WCStatus.Succesfull));
                 try {
                     offshoot.model.commit(false);
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                    //
+                }
             });
         }
     

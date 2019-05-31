@@ -13,14 +13,13 @@ import manager.commands.offshoot.build.BuildSourceTask;
 import manager.nodes.Offshoot;
 import manager.type.WCStatus;
 
-
 public class RefreshWC extends EntityCommand<Offshoot> {
 
     public RefreshWC() {
         super(
                 "refresh", 
                 "title", 
-                ImageUtils.resize(ImageUtils.getByPath("/images/rebuild.png"), 28, 28), 
+                ImageUtils.getByPath("/images/rebuild.png"),
                 Language.get("desc"), 
                 (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Invalid)
         );

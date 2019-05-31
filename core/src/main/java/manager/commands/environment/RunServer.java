@@ -1,24 +1,17 @@
 package manager.commands.environment;
 
 import codex.command.EntityCommand;
-import codex.log.Logger;
 import codex.service.ServiceRegistry;
 import codex.task.*;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.nodes.BinarySource;
-import manager.nodes.Database;
 import manager.nodes.Environment;
 import manager.nodes.Release;
 import java.io.File;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
-import java.util.stream.Collectors;
-
 
 public class RunServer extends EntityCommand<Environment> {
     
@@ -28,7 +21,7 @@ public class RunServer extends EntityCommand<Environment> {
         super(
                 "server", 
                 Language.get(Environment.class, "server@command"),
-                ImageUtils.resize(ImageUtils.getByPath("/images/server.png"), 28, 28), 
+                ImageUtils.getByPath("/images/server.png"),
                 Language.get(Environment.class, "server@command"),
                 Environment::canStartServer
         );
@@ -36,6 +29,7 @@ public class RunServer extends EntityCommand<Environment> {
 
     @Override
     public void execute(Environment environment, Map<String, IComplexType> map) {
+        environment.setVersion(environment.getLayerVersion());
         BinarySource source = environment.getBinaries();
         if (source instanceof Release) {
             TES.executeTask(new CheckCache(

@@ -13,7 +13,6 @@ import java.io.File;
 import java.text.MessageFormat;
 import java.util.Map;
 
-
 public class RunExplorer extends EntityCommand<Environment> {
     
     private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
@@ -22,7 +21,7 @@ public class RunExplorer extends EntityCommand<Environment> {
         super(
                 "explorer", 
                 Language.get(Environment.class, "explorer@command"),
-                ImageUtils.resize(ImageUtils.getByPath("/images/explorer.png"), 28, 28), 
+                ImageUtils.getByPath("/images/explorer.png"),
                 Language.get(Environment.class, "explorer@command"),
                 Environment::canStartExplorer
         );
@@ -30,6 +29,7 @@ public class RunExplorer extends EntityCommand<Environment> {
 
     @Override
     public void execute(Environment environment, Map<String, IComplexType> map) {
+        environment.setVersion(environment.getLayerVersion());
         BinarySource source = environment.getBinaries();
         if (source instanceof Release) {
             TES.executeTask(new CheckCache(

@@ -15,9 +15,9 @@ import manager.nodes.Database;
 public class CheckDatabase extends EntityCommand<Database> {
     
     private final static Pattern   SPLIT   = Pattern.compile("([\\d\\.]+|[^\\s]+):(\\d+)/");
-    private final static ImageIcon WARN    = ImageUtils.resize(ImageUtils.getByPath("/images/unavailable.png"),  28, 28);
-    private final static ImageIcon ACTIVE  = ImageUtils.resize(ImageUtils.getByPath("/images/lamp.png"),  28, 28);
-    private final static ImageIcon PASSIVE = ImageUtils.resize(ImageUtils.getByPath("/images/event.png"), 28, 28);
+    private final static ImageIcon WARN    = ImageUtils.getByPath("/images/unavailable.png");
+    private final static ImageIcon ACTIVE  = ImageUtils.getByPath("/images/lamp.png");
+    private final static ImageIcon PASSIVE = ImageUtils.getByPath("/images/event.png");
 
     public CheckDatabase() {
         super("activity", null, PASSIVE, Language.get(Database.class, "command@activity"), null);
@@ -53,14 +53,6 @@ public class CheckDatabase extends EntityCommand<Database> {
     public Kind getKind() {
         return Kind.Info;
     }
-    
-//    @Override
-//    public void modelSaved(EntityModel model, List<String> changes) {
-//        super.modelSaved(model, changes);
-//        if (changes.contains(Database.PROP_BASE_URL)) {
-//            activate();
-//        }
-//    }
     
     public static boolean checkUrlPort(String dbUrl) {
         Matcher verMatcher = SPLIT.matcher(dbUrl);
