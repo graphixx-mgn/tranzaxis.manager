@@ -4,6 +4,7 @@ import codex.command.EntityCommand;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.model.Catalog;
+import codex.model.CommandRegistry;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.type.*;
@@ -25,7 +26,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -40,6 +40,10 @@ public class Entry extends Catalog {
 
     private   Long size = 0L;
     protected final EntityRef entityRef;
+
+    static {
+        CommandRegistry.getInstance().registerCommand(DeleteEntry.class);
+    }
 
     public Entry(EntityRef owner, String filePath) {
         this(owner, null, filePath);
@@ -62,9 +66,6 @@ public class Entry extends Catalog {
             return Collections.emptyList();
         });
         model.addDynamicProp(PROP_SIZE, new Str(null), null, null);
-
-        // Commands
-        addCommand(new DeleteEntry());
     }
 
     @Override
@@ -159,7 +160,7 @@ public class Entry extends Catalog {
             super(
                     "delete",
                     Language.get(DiskUsageReport.class, "delete@title"),
-                    ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28),
+                    ImageUtils.getByPath("/images/minus.png"),
                     Language.get(DiskUsageReport.class, "delete@title"),
                     (entry) -> entry.model.getValue(PROP_SIZE) != null && (!entry.isUsed() || entry.canDeleteUsed())
             );
@@ -172,7 +173,7 @@ public class Entry extends Catalog {
 
         @Override
         public void execute(Entry context, Map<String, IComplexType> params) {
-            deleteEntry();
+            context.deleteEntry();
         }
     }
 }

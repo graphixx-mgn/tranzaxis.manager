@@ -66,7 +66,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
         super(
                 "usage",
                 "title",
-                ImageUtils.resize(ImageUtils.getByPath("/images/disk_usage.png"), 28, 28),
+                ImageUtils.getByPath("/images/disk_usage.png"),
                 Language.get("title"),
                 (entity) -> entity.model.getValue("workDir") != null
         );

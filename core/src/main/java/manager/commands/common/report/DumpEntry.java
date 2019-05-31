@@ -2,7 +2,6 @@ package manager.commands.common.report;
 
 import codex.type.EntityRef;
 import codex.utils.ImageUtils;
-
 import java.io.File;
 
 @BranchLink(priority = 3)
