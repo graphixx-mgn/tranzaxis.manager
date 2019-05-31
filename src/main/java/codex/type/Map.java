@@ -12,7 +12,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 
-public class Map<K extends IComplexType, V extends IComplexType> implements IComplexType<java.util.Map<K, V>, IMask<java.util.Map<K, V>>> {
+public class Map<K extends IComplexType, V extends IComplexType> implements ISerializableType<java.util.Map<K, V>, IMask<java.util.Map<K, V>>> {
     
     private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
         return new MapEditor(propHolder);

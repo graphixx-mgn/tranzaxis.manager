@@ -15,7 +15,7 @@ import java.util.function.Predicate;
 /**
  * Тип-ссылка на сущность {@link Entity}.
  */
-public class EntityRef implements IComplexType<Entity, IMask<Entity>> {
+public class EntityRef implements ISerializableType<Entity, IMask<Entity>> {
     
     /**
      * Результат проверки сущностей на предмет соответствия условию.

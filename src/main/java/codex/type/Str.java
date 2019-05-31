@@ -10,7 +10,7 @@ import java.util.Objects;
 /**
  * Тип-обертка {@link IComplexType} для класса String.
  */
-public class Str implements IComplexType<String, IMask<String>> {
+public class Str implements ISerializableType<String, IMask<String>> {
     
     private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
         return new StrEditor(propHolder);
@@ -52,7 +52,7 @@ public class Str implements IComplexType<String, IMask<String>> {
      * Установить маску значения.
      */
     @Override
-    public IComplexType setMask(IMask<String> mask) {
+    public ISerializableType setMask(IMask<String> mask) {
         this.mask = mask;
         return this;
     }

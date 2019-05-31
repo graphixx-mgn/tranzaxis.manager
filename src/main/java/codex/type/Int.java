@@ -9,7 +9,7 @@ import java.util.Objects;
 /**
  * Тип-обертка {@link IComplexType} для класса Integer.
  */
-public class Int implements IComplexType<Integer, IMask<Integer>> {
+public class Int implements ISerializableType<Integer, IMask<Integer>> {
     
     private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
         return new IntEditor(propHolder);

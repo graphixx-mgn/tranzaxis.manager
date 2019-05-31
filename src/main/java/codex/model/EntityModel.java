@@ -16,7 +16,6 @@ import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.*;
 import codex.utils.Language;
-import javax.swing.*;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -175,7 +174,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * @param restriction  Ограничение видимости свойства в редакторе и/или 
      * селекторе.
      */
-    public final void addUserProp(String name, IComplexType value, boolean require, Access restriction) {
+    public final void addUserProp(String name, ISerializableType value, boolean require, Access restriction) {
         addProperty(name, value, require, restriction);
         if (databaseValues != null && databaseValues.get(name) != null) {
             getProperty(name).getPropValue().valueOf(databaseValues.get(name));
@@ -188,7 +187,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * @param restriction  Ограничение видимости свойства в редакторе и/или 
      * селекторе.
      */
-    public final void addUserProp(PropertyHolder propHolder, Access restriction) {
+    public final void addUserProp(PropertyHolder<? extends ISerializableType, ?> propHolder, Access restriction) {
+        if (!ISerializableType.class.isAssignableFrom(propHolder.getType())) {
+            throw new IllegalStateException("It is not allowed to create user property of not serializable type '"+propHolder.getType()+"'");
+        }
         addProperty(propHolder, restriction);
         if (databaseValues != null && databaseValues.get(propHolder.getName()) != null) {
             getProperty(propHolder.getName()).getPropValue().valueOf(databaseValues.get(propHolder.getName()));
@@ -202,7 +204,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * @param require Признак того что свойство должно иметь значение.
      * селекторе.
      */
-    public final void addExtraProp(String name, IComplexType value, boolean require) {
+    public final void addExtraProp(String name, ISerializableType value, boolean require) {
         addProperty(name, value, require, Access.Extra);
         if (databaseValues != null && databaseValues.get(name) != null) {
             getProperty(name).getPropValue().valueOf(databaseValues.get(name));
@@ -914,11 +916,15 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
         
         void updateDynamicProps(List<String> names) {
-            if (names.size() == 1) {
-                Logger.getLogger().debug(MessageFormat.format("Perform update dynamic property: {0}", names.get(0)));
-                getProperty(names.get(0)).setValue(dynamicResolver.valueProviders.get(names.get(0)).get());
-            } else if (names.size() > 1) {
-                Map<String, List<String>> updatePlan = buildUpdatePlan(names);
+            List<String> filtered = names.stream()
+                    .filter(propName -> ISerializableType.class.isAssignableFrom(getPropertyType(propName)))
+                    .collect(Collectors.toList());
+
+            if (filtered.size() == 1) {
+                Logger.getLogger().debug(MessageFormat.format("Perform update dynamic property: {0}", filtered.get(0)));
+                getProperty(filtered.get(0)).setValue(dynamicResolver.valueProviders.get(filtered.get(0)).get());
+            } else if (filtered.size() > 1) {
+                Map<String, List<String>> updatePlan = buildUpdatePlan(filtered);
                 
                 List<String> independentProps = updatePlan.entrySet().stream()
                             .filter((entry) -> {
@@ -942,8 +948,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 Logger.getLogger().debug(MessageFormat.format(
                         "Perform update dynamic properties: {0} by resolving plan\n"
                                 + "Independent : {1}\n"
-                                + "Dependencies: {2}", 
-                        names,
+                                + "Dependencies: {2}",
+                        filtered,
                         independentProps,
                         dependencies.entrySet().stream()
                                 .map((entry) -> entry.getKey().concat("<=").concat(entry.getValue().toString()))

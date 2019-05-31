@@ -13,7 +13,7 @@ import java.util.Objects;
 /**
  * Тип-обертка {@link IComplexType} для перечислений Enum.
  */
-public class Enum implements IComplexType<java.lang.Enum, IMask<java.lang.Enum>> {
+public class Enum implements ISerializableType<java.lang.Enum, IMask<java.lang.Enum>> {
 
     @Target({ElementType.FIELD})
     @Retention(RetentionPolicy.RUNTIME)

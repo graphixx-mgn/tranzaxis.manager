@@ -22,7 +22,8 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     private final String  desc;
     private final String  placeholder;
     private       boolean require;
-    private IComplexType<V, ?>   value;
+
+    private T value;
     private PropertyHolder<T, V> inherit;
     private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
     private final List<IPropertyStateListener>  stateListeners  = new LinkedList<>();
@@ -35,7 +36,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
      * @param value Экземпляр {@link IComplexType}. NULL-значение не допустимо.
      * @param require Свойство обязательно должно иметь значение.
      */
-    public PropertyHolder(String name, IComplexType<V, ?> value, boolean require) {
+    public PropertyHolder(String name, T value, boolean require) {
         this(
                 name, 
                 EntityModel.SYSPROPS.contains(name) ? Language.get(EntityModel.class, name+".title") : Language.lookup(name+".title"), 
@@ -55,7 +56,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
      * @param value Экземпляр {@link IComplexType}. NULL-значение не допустимо.
      * @param require Свойство обязательно должно иметь значение.
      */
-    public PropertyHolder(String name, String title, String desc, IComplexType<V, ?> value, boolean require) {
+    public PropertyHolder(String name, String title, String desc, T value, boolean require) {
         if (value == null) {
             throw new IllegalStateException("Invalid value: NULL value is not supported");
         }
@@ -77,8 +78,8 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     /**
      * Возвращает тип (класс значения) свойства.
      */
-    public final Class<? extends IComplexType> getType() {
-        return value.getClass();
+    public final Class<T> getType() {
+        return (Class<T>) value.getClass();
     }
     
     /**
@@ -115,14 +116,14 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     /**
      * Получить экземпляр хранимого объекта {@link IComplexType}
      */
-    public IComplexType<? extends V, ?> getPropValue() {
+    public T getPropValue() {
         return inherit == null ? value : inherit.getPropValue();
     }
     
     /**
      * Получить экземпляр хранимого объекта без учета наследования{@link IComplexType}
      */
-    public IComplexType<? extends V, ?> getOwnPropValue() {
+    public T getOwnPropValue() {
         return value;
     }
     
@@ -136,8 +137,8 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
             this.value.setValue(null);
         } else {
             if (IComplexType.class.isAssignableFrom(value.getClass())) {
-                if (value.getClass().equals(this.value.getClass())) {
-                    this.value = (IComplexType<V, ?>) value;
+                if (getType().isAssignableFrom(value.getClass())) {
+                    this.value = (T) value;
                     fireChangeEvent(prevValue, getPropValue().getValue());
                     return;
                 } else {
@@ -149,7 +150,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
                             )
                     );
                 }
-            } else if (Enum.class.isAssignableFrom(value.getClass())) {
+            } else if (getType().equals(Enum.class)/*Enum.class.isAssignableFrom(value.getClass())*/) {
                 if (!this.value.getValue().getClass().equals(value.getClass())) {
                     throw new IllegalStateException(
                             MessageFormat.format(
@@ -253,9 +254,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
      * Оповещение слушателей об изменении состояния свойства.
      */
     private void fireStatusChangeEvent() {
-        new LinkedList<>(stateListeners).forEach((listener) -> {
-            listener.propertyStatusChange(name);
-        });
+        new LinkedList<>(stateListeners).forEach((listener) -> listener.propertyStatusChange(name));
     }
     
     /**
@@ -268,19 +267,6 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
         } else {
             return getPropValue().getValue().toString();
         }
-    }
-    
-    private static List<String> getTypes(Class type) {
-        List<String> list = new LinkedList<>();
-        if (type != null) {
-            if (!(type.isAnonymousClass()|| type.equals(Object.class))) {
-                list.add(type.getSimpleName());
-            }
-            if (!type.equals(Object.class)) {
-                list.addAll(getTypes(type.getSuperclass()));
-            }
-        }
-        return list;
     }
     
 }

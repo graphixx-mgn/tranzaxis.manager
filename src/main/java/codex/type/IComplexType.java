@@ -47,7 +47,7 @@ public interface IComplexType<T, M extends IMask<T>> extends Serializable {
      */
     default public IComplexType setMask(M mask) {
         return this;
-    };
+    }
     
     /**
      * Возвращает маску значения.

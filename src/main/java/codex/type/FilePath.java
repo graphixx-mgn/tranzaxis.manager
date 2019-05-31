@@ -11,7 +11,7 @@ import java.text.MessageFormat;
 /**
  * Тип-обертка {@link IComplexType} для интерфейса Path.
  */
-public class FilePath implements IComplexType<Path, IPathMask>  {
+public class FilePath implements ISerializableType<Path, IPathMask> {
     
     private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
         return new FilePathEditor(propHolder);
@@ -47,7 +47,7 @@ public class FilePath implements IComplexType<Path, IPathMask>  {
      * Установить маску значения.
      */
     @Override
-    public IComplexType setMask(IPathMask mask) {
+    public ISerializableType setMask(IPathMask mask) {
         this.mask = mask;
         return this;
     }

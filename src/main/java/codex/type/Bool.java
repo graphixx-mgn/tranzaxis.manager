@@ -10,7 +10,7 @@ import java.util.Objects;
 /**
  * Тип-обертка {@link IComplexType} для класса Boolean.
  */
-public class Bool implements IComplexType<Boolean, IMask<Boolean>> {
+public class Bool implements ISerializableType<Boolean, IMask<Boolean>> {
 
     private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
         return new BoolEditor(propHolder);

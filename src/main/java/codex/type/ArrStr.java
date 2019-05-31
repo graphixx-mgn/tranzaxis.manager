@@ -4,18 +4,15 @@ import codex.editor.ArrStrEditor;
 import codex.editor.IEditorFactory;
 import codex.mask.IArrMask;
 import codex.mask.StrSetMask;
-import codex.property.PropertyHolder;
 import java.text.MessageFormat;
 import java.util.*;
 
 /**
  * Тип-обертка {@link IComplexType} для интерфейса {@literal List<String>}.
  */
-public class ArrStr implements IComplexType<List<String>, IArrMask> {
+public class ArrStr implements ISerializableType<List<String>, IArrMask> {
     
-    private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
-        return new ArrStrEditor(propHolder);
-    };
+    private final static IEditorFactory EDITOR_FACTORY = ArrStrEditor::new;
     
     private List<String> value;
     private IArrMask mask;
@@ -74,7 +71,7 @@ public class ArrStr implements IComplexType<List<String>, IArrMask> {
     }
     
     @Override
-    public IComplexType setMask(IArrMask mask) {
+    public ISerializableType setMask(IArrMask mask) {
         this.mask = mask;
         return this;
     }
