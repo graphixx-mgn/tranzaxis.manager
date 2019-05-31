@@ -73,7 +73,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     @Override
     public void startService() {
         super.startService();
-        if (isShowSql()) {
+        if (getConfig().isShowSQL()) {
             Logger.getLogger().debug(
                     "CAS: Table structure dump:\n{0}", 
                     tableRegistry.values().stream().map((tableInfo) -> {
@@ -88,9 +88,9 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         return false;
     }
     
-    private boolean isShowSql() {
-        return getConfig().isShowSQL();
-    }
+//    private boolean isShowSql() {
+//        return getConfig().isShowSQL();
+//    }
     
     private synchronized void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {
         final String className = clazz.getSimpleName().toUpperCase();
@@ -128,7 +128,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         String triggerBI = generateTriggerCode(className, TriggerKind.Before_Insert);
         String triggerBU = generateTriggerCode(className, TriggerKind.Before_Update);
         
-        if (isShowSql()) {
+        if (getConfig().isShowSQL()) {
             Logger.getLogger().debug(
                     "CAS: Create table queries:\n{0}", 
                             "[1] ".concat(createSQL)
@@ -166,7 +166,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                     tableRegistry.get(className).columnInfos.stream()
                             .map((columnInfo) -> columnInfo.name)
                             .collect(Collectors.joining(",")),
-                    isShowSql() ? "\n".concat(tableRegistry.get(className).toString()) : ""
+                    getConfig().isShowSQL() ? "\n".concat(tableRegistry.get(className).toString()) : ""
             ));
             connection.releaseSavepoint(savepoint);
             connection.commit();
@@ -226,7 +226,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 "INSERT INTO {0} (SEQ, PID, OWN) VALUES ((SELECT IFNULL(MAX(SEQ), 0)+1 FROM {0}), ?, ?)", className
         );
         
-        if (isShowSql()) {
+        if (getConfig().isShowSQL()) {
             Logger.getLogger().debug(
                     "CAS: Insert query: {0}", 
                     IDatabaseAccessService.prepareTraceSQL(
@@ -294,7 +294,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             final String[] parts   = properties.keySet().toArray(new String[]{});
             
             final String updateSQL = "UPDATE "+className+" SET "+String.join(" = ?, ", parts)+" = ? WHERE ID = ?";
-            if (isShowSql()) {
+            if (getConfig().isShowSQL()) {
                 Logger.getLogger().debug("CAS: Update query: {0}", IDatabaseAccessService.prepareTraceSQL(updateSQL, properties.values().toArray(), ID));
             }
             
@@ -482,7 +482,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         String PID = readClassInstance(clazz, ID).get("PID");
         final String deleteSQL = MessageFormat.format("DELETE FROM {0} WHERE ID = ?", className);
         
-        if (isShowSql()) {
+        if (getConfig().isShowSQL()) {
             Logger.getLogger().debug(
                     "CAS: Delete query: {0}", 
                     IDatabaseAccessService.prepareTraceSQL(deleteSQL, ID)
@@ -627,7 +627,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                     }).collect(Collectors.toList()));
         }
         
-        if (isShowSql()) {
+        if (getConfig().isShowSQL()) {
             Logger.getLogger().debug(
                     "CAS: Alter table queries:\n{0}", 
                     queries.stream()
@@ -691,7 +691,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         Logger.getLogger().debug(MessageFormat.format("CAS: Catalog {0} maintainance complete:\n{1}{2}", 
                     className,
                     joiner.toString(),
-                    isShowSql() ? "\n".concat(tableRegistry.get(className).toString()) : ""
+                    getConfig().isShowSQL() ? "\n".concat(tableRegistry.get(className).toString()) : ""
                 )
         );
     }
