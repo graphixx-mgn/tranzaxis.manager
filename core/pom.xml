@@ -13,54 +13,6 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <profiles>
-        <profile>
-            <id>production</id>
-            <properties>
-                <aspectj.skip>false</aspectj.skip>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-shade-plugin</artifactId>
-                        <configuration>
-                            <artifactSet>
-                                <excludes>
-                                    <exclude>com.compassplus:codex</exclude>
-                                </excludes>
-                            </artifactSet>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <artifactId>maven-clean-plugin</artifactId>
-                        <version>3.1.0</version>
-                        <configuration>
-                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
-                            <filesets>
-                                <fileset>
-                                    <directory>target/</directory>
-                                    <includes>
-                                        <include>**/*</include>
-                                    </includes>
-                                    <excludes>
-                                        <exclude>**/plugins/*</exclude>
-                                    </excludes>
-                                </fileset>
-                            </filesets>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>development</id>
-            <properties>
-                <aspectj.skip>true</aspectj.skip>
-            </properties>
-        </profile>
-    </profiles>
-
     <repositories>
         <repository>
             <id>poolborges</id>
@@ -141,16 +93,29 @@
             <artifactId>classindex</artifactId>
             <version>3.4</version>
         </dependency>
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjrt</artifactId>
-            <version>1.9.2</version>
-        </dependency>
     </dependencies>
 
     <build>
         <finalName>${project.parent.artifactId}-${project.version}</finalName>
         <plugins>
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                    <filesets>
+                        <fileset>
+                            <directory>target/</directory>
+                            <includes>
+                                <include>**/*</include>
+                            </includes>
+                            <excludes>
+                                <exclude>**/plugins/*</exclude>
+                            </excludes>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>xmlbeans-maven-plugin</artifactId>
@@ -172,41 +137,6 @@
                     <quiet>true</quiet>
                     <javaSource>${maven.compiler.source}</javaSource>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>aspectj-maven-plugin</artifactId>
-                <version>1.11</version>
-                <configuration>
-                    <skip>${aspectj.skip}</skip>
-                    <forceAjcCompile>true</forceAjcCompile>
-                    <complianceLevel>${maven.compiler.source}</complianceLevel>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
-                    <showWeaveInfo>true</showWeaveInfo>
-                    <verbose>true</verbose>
-                    <encoding>${project.build.sourceEncoding}</encoding>
-                    <weaveDependencies>
-                        <weaveDependency>
-                            <groupId>com.compassplus</groupId>
-                            <artifactId>codex</artifactId>
-                        </weaveDependency>
-                    </weaveDependencies>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.aspectj</groupId>
-                        <artifactId>aspectjtools</artifactId>
-                        <version>1.9.2</version>
-                    </dependency>
-                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
