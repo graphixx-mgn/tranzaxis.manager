@@ -32,7 +32,6 @@ public class PackageView extends Catalog {
     final static ImageIcon PACKAGE  = ImageUtils.getByPath("/images/repository.png");
     final static ImageIcon DISABLED = ImageUtils.getByPath("/images/unavailable.png");
 
-    private final static String PROP_TITLE   = "title";
     private final static String PROP_VERSION = "version";
     private final static String PROP_AUTHOR  = "author";
     private final static String PROP_DESC    = "desc";
@@ -66,7 +65,6 @@ public class PackageView extends Catalog {
         pluginsSupplier = pluginPackage == null ? ArrayList::new : pluginPackage::getPlugins;
         packageSupplier = pluginPackage == null ? null : () -> pluginPackage;
 
-        model.addDynamicProp(PROP_TITLE,   new Str(null), null, () -> pluginPackage == null ? null : pluginPackage.getId());
         model.addDynamicProp(PROP_VERSION, new Str(null), null, () -> pluginPackage == null ? null : pluginPackage.getVersion());
         model.addDynamicProp(PROP_AUTHOR,  new Str(null), null, pluginPackage == null ? null : pluginPackage::getAuthor);
 
