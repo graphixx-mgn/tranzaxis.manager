@@ -40,6 +40,8 @@ public interface IDatabaseAccessService extends IService {
     default ResultSet select(Integer connectionID, String query, Object... params) throws SQLException {
         return null;
     }
+
+    default void update(Integer connectionID, String query, Object... params) throws SQLException {}
     
     @Override
     default String getTitle() {

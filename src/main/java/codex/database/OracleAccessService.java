@@ -1,9 +1,7 @@
 package codex.database;
 
 import codex.log.Logger;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -11,6 +9,7 @@ import javax.sql.DataSource;
 import javax.sql.RowSet;
 import javax.sql.RowSetEvent;
 import javax.sql.RowSetListener;
+import codex.service.AbstractService;
 import oracle.jdbc.rowset.OracleJDBCRowSet;
 import oracle.ucp.jdbc.PoolDataSource;
 import oracle.ucp.jdbc.PoolDataSourceFactory;
@@ -19,10 +18,9 @@ import oracle.ucp.jdbc.PoolDataSourceFactory;
  * Реализация сервиса взаимодействия с базой данных Oracle с поддержкой пула 
  * соедиений.
  */
-public class OracleAccessService implements IDatabaseAccessService {
+public class OracleAccessService extends AbstractService<OracleAccessOptions> implements IDatabaseAccessService {
     
     private final static OracleAccessService INSTANCE = new OracleAccessService();
-    private static final Boolean DEV_MODE = "1".equals(java.lang.System.getProperty("showSql"));
     
     /**
      * Возвращает экземпляр сервиса (синглтон). 
@@ -32,6 +30,11 @@ public class OracleAccessService implements IDatabaseAccessService {
     } 
     
     private OracleAccessService() {}
+
+    @Override
+    public boolean isStoppable() {
+        return false;
+    }
     
     private final AtomicInteger SEQ = new AtomicInteger(0);
     private final Map<String, Integer>     urlToIdMap = new HashMap<>();
@@ -71,7 +74,7 @@ public class OracleAccessService implements IDatabaseAccessService {
     public ResultSet select(Integer connectionID, String query, Object... params) throws SQLException {
         try {
             final RowSet rowSet = prepareSet(connectionID);
-            if (DEV_MODE) {
+            if (getConfig().isShowSQL()) {
                 Logger.getLogger().debug(
                         "OAS: Select query: {0} (connection #{1})", 
                         IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
@@ -91,7 +94,47 @@ public class OracleAccessService implements IDatabaseAccessService {
             throw new SQLException(getCause(e).getMessage().trim());
         }
     }
-    
+
+    @Override
+    public synchronized void update(Integer connectionID, String query, Object... params) throws SQLException {
+        if (getConfig().isShowSQL()) {
+            Logger.getLogger().debug(
+                    "OAS: Select query: {0} (connection #{1})",
+                    IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
+            );
+        }
+        Connection connection = idToPoolMap.get(connectionID).getConnection();
+        connection.setAutoCommit(false);
+        Savepoint savepoint = connection.setSavepoint();
+
+        try (
+                PreparedStatement update = connection.prepareStatement(query)
+        ) {
+            if (params != null) {
+                int paramIdx = 0;
+                for (Object param : params) {
+                    paramIdx++;
+                    update.setObject(paramIdx, param);
+                }
+            }
+            update.executeUpdate();
+            connection.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Logger.getLogger().error("OAS: Unable to execute update query: {0}", e.getMessage());
+            try {
+                Logger.getLogger().warn("OAS: Perform rollback");
+                connection.rollback(savepoint);
+            } catch (SQLException e1) {
+                Logger.getLogger().error("OAS: Unable to rollback database", e1);
+            }
+            throw new SQLException(getCause(e).getMessage().trim());
+        } finally {
+            connection.setAutoCommit(true);
+            connection.close();
+        }
+    }
+
     private RowSet prepareSet(Integer connectionID) throws SQLException {
         Connection connection = idToPoolMap.get(connectionID).getConnection();
         final RowSet rowSet = new OracleJDBCRowSet(connection);
@@ -103,7 +146,9 @@ public class OracleAccessService implements IDatabaseAccessService {
                         rowSet.close();
                         connection.close();
                     }
-                } catch (SQLException e) {}
+                } catch (SQLException e) {
+                    //
+                }
             }
         });
         return rowSet;
