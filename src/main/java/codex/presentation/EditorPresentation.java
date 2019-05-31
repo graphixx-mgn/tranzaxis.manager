@@ -23,9 +23,9 @@ public final class EditorPresentation extends JPanel {
 
     private final Class        entityClass;
     private final CommandPanel commandPanel;
-    private final Supplier<Entity> context;
-    private final List<EntityCommand<Entity>> systemCommands  = new LinkedList<>();
-    private final List<EntityCommand<Entity>> contextCommands = new LinkedList<>();
+    private final Supplier<? extends Entity> context;
+    private final List<EntityCommand> systemCommands  = new LinkedList<>();
+    private final List<EntityCommand> contextCommands = new LinkedList<>();
     
     /**
      * Конструктор презентации. 
@@ -49,8 +49,8 @@ public final class EditorPresentation extends JPanel {
 
         contextCommands.addAll(
                 entity.getCommands().stream()
-                    .filter(command -> command.getKind() != EntityCommand.Kind.System)
-                    .collect(Collectors.toList())
+                        .filter(command -> command.getKind() != EntityCommand.Kind.System)
+                        .collect(Collectors.toList())
         );
 
         commandPanel = new CommandPanel(systemCommands);
@@ -90,7 +90,7 @@ public final class EditorPresentation extends JPanel {
         return entityClass;
     }
 
-    private List<EntityCommand<Entity>> getContextCommands() {
+    private List<EntityCommand> getContextCommands() {
         return new LinkedList<>(contextCommands);
     }
 
@@ -105,7 +105,7 @@ public final class EditorPresentation extends JPanel {
         Stream.concat(
                 systemCommands.stream(),
                 getContextCommands().stream()
-        ).forEach(command -> command.setContext(context.get()));
+        ).forEach(command -> ((EntityCommand<Entity>) command).setContext(context.get()));
     }
     
 }

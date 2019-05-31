@@ -34,11 +34,11 @@ import java.util.stream.Stream;
  */
 public final class SelectorPresentation extends JPanel implements ListSelectionListener, INodeListener {
     
-    private final static ImageIcon IMAGE_EDIT   = ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"),  28, 28);
-    private final static ImageIcon IMAGE_VIEW   = ImageUtils.resize(ImageUtils.getByPath("/images/view.png"),  28, 28);
-    private final static ImageIcon IMAGE_CREATE = ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"),  28, 28);
-    private final static ImageIcon IMAGE_CLONE  = ImageUtils.resize(ImageUtils.getByPath("/images/clone.png"), 28, 28);
-    private final static ImageIcon IMAGE_REMOVE = ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 28, 28);
+    private final static ImageIcon IMAGE_EDIT   = ImageUtils.getByPath("/images/edit.png");
+    private final static ImageIcon IMAGE_VIEW   = ImageUtils.getByPath("/images/view.png");
+    private final static ImageIcon IMAGE_CREATE = ImageUtils.getByPath("/images/plus.png");
+    private final static ImageIcon IMAGE_CLONE  = ImageUtils.getByPath("/images/clone.png");
+    private final static ImageIcon IMAGE_REMOVE = ImageUtils.getByPath("/images/minus.png");
 
     private final Class               entityClass;
     private final Entity              entity;
@@ -47,7 +47,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
     private final CommandPanel commandPanel;
     private final Supplier<List<Entity>>      context;
-    private final List<EntityCommand<Entity>> systemCommands  = new LinkedList<>();
+    private final List<EntityCommand> systemCommands  = new LinkedList<>();
+    private final List<EntityCommand> contextCommands = new LinkedList<>();
     
     /**
      * Конструктор презентации. 
@@ -68,8 +69,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             systemCommands.add(new DeleteEntity());
         }
         entity.getCommands().stream()
-                .filter(command -> command.getKind() == EntityCommand.Kind.System)
-                .forEach(command -> {
+                .filter(command -> command.getKind() == EntityCommand.Kind.System).forEach(command -> {
                     command.setContext(entity);
                     systemCommands.add(command);
                 });
@@ -153,8 +153,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         return entityClass;
     }
 
-    private List<EntityCommand<Entity>> getContextCommands(List<Entity> context) {
-        final List<EntityCommand<Entity>> commands = new LinkedList<>();
+    private List<EntityCommand> getContextCommands(List<Entity> context) {
+        final List<EntityCommand> commands = new LinkedList<>();
         if (context.size() == 1) {
             commands.addAll(context.get(0).getCommands());
         } else if (!context.isEmpty()) {
@@ -172,21 +172,23 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     }
 
     private void updateCommands() {
-        commandPanel.setContextCommands(getContextCommands(this.context.get()));
+        contextCommands.clear();
+        contextCommands.addAll(getContextCommands(this.context.get()));
+        commandPanel.setContextCommands(contextCommands);
     }
 
     private void activateCommands() {
         List<Entity> context = this.context.get();
         Stream.concat(
                 systemCommands.stream(),
-                getContextCommands(this.context.get()).stream()
+                contextCommands.stream()
         ).forEach(command -> {
             if (command.getKind() != EntityCommand.Kind.System) {
                 context.forEach((contextItem) -> contextItem.removeNodeListener(this));
-                command.setContext(context);
+                ((EntityCommand<Entity>) command).setContext(context);
                 context.forEach((contextItem) -> contextItem.addNodeListener(this));
             } else {
-                command.setContext(entity);
+                ((EntityCommand<Entity>) command).setContext(entity);
             }
         });
     }
