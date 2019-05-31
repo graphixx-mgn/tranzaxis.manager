@@ -65,19 +65,6 @@ public class SAPConfig extends CommandPlugin<Environment> {
             });
         });
 
-//        instanceView.getChildAt(0).childrenList().forEach(iNode -> {
-//            Entity entity = (Entity) iNode;
-//            entity.model.addModelListener(new IModelListener() {
-//                @Override
-//                public void modelChanged(EntityModel model, List<String> changes) {
-//                    btnSubmit.setEnabled(
-//                            instanceView.getChildAt(0).childrenList().stream()
-//                                .anyMatch(child -> ((Entity) child).model.hasChanges())
-//                    );
-//                }
-//            });
-//        });
-
         Dialog dialog = new Dialog(
                 FocusManager.getCurrentManager().getActiveWindow(),
                 getIcon(),
