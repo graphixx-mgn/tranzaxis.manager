@@ -3,7 +3,6 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>com.compassplus</groupId>
     <artifactId>manager</artifactId>
     <packaging>pom</packaging>
@@ -17,21 +16,9 @@
     </properties>
 
     <modules>
-        <module>plugins/sap.config</module>
         <module>core</module>
+        <module>plugins</module>
     </modules>
-
-    <profiles>
-        <profile>
-            <id>production</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-        </profile>
-        <profile>
-            <id>development</id>
-        </profile>
-    </profiles>
 
     <build>
         <pluginManagement>
