@@ -1,10 +1,10 @@
 package codex.component.button;
 
 import codex.component.dialog.Dialog;
-import java.awt.GridLayout;
+import codex.utils.ImageUtils;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.KeyEvent;
-import javax.swing.ImageIcon;
-import javax.swing.KeyStroke;
 
 /**
  * Кнопка управления диалоговым окном {@link Dialog}.
@@ -25,6 +25,10 @@ public final class DialogButton extends PushButton {
      */
     public DialogButton(ImageIcon icon, String title, int keyCode, int id) {
         super(icon, title);
+        setIcon(ImageUtils.resize(
+                icon,
+                (int) (getPreferredSize().height * 0.6), (int) (getPreferredSize().height * 0.6)
+        ));
         setLayout(new GridLayout());
         this.keyCode = KeyStroke.getKeyStroke(keyCode, 0);
         this.id = id;
