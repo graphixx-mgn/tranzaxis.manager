@@ -10,7 +10,6 @@ import codex.utils.ImageUtils;
 import net.java.balloontip.BalloonTip;
 import net.java.balloontip.styles.EdgedBalloonStyle;
 import net.java.balloontip.utils.TimingUtils;
-
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
@@ -204,6 +203,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         super.updateUI();
         setValue(propHolder.getPropValue().getValue());
         setEditable(isEditable());
+        getCommands().forEach(ICommand::activate);
         label.setFont((propHolder.isValid() ? IEditor.FONT_NORMAL : IEditor.FONT_BOLD));
     }
     
