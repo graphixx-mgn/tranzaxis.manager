@@ -2,7 +2,9 @@ package manager.nodes;
 
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
+import codex.explorer.tree.INode;
 import codex.model.Access;
+import codex.model.CommandRegistry;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.type.Bool;
@@ -24,22 +26,30 @@ import manager.type.BuildStatus;
 import manager.type.WCStatus;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.wc.*;
+import javax.swing.*;
 
 public class Offshoot extends BinarySource {
 
     public final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm");
-    
-    public final static String PROP_VERSION     = "version";
+    public final static ImageIcon ICON = ImageUtils.getByPath("/images/branch.png");
+
     public final static String PROP_WC_STATUS   = "wcStatus";
     public final static String PROP_WC_REVISION = "wcRevision";
     public final static String PROP_WC_BUILT    = "built";
     public final static String PROP_WC_LOADED   = "loaded";
 
+    static {
+        CommandRegistry.getInstance().registerCommand(DeleteWC.class);
+        CommandRegistry.getInstance().registerCommand(RefreshWC.class);
+        CommandRegistry.getInstance().registerCommand(UpdateWC.class);
+        CommandRegistry.getInstance().registerCommand(BuildWC.class);
+        CommandRegistry.getInstance().registerCommand(RunDesigner.class);
+    }
+
     public Offshoot(EntityRef owner, String title) {
-        super(owner, ImageUtils.getByPath("/images/branch.png"), title);
+        super(owner, ICON, title);
         
         // Properties
-        model.addDynamicProp(PROP_VERSION,     new Str(null), null, () -> getPID());
         model.addDynamicProp(PROP_WC_STATUS,   new Enum(WCStatus.Absent), Access.Edit, () -> {
             if (this.getOwner() != null) {
                 return getWorkingCopyStatus();
@@ -49,7 +59,7 @@ public class Offshoot extends BinarySource {
         });
         model.addDynamicProp(PROP_WC_REVISION, new Str(null), null, () -> {
             WCStatus status = getWCStatus();
-            if (status.equals(WCStatus.Succesfull) || status.equals(WCStatus.Erroneous)) {
+            if ((status.equals(WCStatus.Succesfull) || status.equals(WCStatus.Erroneous)) && SVNWCUtil.isVersionedDirectory(new File(getLocalPath()))) {
                 return getWorkingCopyRevision(false).getNumber()+" / "+DATE_FORMAT.format(getWorkingCopyRevisionDate(false));
             } else {
                 return null;
@@ -58,21 +68,16 @@ public class Offshoot extends BinarySource {
 
         model.addUserProp(PROP_WC_BUILT,       new BuildStatus(), false, null);
         model.addUserProp(PROP_WC_LOADED,      new Bool(null), false, Access.Any);
-        
-        // Commands
-        addCommand(new DeleteWC());
-        addCommand(new RefreshWC().setGroupId("update"));
-        addCommand(new UpdateWC().setGroupId("update"));
-        addCommand(new BuildWC().setGroupId("update"));
-        addCommand(new RunDesigner());
     }
     
     public final String getVersion() {
-        return (String) model.getValue(PROP_VERSION);
+        return getPID();
     }
     
     public final WCStatus getWCStatus() {
-        return (WCStatus) model.getValue(PROP_WC_STATUS);
+        WCStatus wcStatus = (WCStatus) model.getValue(PROP_WC_STATUS);
+        SwingUtilities.invokeLater(() -> setMode(wcStatus.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
+        return wcStatus;
     }
     
     public final boolean isWCLoaded() {
@@ -113,7 +118,7 @@ public class Offshoot extends BinarySource {
                     .filter(link -> link.entryClass.equals(Development.class.getCanonicalName()))
                     .map(link -> (Development) EntityRef.build(Development.class, link.entryID).getValue())
                     .findFirst()
-                    .orElse((Development) Entity.newPrototype(Development.class));
+                    .orElse(Entity.newPrototype(Development.class));
             return dev.getJvmDesigner();
         }
     }

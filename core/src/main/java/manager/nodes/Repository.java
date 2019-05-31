@@ -7,6 +7,7 @@ import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
 import codex.mask.RegexMask;
 import codex.model.Access;
+import codex.model.CommandRegistry;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
@@ -51,6 +52,7 @@ public class Repository extends Entity {
     static {
         ClassIndex.getSubclasses(RepositoryBranch.class).forEach(branchClass ->
                 BRANCHES.put(branchClass.getAnnotation(RepositoryBranch.Branch.class).remoteDir(), branchClass));
+        CommandRegistry.getInstance().registerCommand(LoadWC.class);
     }
 
     public Repository(EntityRef owner, String title) {
@@ -88,9 +90,6 @@ public class Repository extends Entity {
                     break;
             }
         });
-        
-        // Commands
-        addCommand(new LoadWC());
         
         setMode((isLocked(false) && getChildCount() > 0 ? INode.MODE_ENABLED : INode.MODE_NONE) + INode.MODE_SELECTABLE);
     }

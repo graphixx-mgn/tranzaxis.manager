@@ -24,6 +24,10 @@ public final class Common extends Catalog {
     private final static String PROP_WORK_DIR  = "workDir";
     private final static String PROP_GUI_LANG  = "guiLang";
 
+    static {
+        CommandRegistry.getInstance().registerCommand(DiskUsageReport.class);
+    }
+
     public Common() {
         super(null, ImageUtils.getByPath("/images/settings.png"), "title", Language.get("desc"));
         // Properties
@@ -52,9 +56,6 @@ public final class Common extends Catalog {
                 });          
             }
         });
-        
-        // Commands
-        addCommand(new DiskUsageReport());
     }
     
     public final Path getWorkDir() {

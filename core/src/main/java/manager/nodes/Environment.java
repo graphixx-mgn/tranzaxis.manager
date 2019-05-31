@@ -10,10 +10,7 @@ import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.log.Logger;
 import codex.mask.DataSetMask;
-import codex.model.Access;
-import codex.model.Entity;
-import codex.model.EntityModel;
-import codex.model.IModelListener;
+import codex.model.*;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.supplier.IDataSupplier;
@@ -25,7 +22,6 @@ import java.sql.ResultSet;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import javax.swing.*;
 import manager.commands.environment.RunAll;
@@ -34,6 +30,12 @@ import manager.commands.environment.RunServer;
 import manager.type.SourceType;
 
 public class Environment extends Entity implements INodeListener {
+
+    static {
+        CommandRegistry.getInstance().registerCommand(RunAll.class);
+        CommandRegistry.getInstance().registerCommand(RunServer.class);
+        CommandRegistry.getInstance().registerCommand(RunExplorer.class);
+    }
 
     // General properties
     public final static String PROP_LAYER_URI    = "layerURI";
@@ -293,29 +295,6 @@ public class Environment extends Entity implements INodeListener {
                     break;
             }
         });
-        
-        // Commands
-        addCommand(new RunAll() {
-            @Override
-            public void execute(Environment environment, Map<String, IComplexType> map) {
-                setVersion(getLayerVersion());
-                super.execute(environment, map);
-            }
-        });
-        addCommand(new RunServer() {
-            @Override
-            public void execute(Environment environment, Map<String, IComplexType> map) {
-                setVersion(getLayerVersion());
-                super.execute(environment, map);
-            }
-        });
-        addCommand(new RunExplorer() {
-            @Override
-            public void execute(Environment environment, Map<String, IComplexType> map) {
-                setVersion(getLayerVersion());
-                super.execute(environment, map);
-            }
-        });
     }
 
     public List<String> getServerCommand(boolean addSplash) {
@@ -489,7 +468,7 @@ public class Environment extends Entity implements INodeListener {
         model.setValue(PROP_AUTO_RELEASE, value);
     }
     
-    private String getLayerVersion() {
+    public String getLayerVersion() {
         try {
             return versionSupplier.call();
         } catch (Exception e) {

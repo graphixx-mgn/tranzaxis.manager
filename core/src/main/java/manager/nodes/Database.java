@@ -7,6 +7,7 @@ import codex.database.OracleAccessService;
 import codex.log.Logger;
 import codex.mask.RegexMask;
 import codex.model.Access;
+import codex.model.CommandRegistry;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
@@ -31,6 +32,7 @@ public class Database extends Entity {
     
     static {
         ServiceRegistry.getInstance().registerService(OAS);
+        CommandRegistry.getInstance().registerCommand(CheckDatabase.class);
     }
     
     private final Function<Boolean, Integer> connectionGetter = (showError) -> {
@@ -95,9 +97,6 @@ public class Database extends Entity {
         model.addUserProp(PROP_BASE_USER, new Str(null), true, null);
         model.addUserProp(PROP_BASE_PASS, new Str(null), true, Access.Select);
         model.addUserProp(PROP_USER_NOTE, new Str(null), false, null);
-
-        // Commands
-        addCommand(new CheckDatabase());
     }
     
     public final String getDatabaseUrl(boolean unsaved) {
