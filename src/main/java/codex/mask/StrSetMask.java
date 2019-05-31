@@ -7,8 +7,6 @@ import codex.property.PropertyHolder;
 import codex.type.ArrStr;
 import codex.utils.ImageUtils;
 import java.awt.Component;
-import java.awt.Container;
-import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
@@ -67,7 +65,7 @@ public class StrSetMask extends EditorCommand implements IArrMask, ActionListene
 
     @Override
     public void execute(PropertyHolder context) {
-        Container parent = ((Container) getButton()).getParent();
+        //Container parent = ((Container) getButton()).getParent();
         
         comboBox.removeActionListener(this);
         comboBox.removeAllItems();
@@ -79,14 +77,14 @@ public class StrSetMask extends EditorCommand implements IArrMask, ActionListene
         comboBox.addActionListener(this);
         
         Component render = comboBox.getRenderer().getListCellRendererComponent(new JList(), "?", 0, true, true);
-        popup.setPreferredSize(new Dimension(
-                parent.getSize().width, 
-                render.getPreferredSize().height * Math.min(
-                        ROWS_VISIBLE, 
-                        comboBox.getItemCount()
-                ) + 2
-        ));
-        popup.show(parent, 0, parent.getSize().height);
+//        popup.setPreferredSize(new Dimension(
+//                parent.getSize().width,
+//                render.getPreferredSize().height * Math.min(
+//                        ROWS_VISIBLE,
+//                        comboBox.getItemCount()
+//                ) + 2
+//        ));
+//        popup.show(parent, 0, parent.getSize().height);
     }
     
     @Override
@@ -98,7 +96,7 @@ public class StrSetMask extends EditorCommand implements IArrMask, ActionListene
 //            newValue.set(0, (String) comboBox.getSelectedItem());
 //            getContext()[0].setValue(newValue);
         } else {
-            super.actionPerformed(event);
+            //super.actionPerformed(event);
         }
     }
 
