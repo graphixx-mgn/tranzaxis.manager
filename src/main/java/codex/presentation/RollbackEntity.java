@@ -22,7 +22,7 @@ class RollbackEntity extends EntityCommand<Entity> {
     RollbackEntity() {
         super(
                 "rollback", null,
-                ImageUtils.resize(ImageUtils.getByPath("/images/undo.png"), 28, 28), 
+                ImageUtils.getByPath("/images/undo.png"),
                 Language.get(EditorPresentation.class, "command@rollback"),
                 (entity) -> entity.model.getChanges().stream()
                         .anyMatch(propName -> (

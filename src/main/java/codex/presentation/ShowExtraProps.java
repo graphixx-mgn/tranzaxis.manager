@@ -28,7 +28,7 @@ class ShowExtraProps extends EntityCommand<Entity> {
     ShowExtraProps() {
         super(
                 "extra",null,
-                ImageUtils.resize(ImageUtils.getByPath("/images/param.png"), 28, 28),
+                ImageUtils.getByPath("/images/param.png"),
                 Language.get(EditorPresentation.class, "command@extra"),
                 null
         );

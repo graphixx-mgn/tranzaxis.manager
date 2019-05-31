@@ -22,7 +22,7 @@ class CommitEntity extends EntityCommand<Entity> {
     CommitEntity() {
         super(
                 "commit", null,
-                ImageUtils.resize(ImageUtils.getByPath("/images/save.png"), 28, 28), 
+                ImageUtils.getByPath("/images/save.png"),
                 Language.get(EditorPresentation.class, "command@commit"),
                 (entity) -> entity.model.getChanges().stream()
                         .anyMatch(propName -> (
@@ -46,7 +46,9 @@ class CommitEntity extends EntityCommand<Entity> {
         if (context.validate()) {
             try {
                 context.model.commit(true);
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                //
+            }
         }
     }
     
