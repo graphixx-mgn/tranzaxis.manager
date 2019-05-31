@@ -15,6 +15,7 @@ import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.Language;
 import javax.swing.*;
+import java.lang.annotation.*;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -25,10 +26,19 @@ import java.util.function.Supplier;
  * Используется для возможности производить различные действия над сущностью.
  * @param <V> Класс {@link Entity} или один из его производных.
  */
+
+@EntityCommand.Definition(parentCommand = EntityCommand.class)
 public abstract class EntityCommand<V extends Entity> implements ICommand<V, List<V>>, Iconified {
     
     private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
-    
+
+    @Inherited
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface Definition {
+        Class<? extends EntityCommand> parentCommand();
+    }
+
     /**
      * Тип команды. 
      */
@@ -59,7 +69,6 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     private final ImageIcon icon;
     private final String    title;
     private List<V>   context = new LinkedList<>();
-    private String    groupId;
     private Predicate<V> available;
     private final List<ICommandListener<V>> listeners = new LinkedList<>();
     private Supplier<PropertyHolder[]>      provider  = () -> new PropertyHolder[]{};
@@ -131,7 +140,6 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
             this.title = Language.NOT_FOUND;
         }
     }
-
 
     
     /**
@@ -255,23 +263,9 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
             return null;
         }
     }
-    
-    /**
-     * Установка имени группы для команды. Команды одной группы объединяются в меню.
-     * @param groupId Строковый идентификатор.
-     */
-    public final EntityCommand setGroupId(String groupId) {
-        if (groupId != null) {
-            this.groupId = groupId;
-        }
-        return this;
-    }
-    
-    /**
-     * Получение имени группы команды.
-     */
-    public final String getGroupId() {
-        return groupId;
+
+    public IGroupButtonFactory groupButtonFactory() {
+        return GroupCommandButton::new;
     }
     
     @Override
