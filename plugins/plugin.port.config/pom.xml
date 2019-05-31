@@ -24,39 +24,4 @@
         </dependency>
     </dependencies>
 
-    <!--<dependencies>
-        <dependency>
-            <groupId>com.compassplus</groupId>
-            <artifactId>manager.core</artifactId>
-            <scope>provided</scope>
-            <version>[2.0.0,)</version>
-        </dependency>
-    </dependencies>-->
-
-    <!--<build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <outputDirectory>${project.parent.basedir}/core/target/plugins</outputDirectory>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-clean-plugin</artifactId>
-                <version>3.1.0</version>
-                <configuration>
-                    <filesets>
-                        <fileset>
-                            <directory>${project.parent.basedir}/core/target/plugins</directory>
-                            <includes>
-                                <include>**/${project.artifactId}-${project.version}.jar</include>
-                            </includes>
-                        </fileset>
-                    </filesets>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>-->
-
 </project>
