@@ -1,27 +1,18 @@
 package manager.type;
 
-import codex.editor.AbstractEditor;
-import codex.editor.IEditor;
+import codex.editor.AnyTypeView;
 import codex.editor.IEditorFactory;
-import codex.editor.PlaceHolder;
-import codex.property.PropertyHolder;
 import codex.type.ArrStr;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.awt.BorderLayout;
+import manager.commands.offshoot.BuildWC;
+import javax.swing.*;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
-import javax.swing.JTextField;
-import javax.swing.border.EmptyBorder;
-import manager.commands.offshoot.BuildWC;
 
 public final class BuildStatus extends ArrStr {
     
@@ -47,7 +38,12 @@ public final class BuildStatus extends ArrStr {
     public List<String> getValue() {
         return value;
     }
-    
+
+    @Override
+    public boolean isEmpty() {
+        return value == null || value.isEmpty();
+    }
+
     @Override
     public String toString() {
         return merge(value);
@@ -60,9 +56,9 @@ public final class BuildStatus extends ArrStr {
     
     @Override
     public IEditorFactory editorFactory() {
-        return BuildStatusEditor::new;
+        return AnyTypeView::new;
     }
-    
+
     class StatusHolder extends LinkedList<String> implements Iconified {
 
         StatusHolder(Collection<? extends String> c) {
@@ -113,57 +109,6 @@ public final class BuildStatus extends ArrStr {
             return title;
         }
         
-    }
-    
-    class BuildStatusEditor extends AbstractEditor {
-    
-        private JTextField  textField;
-        private JLabel      iconLabel;
-        private PlaceHolder placeHolder;
-
-        BuildStatusEditor(PropertyHolder propHolder) {
-            super(propHolder);
-        }
-
-        @Override
-        public Box createEditor() {
-            textField = new JTextField();
-            textField.setBorder(new EmptyBorder(0, 3, 0, 3));
-            textField.setEditable(false);
-
-            placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.FOCUS_LOST);
-            placeHolder.setBorder(textField.getBorder());
-            placeHolder.changeAlpha(100);
-
-            iconLabel = new JLabel();
-            iconLabel.setFont(FONT_VALUE);
-            textField.add(iconLabel, BorderLayout.WEST);
-
-            Box container = new Box(BoxLayout.X_AXIS);
-            container.add(textField);
-            return container;
-        }
-
-        @Override
-        public void setValue(Object value) {
-            StatusHolder holder = (StatusHolder) value;
-            iconLabel.setVisible(value != null);
-            if (value != null) {
-                iconLabel.setIcon(ImageUtils.resize(
-                        holder.getIcon(),
-                        textField.getPreferredSize().height+2, 
-                        textField.getPreferredSize().height+2
-                ));
-                iconLabel.setText(holder.toString());
-            }
-            placeHolder.setVisible(value == null);
-        }
-
-        @Override
-        public void setEditable(boolean editable) {
-            super.setEditable(false);
-        }
-
     }
     
 }
