@@ -1,10 +1,7 @@
 package codex.service;
 
 import codex.command.EntityCommand;
-import codex.model.Access;
-import codex.model.Catalog;
-import codex.model.Entity;
-import codex.model.EntityModel;
+import codex.model.*;
 import codex.type.*;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -20,7 +17,12 @@ public class CommonServiceOptions extends Catalog {
     private final static String PROP_STARTED = "started";
     
     private final static ImageIcon ICON_STARTED = ImageUtils.getByPath("/images/start.png"); 
-    private final static ImageIcon ICON_STOPPED = ImageUtils.getByPath("/images/stop.png"); 
+    private final static ImageIcon ICON_STOPPED = ImageUtils.getByPath("/images/stop.png");
+
+    static {
+        CommandRegistry.getInstance().registerCommand(StartService.class);
+        CommandRegistry.getInstance().registerCommand(StopService.class);
+    }
     
     private AbstractService service;
     
@@ -41,10 +43,6 @@ public class CommonServiceOptions extends Catalog {
 
         // Property settings
         setPropertyRestriction(EntityModel.THIS, Access.Any);
-        
-        // Commands
-        addCommand(new StartService());
-        addCommand(new StopService());
     }
     
     @Override
@@ -79,7 +77,7 @@ public class CommonServiceOptions extends Catalog {
             super(
                     "start", 
                     Language.get(CommonServiceOptions.class, "start@title"),
-                    ImageUtils.resize(ICON_STARTED, 28, 28), 
+                    ICON_STARTED,
                     Language.get(CommonServiceOptions.class, "start@title"),
                     (control) -> control.getService().isStoppable() && !control.isStarted()
             );
@@ -98,7 +96,7 @@ public class CommonServiceOptions extends Catalog {
             super(
                     "stop", 
                     Language.get(CommonServiceOptions.class, "stop@title"),
-                    ImageUtils.resize(ICON_STOPPED, 28, 28), 
+                    ICON_STOPPED,
                     Language.get(CommonServiceOptions.class, "stop@title"),
                     (control) -> control.getService().isStoppable() && control.isStarted()
             );
