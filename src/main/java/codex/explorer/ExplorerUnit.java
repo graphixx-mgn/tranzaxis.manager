@@ -1,6 +1,8 @@
 package codex.explorer;
 
+import codex.explorer.browser.BrowseMode;
 import codex.explorer.browser.Browser;
+import codex.explorer.browser.TabbedMode;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.Navigator;
 import codex.explorer.tree.NodeTreeModel;
@@ -29,10 +31,14 @@ public final class ExplorerUnit extends AbstractUnit {
     private JScrollPane     navigatePanel;
     private final Navigator navigator;
     private final Browser   browser;
-    
+
     private ExplorerUnit() {
+        this(new TabbedMode());
+    }
+    
+    private ExplorerUnit(BrowseMode mode) {
         Logger.getLogger().debug("Initialize unit: Explorer");
-        this.browser   = new Browser();
+        this.browser   = new Browser(mode);
         this.navigator = new Navigator();
         this.navigator.addNavigateListener((TreePath path) -> {
             this.browser.browse((INode) path.getLastPathComponent());
