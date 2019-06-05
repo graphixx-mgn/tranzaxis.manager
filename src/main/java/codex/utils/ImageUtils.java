@@ -1,9 +1,10 @@
 package codex.utils;
 
+import codex.editor.IEditor;
 import codex.log.Logger;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.RenderingHints;
+import java.awt.*;
+import java.awt.geom.Arc2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.net.URL;
@@ -92,8 +93,8 @@ public class ImageUtils {
 
     public static ImageIcon combine(ImageIcon bgIcon, ImageIcon fgIcon, int position) {
         Image srcImage = bgIcon.getImage();
-        int width  = bgIcon.getIconWidth();
-        int height = bgIcon.getIconHeight();
+        int width  = Math.max(bgIcon.getIconWidth(), fgIcon.getIconWidth());
+        int height = Math.max(bgIcon.getIconHeight(), fgIcon.getIconHeight());
 
         int fgPosX, fgPosY;
         switch (position) {
@@ -124,9 +125,54 @@ public class ImageUtils {
                 BufferedImage.TYPE_INT_ARGB
         );
         Graphics2D g = combinedImage.createGraphics();
-        g.drawImage(srcImage, 0, 0, null);
-        g.drawImage(fgIcon.getImage(), fgPosX, fgPosY, null);
+        g.drawImage(
+                srcImage,
+                width / 2 - bgIcon.getIconWidth() / 2,
+                height / 2 - bgIcon.getIconHeight() / 2,
+                null
+        );
+        g.drawImage(
+                fgIcon.getImage(),
+                fgPosX,
+                fgPosY,
+                null
+        );
         return new ImageIcon(combinedImage);
+    }
+
+    public static ImageIcon createBadge(String text, Color bgColor, Color fgColor) {
+        Font font = new Font("Arial", Font.BOLD, IEditor.FONT_BOLD.getSize());
+
+        BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D gm = image.createGraphics();
+        FontMetrics fm = gm.getFontMetrics(font);
+
+        int textWidth  = fm.stringWidth(text);
+        int textHeight = fm.getAscent() + fm.getDescent();
+
+        BufferedImage bufferedImage = new BufferedImage(textHeight+textWidth, textHeight, BufferedImage.TYPE_INT_ARGB);
+        Color transparent = new Color(0x00FFFFFF, true);
+        Graphics2D g = (Graphics2D) bufferedImage.getGraphics();
+
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        g.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY);
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setComposite(AlphaComposite.Src);
+
+        g.setColor(transparent);
+        g.setBackground(Color.GREEN);
+        g.fillRect(0, 0, bufferedImage.getWidth(), bufferedImage.getHeight());
+
+        g.setColor(bgColor);
+        g.fill(new Arc2D.Double(0, 0, textHeight, textHeight, 90, 180, Arc2D.PIE));
+        g.fill(new Rectangle2D.Double(textHeight/2, 0, textWidth, textHeight));
+        g.fill(new Arc2D.Double(textWidth, 0, textHeight, textHeight, 270, 180, Arc2D.PIE));
+
+        g.setColor(fgColor);
+        g.setFont(font);
+        g.drawString(text, textHeight/2, fm.getAscent());
+        return new ImageIcon(bufferedImage);
     }
     
 }
