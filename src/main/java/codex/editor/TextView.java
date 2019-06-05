@@ -59,7 +59,7 @@ public class TextView extends AbstractEditor {
         if (value == null) {
             pane.setText("");
         } else {
-            pane.setText((String) value);
+            pane.setText(value.toString());
         }
     }
 

@@ -99,7 +99,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
     public synchronized void update(Integer connectionID, String query, Object... params) throws SQLException {
         if (getConfig().isShowSQL()) {
             Logger.getLogger().debug(
-                    "OAS: Select query: {0} (connection #{1})",
+                    "OAS: Update query: {0} (connection #{1})",
                     IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
             );
         }

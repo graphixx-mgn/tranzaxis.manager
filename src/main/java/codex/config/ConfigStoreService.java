@@ -88,10 +88,6 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         return false;
     }
     
-//    private boolean isShowSql() {
-//        return getConfig().isShowSQL();
-//    }
-    
     private synchronized void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {
         final String className = clazz.getSimpleName().toUpperCase();
 
@@ -171,7 +167,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             connection.releaseSavepoint(savepoint);
             connection.commit();
         } catch (SQLException e) {
-            Logger.getLogger().error("CAS: Unable to create class catalog: {0}", e.getMessage());
+            Logger.getLogger().error("CAS: Unable to create class catalog ''{0}'': {1}", className, e.getMessage());
             try {
                 Logger.getLogger().warn("CAS: Perform rollback");
                 connection.rollback(savepoint);
@@ -276,7 +272,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             connection.commit();
             return keys;
         } catch (SQLException e) {
-            Logger.getLogger().error("CAS: Unable to create class catalog: {0}", e.getMessage());
+            Logger.getLogger().error("CAS: Unable to save instance ''{0}'' to class catalog ''{1}'': {2}", PID, className, e.getMessage());
             try {
                 Logger.getLogger().warn("CAS: Perform rollback");
                 connection.rollback(savepoint);
