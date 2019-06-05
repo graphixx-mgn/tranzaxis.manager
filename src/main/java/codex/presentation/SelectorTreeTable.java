@@ -8,14 +8,17 @@ import codex.explorer.tree.NodeTreeModel;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.model.EntityModel;
+import codex.property.PropertyHolder;
 import codex.type.Bool;
 import codex.type.IComplexType;
 import codex.utils.Language;
+import org.apache.log4j.lf5.viewer.categoryexplorer.TreeModelAdapter;
 import org.netbeans.swing.outline.Outline;
 import org.netbeans.swing.outline.RowModel;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.TableModelEvent;
+import javax.swing.event.TreeModelEvent;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.util.Arrays;
@@ -37,7 +40,7 @@ public class SelectorTreeTable<T extends Entity> extends Outline implements IEdi
                 treeModel,
                 new TableRowModel(entityClass),
                 true,
-                Language.get(Entity.class, EntityModel.THIS+".title")
+                Language.get(Entity.class, EntityModel.THIS+PropertyHolder.PROP_NAME_SUFFIX)
         );
 
         setModel(treeTableModel);
@@ -61,7 +64,7 @@ public class SelectorTreeTable<T extends Entity> extends Outline implements IEdi
                         setBackground(component.getBackground());
                         add(new Box(BoxLayout.LINE_AXIS) {{
                             add(Box.createHorizontalStrut(
-                                    IEditor.FONT_VALUE.getSize() * (path.getPathCount()-1))
+                                    IEditor.FONT_VALUE.getSize() * (path.getPathCount() - (isRootVisible() ? 1 : 2)))
                             );
                             if (!node.isLeaf()) {
                                 add(new JLabel(expanded ? ICON_EXPAND : ICON_COLLAPSE) {{
