@@ -16,6 +16,10 @@ import java.util.List;
  * Хранит объект, реализующий интерфейс {@link IComplexType}.
  */
 public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
+
+    public  final static String PROP_NAME_SUFFIX = ".title";
+    public  final static String PROP_DESC_SUFFIX = ".desc";
+    public  final static String PROP_HOLD_SUFFIX = ".placeholder";
     
     private final String  name;
     private final String  title;
@@ -39,8 +43,8 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     public PropertyHolder(String name, T value, boolean require) {
         this(
                 name, 
-                EntityModel.SYSPROPS.contains(name) ? Language.get(EntityModel.class, name+".title") : Language.lookup(name+".title"), 
-                EntityModel.SYSPROPS.contains(name) ? Language.get(EntityModel.class, name+".desc")  : Language.lookup(name+".desc"), 
+                EntityModel.SYSPROPS.contains(name) ? Language.get(EntityModel.class, name+PROP_NAME_SUFFIX) : Language.lookup(name+PROP_NAME_SUFFIX),
+                EntityModel.SYSPROPS.contains(name) ? Language.get(EntityModel.class, name+PROP_DESC_SUFFIX)  : Language.lookup(name+PROP_DESC_SUFFIX),
                 value, 
                 require
         );
@@ -66,8 +70,8 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
         this.require = require;
         this.value   = value;
         
-        String propPlaceHolder = Language.lookup(name+".placeholder");
-        String typePlaceHolder = Language.lookup("placeholder");
+        String propPlaceHolder = Language.lookup(name+PROP_HOLD_SUFFIX);
+        String typePlaceHolder = Language.lookup(PROP_HOLD_SUFFIX);
         
         this.placeholder = 
                 Language.NOT_FOUND.equals(propPlaceHolder) ? (

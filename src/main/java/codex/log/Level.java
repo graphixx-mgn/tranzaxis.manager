@@ -1,5 +1,6 @@
 package codex.log;
 
+import codex.property.PropertyHolder;
 import codex.type.Iconified;
 import codex.utils.Language;
 import javax.swing.ImageIcon;
@@ -17,7 +18,7 @@ public enum Level implements Iconified {
     
     Level(org.apache.log4j.Level level, ImageIcon icon) {
         this.log4jLevel = level;
-        this.title = Language.get(LogUnit.class, "level@"+level.toString().toLowerCase()+".title", Language.getLocale());
+        this.title = Language.get(LogUnit.class, "level@"+level.toString().toLowerCase()+PropertyHolder.PROP_NAME_SUFFIX, Language.getLocale());
         this.icon  = icon;
     }
     

@@ -2,6 +2,7 @@ package codex.log;
 
 import codex.component.button.PushButton;
 import codex.component.button.ToggleButton;
+import codex.property.PropertyHolder;
 import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -220,7 +221,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener {
         for (final Level level : levels) {
             final ToggleButton toggle = new ToggleButton(
                     ImageUtils.resize(levelIcon.get(level), 22, 22), 
-                    Language.get("level@"+level.toString().toLowerCase()+".title"), 
+                    Language.get("level@"+level.toString().toLowerCase()+PropertyHolder.PROP_NAME_SUFFIX),
                     true
             );
             toggle.addActionListener((ActionEvent event) -> {
