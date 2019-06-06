@@ -1,13 +1,19 @@
 package plugin.command;
 
 import codex.command.EntityCommand;
+import codex.config.ConfigStoreService;
+import codex.config.IConfigStoreService;
 import codex.editor.IEditorFactory;
 import codex.editor.TextView;
+import codex.launcher.Shortcut;
 import codex.log.Logger;
 import codex.model.Access;
 import codex.model.CommandRegistry;
 import codex.model.Entity;
+import codex.model.EntityModel;
+import codex.service.ServiceRegistry;
 import codex.type.AnyType;
+import codex.type.EntityRef;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -74,16 +80,34 @@ class CommandPluginHandler<V extends Entity> extends PluginHandler<CommandPlugin
 
     @Override
     protected final void loadPlugin() throws PluginException {
-        CommandRegistry.getInstance().registerCommand(entityClass, pluginClass);
+        EntityCommand<? extends Entity> command = CommandRegistry.getInstance().registerCommand(entityClass, pluginClass);
         launcherSupplier.get().activate();
+        updateShortcuts(entityClass, command.getName());
         Logger.getLogger().debug("PXE: Enabled plugin: {0}", getDescription());
     }
 
     @Override
     protected final void unloadPlugin() throws PluginException {
-        CommandRegistry.getInstance().unregisterCommand(entityClass, pluginClass);
-        launcherSupplier.get().activate();
-        Logger.getLogger().debug("PXE: Disabled plugin: {0}", getDescription());
+        COMMAND_REGISTRY.getRegisteredCommands(entityClass).stream()
+                .filter(command -> command.getClass().equals(pluginClass))
+                .findFirst()
+                .ifPresent(command -> {
+                    CommandRegistry.getInstance().unregisterCommand(entityClass, pluginClass);
+                    launcherSupplier.get().activate();
+                    updateShortcuts(entityClass, command.getName());
+                    Logger.getLogger().debug("PXE: Disabled plugin: {0}", getDescription());
+                });
+
+    }
+
+    private static <V extends Entity> void updateShortcuts(Class<V> entityClass, String commandName) {
+        IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+        CAS.readCatalogEntries(null, Shortcut.class).keySet().stream()
+                .map(id -> CAS.readClassInstance(Shortcut.class, id))
+                .filter(properties -> properties.get(Shortcut.PROP_COMMAND).equals(commandName))
+                .forEach(properties -> {
+                    ((Shortcut) EntityRef.build(Shortcut.class, properties.get(EntityModel.ID)).getValue()).update();
+                });
     }
 
     @Override
