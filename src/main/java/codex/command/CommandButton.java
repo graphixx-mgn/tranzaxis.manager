@@ -41,11 +41,6 @@ public class CommandButton extends PushButton implements ICommandListener<Entity
 
         button.addActionListener(this);
         command.addListener(CommandButton.this);
-        addPropertyChangeListener("ancestor", event -> {
-            if (event.getOldValue() != null && event.getNewValue() == null) {
-                command.removeListener(CommandButton.this);
-            }
-        });
     }
 
     @Override

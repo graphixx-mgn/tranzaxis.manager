@@ -2,6 +2,7 @@ package codex.presentation;
 
 import codex.command.CommandButton;
 import codex.command.EntityCommand;
+import codex.command.ICommandListener;
 import codex.command.IGroupCommandButton;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
@@ -53,6 +54,9 @@ public final class CommandPanel extends Box {
         while (commandPanel.getComponentCount() > 0) {
             Component comp = commandPanel.getComponent(0);
             commandPanel.remove(comp);
+            if (comp instanceof ICommandListener) {
+                commands.forEach(command -> command.removeListener((ICommandListener) comp));
+            }
         }
 
         Map<Class<? extends EntityCommand>, List<EntityCommand>> map = commands.stream()
