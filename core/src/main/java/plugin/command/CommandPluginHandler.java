@@ -1,6 +1,8 @@
 package plugin.command;
 
 import codex.command.EntityCommand;
+import codex.editor.IEditorFactory;
+import codex.editor.TextView;
 import codex.log.Logger;
 import codex.model.Access;
 import codex.model.CommandRegistry;
@@ -9,15 +11,11 @@ import codex.type.AnyType;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import plugin.Plugin;
-import plugin.PluginException;
-import plugin.PluginHandler;
+import plugin.*;
 import javax.swing.*;
 import java.lang.reflect.ParameterizedType;
 import java.text.MessageFormat;
-import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 class CommandPluginHandler<V extends Entity> extends PluginHandler<CommandPlugin<V>> {
 
@@ -25,6 +23,7 @@ class CommandPluginHandler<V extends Entity> extends PluginHandler<CommandPlugin
 
     private final static String PROP_ENTITY  = "class";
     private final static String PROP_COMMAND = "command";
+    private final static String PROP_DESC    = "desc";
 
     private final Plugin pluginConfig = new Plugin(this);
     private final Class<V>     entityClass = getEntityClass();
@@ -44,6 +43,7 @@ class CommandPluginHandler<V extends Entity> extends PluginHandler<CommandPlugin
             .findFirst().orElseGet(() -> COMMAND_REGISTRY.registerCommand(entityClass, CommandLauncher.class));
 
     {
+        // Inject plugin type properties
         pluginConfig.model.addDynamicProp(PROP_ENTITY, new AnyType(), Access.Select, () -> new Iconified() {
             private Entity entity = Entity.newPrototype(entityClass);
 
@@ -58,6 +58,12 @@ class CommandPluginHandler<V extends Entity> extends PluginHandler<CommandPlugin
             }
         });
         pluginConfig.model.addDynamicProp(PROP_COMMAND, new AnyType(), Access.Select, () -> typeDefinition);
+        pluginConfig.model.addDynamicProp(PROP_DESC, new AnyType() {
+            @Override
+            public IEditorFactory editorFactory() {
+                return TextView::new;
+            }
+        }, Access.Select, () -> Language.get(pluginClass, PROP_DESC));
     }
 
 
