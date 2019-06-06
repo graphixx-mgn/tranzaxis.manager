@@ -125,7 +125,12 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
 
     @Override
     public Box createEditor() {
-        textField = new JTextField();
+        textField = new JTextField() {
+            @Override
+            public void setForeground(Color fg) {
+                super.setForeground(fg);
+            }
+        };
         textField.setFont(FONT_VALUE);
         textField.setBorder(new EmptyBorder(0, 3, 0, 3));
         textField.addFocusListener(this);
@@ -165,7 +170,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         String value = (String) propHolder.getPropValue().getValue();
         boolean inputOk = ((value == null || value.isEmpty()) && !mask.notNull()) || mask.verify(value);
         setBorder(!inputOk ? BORDER_ERROR : textField.isFocusOwner() ? BORDER_ACTIVE : BORDER_NORMAL);
-        textField.setForeground(inputOk ? COLOR_NORMAL : COLOR_INVALID);
+        textField.setForeground(inputOk ? (isEditable() ? COLOR_NORMAL : COLOR_DISABLED) : COLOR_INVALID);
         if (signInvalid != null) {
             signInvalid.setVisible(!inputOk);
         }
