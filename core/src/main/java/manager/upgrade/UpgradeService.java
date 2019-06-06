@@ -1,9 +1,8 @@
 package manager.upgrade;
 
-import codex.instance.InstanceCommunicationService;
-import codex.instance.MultihomeRMIClientSocketFactory;
 import codex.instance.ServiceNotLoadedException;
 import codex.log.Logger;
+import codex.service.AbstractRemoteService;
 import manager.commands.offshoot.BuildWC;
 import manager.upgrade.stream.RemoteInputStream;
 import manager.upgrade.stream.RemoteInputStreamServer;
@@ -16,21 +15,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.rmi.RemoteException;
-import java.rmi.server.UnicastRemoteObject;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Semaphore;
-import java.util.stream.Collectors;
 
 
-public class UpgradeService extends UnicastRemoteObject implements IUpgradeService {
+public class UpgradeService extends AbstractRemoteService implements IUpgradeService {
     
     public final static String VERSION_RESOURCE = "/version.xml";
     
@@ -54,11 +50,8 @@ public class UpgradeService extends UnicastRemoteObject implements IUpgradeServi
     private final Semaphore lock = new Semaphore(1, true);
 
     public UpgradeService() throws Exception {
-        super(0, new MultihomeRMIClientSocketFactory(
-                InstanceCommunicationService.IFACE_ADDRS.values().stream()
-                        .map(InetAddress::getHostAddress)
-                        .collect(Collectors.toList()).toArray(new String[]{})
-        ), null);
+        super();
+
         if (!getCurrentJar().isFile()) {
             throw new ServiceNotLoadedException(this, "Running application in development mode");
         }
