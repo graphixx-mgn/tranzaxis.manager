@@ -141,7 +141,6 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
         super.setEditable(editable);
         textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
         textField.setEditable(editable && !propHolder.isInherited());
-        textField.setFocusable(editable);
     }
 
     @Override
@@ -175,14 +174,18 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
 
     @Override
     public void focusGained(FocusEvent event) {
-        super.focusGained(event);
-        verify();
+        if (isEditable()) {
+            super.focusGained(event);
+            verify();
+        }
     }
     
     @Override
     public void focusLost(FocusEvent event) {
-        super.focusLost(event);
-        stopEditing();
+        if (isEditable()) {
+            super.focusLost(event);
+            stopEditing();
+        }
     }
 
     /**
