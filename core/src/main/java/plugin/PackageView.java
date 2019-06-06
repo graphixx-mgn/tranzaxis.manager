@@ -3,8 +3,6 @@ package plugin;
 import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
-import codex.editor.IEditorFactory;
-import codex.editor.TextView;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.log.Logger;
@@ -13,7 +11,6 @@ import codex.model.Catalog;
 import codex.model.CommandRegistry;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
-import codex.type.AnyType;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Str;
@@ -34,7 +31,6 @@ public class PackageView extends Catalog {
 
     private final static String PROP_VERSION = "version";
     private final static String PROP_AUTHOR  = "author";
-    private final static String PROP_DESC    = "desc";
 
     private final Supplier<List<PluginHandler>> pluginsSupplier;
     private final Supplier<PluginPackage>       packageSupplier;
@@ -83,24 +79,15 @@ public class PackageView extends Catalog {
                             () -> pluginView.model.getValue(propName)
                     );
                     changePropertyNaming(
-                            propName,
+                            model.getProperty(propName),
                             pluginView.model.getProperty(propName).getTitle(),
                             pluginView.model.getProperty(propName).getDescriprion()
                     );
                 });
-
-                model.addDynamicProp(PROP_DESC, new AnyType() {
-                    @Override
-                    public IEditorFactory editorFactory() {
-                        return TextView::new;
-                    }
-                }, Access.Select, () -> Language.get(pluginHandler.pluginClass, "desc"));
-
                 model.addPropertyGroup(
                         Language.get("type@group"),
                         pluginView.model.getProperties(Access.Edit).toArray(new String[]{})
                 );
-                model.addPropertyGroup(Language.get("type@group"), PROP_DESC);
             } else {
                 pluginPackage.getPlugins().forEach(pluginHandler -> {
                     Plugin pluginView = pluginHandler.getView();
@@ -136,8 +123,7 @@ public class PackageView extends Catalog {
         }
     }
 
-    private void changePropertyNaming(String propName, String title, String desc) {
-        PropertyHolder propHolder = model.getProperty(propName);
+    static void changePropertyNaming(PropertyHolder propHolder, String title, String desc) {
         try {
             Field fieldTitle = PropertyHolder.class.getDeclaredField("title");
             Field fieldDesc  = PropertyHolder.class.getDeclaredField("desc");
