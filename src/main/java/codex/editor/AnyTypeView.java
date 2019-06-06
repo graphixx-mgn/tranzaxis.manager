@@ -30,6 +30,7 @@ public class AnyTypeView extends AbstractEditor {
         textField.setFont(FONT_VALUE);
         textField.setBorder(new EmptyBorder(0, 3, 0, 3));
         textField.setEditable(false);
+        textField.setForeground(COLOR_DISABLED);
 
         iconLabel = new JLabel();
         iconLabel.setBorder(new EmptyBorder(1, 2, 1, 3));
