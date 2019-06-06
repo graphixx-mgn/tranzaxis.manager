@@ -135,4 +135,11 @@ class PluginLoader {
                 });
     }
 
+    List<PluginPackage> getPackages() {
+        return new LinkedList<>(plugins.keySet());
+    }
+
+    PluginPackage getPackageById(String id) {
+        return plugins.keySet().stream().filter(pluginPackage -> pluginPackage.getId().equals(id)).findFirst().orElse(null);
+    }
 }
