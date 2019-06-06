@@ -96,10 +96,9 @@ public class Language {
         }
         return NOT_FOUND;
     }
-    
-    private static final Locale LOCALE = new Locale(System.getProperty("user.language"), System.getProperty("user.country"));
+
     public static Locale getLocale() {
-        return LOCALE;
+        return LocaleContextHolder.getLocale();
     }
     
 }
