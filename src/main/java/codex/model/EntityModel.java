@@ -17,13 +17,8 @@ import codex.service.ServiceRegistry;
 import codex.type.*;
 import codex.utils.Language;
 import java.text.MessageFormat;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -312,6 +307,12 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         });
     }
 
+    /**
+     * Получить значение свойства.
+     * Если свойство изменено, но не сохранено, будет возвращено первоначальное значение.
+     * @param name Имя свойства.
+     */
+
     @Override
     public final Object getValue(String name) {
         if (undoRegistry.exists(name)) {
@@ -320,7 +321,15 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             return super.getValue(name);
         }
     }
-    
+
+    /**
+     * Принудительно вычислить значение динамического свойства.
+     * @param propName Имя свойства.
+     */
+    public Object calculateDynamicValue(final String propName) {
+        return dynamicResolver.valueProviders.get(propName).get();
+    }
+
     /**
      * Возвращает несохраненное (текущее) значение значение свойства. При этом 
      * если свойству назначена маска и согласно её значение некорректно - будет
@@ -385,7 +394,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 .filter((name) -> !dynamicProps.contains(name) && undoRegistry.exists(name))
                 .collect(Collectors.toList());
     }
-    
+
+    /**
+     * Проверка существования внешних ссылок на данную модель.
+     * Внешняя ссылка - это поле типа EntityRef у другой сущности.
+     */
     public final boolean existReferencies() {
         Logger.getLogger().debug("Check references for entity ''{0}''", getQualifiedName());
         List<IConfigStoreService.ForeignLink> links = CAS.findReferencedEntries(entityClass, getID());
@@ -439,6 +452,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
     }
 
+    /**
+     * Сохранение ряда полей модели.
+     * @param showError Отображать диалог об ошибке.
+     * @param propNames Массив свойств для сохранения.
+     */
     public boolean commit(boolean showError, String... propNames) throws Exception {
         if (propNames != null && propNames.length > 0) {
             if (getID() == null) {
@@ -809,7 +827,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         return editor;
     }
 
-    
+
     final class DynamicResolver {
 
         final Map<String, List<String>>   resolveMap      = new HashMap<>();
