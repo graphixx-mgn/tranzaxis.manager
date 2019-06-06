@@ -4,10 +4,13 @@ package plugin;
 import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
+import codex.editor.IEditorFactory;
+import codex.editor.TextView;
 import codex.log.Logger;
 import codex.model.Access;
 import codex.model.Catalog;
 import codex.model.Entity;
+import codex.model.EntityModel;
 import codex.type.*;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -24,10 +27,10 @@ public class Plugin extends Catalog {
 
     private final static ImageIcon DISABLED = ImageUtils.getByPath("/images/unavailable.png");
 
-    private final static String PROP_TYPE    = "type";
-    private final static String PROP_STATUS  = "status";
-    private final static String PROP_ENABLED = "enabled";
-    private final static String PROP_TYPEDEF = "typedef";
+    final static String PROP_TYPE    = "type";
+    final static String PROP_STATUS  = "status";
+    final static String PROP_ENABLED = "enabled";
+    final static String PROP_TYPEDEF = "typedef";
 
     private final Supplier<PluginHandler> pluginHandler;
 
@@ -44,6 +47,7 @@ public class Plugin extends Catalog {
         );
         this.pluginHandler = () -> pluginHandler;
 
+        // Properties
         model.addDynamicProp(PROP_TYPE, new AnyType(), Access.Select, () -> pluginHandler);
         model.addDynamicProp(PROP_STATUS, new AnyType(), Access.Edit, pluginHandler == null ? null : () -> new Iconified() {
             @Override
@@ -58,6 +62,9 @@ public class Plugin extends Catalog {
         }, PROP_ENABLED);
         model.addDynamicProp(PROP_TYPEDEF, new AnyType(), Access.Edit, pluginHandler == null ? null : pluginHandler::getTypeDefinition);
         model.addUserProp(PROP_ENABLED, new Bool(false), false, Access.Any);
+
+        // Property settings
+        setPropertyRestriction(EntityModel.THIS, Access.Any);
     }
 
     @Override
