@@ -618,13 +618,19 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                         getContext().get(0)
                 );
             } else {
-                StringBuilder msgBuilder = new StringBuilder(
-                        Language.get(SelectorPresentation.class, "confirm@del.range")
+//                StringBuilder msgBuilder = new StringBuilder(
+//                        Language.get(SelectorPresentation.class, "confirm@del.range")
+//                );
+//                getContext().forEach((entity) -> {
+//                    msgBuilder.append("<br>&bull;&nbsp;<b>").append(entity.toString()).append("</b>");
+//                });
+//                message = msgBuilder.toString();
+                message = MessageFormat.format(
+                        Language.get(SelectorPresentation.class, "confirm@del.range"),
+                        getContext().stream()
+                                .map(entity -> "&bull;&nbsp;<b>"+entity+"</b>")
+                                .collect(Collectors.joining("<br>"))
                 );
-                getContext().forEach((entity) -> {
-                    msgBuilder.append("<br>&bull;&nbsp;<b>").append(entity.toString()).append("</b>");
-                });
-                message = msgBuilder.toString();
             }
             return message;
         }

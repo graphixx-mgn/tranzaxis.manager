@@ -1,6 +1,8 @@
 package codex.component.messagebox;
 
 import codex.component.dialog.Dialog;
+import codex.editor.IEditor;
+
 import java.awt.BorderLayout;
 import java.awt.event.ActionListener;
 import javax.swing.FocusManager;
@@ -45,7 +47,6 @@ public final class MessageBox extends Dialog {
     
     /**
      * Конструктор окна.
-     * @param parent Указатель на родительское окна для относительного позиционирования на экране.
      * @param type Тип сообщения (см. {@link MessageType).
      * @param title Текст заготовка окна, если NULL - берется по-умолчанию из типа 
      * сообщения.
@@ -87,6 +88,7 @@ public final class MessageBox extends Dialog {
             add(iconLabel, BorderLayout.WEST);
             
             final JLabel messageLabel = new JLabel("<html>"+text.replaceAll("\n", "<br>")+"</html>");
+            messageLabel.setFont(IEditor.FONT_VALUE.deriveFont((float) (IEditor.FONT_VALUE.getSize()*0.9)));
             add(messageLabel, BorderLayout.CENTER);
         }
     }

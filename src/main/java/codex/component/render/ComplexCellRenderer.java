@@ -32,7 +32,7 @@ final class ComplexCellRenderer extends CellRenderer<Object> {
     public void setValue(Object value, String placeholder) {
         ImageIcon icon;
         if (value != null && Iconified.class.isAssignableFrom(value.getClass())) {
-            icon = ImageUtils.resize(((Iconified) value).getIcon(), 18, 18);
+            icon = ImageUtils.resize(((Iconified) value).getIcon(), 20, 20);
         } else {
             icon = null;
         }
