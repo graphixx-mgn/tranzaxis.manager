@@ -1,14 +1,12 @@
 package plugin;
 
 import codex.explorer.ExplorerUnit;
+import codex.explorer.browser.BrowseMode;
+import codex.explorer.browser.EmbeddedMode;
 import codex.explorer.tree.Navigator;
 import codex.explorer.tree.NodeTreeModel;
 import codex.log.Logger;
-import codex.model.Catalog;
-import codex.model.Entity;
 import codex.unit.AbstractUnit;
-import codex.utils.ImageUtils;
-import codex.utils.Language;
 import javax.swing.*;
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -25,9 +23,9 @@ public class PluginManager extends AbstractUnit {
         PLUGIN_DIR.mkdirs();
     }
 
-    private ExplorerUnit       explorer;
-    private final Catalog      pluginCatalog = new PluginCatalog();
-    private final PluginLoader pluginLoader = new PluginLoader(PLUGIN_DIR) {
+    private ExplorerUnit        explorer;
+    private final PluginCatalog pluginCatalog = new PluginCatalog();
+    private final PluginLoader  pluginLoader = new PluginLoader(PLUGIN_DIR) {
         @Override
         void addPluginPackage(PluginPackage pluginPackage) {
             super.addPluginPackage(pluginPackage);
@@ -38,9 +36,9 @@ public class PluginManager extends AbstractUnit {
     private PluginManager() {
         Logger.getLogger().debug("Initialize unit: Plugin Manager");
         try {
-            Constructor ctor = ExplorerUnit.class.getDeclaredConstructor();
+            Constructor ctor = ExplorerUnit.class.getDeclaredConstructor(BrowseMode.class);
             ctor.setAccessible(true);
-            explorer = (ExplorerUnit) ctor.newInstance();
+            explorer = (ExplorerUnit) ctor.newInstance(new EmbeddedMode());
             explorer.createViewport();
 
             Field navigatorField = ExplorerUnit.class.getDeclaredField("navigator");
@@ -65,33 +63,5 @@ public class PluginManager extends AbstractUnit {
     @Override
     public void viewportBound() {
         explorer.viewportBound();
-    }
-
-
-    class PluginCatalog extends Catalog {
-
-        PluginCatalog() {
-            super(null,
-                    ImageUtils.getByPath("/images/plugins.png"),
-                    Language.get(PluginManager.class, "root@title"),
-                    null
-            );
-            //addCommand(new LookupPlugins());
-        }
-
-        @Override
-        public Class<? extends Entity> getChildClass() {
-            return PackageView.class;
-        }
-
-        @Override
-        public boolean allowModifyChild() {
-            return false;
-        }
-
-        @Override
-        public boolean isLeaf() {
-            return getChildCount() == 0;
-        }
     }
 }
