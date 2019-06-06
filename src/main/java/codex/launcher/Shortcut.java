@@ -78,5 +78,9 @@ public class Shortcut extends Entity {
         model.setValue(PROP_COMMAND, command);
         return this;
     }
+
+    public void update() {
+        fireChangeEvent();
+    }
     
 }

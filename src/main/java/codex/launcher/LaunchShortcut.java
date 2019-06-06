@@ -125,6 +125,7 @@ final class LaunchShortcut extends LaunchButton implements IModelListener, INode
             entity.addNodeListener(this);
             entity.model.addModelListener(this);
         }
+        shortcut.addNodeListener(this);
 
         signDelete.addMouseListener(new MouseAdapter() {
             @Override
