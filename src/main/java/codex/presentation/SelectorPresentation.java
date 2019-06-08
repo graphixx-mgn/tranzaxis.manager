@@ -142,6 +142,26 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                         newEntity.model.getProperties(Access.Select).stream()
                                 .map(newEntity.model::getValue).toArray()
                 );
+                newEntity.model.addModelListener(tableModel);
+                newEntity.model.addChangeListener((name, oldValue, newValue) -> {
+                    List<String> selectorProps = newEntity.model.getProperties(Access.Select);
+                    if (newEntity.model.isPropertyDynamic(name) && selectorProps.contains(name)) {
+                        final int entityIdx = entity.getIndex(newEntity);
+                        tableModel.setValueAt(newValue, entityIdx, selectorProps.indexOf(name));
+                    }
+                });
+                newEntity.addNodeListener(new INodeListener() {
+                    @Override
+                    public void childChanged(INode node) {
+                        int rowCount = tableModel.getRowCount();
+                        for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+                            if (tableModel.getEntityForRow(rowIdx).model.equals(newEntity.model)) {
+                                tableModel.fireTableRowsUpdated(rowIdx, rowIdx);
+                                break;
+                            }
+                        }
+                    }
+                });
             }
         });
         refresh();
@@ -190,9 +210,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 contextCommands.stream()
         ).forEach(command -> {
             if (command.getKind() != EntityCommand.Kind.System) {
-                context.forEach((contextItem) -> contextItem.removeNodeListener(this));
                 ((EntityCommand<Entity>) command).setContext(context);
-                context.forEach((contextItem) -> contextItem.addNodeListener(this));
             } else {
                 ((EntityCommand<Entity>) command).setContext(entity);
             }
@@ -277,27 +295,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                                 newEntity.model.commit(true);
                                 newEntity.setTitle(newEntity.getPID());
                                 context.insert(newEntity);
-
-                                newEntity.model.addModelListener(tableModel);
-                                newEntity.model.addChangeListener((name, oldValue, newValue) -> {
-                                    List<String> selectorProps = childModel.getProperties(Access.Select);
-                                    if (newEntity.model.isPropertyDynamic(name) && selectorProps.contains(name)) {
-                                        final int entityIdx = entity.getIndex(newEntity);
-                                        tableModel.setValueAt(newValue, entityIdx, selectorProps.indexOf(name));
-                                    }
-                                });
-                                newEntity.addNodeListener(new INodeListener() {
-                                    @Override
-                                    public void childChanged(INode node) {
-                                        int rowCount = tableModel.getRowCount();
-                                        for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-                                            if (tableModel.getEntityForRow(rowIdx).model.equals(childModel)) {
-                                                tableModel.fireTableRowsUpdated(rowIdx, rowIdx);
-                                                break;
-                                            }
-                                        }
-                                    }
-                                });
 
                                 table.getSelectionModel().setSelectionInterval(
                                         tableModel.getRowCount() - 1, 
@@ -426,26 +423,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                                 newEntity.setTitle(newEntity.getPID());
                                 context.getParent().insert(newEntity);
 
-                                newEntity.model.addModelListener(tableModel);
-                                newEntity.model.addChangeListener((name, oldValue, newValue) -> {
-                                    List<String> selectorProps = childModel.getProperties(Access.Select);
-                                    if (newEntity.model.isPropertyDynamic(name) && selectorProps.contains(name)) {
-                                        final int entityIdx = entity.getIndex(newEntity);
-                                        tableModel.setValueAt(newValue, entityIdx, selectorProps.indexOf(name));
-                                    }
-                                });
-                                newEntity.addNodeListener(new INodeListener() {
-                                    @Override
-                                    public void childChanged(INode node) {
-                                        int rowCount = tableModel.getRowCount();
-                                        for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-                                            if (tableModel.getEntityForRow(rowIdx).model.equals(childModel)) {
-                                                tableModel.fireTableRowsUpdated(rowIdx, rowIdx);
-                                                break;
-                                            }
-                                        }
-                                    }
-                                });
                                 table.getSelectionModel().setSelectionInterval(
                                         tableModel.getRowCount() - 1, 
                                         tableModel.getRowCount() - 1
@@ -618,13 +595,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                         getContext().get(0)
                 );
             } else {
-//                StringBuilder msgBuilder = new StringBuilder(
-//                        Language.get(SelectorPresentation.class, "confirm@del.range")
-//                );
-//                getContext().forEach((entity) -> {
-//                    msgBuilder.append("<br>&bull;&nbsp;<b>").append(entity.toString()).append("</b>");
-//                });
-//                message = msgBuilder.toString();
                 message = MessageFormat.format(
                         Language.get(SelectorPresentation.class, "confirm@del.range"),
                         getContext().stream()
