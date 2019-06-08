@@ -83,14 +83,18 @@ public abstract class AbstractNode implements INode {
     
     @Override
     public final void addNodeListener(INodeListener listener) {
-        if (!nodeListeners.contains(listener)) {
-            nodeListeners.add(listener);
+        synchronized (nodeListeners) {
+            if (!nodeListeners.contains(listener)) {
+                nodeListeners.add(listener);
+            }
         }
     }
     
     @Override
     public final void removeNodeListener(INodeListener listener) {
-        nodeListeners.remove(listener);
+        synchronized (nodeListeners) {
+            nodeListeners.remove(listener);
+        }
     }
     
     @Override
