@@ -20,14 +20,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-class RemotePluginView extends Catalog {
+final class RemotePluginView extends Catalog {
 
-    PluginLoaderService.RemotePlugin remotePlugin;
-    Map<String, IPluginLoaderService.PropertyPresentation> properties = new LinkedHashMap<>();
+    private Map<String, IPluginLoaderService.PropertyPresentation> properties = new LinkedHashMap<>();
 
     RemotePluginView(IPluginLoaderService.RemotePlugin remotePlugin) {
         this(null, remotePlugin.getPluginId());
-        this.remotePlugin = remotePlugin;
         this.properties.putAll(remotePlugin.getProperties().stream()
                 .collect(Collectors.toMap(
                         IPluginLoaderService.PropertyPresentation::getName,
@@ -51,7 +49,7 @@ class RemotePluginView extends Catalog {
                 });
     }
 
-    RemotePluginView(EntityRef owner, String title) {
+    private RemotePluginView(EntityRef owner, String title) {
         super(owner, null, title, null);
 
         // Properties

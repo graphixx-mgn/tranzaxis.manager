@@ -16,7 +16,7 @@ import java.util.jar.JarInputStream;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class PluginPackage implements Closeable {
+public final class PluginPackage implements Closeable {
 
     static final Comparator<PluginPackage> PKG_COMPARATOR = (pkg1, pkg2) -> {
         String[] vals1 = pkg1.version.split("\\.");

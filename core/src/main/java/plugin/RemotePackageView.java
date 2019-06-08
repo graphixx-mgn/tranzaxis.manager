@@ -5,6 +5,7 @@ import codex.editor.IEditor;
 import codex.editor.IEditorFactory;
 import codex.model.Access;
 import codex.model.Catalog;
+import codex.model.CommandRegistry;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
 import codex.type.AnyType;
@@ -23,9 +24,13 @@ class RemotePackageView extends Catalog {
     private final static ImageIcon ICON_CREATE = ImageUtils.getByPath("/images/plus.png");
     private final static ImageIcon ICON_UPDATE = ImageUtils.getByPath("/images/up.png");
 
-    private final static String PROP_VERSION = "version";
-    private final static String PROP_UPGRADE = "upgrade";
-    private final static String PROP_AUTHOR  = "author";
+    static {
+        CommandRegistry.getInstance().registerCommand(LoadPackages.class);
+    }
+
+    final static String PROP_VERSION = "version";
+    final static String PROP_UPGRADE = "upgrade";
+    final static String PROP_AUTHOR  = "author";
 
     PluginLoaderService.RemotePackage remotePackage;
 
@@ -117,4 +122,9 @@ class RemotePackageView extends Catalog {
     public boolean allowModifyChild() {
         return false;
     }
+
+    void refreshUpgradeInfo() {
+        model.setValue(PROP_UPGRADE, model.calculateDynamicValue(PROP_UPGRADE));
+    }
+
 }

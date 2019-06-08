@@ -12,9 +12,9 @@ import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 
-public class PluginManager extends AbstractUnit {
+public final class PluginManager extends AbstractUnit {
 
-    private static final File PLUGIN_DIR = new File("plugins");
+    static final File PLUGIN_DIR = new File("plugins");
     private static final PluginManager INSTANCE = new PluginManager();
     public static PluginManager getInstance() {
         return INSTANCE;
