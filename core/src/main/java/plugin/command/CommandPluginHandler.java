@@ -23,7 +23,7 @@ import java.lang.reflect.ParameterizedType;
 import java.text.MessageFormat;
 import java.util.function.Supplier;
 
-class CommandPluginHandler<V extends Entity> extends PluginHandler<CommandPlugin<V>> {
+final class CommandPluginHandler<V extends Entity> extends PluginHandler<CommandPlugin<V>> {
 
     private final static CommandRegistry COMMAND_REGISTRY = CommandRegistry.getInstance();
 

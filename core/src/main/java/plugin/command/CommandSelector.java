@@ -14,7 +14,7 @@ import java.awt.event.MouseEvent;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-class CommandSelector {
+final class CommandSelector {
 
     private final DialogButton acceptBtn = Dialog.Default.BTN_OK.newInstance();
     private final Dialog       selector;
