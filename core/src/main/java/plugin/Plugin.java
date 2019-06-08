@@ -1,16 +1,10 @@
 package plugin;
 
-
 import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
-import codex.editor.IEditorFactory;
-import codex.editor.TextView;
 import codex.log.Logger;
-import codex.model.Access;
-import codex.model.Catalog;
-import codex.model.Entity;
-import codex.model.EntityModel;
+import codex.model.*;
 import codex.type.*;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -29,8 +23,13 @@ public class Plugin extends Catalog {
 
     final static String PROP_TYPE    = "type";
     final static String PROP_STATUS  = "status";
-    final static String PROP_ENABLED = "enabled";
     final static String PROP_TYPEDEF = "typedef";
+    final static String PROP_ENABLED = "enabled";
+
+    static {
+        CommandRegistry.getInstance().registerCommand(LoadPlugin.class);
+        CommandRegistry.getInstance().registerCommand(UnloadPlugin.class);
+    }
 
     private final Supplier<PluginHandler> pluginHandler;
 
@@ -61,6 +60,8 @@ public class Plugin extends Catalog {
             }
         }, PROP_ENABLED);
         model.addDynamicProp(PROP_TYPEDEF, new AnyType(), Access.Edit, pluginHandler == null ? null : pluginHandler::getTypeDefinition);
+
+        // Internal properties
         model.addUserProp(PROP_ENABLED, new Bool(false), false, Access.Any);
 
         // Property settings
@@ -130,10 +131,10 @@ public class Plugin extends Catalog {
 
         @Override
         public void execute(Plugin context, Map<String, IComplexType> params) {
-            PluginHandler handler = pluginHandler.get();
+            PluginHandler handler = context.pluginHandler.get();
             try {
                 handler.loadPlugin();
-                setEnabled(true, true);
+                context.setEnabled(true, true);
             } catch (PluginException e) {
                 String pluginId = getId(handler);
                 Logger.getLogger().warn("Unable to load plugin ''{0}''\n{1}", pluginId, Logger.stackTraceToString(e));
@@ -168,10 +169,10 @@ public class Plugin extends Catalog {
 
         @Override
         public void execute(Plugin context, Map<String, IComplexType> params) {
-            PluginHandler handler = pluginHandler.get();
+            PluginHandler handler = context.pluginHandler.get();
             try {
                 handler.unloadPlugin();
-                setEnabled(false, true);
+                context.setEnabled(false, true);
             } catch (PluginException e) {
                 String pluginId = getId(handler);
                 Logger.getLogger().warn("Unable to unload plugin ''{0}''\n{1}", pluginId, Logger.stackTraceToString(e));
