@@ -85,4 +85,8 @@ public final class Instance implements IInstanceCommunicationService {
                user.equals(instance.user) &&
                address.equals(instance.address);
     }
+
+    public String getUser() {
+        return user;
+    }
 }
