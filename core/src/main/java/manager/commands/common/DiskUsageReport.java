@@ -8,6 +8,7 @@ import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
+import codex.log.Logger;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
@@ -248,22 +249,21 @@ public class DiskUsageReport extends EntityCommand<Common> {
                 ));
 
                 result.parallelStream().forEach((repoEntity) -> {
-                        repoEntity.addNodeListener(new INodeListener() {
-                            @Override
-                            public void childDeleted(INode parentNode, INode childNode, int index) {
-                                Entry entry = (Entry) childNode;
-                                listener.sizeChanged(entry, -1*entry.getOriginalSize());
-                            }
-                        });
-                        repoEntity.childrenList().parallelStream().forEach((node) -> {
-                                node.addNodeListener(new INodeListener() {
-                                    @Override
-                                    public void childChanged(INode node) {
-                                        Entry entry = (Entry) node;
-                                        listener.sizeChanged(entry, -1*(entry.getOriginalSize() - entry.getActualSize()));
-                                    }
-                                });
-                        });
+                    repoEntity.lockEntries();
+                    repoEntity.addNodeListener(new INodeListener() {
+                        @Override
+                        public void childDeleted(INode parentNode, INode childNode, int index) {
+                            Entry entry = (Entry) childNode;
+                            listener.sizeChanged(entry, -1*entry.getOriginalSize());
+                        }
+                    });
+                    repoEntity.childrenList().parallelStream().forEach((node) -> node.addNodeListener(new INodeListener() {
+                        @Override
+                        public void childChanged(INode node) {
+                            final Entry entry = (Entry) node;
+                            listener.sizeChanged(entry, -1*(entry.getOriginalSize() - entry.getActualSize()));
+                        }
+                    }));
                 });
 
                 JPanel view = createView(result);
@@ -283,9 +283,8 @@ public class DiskUsageReport extends EntityCommand<Common> {
                         view,
                         (event) -> {
                             calcTask.cancel(true);
-                            result.forEach(repoView -> {
-                                repoView.model.remove();
-                            });
+                            result.forEach(repoView -> repoView.model.remove());
+                            result.forEach(RepoView::unlockEntries);
                         },
                         Dialog.Default.BTN_CLOSE
                 );

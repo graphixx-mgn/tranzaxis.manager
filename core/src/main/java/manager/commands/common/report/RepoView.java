@@ -3,6 +3,7 @@ package manager.commands.common.report;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
+import codex.explorer.tree.INodeListener;
 import codex.model.Catalog;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
@@ -78,6 +79,26 @@ public class RepoView extends Catalog implements Comparable {
             int idx = children.indexOf(node);
             move(node, idx);
         }
+    }
+
+    public void lockEntries() {
+        childrenList().parallelStream().forEach((node) -> {
+            final Entry entry = (Entry) node;
+            if (entry.isLocked()) {
+                try {
+                    entry.getLock().acquire();
+                } catch (InterruptedException e) {/**/}
+            }
+        });
+    }
+
+    public void unlockEntries() {
+        childrenList().parallelStream().forEach((node) -> {
+            final Entry entry = (Entry) node;
+            if (entry.islocked()) {
+                entry.getLock().release();
+            }
+        });
     }
 
 }

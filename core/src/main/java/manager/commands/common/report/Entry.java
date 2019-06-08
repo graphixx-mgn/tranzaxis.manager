@@ -77,6 +77,15 @@ public class Entry extends Catalog {
         return true;
     }
 
+    public boolean isLocked() {
+        if (getPID() == null) {
+            return false;
+        } else {
+            File file = new File(getPID());
+            return !file.renameTo(file);
+        }
+    }
+
     @Override
     public Class<? extends Entity> getChildClass() {
         return null;
