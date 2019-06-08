@@ -1,12 +1,25 @@
 package codex.task;
 
 import codex.log.Logger;
+import codex.log.LoggerContext;
+import codex.log.TextPaneAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.Priority;
+import org.apache.log4j.spi.LoggingEvent;
+import javax.swing.*;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
+import javax.swing.text.DefaultCaret;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
+import java.awt.*;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.Semaphore;
@@ -44,9 +57,10 @@ public abstract class AbstractTask<T> implements ITask<T> {
      * @param title Наименование задачи, для показа в GUI. (cм. {@link TaskMonitor}).
      */
     public AbstractTask(final String title) {
-        future = new FutureTask<T>((Callable<T>) () -> {
+        future = new FutureTask<T>(() -> {
             setStatus(Status.STARTED);
             try {
+                LoggerContext.enterLoggerContext(this);
                 new LinkedList<>(listeners).forEach((listener) -> {
                     listener.beforeExecute(this);
                 });
@@ -69,12 +83,14 @@ public abstract class AbstractTask<T> implements ITask<T> {
                 Logger.getLogger().error(e.getDescription());
                 throw e;
             } catch (InterruptedException e) {
+                //
             } catch (Exception e) {
                 setProgress(percent, MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
                 setStatus(Status.FAILED);
                 Logger.getLogger().warn("Error on task execution", e);
                 throw e;
             } finally {
+                LoggerContext.leaveLoggerContext();
                 System.gc();
             }
             return null;
@@ -147,7 +163,9 @@ public abstract class AbstractTask<T> implements ITask<T> {
                     prevStatus = getStatus();
                     setStatus(Status.PAUSED);
                     semaphore.acquire();
-                } catch (InterruptedException e) {}
+                } catch (InterruptedException e) {
+                    //
+                }
             } else {
                 setStatus(prevStatus);
                 semaphore.release();
@@ -160,6 +178,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
         try {
             semaphore.acquire();
         } catch (InterruptedException e) {
+            //
         } finally {
             semaphore.release();
         }
@@ -293,5 +312,64 @@ public abstract class AbstractTask<T> implements ITask<T> {
     public final void removeListener(ITaskListener listener) {
         listeners.remove(listener);
     }
-    
+
+    public JPanel createLogPane() {
+        return new LogPane(this);
+    }
+
+    private class LogPane extends JPanel {
+        private LogPane (AbstractTask task) {
+            super(new BorderLayout());
+
+            JTextPane infoPane = new JTextPane();
+            infoPane.setEditable(false);
+            infoPane.setPreferredSize(new Dimension(450, 150));
+            infoPane.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+            ((DefaultCaret) infoPane.getCaret()).setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
+
+            JScrollPane scrollPane = new JScrollPane();
+            scrollPane.setLayout(new ScrollPaneLayout());
+            scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+            scrollPane.getViewport().add(infoPane);
+            scrollPane.setBorder(new CompoundBorder(
+                    new EmptyBorder(5, 0, 0, 0),
+                    new LineBorder(Color.LIGHT_GRAY, 1)
+            ));
+            add(scrollPane, BorderLayout.CENTER);
+
+            final TextPaneAppender paneAppender = new TextPaneAppender(infoPane) {
+                @Override
+                protected void append(LoggingEvent event) {
+                    String message = getLayout().format(event).replaceAll("\n {21}", "\n").replace("\r\n", "");
+                    if (LoggerContext.objectInContext(task)) {
+                        LoggingEvent catchedEvent = new LoggingEvent(
+                                event.getFQNOfLoggerClass(),
+                                event.getLogger(),
+                                event.getLevel(),
+                                message,
+                                event.getThrowableInformation() == null ? null : event.getThrowableInformation().getThrowable()
+                        );
+                        super.append(catchedEvent);
+                    }
+                }
+            };
+
+            paneAppender.setThreshold(Priority.INFO);
+            paneAppender.setLayout(new PatternLayout("%m%n"));
+            Logger.getLogger().addAppender(paneAppender);
+
+            Style style = infoPane.getStyle(Level.INFO.toString());
+            StyleConstants.setForeground(style, Color.GRAY);
+
+            task.addListener(new ITaskListener() {
+                @Override
+                public void statusChanged(ITask task, Status status) {
+                    if (status.isFinal()) {
+                        Logger.getLogger().removeAppender(paneAppender);
+                    }
+                }
+            });
+        }
+    }
 }
