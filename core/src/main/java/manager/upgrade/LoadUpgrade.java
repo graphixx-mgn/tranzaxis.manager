@@ -101,14 +101,14 @@ class LoadUpgrade extends AbstractTask<Void> {
 
         Registry rmiRegistry = LocateRegistry.getRegistry(host, port);
         IUpgradeService remoteUpService = (IUpgradeService) rmiRegistry.lookup(UpgradeService.class.getCanonicalName());
-        Logger.getLogger().debug(Language.get(UpgradeUnit.class, "process@connect"), host, String.valueOf(port));
+        Logger.getLogger().info(Language.get(UpgradeUnit.class, "process@connect"), host, String.valueOf(port));
 
         Version localVersion  = UpgradeService.getVersion();
         Version remoteVersion = remoteUpService.getCurrentVersion();
         VersionsDocument diff = remoteUpService.getDiffVersions(localVersion, remoteVersion);
         List<Version> chain = new LinkedList<>(Arrays.asList(diff.getVersions().getVersionArray()));
         chain.add(0, localVersion);
-        Logger.getLogger().debug(
+        Logger.getLogger().info(
                 Language.get(UpgradeUnit.class, "process@sequence"),
                 chain.stream()
                         .map(Version::getNumber)
@@ -123,7 +123,7 @@ class LoadUpgrade extends AbstractTask<Void> {
             RemoteInputStream inStream = remoteUpService.getUpgradeFileStream();
 
             long fileSize = inStream.available();
-            Logger.getLogger().debug(
+            Logger.getLogger().info(
                     Language.get(UpgradeUnit.class, "process@file"),
                     "\n", formatFileSize(fileSize), remoteChecksum
             );
@@ -137,7 +137,7 @@ class LoadUpgrade extends AbstractTask<Void> {
                 setProgress((int) (100 * totalRead / fileSize), getDescription());
                 bytesRead = inStream.read(data);
             }
-            Logger.getLogger().debug(Language.get(UpgradeUnit.class, "process@loaded"));
+            Logger.getLogger().info(Language.get(UpgradeUnit.class, "process@loaded"));
             try {
                 inStream.close();
             } catch (IOException e) {
@@ -150,7 +150,7 @@ class LoadUpgrade extends AbstractTask<Void> {
             Logger.getLogger().warn(Language.get(UpgradeUnit.class, "process@transmission.error"));
         } finally {
             if (DatatypeConverter.printHexBinary(localChecksum.digest()).equals(remoteChecksum)) {
-                Logger.getLogger().debug(Language.get(UpgradeUnit.class, "process@result.success"));
+                Logger.getLogger().info(Language.get(UpgradeUnit.class, "process@result.success"));
             } else {
                 closeBtn.setEnabled(true);
                 throw new ExecuteException(
