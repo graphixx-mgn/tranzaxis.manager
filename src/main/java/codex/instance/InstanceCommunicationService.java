@@ -1,8 +1,8 @@
 package codex.instance;
 
+import codex.service.AbstractRemoteService;
 import codex.log.Logger;
 import codex.service.AbstractService;
-import codex.service.CommonServiceOptions;
 import codex.service.IRemoteService;
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -16,7 +16,6 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.*;
 import java.util.stream.Collectors;
-
 
 /**
  * Сервис взаимодействия инстанций.
@@ -59,9 +58,9 @@ public final class InstanceCommunicationService extends AbstractService<Communic
     @Override
     public void startService() {
         super.startService();
-        int length = IFACE_ADDRS.keySet().stream().mapToInt((iface) -> {
-            return iface.getDisplayName().length();
-        }).max().getAsInt();
+        int length = IFACE_ADDRS.keySet().stream()
+                .mapToInt((iface) -> iface.getDisplayName().length())
+                .max().getAsInt();
         
         Logger.getLogger().debug("ICS: Started RMI service registry on port: {0}",
                 String.valueOf(rmiSocket.getLocalPort())
@@ -81,6 +80,7 @@ public final class InstanceCommunicationService extends AbstractService<Communic
                 IRemoteService service = iterator.next();
                 Logger.getLogger().debug("ICS: register remote service: ''{0}''", service.getTitle());
                 rmiRegistry.rebind(service.getClass().getCanonicalName(), service);
+                getConfig().insert(((AbstractRemoteService) service).getConfig());
             } catch (RemoteException e) {
                 // Do nothing
             } catch (ServiceConfigurationError e) {
