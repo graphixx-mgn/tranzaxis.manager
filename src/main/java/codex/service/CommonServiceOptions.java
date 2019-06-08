@@ -6,7 +6,7 @@ import codex.type.*;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.util.Map;
-import javax.swing.ImageIcon;
+import javax.swing.*;
 
 /**
  * Класс для хранения обцих настроек сервисов
@@ -27,11 +27,15 @@ public class CommonServiceOptions extends Catalog {
     private AbstractService service;
     
     public CommonServiceOptions(EntityRef owner, String title) {
-        super(owner, ImageUtils.getByPath("/images/start.png"), title, null);
+        super(owner, ImageUtils.getByPath("/images/services.png"), title, null);
         model.addDynamicProp(PROP_CLASS, new AnyType(), Access.Edit, () -> new Iconified() {
             @Override
             public ImageIcon getIcon() {
-                return CommonServiceOptions.this.isStarted() ? ICON_STARTED : ICON_STOPPED;
+                return CommonServiceOptions.this.isStarted() ? CommonServiceOptions.this.getIcon() : ImageUtils.combine(
+                        ImageUtils.grayscale(CommonServiceOptions.this.getIcon()),
+                        ImageUtils.resize(ICON_STOPPED, 20, 20),
+                        SwingConstants.SOUTH_EAST
+                );
             }
 
             @Override

@@ -5,6 +5,7 @@ import codex.service.CommonServiceOptions;
 import codex.type.Bool;
 import codex.type.EntityRef;
 import codex.type.Str;
+import codex.utils.ImageUtils;
 import codex.utils.Language;
 
 public class ConfigServiceOptions extends CommonServiceOptions {
@@ -14,6 +15,7 @@ public class ConfigServiceOptions extends CommonServiceOptions {
 
     public ConfigServiceOptions(EntityRef owner, String title) {
         super(owner, title);
+        setIcon(ImageUtils.getByPath("/images/config.png"));
         model.addDynamicProp(PROP_DB_FILE, new Str(null), Access.Select, () -> {
             return System.getProperty("user.home")+ConfigServiceOptions.this.getService().getOption("file");
         });

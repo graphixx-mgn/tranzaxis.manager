@@ -14,14 +14,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.ServiceConfigurationError;
-import java.util.ServiceLoader;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -93,7 +86,7 @@ public final class InstanceCommunicationService extends AbstractService<Communic
             } catch (ServiceConfigurationError e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof ServiceNotLoadedException) {
-                    Logger.getLogger().warn("ICS: {0}", ((ServiceNotLoadedException) cause).getMessage());
+                    Logger.getLogger().warn("ICS: {0}", cause.getMessage());
                 } else {
                     Logger.getLogger().warn("ICS: remote service ''{0}'' registration error", cause);
                 }
@@ -114,7 +107,20 @@ public final class InstanceCommunicationService extends AbstractService<Communic
     public void removeInstanceListener(IInstanceListener listener) {
         listeners.remove(listener);
     }
-    
+
+    @Override
+    public Map<String, IRemoteService> getServices() throws RemoteException {
+        Map<String, IRemoteService> services = new LinkedHashMap<>();
+        for (String className : rmiRegistry.list()) {
+            try {
+                services.put(className, getService(className));
+            } catch (NotBoundException e) {
+                //
+            }
+        }
+        return services;
+    }
+
     @Override
     public IRemoteService getService(Class clazz) throws NotBoundException {
         return getService(clazz.getCanonicalName());
@@ -152,7 +158,9 @@ public final class InstanceCommunicationService extends AbstractService<Communic
                     }
                 }
             }
-        } catch (SocketException e) {}
+        } catch (SocketException e) {
+            //
+        }
         return ifaceAddrs;
     }
     

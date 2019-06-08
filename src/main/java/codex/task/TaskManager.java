@@ -4,8 +4,10 @@ import codex.log.Logger;
 import codex.service.AbstractService;
 import codex.service.CommonServiceOptions;
 import codex.service.ServiceRegistry;
+import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.unit.AbstractUnit;
+import codex.utils.ImageUtils;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -109,7 +111,7 @@ public final class TaskManager extends AbstractUnit {
     /**
      * Сервис, принимающий задачи на исполнение.
      */
-    public class TaskExecutorService extends AbstractService<CommonServiceOptions> implements ITaskExecutorService {
+    public class TaskExecutorService extends AbstractService<TaskServiceOptions> implements ITaskExecutorService {
         
         @Override
         public void enqueueTask(ITask task) {

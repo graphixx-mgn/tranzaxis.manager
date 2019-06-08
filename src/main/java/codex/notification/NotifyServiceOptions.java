@@ -6,6 +6,8 @@ import codex.type.EntityRef;
 import codex.type.Enum;
 import codex.type.Map;
 import codex.type.Str;
+import codex.utils.ImageUtils;
+
 import java.util.LinkedHashMap;
 
 
@@ -15,6 +17,7 @@ public class NotifyServiceOptions extends CommonServiceOptions {
     
     public NotifyServiceOptions(EntityRef owner, String title) {
         super(owner, title);
+        setIcon(ImageUtils.getByPath("/images/notify.png"));
         
         model.addUserProp(PROP_SOURCES, 
                 new Map(Str.class, Enum.class, new LinkedHashMap<>(), null, NotifyCondition.NEVER), 

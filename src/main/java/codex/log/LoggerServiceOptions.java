@@ -7,6 +7,8 @@ import codex.service.CommonServiceOptions;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.Enum;
+import codex.utils.ImageUtils;
+
 import java.util.List;
 
 
@@ -18,6 +20,7 @@ public final class LoggerServiceOptions extends CommonServiceOptions {
     
     public LoggerServiceOptions(EntityRef owner, String title) {
         super(owner, title);
+        setIcon(ImageUtils.getByPath("/images/lamp.png"));
         model.addUserProp(PROP_LOG_LEVEL, new Enum(Level.Debug), false, Access.Select);
         
         model.addModelListener(new IModelListener() {
