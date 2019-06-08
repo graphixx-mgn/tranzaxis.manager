@@ -138,7 +138,7 @@ public class Repository extends Entity {
     public void setParent(INode parent) {
         super.setParent(parent);
         if (parent != null) {
-            getCommand("load").execute(this, null);
+            getCommand(LoadWC.class).execute(this, null);
         }
     }
     

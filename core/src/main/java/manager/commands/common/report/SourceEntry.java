@@ -54,7 +54,7 @@ public class SourceEntry extends DirEntry {
     @Override
     protected ITask createDeleteTask() {
         Offshoot offshoot = (Offshoot) entityRef.getValue();
-        return ((DeleteWC) offshoot.getCommand("clean")).new DeleteTask(offshoot) {
+        return (offshoot.getCommand(DeleteWC.class)).new DeleteTask(offshoot) {
             @Override
             public void finished(Void result) {
                 super.finished(result);

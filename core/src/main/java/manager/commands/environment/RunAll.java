@@ -33,12 +33,12 @@ public class RunAll extends EntityCommand<Environment> {
         if (source instanceof Release) {
             TES.executeTask(new CheckCache(
                     environment,
-                    ((RunServer)   environment.getCommand("server")).new RunServerTask(environment),
-                    ((RunExplorer) environment.getCommand("explorer")).new RunExplorerTask(environment)
+                    environment.getCommand(RunServer.class).new RunServerTask(environment),
+                    environment.getCommand(RunExplorer.class).new RunExplorerTask(environment)
             ));
         } else {
-            TES.enqueueTask(((RunServer)   environment.getCommand("server")).new RunServerTask(environment));
-            TES.enqueueTask(((RunExplorer) environment.getCommand("explorer")).new RunExplorerTask(environment));
+            TES.enqueueTask(environment.getCommand(RunServer.class).new RunServerTask(environment));
+            TES.enqueueTask(environment.getCommand(RunExplorer.class).new RunExplorerTask(environment));
         }
     }
     
