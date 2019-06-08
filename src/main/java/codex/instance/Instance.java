@@ -58,12 +58,15 @@ public final class Instance implements IInstanceCommunicationService {
     /**
      * Возвращает карту имен и ссылок сетевых сервисов.
      */
+    @Override
     public Map<String, IRemoteService> getServices() throws RemoteException {
         Map<String, IRemoteService> registered = new HashMap<>();
         for (String className : registry.list()) {
             try {
                 registered.put(className, (IRemoteService) registry.lookup(className));
-            } catch (NotBoundException e) {}
+            } catch (NotBoundException e) {
+                //
+            }
         }
         return registered;
     }

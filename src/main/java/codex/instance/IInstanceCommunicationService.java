@@ -4,7 +4,7 @@ import codex.service.IRemoteService;
 import codex.service.IService;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-
+import java.util.Map;
 
 public interface IInstanceCommunicationService extends IService {
 
@@ -12,9 +12,11 @@ public interface IInstanceCommunicationService extends IService {
     default String getTitle() {
         return "Instance Communication Service";
     }
+
+    Map<String, IRemoteService> getServices()  throws RemoteException;
     
-    public IRemoteService getService(Class clazz) throws RemoteException, NotBoundException;
+    IRemoteService getService(Class clazz) throws RemoteException, NotBoundException;
     
-    public IRemoteService getService(String className) throws RemoteException, NotBoundException;
+    IRemoteService getService(String className) throws RemoteException, NotBoundException;
     
 }
