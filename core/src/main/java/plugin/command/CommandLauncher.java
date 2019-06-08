@@ -1,25 +1,19 @@
 package plugin.command;
 
-import codex.command.CommandStatus;
-import codex.command.EntityCommand;
+import codex.command.*;
 import codex.log.Logger;
 import codex.model.Entity;
-import codex.command.CommandButton;
-import codex.command.IGroupButtonFactory;
-import codex.command.IGroupCommandButton;
-import codex.service.ServiceRegistry;
 import codex.type.IComplexType;
 import codex.utils.Language;
 import javax.swing.*;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-public class CommandLauncher extends EntityCommand<Entity> {
+public final class CommandLauncher extends EntityGroupCommand<Entity> {
 
     CommandLauncher() {
         super(
-                "external",
+                "select command",
                 Language.get(CommandPlugin.class, "launcher@title"),
                 CommandPlugin.COMMAND_ICON,
                 Language.get(CommandPlugin.class, "launcher@title"),
@@ -37,7 +31,6 @@ public class CommandLauncher extends EntityCommand<Entity> {
         );
     }
 
-
     @Override
     public Kind getKind() {
         return Kind.Admin;
@@ -49,12 +42,7 @@ public class CommandLauncher extends EntityCommand<Entity> {
     }
 
     @Override
-    public boolean multiContextAllowed() {
-        return true;
-    }
-
-    @Override
-    public void execute(Entity context, Map<String, IComplexType> params) {
+    public void execute(List<Entity> context, Map<String, IComplexType> params) {
         final DefaultListModel<EntityCommand<? extends Entity>> commandListModel = new DefaultListModel<>();
         getContext().get(0).getCommands().stream()
                 .filter(command -> command.getClass().getAnnotation(Definition.class).parentCommand().equals(CommandLauncher.class))
@@ -82,7 +70,7 @@ public class CommandLauncher extends EntityCommand<Entity> {
 
         @Override
         protected void executeCommand(EntityCommand<Entity> command) {
-            command.execute(null, null);
+            CommandLauncher.this.process();
         }
     }
 
