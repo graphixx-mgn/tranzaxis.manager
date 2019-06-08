@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 
 
-public class UpgradeService extends AbstractRemoteService implements IUpgradeService {
+public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions> implements IUpgradeService {
     
     public final static String VERSION_RESOURCE = "/version.xml";
     

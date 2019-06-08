@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-public final class PluginLoaderService extends AbstractRemoteService implements IPluginLoaderService {
+public final class PluginLoaderService extends AbstractRemoteService<PluginLoaderOptions> implements IPluginLoaderService {
 
     private final List<IPublicationListener> listeners = new LinkedList<>();
 
