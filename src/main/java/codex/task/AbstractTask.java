@@ -11,10 +11,10 @@ import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
-import javax.swing.text.DefaultCaret;
-import javax.swing.text.Style;
-import javax.swing.text.StyleConstants;
+import javax.swing.text.*;
+import javax.swing.text.html.HTMLDocument;
 import java.awt.*;
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -325,6 +325,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
             infoPane.setEditable(false);
             infoPane.setPreferredSize(new Dimension(450, 150));
             infoPane.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+            infoPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
             ((DefaultCaret) infoPane.getCaret()).setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
 
             JScrollPane scrollPane = new JScrollPane();
@@ -341,16 +342,25 @@ public abstract class AbstractTask<T> implements ITask<T> {
             final TextPaneAppender paneAppender = new TextPaneAppender(infoPane) {
                 @Override
                 protected void append(LoggingEvent event) {
-                    String message = getLayout().format(event).replaceAll("\n {21}", "\n").replace("\r\n", "");
+                    Style style = infoPane.getStyle(event.getLevel().toString());
+                    Color color = StyleConstants.getForeground(style);
+                    String hex = "#"+Integer.toHexString(color.getRGB()).substring(2);
+                    String message = MessageFormat.format(
+                            "<span><font color=\"{0}\">{1}</font></span>",
+                            hex,
+                            getLayout().format(event)
+                                    .replaceAll("\n {21}", "<br>")
+                                    .replaceAll(" ", "&nbsp;")
+                                    .replace("\r\n", "<br>")
+                    );
+
                     if (LoggerContext.objectInContext(task)) {
-                        LoggingEvent catchedEvent = new LoggingEvent(
-                                event.getFQNOfLoggerClass(),
-                                event.getLogger(),
-                                event.getLevel(),
-                                message,
-                                event.getThrowableInformation() == null ? null : event.getThrowableInformation().getThrowable()
-                        );
-                        super.append(catchedEvent);
+                        HTMLDocument doc = (HTMLDocument) infoPane.getStyledDocument();
+                        try {
+                            doc.insertAfterEnd(doc.getCharacterElement(doc.getLength()), message);
+                        } catch (BadLocationException | IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             };
