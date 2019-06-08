@@ -22,7 +22,6 @@ import javax.swing.ImageIcon;
  */
 public abstract class Catalog extends Entity {
 
-    private final static IConfigStoreService  CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
     private final static ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class);
 
     public Catalog(EntityRef owner, ImageIcon icon, String title, String hint) {
@@ -69,6 +68,7 @@ public abstract class Catalog extends Entity {
     protected Collection<String> getChildrenPIDs() {
         Entity owner = this.getOwner();
         Integer ownerId = owner == null ? null : owner.getID();
+        final IConfigStoreService  CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
         return CAS.readCatalogEntries(ownerId, getChildClass()).values();
     }
     
