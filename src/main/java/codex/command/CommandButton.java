@@ -5,21 +5,19 @@ import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.editor.IEditor;
-import codex.log.Logger;
 import codex.model.Entity;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import javax.swing.*;
 import java.awt.event.*;
 import java.text.MessageFormat;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
 public class CommandButton extends PushButton implements ICommandListener<Entity>, ActionListener {
 
     private final static int BUTTON_SIZE = IEditor.FONT_VALUE.getSize() * 2;
-    protected final Supplier<EntityCommand<Entity>> commandSupplier;
+    private final Supplier<EntityCommand<Entity>> commandSupplier;
 
     public CommandButton(EntityCommand<Entity> command) {
         this(command, false);
@@ -72,15 +70,7 @@ public class CommandButton extends PushButton implements ICommandListener<Entity
     protected void executeCommand(EntityCommand<Entity> command) {
         Map<String, IComplexType> params = command.getParameters();
         if (params != null) {
-            List<Entity> context = command.getContext();
-            if (context.isEmpty() && command.isActive()) {
-                Logger.getLogger().debug("Perform contextless command [{0}]", command.getName());
-                command.execute(null, null);
-            } else {
-                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", command.getName(), context);
-                context.forEach(entity -> command.execute(entity, params));
-            }
-            command.activate();
+            command.process();
         }
     }
 

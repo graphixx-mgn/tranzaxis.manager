@@ -1,6 +1,7 @@
 package codex.command;
 
 import codex.explorer.tree.AbstractNode;
+import codex.log.Logger;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.model.IModelListener;
@@ -241,7 +242,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
      * Установка списка пераметров команды.
      * @param propHolders Список объектов {@link PropertyHolder} произвольной длины.
      */
-    public EntityCommand setParameters(PropertyHolder... propHolders) {
+    protected EntityCommand setParameters(PropertyHolder... propHolders) {
         if (propHolders != null && propHolders.length > 0) {
             provider = () -> propHolders;
         }
@@ -267,10 +268,24 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     public IGroupButtonFactory groupButtonFactory() {
         return GroupCommandButton::new;
     }
+
+    protected void process() {
+        List<V> context = getContext();
+        if (context.isEmpty() && isActive()) {
+            Logger.getLogger().debug("Perform contextless command [{0}]", getName());
+            execute(null, null);
+        } else {
+            Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), context);
+            context.forEach(entity -> execute(entity, getParameters()));
+        }
+        activate();
+    }
     
     @Override
     @Deprecated
-    public final void execute(V context) {}
+    public final void execute(V context) {
+        throw new UnsupportedOperationException();
+    }
     
     public abstract void execute(V context, Map<String, IComplexType> params);
     
