@@ -8,9 +8,7 @@ import java.net.Socket;
 import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.*;
-
-import codex.type.Str;
-import codex.utils.NetTools;
+import java.util.logging.Level;
 import org.tmatesoft.svn.core.SVNCancelException;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNDirEntry;
@@ -42,9 +40,22 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 import org.tmatesoft.svn.core.wc2.SvnDiffSummarize;
 import org.tmatesoft.svn.core.wc2.SvnOperationFactory;
 import org.tmatesoft.svn.core.wc2.SvnTarget;
-
+import org.tmatesoft.svn.util.SVNDebugLog;
+import org.tmatesoft.svn.util.SVNDebugLogAdapter;
+import org.tmatesoft.svn.util.SVNLogType;
 
 public class SVN {
+
+    static {
+        SVNDebugLog.setDefaultLog(new SVNDebugLogAdapter() {
+            @Override
+            public void log(SVNLogType svnLogType, Throwable throwable, Level level) {}
+            @Override
+            public void log(SVNLogType svnLogType, String s, Level level) {}
+            @Override
+            public void log(SVNLogType svnLogType, String s, byte[] bytes) {}
+        });
+    }
 
     private static final String SVN_PROTOCOL   = "svn";
     private static final String SSH_PROTOCOL   = "svn+";
