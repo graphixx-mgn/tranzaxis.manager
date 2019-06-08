@@ -73,19 +73,26 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
         if (model instanceof NodeTreeModel) {
             model.addTreeModelListener(new TreeModelHandler() {
                 @Override
+                public void treeNodesInserted(TreeModelEvent e) {
+                    if (e.getTreePath().getLastPathComponent() == model.getRoot())
+                        expandPath(e.getTreePath());
+                }
+
+                @Override
                 public void treeNodesRemoved(TreeModelEvent e) {
                     super.treeNodesRemoved(e);
-//                    TODO: Если удалили выделенный элемент -> перейти на родителя
-//                    if (path != null && path.getLastPathComponent() != null && path.getLastPathComponent().equals(childNode)) {
-//                        TreePath parentPath = path.getParentPath();
-//                        while (
-//                                !parentPath.getLastPathComponent().equals(getModel().getRoot()) &&
-//                                        ((INode) parentPath.getLastPathComponent()).getParent() == null
-//                        ) {
-//                            parentPath = parentPath.getParentPath();
-//                        }
-//                        getSelectionModel().setSelectionPath(parentPath);
-//                    }
+                    for (Object node : e.getChildren()) {
+                        if (path != null && path.getLastPathComponent() != null && path.getLastPathComponent().equals(node)) {
+                            TreePath parentPath = path.getParentPath();
+                            while (
+                                    !parentPath.getLastPathComponent().equals(getModel().getRoot()) &&
+                                    ((INode) parentPath.getLastPathComponent()).getParent() == null
+                            ) {
+                                parentPath = parentPath.getParentPath();
+                            }
+                            getSelectionModel().setSelectionPath(parentPath);
+                        }
+                    }
                 }
             });
         }
