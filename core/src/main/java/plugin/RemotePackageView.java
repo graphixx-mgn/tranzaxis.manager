@@ -11,7 +11,6 @@ import codex.property.PropertyHolder;
 import codex.type.AnyType;
 import codex.type.EntityRef;
 import codex.type.Iconified;
-import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.*;
@@ -25,7 +24,7 @@ class RemotePackageView extends Catalog {
     private final static ImageIcon ICON_UPDATE = ImageUtils.getByPath("/images/up.png");
 
     static {
-        CommandRegistry.getInstance().registerCommand(LoadPackages.class);
+        CommandRegistry.getInstance().registerCommand(DownloadPackages.class);
     }
 
     final static String PROP_VERSION = "version";
@@ -110,7 +109,7 @@ class RemotePackageView extends Catalog {
                 }
             };
         });
-        model.addDynamicProp(PROP_AUTHOR, new Str(null), null, () -> remotePackage.getAuthor());
+        model.addDynamicProp(PROP_AUTHOR,  new AnyType(), null, () -> remotePackage.getAuthor());
     }
 
     @Override

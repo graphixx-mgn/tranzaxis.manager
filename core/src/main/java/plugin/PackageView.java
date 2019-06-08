@@ -1,16 +1,20 @@
 package plugin;
 
+import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
+import codex.instance.InstanceCommunicationService;
 import codex.log.Logger;
 import codex.model.Access;
 import codex.model.Catalog;
 import codex.model.CommandRegistry;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
+import codex.service.ServiceRegistry;
+import codex.type.Bool;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.type.Str;
@@ -19,6 +23,8 @@ import codex.utils.Language;
 import javax.swing.*;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.function.Supplier;
@@ -26,11 +32,15 @@ import java.util.stream.Collectors;
 
 public class PackageView extends Catalog {
 
-    final static ImageIcon PACKAGE  = ImageUtils.getByPath("/images/repository.png");
-    final static ImageIcon DISABLED = ImageUtils.getByPath("/images/unavailable.png");
+    private final static InstanceCommunicationService ICS = (InstanceCommunicationService) ServiceRegistry.getInstance().lookupService(InstanceCommunicationService.class);
+
+    final static ImageIcon PACKAGE   = ImageUtils.getByPath("/images/repository.png");
+    final static ImageIcon DISABLED  = ImageUtils.getByPath("/images/unavailable.png");
+    final static ImageIcon PUBLISHED = ImageUtils.getByPath("/images/plugin_public.png");
 
     private final static String PROP_VERSION = "version";
     private final static String PROP_AUTHOR  = "author";
+    private final static String PROP_PUBLIC  = "public";
 
     private final Supplier<List<PluginHandler>> pluginsSupplier;
     private final Supplier<PluginPackage>       packageSupplier;
@@ -45,6 +55,7 @@ public class PackageView extends Catalog {
         CommandRegistry.getInstance().registerCommand(DeletePackage.class);
         CommandRegistry.getInstance().registerCommand(LoadPackage.class);
         CommandRegistry.getInstance().registerCommand(UnloadPackage.class);
+        CommandRegistry.getInstance().registerCommand(PublishPackage.class);
     }
 
     private PackageView(EntityRef owner, String title) {
@@ -63,6 +74,8 @@ public class PackageView extends Catalog {
 
         model.addDynamicProp(PROP_VERSION, new Str(null), null, () -> pluginPackage == null ? null : pluginPackage.getVersion());
         model.addDynamicProp(PROP_AUTHOR,  new Str(null), null, pluginPackage == null ? null : pluginPackage::getAuthor);
+
+        model.addUserProp(PROP_PUBLIC,  new Bool(false), false, Access.Edit);
 
         if (pluginPackage != null) {
             if (pluginPackage.size() == 1) {
@@ -97,6 +110,28 @@ public class PackageView extends Catalog {
             }
         }
         setIcon(getStatusIcon());
+    }
+
+    void setPublished(boolean published) throws Exception {
+        model.setValue(PROP_PUBLIC, published);
+        model.commit(true);
+        ICS.getInstances().forEach(instance -> {
+            try {
+                final IPluginLoaderService pluginLoader = (IPluginLoaderService) instance.getService(PluginLoaderService.class);
+                pluginLoader.packagePublicationChanged(
+                        new IPluginLoaderService.RemotePackage(packageSupplier.get()),
+                        isPublished()
+                );
+            } catch (RemoteException e) {
+                Logger.getLogger().warn("Failed remote service ''{0}'' call to instance ''{1}''", PluginLoaderService.class, instance);
+            } catch (NotBoundException e) {
+                //
+            }
+        });
+    }
+
+    boolean isPublished() {
+        return model.getValue(PROP_PUBLIC) == Boolean.TRUE;
     }
 
     @Override
@@ -248,6 +283,25 @@ public class PackageView extends Catalog {
         }
 
         @Override
+        public String acquireConfirmation() {
+            String message;
+            if (getContext().size() == 1) {
+                message = MessageFormat.format(
+                        Language.get(PackageView.class, "confirm@del.single"),
+                        getContext().get(0)
+                );
+            } else {
+                message = MessageFormat.format(
+                        Language.get(PackageView.class, "confirm@del.range"),
+                        getContext().stream()
+                                .map(packageView -> "&bull;&nbsp;<b>"+packageView+"</b>")
+                                .collect(Collectors.joining("<br>"))
+                );
+            }
+            return message;
+        }
+
+        @Override
         public boolean multiContextAllowed() {
             return true;
         }
@@ -270,6 +324,47 @@ public class PackageView extends Catalog {
                         )
                 );
                 context.setIcon(context.getStatusIcon());
+            }
+        }
+    }
+
+
+    class PublishPackage extends EntityCommand<PackageView> {
+
+        public PublishPackage() {
+            super(
+                    "publish package",
+                    Language.get(PackageView.class, "publish@title"),
+                    PACKAGE,
+                    Language.get(PackageView.class, "publish@title"),
+                    null
+            );
+            activator = packages -> {
+                if (packages == null || packages.isEmpty() || packages.size() > 1) {
+                    return new CommandStatus(false, ImageUtils.grayscale(PUBLISHED));
+                } else {
+                    return new CommandStatus(
+                    true,
+                           packages.get(0).isPublished() ? PUBLISHED : ImageUtils.combine(ImageUtils.grayscale(PUBLISHED), DISABLED)
+                    );
+                }
+            };
+        }
+
+        @Override
+        public String acquireConfirmation() {
+            return MessageFormat.format(
+                    Language.get(PackageView.class, getContext().get(0).isPublished() ? "confirm@unpublish" : "confirm@publish"),
+                    getContext().get(0)
+            );
+        }
+
+        @Override
+        public void execute(PackageView context, Map<String, IComplexType> params) {
+            try {
+                context.setPublished(!context.isPublished());
+            } catch (Exception e) {
+                MessageBox.show(MessageType.ERROR, e.getMessage());
             }
         }
     }

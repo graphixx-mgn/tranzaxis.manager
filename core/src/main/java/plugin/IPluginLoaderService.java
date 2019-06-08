@@ -6,6 +6,7 @@ import codex.model.Access;
 import codex.model.EntityModel;
 import codex.service.IRemoteService;
 import codex.type.Iconified;
+import manager.upgrade.stream.RemoteInputStream;
 import javax.swing.*;
 import java.io.Serializable;
 import java.rmi.RemoteException;
@@ -22,6 +23,12 @@ public interface IPluginLoaderService extends IRemoteService {
     }
 
     List<RemotePackage> getPublishedPackages(Locale locale) throws RemoteException;
+
+    void packagePublicationChanged(RemotePackage remotePackage, boolean published) throws RemoteException;
+
+    String getPackageFileChecksum(String pluginId, String pluginVersion) throws RemoteException;
+
+    RemoteInputStream getPackageFileStream(String pluginId, String pluginVersion)  throws RemoteException;
 
 
     class RemotePackage implements Serializable, Iconified {
@@ -77,6 +84,10 @@ public interface IPluginLoaderService extends IRemoteService {
 
         synchronized void removeInstance(Instance instance) {
             instances.remove(instance);
+        }
+
+        synchronized List<Instance> getInstances() {
+            return new LinkedList<>(instances);
         }
 
         synchronized boolean isAvailable() {
@@ -186,5 +197,12 @@ public interface IPluginLoaderService extends IRemoteService {
         public Class<? extends IEditor> getEditor() {
             return editor;
         }
+    }
+
+
+    interface IPublicationListener {
+
+        void publicationEvent(RemotePackage remotePackage, boolean published);
+
     }
 }

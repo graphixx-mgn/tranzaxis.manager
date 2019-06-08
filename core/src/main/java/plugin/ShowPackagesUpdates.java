@@ -4,10 +4,12 @@ import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.component.dialog.Dialog;
 import codex.explorer.tree.INode;
+import codex.explorer.tree.INodeListener;
 import codex.explorer.tree.NodeTreeModel;
 import codex.instance.IInstanceListener;
 import codex.instance.Instance;
 import codex.instance.InstanceCommunicationService;
+import codex.log.Logger;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.type.IComplexType;
@@ -21,12 +23,14 @@ import javax.swing.border.MatteBorder;
 import java.awt.*;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.server.RemoteServer;
+import java.rmi.server.ServerNotActiveException;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-class UpdatePackages extends EntityCommand<PluginCatalog> implements IInstanceListener {
+final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements IInstanceListener, IPluginLoaderService.IPublicationListener {
 
     private final static InstanceCommunicationService ICS = (InstanceCommunicationService) ServiceRegistry.getInstance().lookupService(InstanceCommunicationService.class);
     private final static ImageIcon CMD_ICON = ImageUtils.getByPath("/images/update.png");
@@ -48,9 +52,14 @@ class UpdatePackages extends EntityCommand<PluginCatalog> implements IInstanceLi
     };
 
     private final List<IPluginLoaderService.RemotePackage> remotePackages = new LinkedList<>();
-    private final NodeTreeModel treeModel = new NodeTreeModel(new RemotePackageView(null, null));
+    private final NodeTreeModel treeModel = new NodeTreeModel(new RemotePackageView(null, null) {
+        @Override
+        public Class<? extends Entity> getChildClass() {
+            return RemotePackageView.class;
+        }
+    });
 
-    public UpdatePackages() {
+    public ShowPackagesUpdates() {
         super(
                 "update",
                 Language.get("title"),
@@ -59,6 +68,12 @@ class UpdatePackages extends EntityCommand<PluginCatalog> implements IInstanceLi
                 null
         );
         ICS.addInstanceListener(this);
+        try {
+            final PluginLoaderService ownPluginLoader = (PluginLoaderService) ICS.getService(PluginLoaderService.class);
+            ownPluginLoader.addPublicationListener(this);
+        } catch (NotBoundException e) {
+            //
+        }
 
         activator = pluginCatalogs -> {
             if (pluginCatalogs.isEmpty()) {
@@ -79,8 +94,12 @@ class UpdatePackages extends EntityCommand<PluginCatalog> implements IInstanceLi
                             .collect(Collectors.toList());
                     for (INode node: treeModel) {
                         RemotePackageView pkgView = (RemotePackageView) node;
-                        if (pkgView != treeModel.getRoot() && !updates.contains(pkgView.remotePackage)) {
-                            ((INode) treeModel.getRoot()).delete(pkgView);
+                        if (pkgView != treeModel.getRoot()) {
+                            if (!updates.contains(pkgView.remotePackage)) {
+                                ((INode) treeModel.getRoot()).delete(pkgView);
+                            } else {
+                                pkgView.refreshUpgradeInfo();
+                            }
                         }
                     }
                     updates.forEach(remotePackage -> {
@@ -111,15 +130,29 @@ class UpdatePackages extends EntityCommand<PluginCatalog> implements IInstanceLi
     }
 
     @Override
-    public void execute(PluginCatalog context, Map<String, IComplexType> params) {
+    public final void execute(PluginCatalog context, Map<String, IComplexType> params) {
+        final INode updatesCatalog = (INode) treeModel.getRoot();
+
         Dialog dialog = new Dialog(
                 FocusManager.getCurrentManager().getActiveWindow(),
                 CMD_ICON,
-                Language.get(UpdatePackages.class, "title"),
+                Language.get(ShowPackagesUpdates.class, "title"),
                 createView(),
                 e -> {},
                 Dialog.Default.BTN_CLOSE.newInstance()
         );
+
+        INodeListener closeIfNoUpdates = new INodeListener() {
+            @Override
+            public void childDeleted(INode parentNode, INode childNode, int index) {
+                if (updatesCatalog.childrenList().isEmpty() && dialog.isVisible()) {
+                    updatesCatalog.removeNodeListener(this);
+                    dialog.setVisible(false);
+                }
+            }
+        };
+        updatesCatalog.addNodeListener(closeIfNoUpdates);
+
         dialog.setPreferredSize(new Dimension(800, 600));
         dialog.setResizable(false);
         dialog.setVisible(true);
@@ -140,37 +173,67 @@ class UpdatePackages extends EntityCommand<PluginCatalog> implements IInstanceLi
     }
 
     @Override
-    public void instanceLinked(Instance instance) {
+    public final void instanceLinked(Instance instance) {
         SwingUtilities.invokeLater(() -> {
             try {
                 final IPluginLoaderService pluginLoader = (IPluginLoaderService) instance.getService(PluginLoaderService.class);
-                pluginLoader.getPublishedPackages(LocaleContextHolder.getLocale()).forEach(remotePackage -> {
-                    synchronized (remotePackages) {
-                        if (!remotePackages.contains(remotePackage)) {
-                            remotePackages.add(remotePackage);
-                        }
-                        remotePackages.get(remotePackages.indexOf(remotePackage)).addInstance(instance);
-                        activate();
-                    }
-                });
+                registerPackages(instance, pluginLoader.getPublishedPackages(LocaleContextHolder.getLocale()));
             } catch (NotBoundException e) {
                 //
             } catch (RemoteException e) {
-                e.printStackTrace();
+                Logger.getLogger().warn("Failed remote service ''{0}'' call to instance ''{1}''", PluginLoaderService.class, instance);
             }
         });
     }
 
     @Override
-    public void instanceUnlinked(Instance instance) {
+    public final void instanceUnlinked(Instance instance) {
         SwingUtilities.invokeLater(() -> {
-            synchronized (remotePackages) {
-                remotePackages.removeIf(remotePackage -> {
+            unregisterPackages(instance, null);
+        });
+    }
+
+    @Override
+    public void publicationEvent(IPluginLoaderService.RemotePackage remotePackage, boolean published) {
+        try {
+            String remoteIP = RemoteServer.getClientHost();
+            ICS.getInstances().forEach(instance -> {
+                if (instance.getRemoteAddress().getAddress().getHostAddress().equals(remoteIP)) {
+                    if (published) {
+                        registerPackages(instance, Collections.singletonList(remotePackage));
+                    } else {
+                        unregisterPackages(instance, Collections.singletonList(remotePackage));
+                    }
+                }
+            });
+        } catch (ServerNotActiveException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void registerPackages(Instance instance, List<IPluginLoaderService.RemotePackage> packages) {
+        synchronized (remotePackages) {
+            packages.forEach(remotePackage -> {
+                if (!remotePackages.contains(remotePackage)) {
+                    remotePackages.add(remotePackage);
+                }
+                remotePackages.get(remotePackages.indexOf(remotePackage)).addInstance(instance);
+            });
+            activate();
+        }
+    }
+
+    private void unregisterPackages(Instance instance, List<IPluginLoaderService.RemotePackage> packages) {
+        synchronized (remotePackages) {
+            remotePackages.removeIf(remotePackage -> {
+                if (packages == null || packages.contains(remotePackage)) {
                     remotePackage.removeInstance(instance);
                     return !remotePackage.isAvailable();
-                });
-                activate();
-            }
-        });
+                } else  {
+                    return false;
+                }
+            });
+            activate();
+        }
     }
 }

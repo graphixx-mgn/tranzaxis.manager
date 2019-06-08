@@ -1,5 +1,6 @@
 package plugin;
 
+import codex.explorer.tree.INode;
 import codex.model.Catalog;
 import codex.model.CommandRegistry;
 import codex.model.Entity;
@@ -7,10 +8,10 @@ import codex.type.EntityRef;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 
-class PluginCatalog extends Catalog {
+final class PluginCatalog extends Catalog {
 
     static {
-        CommandRegistry.getInstance().registerCommand(UpdatePackages.class);
+        CommandRegistry.getInstance().registerCommand(ShowPackagesUpdates.class);
     }
 
     PluginCatalog() {
@@ -24,6 +25,12 @@ class PluginCatalog extends Catalog {
                 Language.get(PluginManager.class, "root@title"),
                 null
         );
+    }
+
+    @Override
+    public void insert(INode child) {
+        super.insert(child);
+        getCommand(ShowPackagesUpdates.class).activate();
     }
 
     @Override
