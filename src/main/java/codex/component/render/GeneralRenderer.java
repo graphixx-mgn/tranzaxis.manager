@@ -150,8 +150,8 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                     if (!entity.model.getProperty(propName).isEmpty()) {
                         fgColor = Color.decode("#DD0000");
                     }
-                } else if (entity.model.getChanges().contains(propName)) {
-                    bgColor = Color.decode("#AAFFAA");
+                } else if (entity.model.getChanges().contains(propName) && table.getModel().isCellEditable(row, column)) {
+                    bgColor = Color.decode("#BBFFBB");
                     fgColor = Color.decode("#213200");
                 }
             } else {
