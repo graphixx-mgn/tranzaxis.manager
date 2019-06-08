@@ -25,6 +25,9 @@ public final class SelectorTable extends JTable implements IEditableTable {
         setShowVerticalLines(false);
         setIntercellSpacing(new Dimension(0,0));
 
+        setPreferredScrollableViewportSize(new Dimension(getPreferredSize().width, 200));
+        setFillsViewportHeight(true);
+
         getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("ENTER"), "none");
 
         GeneralRenderer renderer = new GeneralRenderer<>();
@@ -56,6 +59,7 @@ public final class SelectorTable extends JTable implements IEditableTable {
             return false;
         }
     }
+
 
 
 }
