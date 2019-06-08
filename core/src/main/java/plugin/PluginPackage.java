@@ -46,9 +46,10 @@ public final class PluginPackage implements Closeable {
     }
 
     final Path jarFilePath;
-    final URLClassLoader classLoader;
+    private final URLClassLoader       classLoader;
     private final List<PluginHandler>  pluginList;
     private final String vendor, title, version, author;
+    private final Boolean build;
 
     PluginPackage(File jarFile) throws IOException {
         this.jarFilePath = jarFile.toPath();
@@ -58,6 +59,7 @@ public final class PluginPackage implements Closeable {
         title   = attributes.getValue(Attributes.Name.IMPLEMENTATION_TITLE);
         version = attributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION);
         author  = attributes.getValue("Built-By");
+        build   = attributes.getValue("Build").equals("true");
 
         URLConnection conn = jarFile.toURI().toURL().openConnection();
         conn.setUseCaches(false);
@@ -85,6 +87,10 @@ public final class PluginPackage implements Closeable {
 
     String getAuthor() {
         return author;
+    }
+
+    Boolean isBuild() {
+        return build;
     }
 
     List<PluginHandler> getPlugins() {

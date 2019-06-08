@@ -15,6 +15,7 @@
 
     <properties>
         <author>I.Gredyaev</author>
+        <build/>
     </properties>
 
     <dependencies>
