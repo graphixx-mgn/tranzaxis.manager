@@ -324,6 +324,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
             JTextPane infoPane = new JTextPane();
             infoPane.setEditable(false);
             infoPane.setPreferredSize(new Dimension(450, 150));
+            infoPane.setContentType("text/html");
             infoPane.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
             infoPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
             ((DefaultCaret) infoPane.getCaret()).setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
