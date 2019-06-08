@@ -1,13 +1,15 @@
 package codex.instance;
 
+import codex.service.RemoteServiceOptions;
 import codex.model.Access;
-import codex.service.CommonServiceOptions;
+import codex.model.Entity;
+import codex.service.LocalServiceOptions;
 import codex.type.Bool;
 import codex.type.EntityRef;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 
-public class CommunicationServiceOptions extends CommonServiceOptions {
+public class CommunicationServiceOptions extends LocalServiceOptions {
     
     private final static String PROP_SHOW_NET_OPS = "showNetOps";
     public CommunicationServiceOptions(EntityRef owner, String title) {
@@ -15,11 +17,20 @@ public class CommunicationServiceOptions extends CommonServiceOptions {
         setIcon(ImageUtils.getByPath("/images/remotehost.png"));
         
         model.addUserProp(PROP_SHOW_NET_OPS, new Bool(true), false, Access.Select);
-        model.addPropertyGroup(Language.get(CommonServiceOptions.class, "debug@options"), PROP_SHOW_NET_OPS);
+        model.addPropertyGroup(Language.get(LocalServiceOptions.class, "debug@options"), PROP_SHOW_NET_OPS);
     }
     
     public final boolean isShowNetOps() {
         return model.getValue(PROP_SHOW_NET_OPS) == Boolean.TRUE;
     }
-    
+
+    @Override
+    public boolean allowModifyChild() {
+        return false;
+    }
+
+    @Override
+    public Class<? extends Entity> getChildClass() {
+        return RemoteServiceOptions.class;
+    }
 }

@@ -186,15 +186,13 @@ public final class ServiceRegistry {
      * @param serviceClass Класс сервиса. 
      */
     private boolean isEnabled(Class serviceClass) {
-        Stream<CommonServiceOptions> stream = 
+        Stream<LocalServiceOptions> stream =
                 serviceCatalog == null ? Stream.empty() : 
-                serviceCatalog.childrenList().stream().map((node) -> {
-                    return (CommonServiceOptions) node;
-                });
-        Optional<CommonServiceOptions> serviceConrtrol = 
-                stream.filter((control) -> {
-                    return control.getService().getClass().equals(serviceClass);
-                }).findFirst();
+                serviceCatalog.childrenList().stream()
+                        .map((node) -> (LocalServiceOptions) node);
+        Optional<LocalServiceOptions> serviceConrtrol = stream
+                .filter((control) -> control.getService().getClass().equals(serviceClass))
+                .findFirst();
         
         return !serviceConrtrol.isPresent() || serviceConrtrol.get().isStarted();
     }

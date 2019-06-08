@@ -1,10 +1,10 @@
 package codex.task;
 
-import codex.service.CommonServiceOptions;
+import codex.service.LocalServiceOptions;
 import codex.type.EntityRef;
 import codex.utils.ImageUtils;
 
-public class TaskServiceOptions extends CommonServiceOptions {
+public class TaskServiceOptions extends LocalServiceOptions {
 
     public TaskServiceOptions(EntityRef owner, String title) {
         super(owner, title);

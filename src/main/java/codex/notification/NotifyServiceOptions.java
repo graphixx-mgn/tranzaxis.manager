@@ -1,17 +1,15 @@
 package codex.notification;
 
 import codex.model.Access;
-import codex.service.CommonServiceOptions;
+import codex.service.LocalServiceOptions;
 import codex.type.EntityRef;
 import codex.type.Enum;
 import codex.type.Map;
 import codex.type.Str;
 import codex.utils.ImageUtils;
-
 import java.util.LinkedHashMap;
 
-
-public class NotifyServiceOptions extends CommonServiceOptions {
+public class NotifyServiceOptions extends LocalServiceOptions {
     
     public  final static String PROP_SOURCES   = "sources";
     

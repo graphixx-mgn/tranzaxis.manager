@@ -2,13 +2,9 @@ package codex.task;
 
 import codex.log.Logger;
 import codex.service.AbstractService;
-import codex.service.CommonServiceOptions;
 import codex.service.ServiceRegistry;
-import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.unit.AbstractUnit;
-import codex.utils.ImageUtils;
-
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.util.Arrays;

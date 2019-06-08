@@ -3,16 +3,14 @@ package codex.log;
 import codex.model.Access;
 import codex.model.EntityModel;
 import codex.model.IModelListener;
-import codex.service.CommonServiceOptions;
+import codex.service.LocalServiceOptions;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.Enum;
 import codex.utils.ImageUtils;
-
 import java.util.List;
 
-
-public final class LoggerServiceOptions extends CommonServiceOptions {
+public final class LoggerServiceOptions extends LocalServiceOptions {
     
     ILogManagementService LMS = (ILogManagementService) ServiceRegistry.getInstance().lookupService(LogManagementService.class);
     
