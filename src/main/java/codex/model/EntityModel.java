@@ -245,9 +245,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void updateDynamicProps() {
         dynamicResolver.updateDynamicProps(dynamicProps.stream()
-                .filter((propName) -> {
-                    return dynamicResolver.valueProviders.containsKey(propName);
-                }).collect(Collectors.toList())
+                .filter(dynamicResolver.valueProviders::containsKey)
+                .collect(Collectors.toList())
         );
     }
     
@@ -256,10 +255,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * @param names Список свойст для обновления.
      */
     public final void updateDynamicProps(String... names) {
-        dynamicResolver.updateDynamicProps(Arrays.asList(names).stream()
-                .filter((propName) -> {
-                    return dynamicProps.contains(propName) && dynamicResolver.valueProviders.containsKey(propName);
-                }).collect(Collectors.toList())
+        dynamicResolver.updateDynamicProps(Arrays.stream(names)
+                .filter((propName) -> dynamicProps.contains(propName) && dynamicResolver.valueProviders.containsKey(propName))
+                .collect(Collectors.toList())
         );
     }
     
