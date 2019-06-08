@@ -76,7 +76,7 @@ class LoadUpgrade extends AbstractTask<Void> {
                             new EmptyBorder(5, 5, 5, 5)
                     ));
                     add(taskView, BorderLayout.NORTH);
-                    add(new Output(), BorderLayout.CENTER);
+                    add(LoadUpgrade.this.createLogPane(), BorderLayout.CENTER);
                 }},
                 (e) -> {
                     if (e.getID() == Dialog.OK) {
@@ -101,14 +101,14 @@ class LoadUpgrade extends AbstractTask<Void> {
 
         Registry rmiRegistry = LocateRegistry.getRegistry(host, port);
         IUpgradeService remoteUpService = (IUpgradeService) rmiRegistry.lookup(UpgradeService.class.getCanonicalName());
-        Logger.getLogger().info(Language.get(UpgradeUnit.class, "process@connect"), host, String.valueOf(port));
+        Logger.getLogger().debug(Language.get(UpgradeUnit.class, "process@connect"), host, String.valueOf(port));
 
         Version localVersion  = UpgradeService.getVersion();
         Version remoteVersion = remoteUpService.getCurrentVersion();
         VersionsDocument diff = remoteUpService.getDiffVersions(localVersion, remoteVersion);
         List<Version> chain = new LinkedList<>(Arrays.asList(diff.getVersions().getVersionArray()));
         chain.add(0, localVersion);
-        Logger.getLogger().info(
+        Logger.getLogger().debug(
                 Language.get(UpgradeUnit.class, "process@sequence"),
                 chain.stream()
                         .map(Version::getNumber)
@@ -123,7 +123,7 @@ class LoadUpgrade extends AbstractTask<Void> {
             RemoteInputStream inStream = remoteUpService.getUpgradeFileStream();
 
             long fileSize = inStream.available();
-            Logger.getLogger().info(
+            Logger.getLogger().debug(
                     Language.get(UpgradeUnit.class, "process@file"),
                     "\n", formatFileSize(fileSize), remoteChecksum
             );
@@ -137,7 +137,7 @@ class LoadUpgrade extends AbstractTask<Void> {
                 setProgress((int) (100 * totalRead / fileSize), getDescription());
                 bytesRead = inStream.read(data);
             }
-            Logger.getLogger().info(Language.get(UpgradeUnit.class, "process@loaded"));
+            Logger.getLogger().debug(Language.get(UpgradeUnit.class, "process@loaded"));
             try {
                 inStream.close();
             } catch (IOException e) {
@@ -150,7 +150,7 @@ class LoadUpgrade extends AbstractTask<Void> {
             Logger.getLogger().warn(Language.get(UpgradeUnit.class, "process@transmission.error"));
         } finally {
             if (DatatypeConverter.printHexBinary(localChecksum.digest()).equals(remoteChecksum)) {
-                Logger.getLogger().info(Language.get(UpgradeUnit.class, "process@result.success"));
+                Logger.getLogger().debug(Language.get(UpgradeUnit.class, "process@result.success"));
             } else {
                 closeBtn.setEnabled(true);
                 throw new ExecuteException(
@@ -186,52 +186,6 @@ class LoadUpgrade extends AbstractTask<Void> {
             }
         }));
         System.exit(0);
-    }
-
-    private final class Output extends JPanel {
-
-        Output() {
-            super(new BorderLayout());
-
-            JTextPane infoPane = new JTextPane();
-            infoPane.setEditable(false);
-            infoPane.setPreferredSize(new Dimension(450, 150));
-            infoPane.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-            ((DefaultCaret) infoPane.getCaret()).setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
-
-            JScrollPane scrollPane = new JScrollPane();
-            scrollPane.setLayout(new ScrollPaneLayout());
-            scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-            scrollPane.getViewport().add(infoPane);
-            scrollPane.setBorder(new CompoundBorder(
-                    new EmptyBorder(5, 0, 0, 0),
-                    new LineBorder(Color.LIGHT_GRAY, 1)
-            ));
-            add(scrollPane, BorderLayout.CENTER);
-
-            TextPaneAppender paneAppender = new TextPaneAppender(infoPane) {
-                @Override
-                protected void append(LoggingEvent event) {
-                    String message = getLayout().format(event).trim().replaceAll("\n                     ", "\n");
-                    LoggingEvent catchedEvent = new LoggingEvent(
-                            event.getFQNOfLoggerClass(),
-                            event.getLogger(),
-                            event.getLevel(),
-                            message,
-                            event.getThrowableInformation() == null ? null : event.getThrowableInformation().getThrowable()
-                    );
-                    super.append(catchedEvent);
-                }
-            };
-            paneAppender.setThreshold(Priority.INFO);
-            paneAppender.setLayout(new PatternLayout("%m%n"));
-            Logger.getLogger().addAppender(paneAppender);
-
-            Style style = infoPane.getStyle(Level.INFO.toString());
-            StyleConstants.setForeground(style, Color.GRAY);
-        }
-
     }
 
     private static String formatFileSize(long size) {
