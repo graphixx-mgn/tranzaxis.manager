@@ -1,5 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<versions current="2.1.7" xmlns="manager/schemas/VersionInfo.xsd">
+<versions current="2.2.0" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="2.2.0" date="2019-06-10">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлены команды создания и клонирования сущностей.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена активная кнопка редактирования сущности в селекторе, до выделения любой сущности.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена смена цвета текста у значений свойств в заблокированном редакторе (или у динамического свойства).</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Реализация групповой команды сущностей (запускается для группы выбранных сущностей, а не для каждой из них).</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Реализовано копирование значения свойства родительской сушности в дочернюю при перекрытии.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Редактор расширенных настроек при подтверждении/отмене соответственно сохраняет/откатывает только сделанные в нем изменения не влияя на основные настройки.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Команды сохранения и отката в редакторе сущности не активируются при изменении расширенных свойств в диалоге.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Иконки локальных (системных) сервисов в модуле управления сервисами.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>При загрузке сетевых сервисов их настройки добавляются во встроенный селектор редактора сервиса взаимодействаия инстанций.</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Реализован механизм расширения приложения при помощи подключаемых модулей (плагинов). Управление производится через модуль приложения Plugin Manager:
+                    включение, отключение и удаление плагинов без необходимости перезапуска.</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Реализован механизм обмена плагинами между инстанциями через сервис взаимодействия инстанций.</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Новый тип плагина: "команда сущности". Поддержка плагина в модуле ярлыков.</description>
+            </change>
+        </changelog>
+    </version>
     <version number="2.1.7" date="2019-04-30">
         <changelog>
             <change scope="CORE" type="Bugfix">
