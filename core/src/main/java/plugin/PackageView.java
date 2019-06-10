@@ -14,10 +14,7 @@ import codex.model.CommandRegistry;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
-import codex.type.Bool;
-import codex.type.EntityRef;
-import codex.type.IComplexType;
-import codex.type.Str;
+import codex.type.*;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.*;
@@ -27,6 +24,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -37,6 +35,7 @@ public class PackageView extends Catalog {
     final static ImageIcon PACKAGE   = ImageUtils.getByPath("/images/repository.png");
     final static ImageIcon DISABLED  = ImageUtils.getByPath("/images/unavailable.png");
     final static ImageIcon PUBLISHED = ImageUtils.getByPath("/images/plugin_public.png");
+    final static ImageIcon BUILDING  = ImageUtils.getByPath("/images/warn.png");
 
     private final static String PROP_VERSION = "version";
     private final static String PROP_AUTHOR  = "author";
@@ -72,7 +71,22 @@ public class PackageView extends Catalog {
         pluginsSupplier = pluginPackage == null ? ArrayList::new : pluginPackage::getPlugins;
         packageSupplier = pluginPackage == null ? null : () -> pluginPackage;
 
-        model.addDynamicProp(PROP_VERSION, new Str(null), null, () -> pluginPackage == null ? null : pluginPackage.getVersion());
+        model.addDynamicProp(PROP_VERSION, new AnyType(), null, () -> new Iconified() {
+            @Override
+            public ImageIcon getIcon() {
+                return pluginPackage == null || !pluginPackage.isBuild() ? null : BUILDING;
+            }
+
+            @Override
+            public String toString() {
+                return pluginPackage == null ? null : (
+                            pluginPackage.isBuild() ? MessageFormat.format(
+                                    Language.get(PackageView.class, "version.build"),
+                                    pluginPackage.getVersion()
+                            ) : pluginPackage.getVersion()
+                );
+            }
+        });
         model.addDynamicProp(PROP_AUTHOR,  new Str(null), null, pluginPackage == null ? null : pluginPackage::getAuthor);
 
         model.addUserProp(PROP_PUBLIC,  new Bool(false), false, Access.Edit);
@@ -344,8 +358,8 @@ public class PackageView extends Catalog {
                     return new CommandStatus(false, ImageUtils.grayscale(PUBLISHED));
                 } else {
                     return new CommandStatus(
-                    true,
-                           packages.get(0).isPublished() ? PUBLISHED : ImageUtils.combine(ImageUtils.grayscale(PUBLISHED), DISABLED)
+                            !packages.get(0).packageSupplier.get().isBuild(),
+                            packages.get(0).isPublished() ? PUBLISHED : ImageUtils.combine(ImageUtils.grayscale(PUBLISHED), DISABLED)
                     );
                 }
             };
