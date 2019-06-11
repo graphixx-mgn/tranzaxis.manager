@@ -13,8 +13,8 @@ import javax.swing.border.EmptyBorder;
  */
 public class AnyTypeView extends AbstractEditor {
 
-    private JTextField textField;
-    private JLabel     iconLabel;
+    private JTextPane textField;
+    private JLabel    iconLabel;
 
     /**
      * Конструктор редактора.
@@ -26,11 +26,14 @@ public class AnyTypeView extends AbstractEditor {
 
     @Override
     public Box createEditor() {
-        textField = new JTextField();
+        textField = new JTextPane();
         textField.setFont(FONT_VALUE);
-        textField.setBorder(new EmptyBorder(0, 3, 0, 3));
+        textField.setContentType("text/html");
+        textField.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
+        textField.setBorder(new EmptyBorder(3, 3, 0, 3));
         textField.setEditable(false);
         textField.setForeground(COLOR_DISABLED);
+        textField.setOpaque(false);
 
         iconLabel = new JLabel();
         iconLabel.setBorder(new EmptyBorder(1, 2, 1, 3));
