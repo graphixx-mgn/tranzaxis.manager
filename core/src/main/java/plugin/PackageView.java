@@ -36,6 +36,7 @@ public class PackageView extends Catalog {
     final static ImageIcon DISABLED  = ImageUtils.getByPath("/images/unavailable.png");
     final static ImageIcon PUBLISHED = ImageUtils.getByPath("/images/plugin_public.png");
     final static ImageIcon BUILDING  = ImageUtils.getByPath("/images/warn.png");
+    final static ImageIcon READY     = ImageUtils.getByPath("/images/success.png");
 
     private final static String PROP_VERSION = "version";
     private final static String PROP_AUTHOR  = "author";
@@ -74,7 +75,7 @@ public class PackageView extends Catalog {
         model.addDynamicProp(PROP_VERSION, new AnyType(), null, () -> new Iconified() {
             @Override
             public ImageIcon getIcon() {
-                return pluginPackage == null || !pluginPackage.isBuild() ? null : BUILDING;
+                return pluginPackage == null || !pluginPackage.isBuild() ? READY : BUILDING;
             }
 
             @Override
