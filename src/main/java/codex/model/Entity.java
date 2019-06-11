@@ -122,7 +122,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                     PID
                 );
                 if (found == null) {
-                    CACHE.cache(this, title, owner == null ? null : owner.getId());
+                    CACHE.cache(this, title == null ? getPID() : title, owner == null ? null : owner.getId());
                 }
             }
         }
@@ -487,7 +487,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                             @Override
                             public void modelSaved(EntityModel model, List<String> changes) {
                                 if (changes.contains(EntityModel.PID)) {
-                                    CACHE.cache(created, PID, owner == null ? null : owner.getId());
+                                    CACHE.cache(created, PID == null ? created.getPID() : PID, owner == null ? null : owner.getId());
                                 }
                             }
                         });
