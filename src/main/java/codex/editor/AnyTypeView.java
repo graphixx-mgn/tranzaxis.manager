@@ -5,6 +5,8 @@ import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
+import java.awt.*;
 
 /**
  * Редактор свойств типа {@link codex.type.AnyType}, представляет собой нередактируемое поле
@@ -30,16 +32,15 @@ public class AnyTypeView extends AbstractEditor {
         textField.setFont(FONT_VALUE);
         textField.setContentType("text/html");
         textField.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
-        textField.setBorder(new EmptyBorder(3, 3, 0, 3));
+        textField.setBorder(new EmptyBorder(3, 3, 3, 3));
         textField.setEditable(false);
         textField.setForeground(COLOR_DISABLED);
         textField.setOpaque(false);
 
         iconLabel = new JLabel();
-        iconLabel.setBorder(new EmptyBorder(1, 2, 1, 3));
+        iconLabel.setBorder(new EmptyBorder(1, 3, 1, 3));
 
         PlaceHolder placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField, PlaceHolder.Show.ALWAYS);
-        placeHolder.setBorder(textField.getBorder());
         placeHolder.changeAlpha(100);
 
         Box container = new Box(BoxLayout.X_AXIS);
