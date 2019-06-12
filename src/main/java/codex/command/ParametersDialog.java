@@ -10,7 +10,7 @@ import codex.type.Bool;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.awt.Dimension;
+import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -52,14 +52,25 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
         ) {{
             // Перекрытие обработчика кнопок
             Function<DialogButton, ActionListener> defaultHandler = handler;
-            handler = (button) -> {
-                return (event) -> {
-                    if (event.getID() != Dialog.OK || paramModel.isValid()) {
-                        defaultHandler.apply(button).actionPerformed(event);
-                    }
-                };
+            handler = (button) -> (event) -> {
+                if (event.getID() != Dialog.OK || paramModel.isValid()) {
+                    defaultHandler.apply(button).actionPerformed(event);
+                }
             };
         }
+
+            @Override
+            public Dimension getPreferredSize() {
+                Dimension prefSize = super.getPreferredSize();
+                if (Arrays.stream(paramProps.get())
+                        .anyMatch((propHolder) -> !Bool.class.isAssignableFrom(propHolder.getPropValue().getClass()))
+                ) {
+                    return new Dimension(650, prefSize.getSize().height);
+                } else {
+                    return prefSize;
+                }
+            }
+
             @Override
             public void setVisible(boolean visible) {
                 if (visible) {
@@ -68,12 +79,10 @@ public class ParametersDialog implements IDataSupplier<Map<String, IComplexType>
                         paramModel.addProperty(propHolder);
                     }
                     command.preprocessParameters(paramModel);
-                    dialog.setContent(new EditorPage(paramModel));
-                    if (Arrays.stream(paramProps.get()).anyMatch((propHolder) -> {
-                        return !Bool.class.isAssignableFrom(propHolder.getPropValue().getClass());
-                    })) {
-                        dialog.setPreferredSize(new Dimension(550, dialog.getPreferredSize().height));
-                    }
+                    dialog.setContent(new JPanel(new BorderLayout()){{
+                        add(new EditorPage(paramModel), BorderLayout.CENTER);
+                    }});
+                    dialog.pack();
                 }
                 super.setVisible(visible);
             }
