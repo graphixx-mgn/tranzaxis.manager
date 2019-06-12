@@ -16,11 +16,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import manager.commands.offshoot.BuildWC;
-import manager.commands.offshoot.DeleteWC;
-import manager.commands.offshoot.RefreshWC;
-import manager.commands.offshoot.RunDesigner;
-import manager.commands.offshoot.UpdateWC;
+import manager.commands.offshoot.*;
 import manager.svn.SVN;
 import manager.type.BuildStatus;
 import manager.type.WCStatus;
@@ -32,7 +28,6 @@ public class Offshoot extends BinarySource {
 
     public final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm");
     public final static ImageIcon ICON = ImageUtils.getByPath("/images/branch.png");
-
     public final static String PROP_WC_STATUS   = "wcStatus";
     public final static String PROP_WC_REVISION = "wcRevision";
     public final static String PROP_WC_BUILT    = "built";
@@ -44,6 +39,7 @@ public class Offshoot extends BinarySource {
         CommandRegistry.getInstance().registerCommand(UpdateWC.class);
         CommandRegistry.getInstance().registerCommand(BuildWC.class);
         CommandRegistry.getInstance().registerCommand(RunDesigner.class);
+        CommandRegistry.getInstance().registerCommand(DebugProfile.class);
     }
 
     public Offshoot(EntityRef owner, String title) {
