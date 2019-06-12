@@ -6,12 +6,10 @@ import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.editor.IEditor;
 import codex.model.Entity;
-import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import javax.swing.*;
 import java.awt.event.*;
 import java.text.MessageFormat;
-import java.util.Map;
 import java.util.function.Supplier;
 
 public class CommandButton extends PushButton implements ICommandListener<Entity>, ActionListener {
@@ -68,10 +66,7 @@ public class CommandButton extends PushButton implements ICommandListener<Entity
     }
 
     protected void executeCommand(EntityCommand<Entity> command) {
-        Map<String, IComplexType> params = command.getParameters();
-        if (params != null) {
-            command.process();
-        }
+        command.process();
     }
 
     private void bindKey(KeyStroke key, EntityCommand<Entity> command) {

@@ -275,8 +275,11 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
             Logger.getLogger().debug("Perform contextless command [{0}]", getName());
             execute(null, null);
         } else {
-            Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), context);
-            context.forEach(entity -> execute(entity, getParameters()));
+            final Map<String, IComplexType> params = getParameters();
+            if (params != null) {
+                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), context);
+                context.forEach(entity -> execute(entity, params));
+            }
         }
         activate();
     }
