@@ -137,9 +137,7 @@ public class PackageView extends Catalog {
                         new IPluginLoaderService.RemotePackage(packageSupplier.get()),
                         isPublished()
                 );
-            } catch (RemoteException e) {
-                Logger.getLogger().warn("Failed remote service ''{0}'' call to instance ''{1}''", PluginLoaderService.class, instance);
-            } catch (NotBoundException e) {
+            } catch (RemoteException | NotBoundException e) {
                 //
             }
         });
