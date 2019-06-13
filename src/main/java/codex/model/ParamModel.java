@@ -27,7 +27,7 @@ public final class ParamModel extends AbstractModel implements IPropertyChangeLi
             isValid = isValid & propValid;
         }
         return isValid;
-    };
+    }
     
     public final void addProperty(PropertyHolder propHolder) {
         super.addProperty(propHolder, null);
@@ -41,9 +41,7 @@ public final class ParamModel extends AbstractModel implements IPropertyChangeLi
     
     public final Map<String, IComplexType> getParameters() {
         Map<String, IComplexType> params = new HashMap<>();
-        properties.forEach((name, propHolder) -> {
-            params.put(name, propHolder.getPropValue());
-        });
+        properties.forEach((name, propHolder) -> params.put(name, propHolder.getPropValue()));
         return params;
     }
     
@@ -53,9 +51,7 @@ public final class ParamModel extends AbstractModel implements IPropertyChangeLi
 
     @Override
     public void propertyChange(String name, Object oldValue, Object newValue) {
-        new LinkedList<>(listeners).forEach((listener) -> {
-            listener.propertyChange(name, oldValue, newValue);
-        });
+        new LinkedList<>(listeners).forEach((listener) -> listener.propertyChange(name, oldValue, newValue));
     }
     
 }
