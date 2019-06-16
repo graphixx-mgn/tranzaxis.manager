@@ -20,8 +20,8 @@ public class RunDesigner extends EntityCommand<Offshoot> {
 
     public RunDesigner() {
         super(
-                "designer", 
-                "title", 
+                "designer",
+                Language.get("title"),
                 ImageUtils.getByPath("/images/designer.png"),
                 Language.get("desc"), 
                 (offshoot) -> {

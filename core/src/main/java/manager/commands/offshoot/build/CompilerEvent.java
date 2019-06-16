@@ -1,8 +1,6 @@
 package manager.commands.offshoot.build;
 
-
 import org.radixware.kernel.common.check.RadixProblem;
-
 import javax.swing.ImageIcon;
 
 public class CompilerEvent {

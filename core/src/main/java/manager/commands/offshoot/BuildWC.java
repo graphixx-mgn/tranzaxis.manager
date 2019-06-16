@@ -22,6 +22,8 @@ import java.util.Map;
 @EntityCommand.Definition(parentCommand = RefreshWC.class)
 public class BuildWC extends EntityCommand<Offshoot> {
 
+    private static final String PARAM_CLEAN = "clean";
+
     private static BuildingNotifier BUILD_NOTIFIER;
     private static ServerSocket     RMI_SOCKET;
 
@@ -51,14 +53,14 @@ public class BuildWC extends EntityCommand<Offshoot> {
 
     public BuildWC() {
         super(
-                "build", 
-                "title", 
+                "build",
+                Language.get("title"),
                 ImageUtils.getByPath("/images/build.png"),
                 Language.get("desc"), 
                 (offshoot) -> offshoot.getWCStatus().equals(WCStatus.Succesfull)
         );
         setParameters(
-                new PropertyHolder("clean", new Bool(Boolean.FALSE), true)
+                new PropertyHolder<>(PARAM_CLEAN, new Bool(Boolean.FALSE), true)
         );
     }
     
@@ -74,7 +76,7 @@ public class BuildWC extends EntityCommand<Offshoot> {
                 new GroupTask<>(
                         Language.get("title") + ": \""+(offshoot).getLocalPath()+"\"",
                         new BuildKernelTask(offshoot),
-                        new BuildSourceTask(offshoot, map.get("clean").getValue() == Boolean.TRUE)
+                        new BuildSourceTask(offshoot, map.get(PARAM_CLEAN).getValue() == Boolean.TRUE)
                 ),
                 false
         );

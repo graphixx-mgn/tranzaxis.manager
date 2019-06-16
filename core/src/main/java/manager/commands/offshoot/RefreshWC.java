@@ -15,16 +15,18 @@ import manager.type.WCStatus;
 
 public class RefreshWC extends EntityCommand<Offshoot> {
 
+    private static final String PARAM_CLEAN = "clean";
+
     public RefreshWC() {
         super(
-                "refresh", 
-                "title", 
+                "refresh",
+                Language.get("title"),
                 ImageUtils.getByPath("/images/rebuild.png"),
                 Language.get("desc"), 
                 (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Invalid)
         );
         setParameters(
-                new PropertyHolder("clean", new Bool(Boolean.FALSE), true)
+                new PropertyHolder<>(PARAM_CLEAN, new Bool(Boolean.FALSE), true)
         );
     }
     
@@ -42,7 +44,7 @@ public class RefreshWC extends EntityCommand<Offshoot> {
                         Language.get("title") + ": "+(offshoot).getLocalPath(),
                         offshoot.getCommand(UpdateWC.class).new UpdateTask(offshoot),
                         new BuildKernelTask(offshoot),
-                        new BuildSourceTask(offshoot, map.get("clean").getValue() == Boolean.TRUE)
+                        new BuildSourceTask(offshoot, map.get(PARAM_CLEAN).getValue() == Boolean.TRUE)
                 ), 
                 false
         );

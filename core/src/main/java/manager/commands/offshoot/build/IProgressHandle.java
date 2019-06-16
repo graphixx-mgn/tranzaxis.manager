@@ -1,6 +1,5 @@
 package manager.commands.offshoot.build;
 
-
 public interface IProgressHandle extends org.radixware.kernel.common.builder.api.IProgressHandle {
 
     @Override

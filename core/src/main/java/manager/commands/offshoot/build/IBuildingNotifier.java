@@ -1,12 +1,10 @@
 package manager.commands.offshoot.build;
 
 import org.radixware.kernel.common.check.RadixProblem;
-
 import javax.swing.*;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.UUID;
-
 
 public interface IBuildingNotifier extends Remote {
 

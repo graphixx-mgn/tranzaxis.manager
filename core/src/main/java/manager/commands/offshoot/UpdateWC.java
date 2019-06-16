@@ -32,8 +32,8 @@ public class UpdateWC extends EntityCommand<Offshoot> {
 
     public UpdateWC() {
         super(
-                "update", 
-                "title", 
+                "update",
+                Language.get("title"),
                 ImageUtils.getByPath("/images/update.png"),
                 Language.get("desc"), 
                 (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Invalid)

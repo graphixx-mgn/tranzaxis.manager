@@ -27,8 +27,8 @@ public class DeleteWC extends EntityCommand<Offshoot> {
     
     public DeleteWC() {
         super(
-                "clean", 
-                "title", 
+                "clean",
+                Language.get("title"),
                 ImageUtils.getByPath("/images/minus.png"),
                 Language.get("desc"),
                 (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Absent)

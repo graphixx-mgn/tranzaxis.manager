@@ -16,7 +16,6 @@ import manager.nodes.Database;
 import manager.nodes.Environment;
 import manager.nodes.Offshoot;
 import manager.type.WCStatus;
-
 import javax.swing.*;
 import java.io.File;
 import java.nio.charset.Charset;
