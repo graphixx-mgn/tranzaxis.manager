@@ -61,16 +61,12 @@ public abstract class AbstractTask<T> implements ITask<T> {
             setStatus(Status.STARTED);
             try {
                 LoggerContext.enterLoggerContext(this);
-                new LinkedList<>(listeners).forEach((listener) -> {
-                    listener.beforeExecute(this);
-                });
+                new LinkedList<>(listeners).forEach((listener) -> listener.beforeExecute(this));
                 T result = null;
                 try {
                     result = execute();
                 } finally {
-                    new LinkedList<>(listeners).forEach((listener) -> {
-                        listener.afterExecute(this);
-                    });
+                    new LinkedList<>(listeners).forEach((listener) -> listener.afterExecute(this));
                 }
                 finished(result);
             } catch (CancelException e) {

@@ -1,6 +1,7 @@
 package codex.presentation;
 
 import codex.command.EntityCommand;
+import codex.model.Access;
 import codex.model.Entity;
 import codex.model.OverrideProperty;
 import codex.type.IComplexType;
@@ -27,7 +28,8 @@ class CommitEntity extends EntityCommand<Entity> {
                 (entity) -> entity.model.getChanges().stream()
                         .anyMatch(propName -> (
                                 !entity.model.isPropertyExtra(propName) &&
-                                !"OVR".equals(propName)
+                                !"OVR".equals(propName) &&
+                                        entity.model.getProperties(Access.Edit).contains(propName)
                             ) || (
                                 "OVR".equals(propName) &&
                                 OverrideProperty.getOverrideChanges(entity.model).entrySet().stream()

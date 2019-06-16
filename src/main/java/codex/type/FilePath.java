@@ -3,7 +3,6 @@ package codex.type;
 import codex.editor.FilePathEditor;
 import codex.editor.IEditorFactory;
 import codex.mask.IPathMask;
-import codex.property.PropertyHolder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
@@ -13,9 +12,7 @@ import java.text.MessageFormat;
  */
 public class FilePath implements ISerializableType<Path, IPathMask> {
     
-    private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
-        return new FilePathEditor(propHolder);
-    };
+    private final static IEditorFactory EDITOR_FACTORY = FilePathEditor::new;
     
     private Path      value;
     private IPathMask mask;
@@ -47,7 +44,7 @@ public class FilePath implements ISerializableType<Path, IPathMask> {
      * Установить маску значения.
      */
     @Override
-    public ISerializableType setMask(IPathMask mask) {
+    public ISerializableType<Path, IPathMask> setMask(IPathMask mask) {
         this.mask = mask;
         return this;
     }
