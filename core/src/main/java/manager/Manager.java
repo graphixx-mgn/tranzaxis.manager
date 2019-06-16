@@ -5,9 +5,11 @@ import codex.explorer.tree.NodeTreeModel;
 import codex.instance.InstanceUnit;
 import codex.launcher.LauncherUnit;
 import codex.log.LogUnit;
+import codex.log.Logger;
 import codex.service.ServiceUnit;
 import codex.task.TaskManager;
 import codex.utils.ImageUtils;
+import codex.utils.Language;
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import it.sauronsoftware.junique.AlreadyLockedException;
 import it.sauronsoftware.junique.JUnique;
@@ -110,6 +112,7 @@ public class Manager {
             Locale localeEnum = Locale.valueOf(prefs.get("guiLang", null));
             java.lang.System.setProperty("user.language", localeEnum.getLocale().getLanguage());
             java.lang.System.setProperty("user.country",  localeEnum.getLocale().getCountry());
+            Logger.getLogger().debug("Set interface locale: {0}", Language.getLocale());
         }
     }
 
