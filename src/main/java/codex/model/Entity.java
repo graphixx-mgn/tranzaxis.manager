@@ -45,7 +45,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     private final ImageIcon icon;
     private final String    hint;
 
-    final String  origTitle;
     Boolean isPrototype = false;
 
     private EditorPage           editorPage;
@@ -64,14 +63,18 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      * @param hint Описание сущности.
      */
     public Entity(EntityRef owner, ImageIcon icon, String title, String hint) {
-        String PID = null;
-        if (title != null) {
-            String name = Language.get(this.getClass(), title, new java.util.Locale("en", "US"));
-            PID  = name.equals(Language.NOT_FOUND) ? title : name;
-            String localTitle = Language.get(this.getClass(), title);
-            this.title = localTitle.equals(Language.NOT_FOUND) ? PID : localTitle;
+        String PID;
+        if (title == null) {
+            if (!Catalog.class.isAssignableFrom(getClass())) {
+                PID = null;
+            } else {
+                PID = Language.get(this.getClass(), "title", new java.util.Locale("en", "US"));
+                this.title = Language.get(this.getClass(), "title");
+            }
+        } else {
+            PID = title;
+            this.title = title;
         }
-        origTitle  = title;
         this.icon  = icon != null ? icon : new ImageIcon(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB));
         this.hint  = hint;
         this.model = new EntityModel(
@@ -122,7 +125,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                     PID
                 );
                 if (found == null) {
-                    CACHE.cache(this, title == null ? getPID() : title, owner == null ? null : owner.getId());
+                    CACHE.cache(this, PID, owner == null ? null : owner.getId());
                 }
             }
         }
@@ -352,23 +355,24 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public final void propertyChange(String name, Object oldValue, Object newValue) {
         if (!ISerializableType.class.isAssignableFrom(model.getPropertyType(name))) return;
 
         if (
-                (oldValue == null && newValue != null) || 
+                (oldValue == null && newValue != null) ||
                 (oldValue != null && newValue == null) ||
-                (oldValue != null && newValue != null && !oldValue.equals(newValue))
+                (oldValue != null && !oldValue.equals(newValue))
         ) {
             Logger.getLogger().debug(
                     "Property ''{0}@{1}'' has been changed: {2} -> {3}", 
                     model.getQualifiedName(), name, 
                     model.getProperty(name).getPropValue().getQualifiedValue(
-                            oldValue != null && oldValue instanceof IComplexType ? ((IComplexType) oldValue).getValue() : oldValue
+                            oldValue instanceof IComplexType ? ((IComplexType) oldValue).getValue() : oldValue
                     ), 
                     model.getProperty(name).getPropValue().getQualifiedValue(
-                            newValue != null && newValue instanceof IComplexType ? ((IComplexType) newValue).getValue() : newValue
+                            newValue instanceof IComplexType ? ((IComplexType) newValue).getValue() : newValue
                     )
             );
         }
@@ -387,9 +391,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             MessageBox.show(
                     MessageType.ERROR, null, 
                     MessageFormat.format(Language.get("error@invalidprop"), String.join("\n", invalidProps)),
-                    (event) -> {
-                        model.editors.get(getInvalidProperties().get(0)).getFocusTarget().requestFocus();
-                    }
+                    (event) -> model.editors.get(getInvalidProperties().get(0)).getFocusTarget().requestFocus()
             );
             return false;
         } else {
@@ -458,7 +460,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             Throwable exception = e;
             do {
                 Logger.getLogger().error(
-                        MessageFormat.format("Unable instantiate entity prototype [Class: {1}]", entityClass.getCanonicalName()), exception
+                        MessageFormat.format("Unable instantiate entity prototype [Class: {0}]", entityClass.getCanonicalName()), exception
                 );
             } while ((exception = exception.getCause()) != null);
         } catch (NoSuchMethodException e) {
@@ -475,7 +477,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             final Entity found = CACHE.find(
                     entityClass,
                     owner == null ? null : owner.getId(),
-                    PID
+                    PID != null ? PID : Language.get(entityClass, "title", new java.util.Locale("en", "US"))
             );
             if (found == null) {
                 try {
@@ -487,10 +489,14 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                             @Override
                             public void modelSaved(EntityModel model, List<String> changes) {
                                 if (changes.contains(EntityModel.PID)) {
-                                    CACHE.cache(created, PID == null ? created.getPID() : PID, owner == null ? null : owner.getId());
+                                    CACHE.cache(created, created.getPID(), owner == null ? null : owner.getId());
                                 }
                             }
                         });
+                    } else if (Language.NOT_FOUND.equals(created.getPID())) {
+                        throw new IllegalStateException(MessageFormat.format(
+                                "Localization string 'title' not defined for class ''{0}''", entityClass
+                        ));
                     }
                     return created;
                 } catch (InvocationTargetException | ExceptionInInitializerError | InstantiationException | IllegalAccessException e) {
