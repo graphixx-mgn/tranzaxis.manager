@@ -9,7 +9,7 @@ import java.util.LinkedList;
 public class ReleaseList extends RepositoryBranch {
 
     public ReleaseList(EntityRef owner) {
-        this(owner, "title");
+        this(owner, null);
     }
 
     public ReleaseList(EntityRef owner, String PID) {

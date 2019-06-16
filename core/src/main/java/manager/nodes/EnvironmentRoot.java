@@ -19,7 +19,7 @@ public class EnvironmentRoot extends Catalog {
     public final static String PROP_EXPLORER_OPTS = "explorerOpts";
     
     public EnvironmentRoot() {
-        super(null, ImageUtils.getByPath("/images/system.png"), "title", Language.get("desc"));
+        super(null, ImageUtils.getByPath("/images/system.png"), null, Language.get("desc"));
         
         // Properties
         model.addUserProp(PROP_JVM_SERVER,   new ArrStr("-Xmx2G"), false, Access.Select);

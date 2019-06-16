@@ -29,7 +29,7 @@ public final class Common extends Catalog {
     }
 
     public Common() {
-        super(null, ImageUtils.getByPath("/images/settings.png"), "title", Language.get("desc"));
+        super(null, ImageUtils.getByPath("/images/settings.png"), null, Language.get("desc"));
         // Properties
         model.addUserProp(PROP_WORK_DIR,  new FilePath(null).setMask(new DirMask()), true, Access.Select);
         model.addUserProp(PROP_GUI_LANG,  new Enum(Locale.valueOf(Language.getLocale())), false, Access.Select);

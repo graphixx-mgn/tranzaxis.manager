@@ -14,7 +14,7 @@ public class Development extends RepositoryBranch {
     private final static String PROP_JVM_DESIGNER = "jvmDesigner";
 
     public Development(EntityRef owner) {
-        this(owner, "title");
+        this(owner, null);
     }
 
     public Development(EntityRef owner, String PID) {

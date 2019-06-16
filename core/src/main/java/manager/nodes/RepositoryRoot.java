@@ -7,7 +7,7 @@ import codex.utils.Language;
 public class RepositoryRoot extends Catalog {
 
     public RepositoryRoot() {
-        super(null, ImageUtils.getByPath("/images/repositories.png"), "title", Language.get("desc"));
+        super(null, ImageUtils.getByPath("/images/repositories.png"), null, Language.get("desc"));
     }
 
     @Override

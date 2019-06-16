@@ -172,7 +172,7 @@ public class Repository extends Entity {
 
     private List<RepositoryBranch> getLocalBranches() {
         return BRANCHES.values().stream()
-                .map(branchClass -> (RepositoryBranch) Entity.newInstance(branchClass, this.toRef(), "title"))
+                .map(branchClass -> (RepositoryBranch) Entity.newInstance(branchClass, this.toRef(), null))
                 .filter(branchClass -> !CAS.readCatalogEntries(this.getID(), branchClass.getChildClass()).isEmpty())
                 .collect(Collectors.toList());
     }
@@ -182,10 +182,10 @@ public class Repository extends Entity {
         try {
             SVN.list(getRepoUrl(), getAuthManager()).forEach(svnDirEntry -> {
                 if (BRANCHES.containsKey(svnDirEntry.getName())) {
-                    branches.add((RepositoryBranch) Entity.newInstance(
+                    branches.add(Entity.newInstance(
                             BRANCHES.get(svnDirEntry.getName()),
                             this.toRef(),
-                            "title"
+                            null
                     ));
                 }
             });

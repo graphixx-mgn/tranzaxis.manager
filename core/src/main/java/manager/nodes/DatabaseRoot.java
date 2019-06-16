@@ -7,7 +7,7 @@ import codex.utils.Language;
 public class DatabaseRoot extends Catalog {
 
     public DatabaseRoot() {
-        super(null, ImageUtils.getByPath("/images/databases.png"), "title", Language.get("desc"));
+        super(null, ImageUtils.getByPath("/images/databases.png"), null, Language.get("desc"));
     }
 
     @Override

@@ -27,7 +27,6 @@ public abstract class RepositoryBranch extends Catalog {
         boolean hasArchive();
     }
 
-
     RepositoryBranch(EntityRef owner, ImageIcon icon, String title, String hint) {
         super(owner, icon, title, hint);
     }
