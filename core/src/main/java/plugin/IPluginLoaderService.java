@@ -130,6 +130,7 @@ public interface IPluginLoaderService extends IRemoteService {
                     pluginModel.getProperties(Access.Select).stream()
             )
             .distinct()
+            .filter(propName -> !EntityModel.SYSPROPS.contains(propName))
             .forEach(propName -> properties.add(new PropertyPresentation(pluginModel, propName, pluginModel.getEditor(propName).getClass())));
         }
 
@@ -151,7 +152,7 @@ public interface IPluginLoaderService extends IRemoteService {
     class PropertyPresentation implements Iconified, Serializable {
         private static final long serialVersionUID = 7929411017083767918L;
 
-        private final Class<? extends IEditor> editor;
+        private final String    editor;
         private final String    name, value;
         private final ImageIcon icon;
         private final Access    access;
@@ -161,7 +162,7 @@ public interface IPluginLoaderService extends IRemoteService {
             name   = propName;
             value  = propVal == null ? null : propVal.toString();
             icon   = propVal == null || !Iconified.class.isAssignableFrom(propVal.getClass()) ? null : ((Iconified) propVal).getIcon();
-            editor = editorClass;
+            editor = editorClass.getCanonicalName();
 
             boolean shownInSelector = model.getProperties(Access.Select).contains(propName);
             boolean shownInEditor   = model.getProperties(Access.Edit).contains(propName);
@@ -195,7 +196,11 @@ public interface IPluginLoaderService extends IRemoteService {
         }
 
         public Class<? extends IEditor> getEditor() {
-            return editor;
+            try {
+                return Class.forName(editor).asSubclass(IEditor.class);
+            } catch (ClassNotFoundException e) {
+                return null;
+            }
         }
     }
 

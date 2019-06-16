@@ -8,10 +8,7 @@ import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.instance.InstanceCommunicationService;
 import codex.log.Logger;
-import codex.model.Access;
-import codex.model.Catalog;
-import codex.model.CommandRegistry;
-import codex.model.Entity;
+import codex.model.*;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.*;
@@ -100,17 +97,19 @@ public class PackageView extends Catalog {
                 pluginView.addNodeListener(updatePackage);
 
                 pluginView.model.getProperties(Access.Edit).forEach(propName -> {
-                    model.addDynamicProp(
-                            propName,
-                            pluginView.model.getProperty(propName).getPropValue(),
-                            Access.Select,
-                            () -> pluginView.model.getValue(propName)
-                    );
-                    changePropertyNaming(
-                            model.getProperty(propName),
-                            pluginView.model.getProperty(propName).getTitle(),
-                            pluginView.model.getProperty(propName).getDescriprion()
-                    );
+                    if (!EntityModel.SYSPROPS.contains(propName)) {
+                        model.addDynamicProp(
+                                propName,
+                                pluginView.model.getProperty(propName).getPropValue(),
+                                Access.Select,
+                                () -> pluginView.model.getValue(propName)
+                        );
+                        changePropertyNaming(
+                                model.getProperty(propName),
+                                pluginView.model.getProperty(propName).getTitle(),
+                                pluginView.model.getProperty(propName).getDescriprion()
+                        );
+                    }
                 });
                 model.addPropertyGroup(
                         Language.get("type@group"),
