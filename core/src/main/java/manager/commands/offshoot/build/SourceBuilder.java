@@ -2,15 +2,13 @@ package manager.commands.offshoot.build;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.*;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,102 +26,47 @@ import org.radixware.kernel.common.defs.Definition;
 import org.radixware.kernel.common.defs.Module;
 import org.radixware.kernel.common.defs.RadixObject;
 import org.radixware.kernel.common.defs.VisitorProvider;
-import org.radixware.kernel.common.defs.ads.AdsDefinition;
 import org.radixware.kernel.common.defs.ads.build.Cancellable;
 import org.radixware.kernel.common.defs.ads.common.AdsVisitorProviders;
-import org.radixware.kernel.common.defs.ads.localization.AdsLocalizingBundleDef;
-import org.radixware.kernel.common.defs.ads.module.AdsModule;
-import org.radixware.kernel.common.enums.EDefType;
 import org.radixware.kernel.common.enums.ERuntimeEnvironmentType;
 import org.radixware.kernel.common.repository.Branch;
-import org.radixware.kernel.common.repository.Layer;
-import org.radixware.kernel.common.repository.ads.AdsSegment;
 import org.radixware.kernel.common.resources.icons.RadixIcon;
-import org.radixware.kernel.common.types.Id;
 import javax.swing.*;
 
 
 public class SourceBuilder {
     
     private static final EnumSet<ERuntimeEnvironmentType> TARGET_ENV = EnumSet.allOf(ERuntimeEnvironmentType.class);
-    
-    static int enumerateModules(Branch branch) {
-        HashMap<Id, Module>     modulesIndex = new HashMap<>();
-        HashMap<Id, Definition> defsIndex = new HashMap<>();
-        ArrayList<Definition>   result = new ArrayList<>();
 
-        List<Layer> layers = branch.getLayers().getInOrder();
-        layers.forEach((layer) -> {
-            modulesIndex.clear();
-            try {
-                if (layer.isReadOnly()) return;
+    static int enumerateModules(IBuildEnvironment env, Branch branch) throws Exception {
+        Class contextCheckerClass = Class.forName("org.radixware.kernel.common.builder.ContextChecker");
+        Class contextInfoClass    = Class.forName("org.radixware.kernel.common.builder.ContextChecker$ContextInfo");
 
-                AdsSegment segment = (AdsSegment) layer.getAds();
-                segment.getModules().list().parallelStream().filter((module) -> {
-                    return !module.isUnderConstruction();
-                }).forEachOrdered((module) -> {
-                    if (!modulesIndex.containsKey(module.getId())) {
-                        modulesIndex.put(module.getId(), module);
-                    }
-                });
+        Constructor constructor = contextCheckerClass.getDeclaredConstructor(boolean.class);
+        constructor.setAccessible(true);
+        Object checker = constructor.newInstance(true);
 
-                defsIndex.clear();
+        Method determineTargets = contextCheckerClass.getDeclaredMethod(
+                "determineTargets",
+                BuildActionExecutor.EBuildActionType.class,
+                RadixObject[].class,
+                IBuildEnvironment.class,
+                boolean.class
+        );
+        determineTargets.setAccessible(true);
+        Object contextInfo = determineTargets.invoke(
+                checker,
+                BuildActionExecutor.EBuildActionType.BUILD,
+                new RadixObject[] {branch},
+                env,
+                false
+        );
+        Field targets = contextInfoClass.getDeclaredField("targets");
+        targets.setAccessible(true);
+        Set<Definition> checkedDefinitions = (Set<Definition>) targets.get(contextInfo);
 
-                ExecutorService executor = Executors.newCachedThreadPool();
-                executor.invokeAll(modulesIndex.values().parallelStream().map((module) -> {
-                    return new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            AdsModule m = (AdsModule) module;
-                            while (m != null) {
-                                if (!m.isReadOnly()) {
-                                    if (!m.getLayer().isLocalizing()) {
-                                        final AdsLocalizingBundleDef moduleBundle = ((AdsModule) module).findExistingLocalizingBundle();
-                                        if (moduleBundle != null) {
-                                            if (!defsIndex.containsKey(moduleBundle.getId())) {
-                                                defsIndex.put(moduleBundle.getId(), moduleBundle);
-                                            }
-                                        }
-                                        for (AdsDefinition def : m.getDefinitions()) {
-                                            if (!defsIndex.containsKey(def.getId())) {
-                                                defsIndex.put(def.getId(), def);
-                                            }
-                                            if (def.getDefinitionType() != EDefType.LOCALIZING_BUNDLE) {
-                                                AdsLocalizingBundleDef bundle = def.findExistingLocalizingBundle();
-                                                if (bundle != null) {
-                                                    if (!defsIndex.containsKey(bundle.getId())) {
-                                                        defsIndex.put(bundle.getId(), bundle);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                m = m.findOverwritten();
-                            }
-                            return null;
-                        }
-                    };
-                }).collect(Collectors.toList())).stream().forEachOrdered((future) -> {
-                    try {
-                        future.get();
-                        result.addAll(defsIndex.values());
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    } catch (ExecutionException e) {
-                        throw new RuntimeException(e.getMessage());
-                    }
-                });
-            } catch (InterruptedException e) {
-                // Do nothing
-            }
-        });
-
-        Set<Definition> checkedDefinitions = new HashSet<>();
-        checkedDefinitions.addAll(result);
-
-        final AtomicInteger totalModules = new AtomicInteger(0);
-        TARGET_ENV.forEach((env) -> {
+        final AtomicInteger modules = new AtomicInteger(0);
+        TARGET_ENV.forEach((environment) -> {
             final RadixObjectsProcessor.ICollector collector = new RadixObjectsProcessor.ICollector() {
 
                 int count;
@@ -147,11 +90,9 @@ public class SourceBuilder {
                 }
             };
 
-            VisitorProvider visitor = AdsVisitorProviders.newCompileableDefinitionsVisitorProvider(env);
-            checkedDefinitions.forEach((context) -> {
-                context.visit(collector, visitor);
-            });
-            totalModules.addAndGet(collector.get().parallelStream().map((ro) -> {
+            VisitorProvider visitor = AdsVisitorProviders.newCompileableDefinitionsVisitorProvider(environment);
+            checkedDefinitions.forEach((context) -> context.visit(collector, visitor));
+            modules.addAndGet(collector.get().parallelStream().map((ro) -> {
                 Definition definition = (Definition) ro;
                 if (definition instanceof Module) {
                     return definition;
@@ -160,7 +101,7 @@ public class SourceBuilder {
                 }
             }).collect(Collectors.toSet()).size());
         });
-        return totalModules.get();
+        return modules.get();
     }
     
     public static void main(String[] args12) throws Exception {
@@ -250,10 +191,14 @@ public class SourceBuilder {
                     Matcher matcher = MODULE_BUILD.matcher(name);
                     try {
                         if (matcher.find() && !builtModules.contains(matcher.group(1))) {
-                            builtModules.add(matcher.group(1));
-                            int progress = 100*builtModules.size()/totalModules.get();
-                            notifier.description(uuid, matcher.group(1));
-                            notifier.progress(uuid, progress);
+                            if (totalModules.get() == 0) {
+                                notifier.description(uuid, matcher.group(1));
+                            } else {
+                                builtModules.add(matcher.group(1));
+                                int progress = 100 * builtModules.size() / totalModules.get();
+                                notifier.description(uuid, matcher.group(1));
+                                notifier.progress(uuid, progress);
+                            }
                         } else {
                             notifier.description(uuid, name);
                         }
@@ -285,10 +230,13 @@ public class SourceBuilder {
                 return clean ? BuildActionExecutor.EBuildActionType.CLEAN_AND_BUILD : BuildActionExecutor.EBuildActionType.BUILD;
             }
         };
-
         Branch branch = Branch.Factory.loadFromDir(new File(path));
         env.getBuildDisplayer().getProgressHandleFactory().createHandle("Load definitions...");
-        totalModules.set(enumerateModules(branch));
+        try {
+            totalModules.set(enumerateModules(env, branch));
+        } catch (Exception e) {
+            //
+        }
         BuildActionExecutor executor = new BuildActionExecutor(env);
         executor.execute(branch);
     }
