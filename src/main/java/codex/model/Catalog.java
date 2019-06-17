@@ -4,12 +4,7 @@ import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
 import codex.service.ServiceRegistry;
-import codex.task.AbstractTask;
-import codex.task.ITask;
-import codex.task.ITaskExecutorService;
-import codex.task.ITaskListener;
-import codex.task.Status;
-import codex.task.TaskManager;
+import codex.task.*;
 import codex.type.EntityRef;
 import codex.utils.Language;
 import java.text.MessageFormat;
@@ -31,39 +26,47 @@ public abstract class Catalog extends Entity {
     @Override
     public void setParent(INode parent) {
         super.setParent(parent);
-        if (parent == null || getChildClass() == null) return;
-
-        Collection<String> childrenPIDs = getChildrenPIDs();
-        if (!childrenPIDs.isEmpty()) {
-            ITask task = new LoadChildren(childrenPIDs);
-            task.addListener(new ITaskListener() {
-
-                private int previousMode;
-
-                @Override
-                public void statusChanged(ITask task, Status status) {
-                    if (!status.isFinal()) {
-                        try {
-                            if (!islocked()) {
-                                previousMode = getMode();
-                                setMode(MODE_NONE);
-                                getLock().acquire();
-                            }
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    } else {
-                        getLock().release();
-                        setMode(previousMode);
-                    }
-                }
-            });
-            TES.quietTask(task);
+        if (parent != null && getChildClass() != null) {
+            loadChildren();
         }
     }
     
     @Override
     public abstract Class<? extends Entity> getChildClass();
+
+    public void loadChildren() {
+        Collection<String> childrenPIDs = getChildrenPIDs();
+        while (getChildCount() > 0) {
+            delete(getChildAt(0));
+        }
+        if (!childrenPIDs.isEmpty()) {
+            TES.quietTask(new LoadChildren(childrenPIDs) {
+                private int mode = getMode();
+                {
+                    addListener(new ITaskListener() {
+                        @Override
+                        public void beforeExecute(ITask task) {
+                            try {
+                                if (!islocked()) {
+                                    mode = getMode();
+                                    setMode(MODE_NONE);
+                                    getLock().acquire();
+                                }
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                }
+
+                @Override
+                public void finished(Void result) {
+                    getLock().release();
+                    setMode(mode);
+                }
+            });
+        }
+    }
     
     protected Collection<String> getChildrenPIDs() {
         Entity owner = this.getOwner();
