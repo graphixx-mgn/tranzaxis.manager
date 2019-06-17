@@ -1,17 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<versions current="2.2.0" xmlns="manager/schemas/VersionInfo.xsd">
-    <version number="2.2.0" date="2019-06-10">
+<versions current="2.2.1" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="2.2.1" date="2019-06-17">
         <changelog>
             <change scope="CORE" type="Bugfix">
                 <description>Исправлены команды создания и клонирования сущностей.</description>
             </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправление двойного вызова диалога параметров команды.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Исправление подсчета компилируемых модулей при сборке версии.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Отключение возможности публикации плагина, находящегося в разработке.</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Добавлена команда запуска RW Designer с профилем отладки.</description>
+            </change>
+        </changelog>
+    </version>
+    <version number="2.2.0" date="2019-06-10">
+        <changelog>
             <change scope="CORE" type="Bugfix">
                 <description>Исправлена активная кнопка редактирования сущности в селекторе, до выделения любой сущности.</description>
             </change>
             <change scope="CORE" type="Bugfix">
                 <description>Исправлена смена цвета текста у значений свойств в заблокированном редакторе (или у динамического свойства).</description>
             </change>
-            <change scope="CORE" type="Bugfix">
+            <change scope="CORE" type="Change">
                 <description>Реализация групповой команды сущностей (запускается для группы выбранных сущностей, а не для каждой из них).</description>
             </change>
             <change scope="APP" type="Change">
