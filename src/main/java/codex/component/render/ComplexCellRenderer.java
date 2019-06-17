@@ -14,11 +14,9 @@ import javax.swing.SwingConstants;
  * интерфейс {@link Iconified}, дополнительно отрисовывается иконка.
  */
 final class ComplexCellRenderer extends CellRenderer<Object> {
-    
-    private final static ComplexCellRenderer INSTANCE = new ComplexCellRenderer();
-    
-    public static ComplexCellRenderer getInstance() {
-        return INSTANCE;
+
+    public static ComplexCellRenderer newInstance() {
+        return new ComplexCellRenderer();
     }
 
     private ComplexCellRenderer() {

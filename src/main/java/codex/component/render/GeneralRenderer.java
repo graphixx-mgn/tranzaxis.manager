@@ -117,9 +117,9 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
         } else {
             CellRenderer cellBox;
             if (Bool.class.equals(columnClass)) {
-                cellBox = BoolCellRenderer.getInstance();
+                cellBox = BoolCellRenderer.newInstance();
             } else {
-                cellBox = ComplexCellRenderer.getInstance();
+                cellBox = ComplexCellRenderer.newInstance();
             }
 
             Color bgColor = Color.WHITE;

@@ -19,11 +19,9 @@ import javax.swing.border.LineBorder;
  * виде флажка в ячейке.
  */
 final class BoolCellRenderer extends CellRenderer<Boolean> {
-    
-    private final static BoolCellRenderer INSTANCE = new BoolCellRenderer();
-    
-    public final static BoolCellRenderer getInstance() {
-        return INSTANCE;
+
+    public static BoolCellRenderer newInstance() {
+        return new BoolCellRenderer();
     }
         
     final JCheckBox checkBox = new JCheckBox() {{
