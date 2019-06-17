@@ -45,7 +45,7 @@ public class InstanceView extends Catalog {
         return false;
     }
 
-    void loadChildren() {
+    public void loadChildren() {
         NodeTreeModel treeModel = new NodeTreeModel(this);
         StreamSupport.stream(treeModel.spliterator(), false).forEach(parentNode -> {
             parentNode.childrenList().forEach(parentNode::delete);
