@@ -8,7 +8,6 @@ import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
-import codex.log.Logger;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
@@ -55,13 +54,6 @@ public class DiskUsageReport extends EntityCommand<Common> {
 
     private static final String SIZE_FORMAT = Language.get(DiskUsageReport.class, "task@total");
     public  static final String TRASH       = "trash@title";
-
-    private final static Map<String, Repository> REPO_INDEX = CAS.readCatalogEntries(null, Repository.class)
-            .entrySet().stream()
-            .map((entry) -> (Repository) EntityRef.build(Repository.class, entry.getKey()).getValue()).collect(Collectors.toMap(
-                    entry -> Repository.urlToDirName(entry.getRepoUrl()),
-                    entry -> entry
-            ));
 
     public DiskUsageReport() {
         super(
@@ -114,6 +106,12 @@ public class DiskUsageReport extends EntityCommand<Common> {
 
         List<Entry> getBranchEntries(File workDir, Class<? extends RepositoryBranch> branchClass) {
             final File localDir = new File(workDir, branchClass.getAnnotation(RepositoryBranch.Branch.class).localDir());
+            Map<String, Repository> REPO_INDEX = CAS.readCatalogEntries(null, Repository.class)
+                    .entrySet().stream()
+                    .map((entry) -> (Repository) EntityRef.build(Repository.class, entry.getKey()).getValue()).collect(Collectors.toMap(
+                            entry -> Repository.urlToDirName(entry.getRepoUrl()),
+                            entry -> entry
+                    ));
 
             if (localDir.exists()) {
                 return Stream.of(IComplexType.coalesce(localDir.listFiles(), new File[]{}))
@@ -121,7 +119,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
                             if (REPO_INDEX.containsKey(file.getName())) {
                                 final File repoDir = file;
                                 final Repository repository = REPO_INDEX.get(repoDir.getName());
-                                final RepositoryBranch branch = Entity.newInstance(branchClass, repository.toRef(), "title");
+                                final RepositoryBranch branch = Entity.newInstance(branchClass, repository.toRef(), null);
 
                                 Collection<String> PIDs = branch.getChildrenPIDs();
 
