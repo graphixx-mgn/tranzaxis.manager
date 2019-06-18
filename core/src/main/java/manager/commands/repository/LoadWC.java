@@ -8,12 +8,15 @@ import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.model.Catalog;
 import codex.task.AbstractTask;
+import codex.task.ITask;
+import codex.task.ITaskListener;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.nodes.Repository;
 import manager.svn.SVN;
 import org.tmatesoft.svn.core.SVNErrorCode;
+import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import javax.swing.*;
@@ -73,12 +76,6 @@ public class LoadWC extends EntityCommand<Repository> {
     
     private void switchLock(Repository repository, boolean locked) {
         repository.setMode((locked ? INode.MODE_ENABLED : INode.MODE_NONE) + INode.MODE_SELECTABLE);
-        
-        repository.model.getEditor(PROP_REPO_URL).setEditable(!locked);
-        repository.model.getEditor(PROP_AUTH_MODE).setEditable(!locked);
-        repository.model.getEditor(PROP_SVN_USER).setEditable(!locked);
-        repository.model.getEditor(PROP_SVN_PASS).setEditable(!locked);
-
         repository.setLocked(locked);
         try {
             repository.model.commit(false);

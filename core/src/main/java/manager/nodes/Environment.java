@@ -159,7 +159,7 @@ public class Environment extends Entity implements INodeListener {
                         Repository repository = getRepository(true);
                         List<Object> values = new LinkedList<>();
                         if (repository != null) {
-                            Entity e = Entity.newInstance(ReleaseList.class, repository.toRef(), "title");
+                            Entity e = Entity.newInstance(ReleaseList.class, repository.toRef(), null);
                             values.addAll(e.childrenList());
                         }
                         return values;
