@@ -31,7 +31,7 @@ public class DeleteWC extends EntityCommand<Offshoot> {
                 Language.get("title"),
                 ImageUtils.getByPath("/images/minus.png"),
                 Language.get("desc"),
-                (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Absent)
+                (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Absent) && offshoot.model.isValid()
         );
     }
     

@@ -6,6 +6,7 @@ import codex.explorer.tree.INode;
 import codex.model.Access;
 import codex.model.CommandRegistry;
 import codex.model.Entity;
+import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.Bool;
 import codex.type.EntityRef;
@@ -61,9 +62,15 @@ public class Offshoot extends BinarySource {
                 return null;
             }
         }, PROP_WC_STATUS);
-
         model.addUserProp(PROP_WC_BUILT,       new BuildStatus(), false, null);
-        model.addUserProp(PROP_WC_LOADED,      new Bool(null), false, Access.Any);
+
+        PropertyHolder<Bool, Boolean> propLoaded = new PropertyHolder<Bool, Boolean>(PROP_WC_LOADED, new Bool(null), false) {
+            @Override
+            public boolean isValid() {
+                return !(getID() == null && !getWCStatus().equals(WCStatus.Absent));
+            }
+        };
+        model.addUserProp(propLoaded, Access.Any);
     }
     
     public final String getVersion() {
