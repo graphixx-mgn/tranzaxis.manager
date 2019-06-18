@@ -40,6 +40,7 @@ public class Repository extends Entity {
     static final int ERR_NOT_AVAILABLE = 210000;
     
     public final static String PROP_REPO_URL  = "repoUrl";
+    public final static String PROP_ARCHIVE   = "loadArchive";
     public final static String PROP_AUTH_MODE = "authMode";
     public final static String PROP_SVN_USER  = "svnUser";
     public final static String PROP_SVN_PASS  = "svnPass";
@@ -63,6 +64,7 @@ public class Repository extends Entity {
         
         // Properties
         model.addUserProp(PROP_REPO_URL,  new Str(null).setMask(new RegexMask("svn(|\\+[\\w]+)://[\\w\\./\\d]+", "Invalid SVN url")), true, null);
+        model.addUserProp(PROP_ARCHIVE,   new Bool(false), true, Access.Select);
         model.addUserProp(PROP_AUTH_MODE, new Enum(SVNAuth.None), false, Access.Select);
         model.addUserProp(svnUser, Access.Select);
         model.addUserProp(svnPass, Access.Select);
@@ -80,6 +82,7 @@ public class Repository extends Entity {
         model.getEditor(PROP_SVN_PASS).setVisible(getAuthMode(true) == SVNAuth.Password);
         
         // Handlers
+        lockEditors(!isLocked(false));
         model.addChangeListener((name, oldValue, newValue) -> {
            switch (name) {
                 case PROP_AUTH_MODE:
@@ -88,16 +91,30 @@ public class Repository extends Entity {
                     svnUser.setRequired(getAuthMode(true) == SVNAuth.Password);
                     svnPass.setRequired(getAuthMode(true) == SVNAuth.Password);
                     break;
+               case PROP_LOCKED:
+                   lockEditors(Boolean.FALSE.equals(newValue));
             }
         });
         
         setMode((isLocked(false) && getChildCount() > 0 ? INode.MODE_ENABLED : INode.MODE_NONE) + INode.MODE_SELECTABLE);
     }
+
+    private void lockEditors(boolean editable) {
+        model.getEditor(PROP_REPO_URL).setEditable(editable);
+        model.getEditor(PROP_ARCHIVE).setEditable(editable);
+        model.getEditor(PROP_AUTH_MODE).setEditable(editable);
+        model.getEditor(PROP_SVN_USER).setEditable(editable);
+        model.getEditor(PROP_SVN_PASS).setEditable(editable);
+    }
     
     public final String getRepoUrl() {
         return (String) model.getValue(PROP_REPO_URL);
     }
-    
+
+    public final Boolean isLoadArchive() {
+        return Boolean.TRUE.equals(model.getValue(PROP_ARCHIVE));
+    }
+
     public final SVNAuth getAuthMode(boolean unsaved) {
         return (SVNAuth) (unsaved ? model.getUnsavedValue(PROP_AUTH_MODE) : model.getValue(PROP_AUTH_MODE));
     }

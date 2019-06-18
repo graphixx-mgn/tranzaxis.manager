@@ -32,7 +32,7 @@ public abstract class RepositoryBranch extends Catalog {
     }
 
     private List<String> getDirectories() {
-        if (this.getClass().getAnnotation(Branch.class).hasArchive()) {
+        if (this.getClass().getAnnotation(Branch.class).hasArchive() && getRepository().isLoadArchive()) {
             return Arrays.asList(
                     this.getClass().getAnnotation(Branch.class).remoteDir(),
                     ARCHIVE_DIR + "/" + this.getClass().getAnnotation(Branch.class).remoteDir()
