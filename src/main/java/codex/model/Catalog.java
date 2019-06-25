@@ -36,9 +36,6 @@ public abstract class Catalog extends Entity {
 
     public void loadChildren() {
         Collection<String> childrenPIDs = getChildrenPIDs();
-        while (getChildCount() > 0) {
-            delete(getChildAt(0));
-        }
         if (!childrenPIDs.isEmpty()) {
             TES.quietTask(new LoadChildren(childrenPIDs) {
                 private int mode = getMode();
@@ -92,7 +89,9 @@ public abstract class Catalog extends Entity {
             EntityRef ownerRef = Entity.findOwner(Catalog.this);
             childrenPIDs.forEach((PID) -> {
                 Entity instance = Entity.newInstance(getChildClass(), ownerRef, PID);
-                insert(instance);
+                if (!childrenList().contains(instance)) {
+                    insert(instance);
+                }
             });
             return null;
         }
