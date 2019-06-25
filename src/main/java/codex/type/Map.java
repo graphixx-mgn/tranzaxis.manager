@@ -16,19 +16,19 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
 
     private final static IEditorFactory EDITOR_FACTORY = MapEditor::new;
 
-    private final Class<? extends ISerializableType<K, IMask<K>>> keyClass;
-    private final Class<? extends ISerializableType<V, IMask<V>>> valClass;
+    private final Class<? extends ISerializableType<K, ? extends IMask<K>>> keyClass;
+    private final Class<? extends ISerializableType<V, ? extends IMask<V>>> valClass;
     private final Class<?> valParamClass;
     private final Class<?> keyParamClass;
 
-    final ISerializableType<K, IMask<K>> dbKey;
-    final ISerializableType<V, IMask<V>> dbVal;
+    final ISerializableType<K, ? extends IMask<K>> dbKey;
+    final ISerializableType<V, ? extends IMask<V>> dbVal;
 
     private java.util.Map<K, V> value;
 
     public Map(
-            Class<? extends ISerializableType<K, IMask<K>>> keyClass,
-            Class<? extends ISerializableType<V, IMask<V>>> valClass,
+            Class<? extends ISerializableType<K, ? extends IMask<K>>> keyClass,
+            Class<? extends ISerializableType<V, ? extends IMask<V>>> valClass,
             java.util.Map<K, V> value) {
 
         if (IParametrized.class.isAssignableFrom(keyClass)) {
@@ -56,11 +56,11 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
         setValue(value);
     }
 
-    public Class<? extends ISerializableType<K, IMask<K>>> getKeyClass() {
+    public Class<? extends ISerializableType<K, ? extends IMask<K>>> getKeyClass() {
         return keyClass;
     }
 
-    public Class<? extends ISerializableType<V, IMask<V>>> getValClass() {
+    public Class<? extends ISerializableType<V, ? extends IMask<V>>> getValClass() {
         return valClass;
     }
 
@@ -69,7 +69,7 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
         return value;
     }
 
-    public java.util.Map.Entry<ISerializableType<K, IMask<K>>, ISerializableType<V, IMask<V>>> getEntry() {
+    public java.util.Map.Entry<ISerializableType<K, ? extends IMask<K>>, ISerializableType<V, ? extends IMask<V>>> getEntry() {
         return new AbstractMap.SimpleEntry<>(createKey(), createVal());
     }
 
@@ -87,10 +87,10 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
         return EDITOR_FACTORY;
     }
 
-    private ISerializableType<K, IMask<K>> createKey() {
+    private ISerializableType<K, ? extends IMask<K>> createKey() {
         try {
             if (IParametrized.class.isAssignableFrom(keyClass)) {
-                Constructor<? extends ISerializableType<K, IMask<K>>> ctor = keyClass.getDeclaredConstructor(Class.class);
+                Constructor<? extends ISerializableType<K, ? extends IMask<K>>> ctor = keyClass.getDeclaredConstructor(Class.class);
                 ctor.setAccessible(true);
                 return ctor.newInstance(keyParamClass);
             } else {
@@ -102,10 +102,10 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
         }
     }
 
-    private ISerializableType<V, IMask<V>> createVal() {
+    private ISerializableType<V, ? extends IMask<V>> createVal() {
         try {
             if (IParametrized.class.isAssignableFrom(valClass)) {
-                Constructor<? extends ISerializableType<V, IMask<V>>> ctor = valClass.getDeclaredConstructor(Class.class);
+                Constructor<? extends ISerializableType<V, ? extends IMask<V>>> ctor = valClass.getDeclaredConstructor(Class.class);
                 ctor.setAccessible(true);
                 return ctor.newInstance(valParamClass);
             } else {
