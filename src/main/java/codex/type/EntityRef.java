@@ -6,86 +6,34 @@ import codex.editor.EntityRefEditor;
 import codex.editor.IEditorFactory;
 import codex.mask.IMask;
 import codex.model.Entity;
-import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 /**
  * Тип-ссылка на сущность {@link Entity}.
  */
-public class EntityRef implements ISerializableType<Entity, IMask<Entity>> {
-    
-    /**
-     * Результат проверки сущностей на предмет соответствия условию.
-     */
-    public enum Match {
-        /**
-         * Точное совпадение.
-         */
-        Exact, 
-        /**
-         * Частичное совпадение.
-         */
-        About, 
-        /**
-         * Не совпадает.
-         */
-        None, 
-        /**
-         * Проверка не может быть выполнена.
-         */
-        Unknown
-    }
-    
+public class EntityRef<E extends Entity> implements ISerializableType<E, IMask<E>>, IParametrized {
+
     private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
 
-    private Class<? extends Entity> entityClass;
-    private Entity            entityInstance;
-    private Predicate<Entity> entityFilter;
-    private Function<Entity, Match> entityMatcher;
+    private Class<E> entityClass;
+    private E entityInstance;
+    private IMask<E> mask = value -> true;
     
     /**
      * Констуктор типа.
      * @param entityClass Класс сущности для поиска допустимых значений.
      */
-    public EntityRef(Class<? extends Entity> entityClass) {
-        this(entityClass, null);
-    }
-    
-    /**
-     * Констуктор типа.
-     * @param entityClass Класс сущности для поиска допустимых значений.
-     * @param entityFilter Пользовательский фильтр допустимых значений.
-     */
-    public EntityRef(Class<? extends Entity> entityClass, Predicate<Entity> entityFilter) {
-        this(entityClass, entityFilter, null);
-    }
-    
-    /**
-     * Констуктор типа.
-     * @param entityClass Класс сущности для поиска допустимых значений.
-     * @param entityFilter Пользовательский фильтр допустимых значений.
-     * @param entityMatcher Условие соответствия сущности. Используется для 
-     * подсветки цветом в выпадающем списке {@link EntityRefEditor}.
-     */
-    public EntityRef(Class<? extends Entity> entityClass, Predicate<Entity> entityFilter, Function<Entity, Match> entityMatcher) {
-        setEntityClass(entityClass, entityFilter, entityMatcher);
+    public EntityRef(Class<E> entityClass) {
+        setEntityClass(entityClass);
     }
     
     /**
      * Устанавливает класс сущности, используется редактором {@link EntityRefEditor}.
      * @param entityClass Класс сущности для поиска допустимых значений.
-     * @param entityFilter Опционально - задать фильтр сущностей, если не 
-     * требуется - указазать null.
-     * @param entityMatcher Условие соответствия сущности. Используется для 
-     * подсветки цветом в выпадающем списке {@link EntityRefEditor}.
      */
-    private void setEntityClass(Class<? extends Entity> entityClass, Predicate<Entity> entityFilter, Function<Entity, Match> entityMatcher) {
+    private void setEntityClass(Class<E> entityClass) {
         this.entityClass  = entityClass;
-        this.entityFilter = entityFilter != null ? entityFilter : (entity) -> true;
-        this.entityMatcher = entityMatcher != null ? entityMatcher : (entity) -> Match.Unknown;
     }
     
     /**
@@ -94,23 +42,9 @@ public class EntityRef implements ISerializableType<Entity, IMask<Entity>> {
     public final Class<? extends Entity> getEntityClass() {
         return entityClass;
     }
-    
-    /**
-     * Возвращает фильтр сущностей, используется редактором {@link EntityRefEditor}.
-     */
-    public final Predicate<Entity> getEntityFilter() {
-        return entityFilter;
-    }
-    
-    /**
-     * Возвращает условие проверки сущностей.
-     */
-    public final Function<Entity, Match> getEntityMatcher() {
-        return entityMatcher;
-    }
 
     @Override
-    public Entity getValue() {
+    public E getValue() {
         return entityInstance;
     }
     
@@ -122,7 +56,7 @@ public class EntityRef implements ISerializableType<Entity, IMask<Entity>> {
     }
 
     @Override
-    public void setValue(Entity value) {
+    public void setValue(E value) {
         entityInstance = value;
     }
     
@@ -133,9 +67,26 @@ public class EntityRef implements ISerializableType<Entity, IMask<Entity>> {
     
     @Override
     public IEditorFactory editorFactory() {
-        return (PropertyHolder propHolder) -> new EntityRefEditor(propHolder);
+        return EntityRefEditor::new;
     }
-    
+
+    /**
+     * Установить маску значения.
+     */
+    @Override
+    public EntityRef<E> setMask(IMask<E> mask) {
+        this.mask = mask;
+        return this;
+    }
+
+    /**
+     * Возвращает маску значения.
+     */
+    @Override
+    public IMask<E> getMask() {
+        return mask;
+    }
+
     @Override
     public String toString() {
         return entityInstance != null && entityInstance.getID() != null ? entityInstance.getID().toString() : "";
@@ -160,7 +111,7 @@ public class EntityRef implements ISerializableType<Entity, IMask<Entity>> {
      * @param entityClass Класс сущности.
      * @param entityId Идентификатор сущности в строковом виде.
      */
-    public static EntityRef build(Class<? extends Entity> entityClass, String entityId) {
+    public static <E extends Entity> EntityRef<E> build(Class<E> entityClass, String entityId) {
         return build(entityClass, entityId == null || entityId.isEmpty() ? null : Integer.valueOf(entityId));
     }
     
@@ -169,17 +120,18 @@ public class EntityRef implements ISerializableType<Entity, IMask<Entity>> {
      * @param entityClass Класс сущности.
      * @param entityId Идентификатор сущности.
      */
-    public static EntityRef build(Class<? extends Entity> entityClass, Integer entityId) {
+    @SuppressWarnings("unchecked")
+    public static <E extends Entity> EntityRef<E> build(Class<E> entityClass, Integer entityId) {
         if (entityClass != null && entityId != null && CAS.isInstanceExists(entityClass, entityId)) {
             Map<String, String> dbValues = CAS.readClassInstance(entityClass, entityId);
             
-            EntityRef ownerRef = null;
+            EntityRef<E> ownerRef = null;
             try {
-                ownerRef = build(CAS.getOwnerClass(entityClass), dbValues.get("OWN"));
+                ownerRef = build((Class<E>) CAS.getOwnerClass(entityClass), dbValues.get("OWN"));
             } catch (Exception e) {
                 //
             }
-            return Entity.newInstance(entityClass, ownerRef, dbValues.get("PID")).toRef();
+            return (EntityRef<E>) Entity.newInstance(entityClass, ownerRef, dbValues.get("PID")).toRef();
         }
         return null;
     }

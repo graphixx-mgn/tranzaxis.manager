@@ -7,46 +7,16 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.Objects;
 
-/**
- * Тип-обертка {@link IComplexType} для перечислений Enum.
- */
-public class Enum implements ISerializableType<java.lang.Enum, IMask<java.lang.Enum>> {
+public class Enum<T extends java.lang.Enum> implements ISerializableType<T, IMask<T>>, IParametrized {
+
+    private final static IEditorFactory EDITOR_FACTORY = EnumEditor::new;
 
     @Target({ElementType.FIELD})
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Undefined {}
-    
-    private final static IEditorFactory EDITOR_FACTORY = EnumEditor::new;
-    
-    private java.lang.Enum value;
-    
-    /**
-     * Конструктор типа.
-     * @param value Внутреннее хранимое значение.
-     */
-    public Enum(java.lang.Enum value) {
-        if (value == null) {
-            throw new IllegalStateException(MessageFormat.format("Type ''{0}'' does not support NULL value", this.getClass().getName()));
-        }
-        this.value = value;
-    }
-
-    @Override
-    public java.lang.Enum getValue() {
-        return value;
-    }
-
-    @Override
-    public void setValue(java.lang.Enum value) {
-        if (value == null) {
-            throw new IllegalStateException(MessageFormat.format("Type ''{0}'' does not support NULL value", this.getClass().getName()));
-        }
-        this.value = value;
-    }
-
     public static boolean isUndefined(java.lang.Enum value) {
         try {
             return value.getClass().getDeclaredField(value.name()).getAnnotation(Undefined.class) != null;
@@ -54,6 +24,26 @@ public class Enum implements ISerializableType<java.lang.Enum, IMask<java.lang.E
             //
         }
         return false;
+    }
+
+    private T value;
+
+    protected Enum(Class<T> enumClass) {
+        this(Arrays.stream(enumClass.getEnumConstants()).filter(val -> val.ordinal()==0).findFirst().get());
+    }
+
+    public Enum(T value) {
+        setValue(value);
+    }
+
+    @Override
+    public T getValue() {
+        return value;
+    }
+
+    @Override
+    public void setValue(T value) {
+        this.value = value;
     }
 
     @Override
@@ -65,7 +55,7 @@ public class Enum implements ISerializableType<java.lang.Enum, IMask<java.lang.E
     public IEditorFactory editorFactory() {
         return EDITOR_FACTORY;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         IComplexType complex = (IComplexType) obj;
@@ -78,20 +68,19 @@ public class Enum implements ISerializableType<java.lang.Enum, IMask<java.lang.E
         hash = 67 * hash + Objects.hashCode(this.value);
         return hash;
     }
-    
+
     @Override
     public String toString() {
         return value.name();
     }
-    
+
     @Override
     public void valueOf(String value) {
-        setValue(java.lang.Enum.valueOf(this.value.getClass(), value));
+        setValue((T) java.lang.Enum.valueOf(this.value.getClass().asSubclass(java.lang.Enum.class), value));
     }
-    
+
     @Override
     public String getQualifiedValue(java.lang.Enum val) {
         return val.name();
     }
-
 }
