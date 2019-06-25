@@ -20,6 +20,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     public  final static String PROP_NAME_SUFFIX = ".title";
     public  final static String PROP_DESC_SUFFIX = ".desc";
     public  final static String PROP_HOLD_SUFFIX = ".placeholder";
+    public  final static String TYPE_HOLD_KEY    = "placeholder";
     
     private final String  name;
     private final String  title;
@@ -71,7 +72,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
         this.value   = value;
         
         String propPlaceHolder = Language.lookup(name+PROP_HOLD_SUFFIX);
-        String typePlaceHolder = Language.lookup(PROP_HOLD_SUFFIX);
+        String typePlaceHolder = Language.get(value.getClass(), TYPE_HOLD_KEY);
         
         this.placeholder = 
                 Language.NOT_FOUND.equals(propPlaceHolder) ? (
