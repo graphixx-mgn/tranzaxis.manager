@@ -37,7 +37,7 @@ public class MapEditor<K, V> extends AbstractEditor {
 
     private JTextField textField;
     private EditMode mode = EditMode.ModifyAllowed;
-    private java.util.Map<ISerializableType<K, IMask<K>>, ISerializableType<V, IMask<V>>> internalValue;
+    private java.util.Map<ISerializableType<K, ? extends IMask<K>>, ISerializableType<V, ? extends IMask<V>>> internalValue;
 
     public MapEditor(PropertyHolder propHolder) {
         super(propHolder);
@@ -86,7 +86,7 @@ public class MapEditor<K, V> extends AbstractEditor {
 
         Map<K, V> map = (Map<K, V>) propHolder.getOwnPropValue();
         map.getValue().forEach((k, v) -> {
-            java.util.Map.Entry<ISerializableType<K, IMask<K>>, ISerializableType<V, IMask<V>>> entry = map.getEntry();
+            java.util.Map.Entry<ISerializableType<K, ? extends IMask<K>>, ISerializableType<V, ? extends IMask<V>>> entry = map.getEntry();
             entry.getKey().setValue(k);
             entry.getValue().setValue(v);
             internalValue.put(entry.getKey(), entry.getValue());
@@ -108,7 +108,7 @@ public class MapEditor<K, V> extends AbstractEditor {
 
     public java.util.Map.Entry<PropertyHolder, PropertyHolder> createHolderEntry() {
         Map<K, V> map = (Map<K, V>) propHolder.getOwnPropValue();
-        java.util.Map.Entry<ISerializableType<K, IMask<K>>, ISerializableType<V, IMask<V>>> entry = map.getEntry();
+        java.util.Map.Entry<ISerializableType<K, ? extends IMask<K>>, ISerializableType<V, ? extends IMask<V>>> entry = map.getEntry();
         return new AbstractMap.SimpleEntry<>(
                 new PropertyHolder<>("key", entry.getKey(), true),
                 new PropertyHolder<>("val", entry.getValue(), true)
