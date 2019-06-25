@@ -3,118 +3,132 @@ package codex.type;
 import codex.editor.MapEditor;
 import codex.editor.IEditorFactory;
 import codex.mask.IMask;
-import codex.property.PropertyHolder;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
+import java.text.MessageFormat;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
-//import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
+public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<java.util.Map<K, V>>> {
 
-public class Map<K extends IComplexType, V extends IComplexType> implements ISerializableType<java.util.Map<K, V>, IMask<java.util.Map<K, V>>> {
-    
-    private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
-        return new MapEditor(propHolder);
-    };
-    
-    java.util.Map<K, V> value;
-    private final Class<K> keyClass;
-    private final Class<V> valClass;
-    private final Object   defKeyObject, defValObject;
-    
-    
-    public Map(Class<K> keyClass, Class<V> valClass, java.util.Map<K, V> value) {
-        this(keyClass, valClass, value, null, null);
-    }
-    
-    public Map(Class<K> keyClass, Class<V> valClass, java.util.Map<K, V> value, Object defKeyObject, Object defValObject) {
-        this.keyClass = keyClass;
-        this.valClass = valClass;
-        
-        if (value != null) {
-            this.value = new LinkedHashMap<>(value);
+    private final static IEditorFactory EDITOR_FACTORY = MapEditor::new;
+
+    private final Class<? extends ISerializableType<K, IMask<K>>> keyClass;
+    private final Class<? extends ISerializableType<V, IMask<V>>> valClass;
+    private final Class<?> valParamClass;
+    private final Class<?> keyParamClass;
+
+    final ISerializableType<K, IMask<K>> dbKey;
+    final ISerializableType<V, IMask<V>> dbVal;
+
+    private java.util.Map<K, V> value;
+
+    public Map(
+            Class<? extends ISerializableType<K, IMask<K>>> keyClass,
+            Class<? extends ISerializableType<V, IMask<V>>> valClass,
+            java.util.Map<K, V> value) {
+
+        if (IParametrized.class.isAssignableFrom(keyClass)) {
+            //noinspection unchecked
+            this.keyClass = ((Class<? extends ISerializableType<K, IMask<K>>>) ((ParameterizedType) keyClass.getGenericSuperclass()).getRawType());
+            this.keyParamClass = ((Class<?>) ((ParameterizedType) keyClass.getGenericSuperclass()).getActualTypeArguments()[0]);
         } else {
-            this.value = null;
+            this.keyClass = keyClass;
+            this.keyParamClass = null;
         }
-        if (valClass.isAssignableFrom(Enum.class) && defValObject == null) {
-            throw new IllegalStateException("Value type is enum. Default value must be defined");
+        if (IParametrized.class.isAssignableFrom(valClass)) {
+            //noinspection unchecked
+            this.valClass = ((Class<? extends ISerializableType<V, IMask<V>>>) ((ParameterizedType) valClass.getGenericSuperclass()).getRawType());
+            this.valParamClass = ((Class<?>) ((ParameterizedType) valClass.getGenericSuperclass()).getActualTypeArguments()[0]);
+        } else {
+            this.valClass = valClass;
+            this.valParamClass = null;
         }
-        if (keyClass.isAssignableFrom(Enum.class) && defKeyObject == null) {
-            throw new IllegalStateException("Key type is enum. Default value must be defined");
-        }
-        this.defKeyObject = defKeyObject;
-        this.defValObject = defValObject;
+
+        dbKey = createKey();
+        dbVal = createVal();
+        if (dbKey == null) throw new InstantiationError("Unable to create key wrapping class instance: "+keyClass);
+        if (dbVal == null) throw new InstantiationError("Unable to create value wrapping class instance: "+valClass);
+
+        setValue(value);
     }
-    
-    public Class<K> getKeyClass() {
+
+    public Class<? extends ISerializableType<K, IMask<K>>> getKeyClass() {
         return keyClass;
     }
-    
-    public Class<V> getValClass() {
+
+    public Class<? extends ISerializableType<V, IMask<V>>> getValClass() {
         return valClass;
     }
 
     @Override
     public java.util.Map<K, V> getValue() {
-        return value == null ? null : new LinkedHashMap<K, V>(value) {
-            @Override
-            public V put(K key, V value) {
-                return Map.this.value.containsKey(key) ? null : Map.this.value.put(key, value);
-            }
-        };
+        return value;
+    }
+
+    public java.util.Map.Entry<ISerializableType<K, IMask<K>>, ISerializableType<V, IMask<V>>> getEntry() {
+        return new AbstractMap.SimpleEntry<>(createKey(), createVal());
     }
 
     @Override
     public void setValue(java.util.Map<K, V> value) {
-        if (value != null && !value.isEmpty()) {
+        if (value != null) {
             this.value = new LinkedHashMap<>(value);
         } else {
-            this.value = null;
+            this.value = new LinkedHashMap<>();
         }
     }
-    
+
     @Override
     public IEditorFactory editorFactory() {
         return EDITOR_FACTORY;
     }
-    
-    @Override
-    public String toString() {
-        return value == null ? "" : value.toString();
-    }
-    
-    @Override
-    public boolean equals(Object obj) {
-        IComplexType complex = (IComplexType) obj;
-        return (complex.getValue() == null ? getValue() == null : complex.getValue().equals(getValue()));
+
+    private ISerializableType<K, IMask<K>> createKey() {
+        try {
+            if (IParametrized.class.isAssignableFrom(keyClass)) {
+                Constructor<? extends ISerializableType<K, IMask<K>>> ctor = keyClass.getDeclaredConstructor(Class.class);
+                ctor.setAccessible(true);
+                return ctor.newInstance(keyParamClass);
+            } else {
+                return keyClass.getConstructor().newInstance();
+            }
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
-    @Override
-    public int hashCode() {
-        int hash = 3;
-        hash = 67 * hash + Objects.hashCode(this.value);
-        return hash;
+    private ISerializableType<V, IMask<V>> createVal() {
+        try {
+            if (IParametrized.class.isAssignableFrom(valClass)) {
+                Constructor<? extends ISerializableType<V, IMask<V>>> ctor = valClass.getDeclaredConstructor(Class.class);
+                ctor.setAccessible(true);
+                return ctor.newInstance(valParamClass);
+            } else {
+                return valClass.getConstructor().newInstance();
+            }
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
     public void valueOf(String value) {
-        final Class keyInternalType = (Class) ((ParameterizedType) keyClass.getGenericInterfaces()[0]).getActualTypeArguments()[0];
-        final Class valInternalType = (Class) ((ParameterizedType) valClass.getGenericInterfaces()[0]).getActualTypeArguments()[0];
-        
-        Arrays.asList(value.replaceAll("^\\{(.*)\\}$", "$1").split(", ", -1)).stream()
+        this.value.clear();
+        Arrays.stream(value.replaceAll("^\\{(.*)\\}$", "$1").split(", ", -1))
                 .map(pair -> pair.split("="))
-                .collect(Collectors.toMap(
-                        e->e[0], 
-                        e->e[1]
-                ))
-                .forEach((keyStr, valStr) -> {
+                .forEachOrdered(pair -> {
                     try {
-                        K dbKey = (K) keyClass.getConstructor(new Class[] {keyInternalType}).newInstance(new Object[] {defKeyObject});
-                        dbKey.valueOf(keyStr);
-                        V dbVal = (V) valClass.getConstructor(new Class[] {valInternalType}).newInstance(new Object[] {defValObject});
-                        dbVal.valueOf(valStr);
-                        this.value.put(dbKey, dbVal);
+                        if (dbKey != null) dbKey.valueOf(pair[0]);
+                        if (dbVal != null) dbVal.valueOf(pair[1]);
+                        if (dbKey != null) {
+                            this.value.put(dbKey.getValue(), dbVal == null ? null : dbVal.getValue());
+                        }
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -123,15 +137,15 @@ public class Map<K extends IComplexType, V extends IComplexType> implements ISer
 
     @Override
     public String getQualifiedValue(java.util.Map<K, V> val) {
-        return val == null ? "<NULL>" : new StringBuilder().append("[")
-            .append(val.entrySet().stream()
-                .map((entry) -> {
-                    return 
-                            entry.getKey().getQualifiedValue(entry.getKey().getValue())
-                            .concat("=")
-                            .concat(entry.getValue().getQualifiedValue(entry.getValue().getValue()));
-                }).collect(Collectors.joining(","))
-            ).append("]").toString();
+        return val == null || val.isEmpty() ? "<NULL>" : MessageFormat.format(
+                "[{0}]",
+                val.entrySet().stream()
+                        .map(kvEntry -> MessageFormat.format(
+                                "{0}={1}",
+                                dbKey.getQualifiedValue(kvEntry.getKey()),
+                                dbVal.getQualifiedValue(kvEntry.getValue()))
+                        )
+                        .collect(Collectors.joining(", "))
+        );
     }
-
 }
