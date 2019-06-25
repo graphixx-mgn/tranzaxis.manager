@@ -1,5 +1,6 @@
 package codex.notification;
 
+import codex.editor.MapEditor;
 import codex.model.Access;
 import codex.service.LocalServiceOptions;
 import codex.type.EntityRef;
@@ -11,20 +12,21 @@ import java.util.LinkedHashMap;
 
 public class NotifyServiceOptions extends LocalServiceOptions {
     
-    public  final static String PROP_SOURCES   = "sources";
+    private final static String PROP_SOURCES = "sources";
     
     public NotifyServiceOptions(EntityRef owner, String title) {
         super(owner, title);
         setIcon(ImageUtils.getByPath("/images/notify.png"));
         
-        model.addUserProp(PROP_SOURCES, 
-                new Map(Str.class, Enum.class, new LinkedHashMap<>(), null, NotifyCondition.NEVER), 
+        model.addUserProp(PROP_SOURCES,
+                new Map<>(Str.class, new Enum<NotifyCondition>(NotifyCondition.class){}.getClass(), new LinkedHashMap<>()),
                 false, Access.Select
         );
+        ((MapEditor) model.getEditor(PROP_SOURCES)).setMode(MapEditor.EditMode.ModifyPermitted);
     }
     
-    public final java.util.Map<Str, Enum> getSources() {
-        return (java.util.Map<Str, Enum>) model.getValue(PROP_SOURCES);
+    public final java.util.Map<String, NotifyCondition> getSources() {
+        return (java.util.Map<String, NotifyCondition>) model.getValue(PROP_SOURCES);
     }
     
 }

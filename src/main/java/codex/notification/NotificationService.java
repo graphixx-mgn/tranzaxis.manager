@@ -2,9 +2,6 @@ package codex.notification;
 
 import codex.log.Logger;
 import codex.service.AbstractService;
-import codex.type.Enum;
-import codex.type.Str;
-
 import java.awt.*;
 import java.awt.event.AWTEventListener;
 import static java.awt.event.WindowEvent.WINDOW_OPENED;
@@ -47,23 +44,22 @@ public class NotificationService extends AbstractService<NotifyServiceOptions> i
     
     @Override
     public void registerSource(String source, NotifyCondition condition) {
-        getConfig().getSources().put(new Str(source), new Enum(condition));
+        getConfig().getSources().put(source, condition);
         Logger.getLogger().debug("NSS: Registered notification source: ''{0}''", source);
     }
 
     @Override
     public void showMessage(String source, String title, String details, TrayIcon.MessageType type) {
         if (trayIcon != null) {
-            Optional<Str> knownSource = getConfig().getSources().keySet().stream().filter((key) -> {
-                return key.getValue().equals(source);
-            }).findFirst();
+            Optional<String> knownSource = getConfig().getSources().keySet().stream()
+                    .filter((key) -> key.equals(source)).findFirst();
 
             if (!knownSource.isPresent()) {
                 Logger.getLogger().warn("NSS: Unknown notification source: ''{0}''", source);
                 return;
             }
 
-            NotifyCondition condition = (NotifyCondition) getConfig().getSources().get(knownSource.get()).getValue();
+            NotifyCondition condition = getConfig().getSources().get(knownSource.get());
             if (condition.getCondition().get()) {
                 trayIcon.displayMessage(title, details, type);
             }

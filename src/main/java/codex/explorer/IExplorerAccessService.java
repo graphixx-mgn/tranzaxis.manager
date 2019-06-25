@@ -20,7 +20,7 @@ public interface IExplorerAccessService extends IService {
      * Возвращает список сущностей с заданным классом.
      * @param entityClass Класс сущности.
      */
-    default List<Entity> getEntitiesByClass(Class<? extends Entity> entityClass) {
+    default List<? extends Entity> getEntitiesByClass(Class<? extends Entity> entityClass) {
         return null;
     }
     

@@ -10,12 +10,12 @@ import javax.swing.ImageIcon;
 
 public enum NotifyCondition implements Iconified {
     
-    ALWAYS(ImageUtils.resize(ImageUtils.getByPath("/images/lamp.png"), 17, 17), () -> true),
-    INACTIVE(ImageUtils.resize(ImageUtils.getByPath("/images/event.png"), 17, 17), () -> {
+    ALWAYS(ImageUtils.getByPath("/images/lamp.png"), () -> true),
+    INACTIVE(ImageUtils.getByPath("/images/event.png"), () -> {
         Window wnd = FocusManager.getCurrentManager().getActiveWindow();
         return wnd == null || !wnd.isActive();
     }),
-    NEVER(ImageUtils.resize(ImageUtils.getByPath("/images/close.png"), 17, 17), () -> false);
+    NEVER(ImageUtils.getByPath("/images/close.png"), () -> false);
 
     private final String    title;
     private final ImageIcon icon;

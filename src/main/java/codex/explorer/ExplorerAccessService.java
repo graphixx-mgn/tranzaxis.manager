@@ -27,7 +27,7 @@ public class ExplorerAccessService implements IExplorerAccessService {
     }
 
     @Override
-    public List<Entity> getEntitiesByClass(Class<? extends Entity> entityClass) {
+    public List<? extends Entity> getEntitiesByClass(Class<? extends Entity> entityClass) {
         return getRoot()
                 .flattened()
                 .filter((node) -> entityClass.isAssignableFrom(node.getClass()))
