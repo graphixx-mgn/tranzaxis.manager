@@ -5,20 +5,19 @@ import codex.component.render.GeneralRenderer;
 import codex.explorer.ExplorerAccessService;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
+import codex.mask.EntityFilter;
+import codex.mask.IRefMask;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Font;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -53,9 +52,7 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener, I
                 comboBox.removeAllItems();
                 
                 comboBox.addItem(new NullValue());
-                getValues().forEach((item) -> {
-                    comboBox.addItem(item);
-                });
+                getValues().forEach((item) -> comboBox.addItem(item));
                 comboBox.setSelectedItem(comboBox.getItemAt(0));
                 
                 comboBox.addActionListener(this);
@@ -63,13 +60,15 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener, I
         });
     }
     
-    protected List<Object> getValues() {
-        Class<? extends Entity> entityClass  = ((EntityRef) propHolder.getPropValue()).getEntityClass();
-        Predicate<Entity> entityFilter = ((EntityRef) propHolder.getPropValue()).getEntityFilter();
+    @SuppressWarnings("unchecked")
+    protected List<Entity> getValues() {
+        EntityRef<Entity> ref = (EntityRef<Entity>) propHolder.getPropValue();
+        Class<? extends Entity> entityClass = ref.getEntityClass();
         ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+
         return entityClass != null ? EAS.getEntitiesByClass(entityClass)
                     .stream()
-                    .filter(entityFilter)
+                    .filter(entity -> ref.getMask().verify(entity))
                     .collect(Collectors.toList())
             : new LinkedList<>();
     }
@@ -123,9 +122,9 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener, I
             @Override
             public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean hasFocus) {
                 Component component = super.getListCellRendererComponent(list, value, index, isSelected, hasFocus);
-                Function<Entity, EntityRef.Match> entityMatcher = ((EntityRef) propHolder.getPropValue()).getEntityMatcher();
-                if (entityMatcher != null && value instanceof Entity) {
-                    EntityRef.Match match = entityMatcher.apply((Entity) value);
+                if (Entity.class.isAssignableFrom(value.getClass())) {
+                    IRefMask<Entity> mask = ((EntityRef) propHolder.getPropValue()).getMask();
+                    EntityFilter.Match match = mask.getEntityMatcher().apply((Entity) value);
                     switch (match) {
                         case Exact:
                             component.setForeground(Color.decode("#1C5F0A"));
@@ -174,17 +173,17 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener, I
         comboBox.removeActionListener(EntityRefEditor.this);
         comboBox.removeAllItems();
 
-        List<Object> values = getValues();
+        List<Entity> values = getValues();
 
         comboBox.addItem(new NullValue());
-        values.forEach((item) -> {
+        values.forEach((entity) -> {
             if (propHolder.getPropValue().getValue() != null &&
-                    ((Entity) item).getPID().equals(((Entity) propHolder.getPropValue().getValue()).getPID())) 
+                    entity.getPID().equals(((Entity) propHolder.getPropValue().getValue()).getPID()))
             {
                 comboBox.addItem(propHolder.getPropValue().getValue());
                 setValue(propHolder.getPropValue().getValue());
             } else {
-                comboBox.addItem(item);
+                comboBox.addItem(entity);
             }
         });
         if (propHolder.getPropValue().getValue() != null && !values.contains(propHolder.getPropValue().getValue())) {
@@ -192,13 +191,12 @@ public class EntityRefEditor extends AbstractEditor implements ActionListener, I
             setValue(propHolder.getPropValue().getValue());
         }
         if (propHolder.getPropValue().getValue() == null) {
-            Function<Entity, EntityRef.Match> entityMatcher = ((EntityRef) propHolder.getPropValue()).getEntityMatcher();
-            Object suitable = values.stream().filter((entity) -> {
-                return entityMatcher.apply((Entity) entity) == EntityRef.Match.Exact;
-            }).findFirst().orElse(null);
-            if (suitable != null) {
-                comboBox.setSelectedItem(suitable);
-            }
+            IRefMask<Entity> mask = ((EntityRef) propHolder.getPropValue()).getMask();
+            Function<Entity, EntityFilter.Match> entityMatcher = mask.getEntityMatcher();
+            values.stream()
+                    .filter((entity) -> entityMatcher.apply(entity) == EntityFilter.Match.Exact)
+                    .findFirst()
+                    .ifPresent(entity -> comboBox.setSelectedItem(entity));
         }
         comboBox.addActionListener(EntityRefEditor.this);
     }
