@@ -4,7 +4,7 @@ import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.editor.EntityRefEditor;
 import codex.editor.IEditorFactory;
-import codex.mask.IMask;
+import codex.mask.IRefMask;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import java.util.Map;
@@ -12,13 +12,13 @@ import java.util.Map;
 /**
  * Тип-ссылка на сущность {@link Entity}.
  */
-public class EntityRef<E extends Entity> implements ISerializableType<E, IMask<E>>, IParametrized {
+public class EntityRef<E extends Entity> implements ISerializableType<E, IRefMask<E>>, IParametrized {
 
     private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
 
     private Class<E> entityClass;
     private E entityInstance;
-    private IMask<E> mask = value -> true;
+    private IRefMask<E> mask = value -> true;
     
     /**
      * Констуктор типа.
@@ -74,7 +74,7 @@ public class EntityRef<E extends Entity> implements ISerializableType<E, IMask<E
      * Установить маску значения.
      */
     @Override
-    public EntityRef<E> setMask(IMask<E> mask) {
+    public EntityRef<E> setMask(IRefMask<E> mask) {
         this.mask = mask;
         return this;
     }
@@ -83,7 +83,7 @@ public class EntityRef<E extends Entity> implements ISerializableType<E, IMask<E
      * Возвращает маску значения.
      */
     @Override
-    public IMask<E> getMask() {
+    public IRefMask<E> getMask() {
         return mask;
     }
 
