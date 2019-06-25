@@ -16,14 +16,14 @@ public abstract class AbstractNode implements INode {
     
     private INode parent = null; 
     private int   mode   = MODE_ENABLED + MODE_SELECTABLE;
-    private final List<INode>         children = new ArrayList<>();
+    private final List<INode>         children = Collections.synchronizedList(new LinkedList<>());
     private final List<INodeListener> nodeListeners = new LinkedList<>();
     
     /**
      * Возвращает перечисление потомков узла.
      */
     @Override
-    public synchronized final Enumeration children() {
+    public final Enumeration children() {
         return Collections.enumeration(new ArrayList<>(children));
     }
     
@@ -98,33 +98,27 @@ public abstract class AbstractNode implements INode {
     }
     
     @Override
-    public synchronized void insert(INode child) {
+    public void insert(INode child) {
         child.setParent(this);
         children.add(child);
-        new LinkedList<>(nodeListeners).forEach((listener) -> {
-            listener.childInserted(this, child);
-        });
+        new LinkedList<>(nodeListeners).forEach((listener) -> listener.childInserted(this, child));
     }
     
     @Override
-    public synchronized void move(INode child, int position) {
+    public void move(INode child, int position) {
         if (position >= 0 && position < children.size() && getIndex(child) != position) {
             children.remove(child);
             children.add(position, child);
-            new LinkedList<>(nodeListeners).forEach((listener) -> {
-                listener.childMoved(this, child);
-            });
+            new LinkedList<>(nodeListeners).forEach((listener) -> listener.childMoved(this, child));
         }
     }
 
     @Override
-    public synchronized void delete(INode child) {
+    public void delete(INode child) {
         int index = children.indexOf(child);
         children.remove(child);
         child.setParent(null);
-        new LinkedList<>(nodeListeners).forEach((listener) -> {
-            listener.childDeleted(this, child, index);
-        });
+        new LinkedList<>(nodeListeners).forEach((listener) -> listener.childDeleted(this, child, index));
     }
     
     private Semaphore lock;
