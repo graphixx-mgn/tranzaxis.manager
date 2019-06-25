@@ -12,18 +12,20 @@ import java.util.Objects;
  */
 public class Bool implements ISerializableType<Boolean, IMask<Boolean>> {
 
-    private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
-        return new BoolEditor(propHolder);
-    };
+    private final static IEditorFactory EDITOR_FACTORY = BoolEditor::new;
     
     private Boolean value;
+
+    public Bool() {
+        this(null);
+    }
     
     /**
      * Конструктор типа.
      * @param value Внутреннее хранимое значение.
      */
     public Bool(Boolean value) {
-        this.value = value;
+        this.value = Boolean.TRUE.equals(value);
     }
 
     @Override
@@ -56,7 +58,7 @@ public class Bool implements ISerializableType<Boolean, IMask<Boolean>> {
     
     @Override
     public String toString() {
-        return value == true ? "1" : "0";
+        return value ? "1" : "0";
     }
     
     @Override
@@ -66,7 +68,7 @@ public class Bool implements ISerializableType<Boolean, IMask<Boolean>> {
     
     @Override
     public String getQualifiedValue(Boolean val) {
-        return val == null ? "<NULL>" : MessageFormat.format("<{0}>", val == true ? "TRUE" : "FALSE");
+        return val == null ? "<NULL>" : MessageFormat.format("<{0}>", val ? "TRUE" : "FALSE");
     }
     
 }

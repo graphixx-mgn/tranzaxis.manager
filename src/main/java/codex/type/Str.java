@@ -3,7 +3,6 @@ package codex.type;
 import codex.editor.IEditorFactory;
 import codex.editor.StrEditor;
 import codex.mask.IMask;
-import codex.property.PropertyHolder;
 import java.text.MessageFormat;
 import java.util.Objects;
 
@@ -12,12 +11,14 @@ import java.util.Objects;
  */
 public class Str implements ISerializableType<String, IMask<String>> {
     
-    private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
-        return new StrEditor(propHolder);
-    };
+    private final static IEditorFactory EDITOR_FACTORY = StrEditor::new;
     
     private String value;
     private IMask<String> mask;
+
+    public Str() {
+        this(null);
+    }
     
     /**
      * Конструктор типа.
@@ -52,7 +53,7 @@ public class Str implements ISerializableType<String, IMask<String>> {
      * Установить маску значения.
      */
     @Override
-    public ISerializableType setMask(IMask<String> mask) {
+    public ISerializableType<String, IMask<String>> setMask(IMask<String> mask) {
         this.mask = mask;
         return this;
     }

@@ -44,7 +44,7 @@ public class FilePath implements ISerializableType<Path, IPathMask> {
      * Установить маску значения.
      */
     @Override
-    public ISerializableType<Path, IPathMask> setMask(IPathMask mask) {
+    public FilePath setMask(IPathMask mask) {
         this.mask = mask;
         return this;
     }

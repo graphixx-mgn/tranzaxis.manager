@@ -26,13 +26,13 @@ public interface IComplexType<T, M extends IMask<T>> extends Serializable {
      * Получить экземпляр базового Java класса или интерфейса 
      * @return Object Внутреннее значение, соответствующее типу параметра класса.
      */
-    public T getValue();
+    T getValue();
     
     /**
      * Установить внутреннее значение.
      * @param value Новое значение, соответствующее типу параметра класса.
      */
-    public void setValue(T value);
+    void setValue(T value);
     
     /**
      * Проверить установлено ли значение свойства. Понятие "пустое значение" при 
@@ -45,23 +45,23 @@ public interface IComplexType<T, M extends IMask<T>> extends Serializable {
     /**
      * Установить маску значения.
      */
-    default public IComplexType setMask(M mask) {
+    default IComplexType<T, M> setMask(M mask) {
         return this;
     }
     
     /**
      * Возвращает маску значения.
      */
-    default public M getMask() {
+    default M getMask() {
         return null;
-    };
+    }
     
     /**
      * Фабричный метод возвращает фабрику редакторов свойств данного типа 
      * (конечной реализации).
      * @return Реализация интерфейса фабрики {@link IEditorFactory}
      */
-    default public IEditorFactory editorFactory() {
+    default IEditorFactory editorFactory() {
         return (PropertyHolder propHolder) -> new AbstractEditor(propHolder) {
             
             @Override
@@ -88,12 +88,12 @@ public interface IComplexType<T, M extends IMask<T>> extends Serializable {
     /**
      * Создание значения типа из строкового представления.
      */
-    public void valueOf(String value);
+    void valueOf(String value);
     
     /**
      * Возврашает строковое представление для использования при логировании.
      */
-    abstract String getQualifiedValue(T val);
+    String getQualifiedValue(T val);
     
     /**
      * Аналог функции COALESCE (расширенная версия NVL) в Oracle, перебирает 
@@ -102,7 +102,7 @@ public interface IComplexType<T, M extends IMask<T>> extends Serializable {
      * @param values Набор однотипных аргументов произвольной длины.
      * @return Первый не NULL или NULL если такого не нашлось.
      */
-    static public <T> T coalesce(final T... values) {
+    static <T> T coalesce(final T... values) {
         if (values != null) {
             for (T value : values) 
                 if (value != null)
@@ -117,7 +117,7 @@ public interface IComplexType<T, M extends IMask<T>> extends Serializable {
      * @param values Набор однотипных аргументов произвольной длины.
      * @return TRUE, если все аргументы != NULL, иначе FALSE.
      */
-    static public <T> boolean notNull(final T... values) {
+    static <T> boolean notNull(final T... values) {
         if (values != null) {
             for (T value : values)
                 if (value == null)

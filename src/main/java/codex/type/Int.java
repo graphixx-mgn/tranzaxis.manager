@@ -3,7 +3,6 @@ package codex.type;
 import codex.editor.IEditorFactory;
 import codex.editor.IntEditor;
 import codex.mask.IMask;
-import codex.property.PropertyHolder;
 import java.util.Objects;
 
 /**
@@ -11,12 +10,14 @@ import java.util.Objects;
  */
 public class Int implements ISerializableType<Integer, IMask<Integer>> {
     
-    private final static IEditorFactory EDITOR_FACTORY = (PropertyHolder propHolder) -> {
-        return new IntEditor(propHolder);
-    };
+    private final static IEditorFactory EDITOR_FACTORY = IntEditor::new;
     
     private Integer value;
-    
+
+    public Int() {
+        this(null);
+    }
+
     /**
      * Конструктор типа.
      * @param value Внутреннее хранимое значение.
