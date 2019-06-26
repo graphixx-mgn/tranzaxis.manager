@@ -8,6 +8,7 @@ import codex.model.IModelListener;
 import codex.model.ParamModel;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
+import codex.supplier.IDataSupplier;
 import codex.task.ITask;
 import codex.task.ITaskExecutorService;
 import codex.task.ITaskListener;
@@ -21,6 +22,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Абстрактная реализация команд сущности {@link Entity}.
@@ -252,16 +254,16 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     /**
      * Получение вызов диалога заполнения параметров и возврат значений.
      */
-    public final Map<String, IComplexType> getParameters() {
-        PropertyHolder[] params = provider.get();
-        if (params.length == 0) {
-            return new HashMap<>();
-        }
-        ParametersDialog paramDialog = new ParametersDialog(this, provider);
-        try {
-            return paramDialog.call();
-        } catch (Exception e) {
-            return null;
+    public final Map<String, IComplexType> getParameters() throws IDataSupplier.NoDataAvailable {
+        IDataSupplier<PropertyHolder> paramSupplier = new ParametersDialog(this, provider);
+        if (paramSupplier.ready()) {
+            return paramSupplier.get().stream()
+                    .collect(Collectors.toMap(
+                            PropertyHolder::getName,
+                            PropertyHolder::getOwnPropValue
+                    ));
+        } else {
+            return Collections.emptyMap();
         }
     }
 
@@ -275,10 +277,12 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
             Logger.getLogger().debug("Perform contextless command [{0}]", getName());
             execute(null, null);
         } else {
-            final Map<String, IComplexType> params = getParameters();
-            if (params != null) {
+            try {
+                final Map<String, IComplexType> params = getParameters();
                 Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), context);
                 context.forEach(entity -> execute(entity, params));
+            } catch (IDataSupplier.NoDataAvailable e) {
+                // Do not call command
             }
         }
         activate();
