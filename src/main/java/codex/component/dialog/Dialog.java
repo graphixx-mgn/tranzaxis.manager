@@ -204,7 +204,7 @@ public class Dialog extends JDialog {
         // Установка обработчика закрытия окна
         addWindowListener(new WindowAdapter() {
             @Override
-            public void windowClosed(WindowEvent e) {
+            public void windowClosing(WindowEvent e) {
                 handler.apply(null).actionPerformed(new ActionEvent(this, EXIT, null));
             }
         });
