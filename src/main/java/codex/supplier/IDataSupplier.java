@@ -1,18 +1,19 @@
 package codex.supplier;
 
-import java.util.concurrent.Callable;
+import java.util.List;
 
 /**
  * Базовый интерфейс поставщика данных.
  * @param <T> Тип возвращаемого поставщиком значения.
  */
-public interface IDataSupplier<T> extends Callable<T> {
+public interface IDataSupplier<T> {
 
-    /**
-     * Возвращает флаг показывающий готовность поставщика к запросу данных.
-     */
-    default boolean isReady() {
-        return true;
+    boolean ready();
+    default boolean available() {
+        return false;
     }
-    
+    List<T> get() throws NoDataAvailable;
+
+
+    class NoDataAvailable extends Exception {}
 }
