@@ -162,13 +162,14 @@ class CheckCache extends AbstractTask<Void> {
                 release.getLock().release();
             }
         }
-        Arrays.asList(planningTasks).forEach(TES::enqueueTask);
         return null;
     }
 
     @Override
     public void finished(Void result) {
-
+        if (!isFailed() && !isCancelled()) {
+            Arrays.asList(planningTasks).forEach(TES::enqueueTask);
+        }
     }
 
     private Map<Path, IndexEntryFile> indexCache(final Map<Path, String> mapLocalToRemote, final ISVNAuthenticationManager authMgr) {
