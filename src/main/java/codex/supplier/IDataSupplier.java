@@ -8,6 +8,8 @@ import java.util.List;
  */
 public interface IDataSupplier<T> {
 
+    Integer DEFAULT_LIMIT = 100;
+
     boolean ready();
     default boolean available() {
         return false;
