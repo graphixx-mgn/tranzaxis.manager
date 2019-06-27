@@ -37,7 +37,11 @@ public class EntityFilter<E extends Entity> implements IRefMask<E> {
 
     @Override
     public boolean verify(E value) {
-        return entityFilter.test(value);
+        try {
+            return entityFilter.test(value);
+        } catch (ClassCastException e) {
+            return false;
+        }
     }
 
 
