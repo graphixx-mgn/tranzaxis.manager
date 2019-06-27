@@ -91,6 +91,12 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
             rowSet.execute();
             return rowSet;
         } catch (SQLException e) {
+            if (!getConfig().isShowSQL()) {
+                Logger.getLogger().debug(
+                        "OAS: Select query: {0} (connection #{1})",
+                        IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
+                );
+            }
             throw new SQLException(getCause(e).getMessage().trim());
         }
     }
