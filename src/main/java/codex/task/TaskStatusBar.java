@@ -3,27 +3,20 @@ package codex.task;
 import codex.component.ui.StripedProgressBarUI;
 import codex.utils.Language;
 import com.sun.javafx.PlatformUtil;
-import java.awt.AWTEvent;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Toolkit;
+import org.bridj.Pointer;
+import org.bridj.cpp.com.COMRuntime;
+import org.bridj.cpp.com.shell.ITaskbarList3;
+import org.bridj.jawt.JAWTUtils;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JProgressBar;
-import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
-import org.bridj.Pointer;
-import org.bridj.cpp.com.COMRuntime;
-import org.bridj.cpp.com.shell.ITaskbarList3;
-import org.bridj.jawt.JAWTUtils;
 
 /**
  * Виджет модуля {@link TaskManager}, представляет собой панель задач с информацией о 
@@ -140,17 +133,17 @@ final class TaskStatusBar extends JPanel implements ITaskListener {
             progressChanged(task, task.getProgress(), task.getDescription());
         }
         
-        if (PlatformUtil.isWin7OrLater() && SwingUtilities.getWindowAncestor(this) != null) {
+        if (PlatformUtil.isWin7OrLater() && SwingUtilities.getWindowAncestor(this) != null && SwingUtilities.getWindowAncestor(this).isShowing()) {
             try {
                 ITaskbarList3 taskBarIcon = COMRuntime.newInstance(ITaskbarList3.class);
                 long hwndVal = JAWTUtils.getNativePeerHandle(SwingUtilities.getWindowAncestor(this));
                 Pointer<?> HWND = Pointer.pointerToAddress(hwndVal);
                 taskBarIcon.SetProgressState(
-                        (Pointer) HWND, 
+                        (Pointer) HWND,
                         failed > 0 ? ITaskbarList3.TbpFlag.TBPF_ERROR : ITaskbarList3.TbpFlag.TBPF_NORMAL
                 );
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
+            } catch (Throwable e) {
+                //
             }
         }
     }
