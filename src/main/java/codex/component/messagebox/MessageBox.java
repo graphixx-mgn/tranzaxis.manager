@@ -1,12 +1,19 @@
 package codex.component.messagebox;
 
 import codex.component.dialog.Dialog;
+import codex.component.ui.StripedProgressBarUI;
 import codex.editor.IEditor;
+import codex.task.TaskView;
+import codex.utils.ImageUtils;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 
 /**
  * Окно информационных/предупреждающих сообшений.
@@ -65,6 +72,24 @@ public final class MessageBox extends Dialog {
         ).setVisible(true);
         return result.get();
     }
+
+    public static ProgressDialog progressDialog(ImageIcon icon, String title) {
+        final AtomicBoolean canceled = new AtomicBoolean(false);
+        return new ProgressDialog(icon, title, e -> canceled.set(true)) {
+            @Override
+            public boolean isCanceled() {
+                return canceled.get();
+            }
+
+            @Override
+            public void setVisible(boolean visible) {
+                if (visible) {
+                    canceled.set(false);
+                }
+                super.setVisible(visible);
+            }
+        };
+    }
     
     /**
      * Конструктор окна.
@@ -96,7 +121,8 @@ public final class MessageBox extends Dialog {
                 return new Dialog.Default[]{Dialog.Default.BTN_CLOSE};
         }
     }
-    
+
+
     private static final class MessagePanel extends JPanel {
 
         MessagePanel(ImageIcon icon, String text) {
@@ -119,6 +145,106 @@ public final class MessageBox extends Dialog {
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             super.paintComponent(g);
         }
+    }
+
+
+    public static abstract class ProgressDialog extends Dialog {
+
+        private final JProgressBar progress = new JProgressBar() {{
+            setMaximum(100);
+            setIndeterminate(true);
+            setUI(new StripedProgressBarUI(true));
+            setForeground(StripedProgressBarUI.PROGRESS_INFINITE);
+            setBorder(new LineBorder(Color.LIGHT_GRAY, 1));
+            setStringPainted(true);
+            setString(TaskView.formatDuration(0));
+        }};
+
+        private final JLabel iconLabel = new JLabel() {{
+            setVerticalAlignment(JLabel.TOP);
+            setBorder(new EmptyBorder(0, 0, 0, 10));
+        }
+            @Override
+            public void setIcon(Icon icon) {
+                if (icon instanceof ImageIcon) {
+                    int size = progress.getPreferredSize().height;
+                    super.setIcon(ImageUtils.resize((ImageIcon) icon, size, size));
+                }
+            }
+        };
+
+        private final JLabel messLabel = new JLabel() {{
+            setVerticalAlignment(JLabel.BOTTOM);
+            setForeground(IEditor.COLOR_DISABLED);
+            setFont(IEditor.FONT_VALUE.deriveFont((float) (IEditor.FONT_VALUE.getSize()*0.9)));
+        }};
+
+        private final JPanel content = new JPanel(new BorderLayout(0, 5)) {{
+            setBorder(new EmptyBorder(10, 20, 10, 20));
+            add(iconLabel, BorderLayout.WEST);
+            add(messLabel, BorderLayout.CENTER);
+            add(progress,  BorderLayout.SOUTH);
+        }};
+
+        private LocalDateTime startTime;
+        private final Timer updater = new Timer(1000, (ActionEvent event) -> progress.setString(
+                TaskView.formatDuration(Duration.between(
+                        startTime,
+                        LocalDateTime.now()
+                ).toMillis())
+        ));
+
+        ProgressDialog(ImageIcon icon, String title, ActionListener closeListener) {
+            super(
+                    FocusManager.getCurrentManager().getActiveWindow(),
+                    MessageType.WAITING.getIcon(),
+                    title,
+                    new JPanel(),
+                    closeListener,
+                    Dialog.Default.BTN_CANCEL
+            );
+            iconLabel.setIcon(icon);
+            setContent(content);
+        }
+
+        @Override
+        public void setVisible(boolean visible) {
+            SwingUtilities.invokeLater(() -> {
+                if (visible) {
+                    if (progress.isIndeterminate()) {
+                        startTime = LocalDateTime.now();
+                        updater.start();
+                    }
+                } else {
+                    if (progress.isIndeterminate()) {
+                        updater.stop();
+                    }
+                }
+                super.setVisible(visible);
+            });
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            Dimension def = super.getPreferredSize();
+            return new Dimension(300, def.height);
+        }
+
+        public void setDescription(String text) {
+            setProgress(progress.getValue(), text);
+        }
+
+        public void setProgress(int percent, String text) {
+            if (percent > 100 || percent < 0) {
+                throw new IllegalStateException("Invalid progress value: "+percent);
+            }
+            SwingUtilities.invokeLater(() -> {
+                progress.setValue(percent);
+                messLabel.setText("<html>"+text.replaceAll("\n", "<br>")+"</html>");
+            });
+        }
+
+        public abstract boolean isCanceled();
     }
     
 }

@@ -24,12 +24,16 @@ public enum MessageType implements Iconified {
     /**
      * Сообщение об ошибке.
      */
-    ERROR(ImageUtils.getByPath("/images/stop.png"));
-    
+    ERROR(ImageUtils.getByPath("/images/stop.png")),
+    /**
+     * Диалог ожидания.
+     */
+    WAITING(ImageUtils.getByPath("/images/wait.png"));
+
     private final String    title;
     private final ImageIcon icon;
     
-    private MessageType(ImageIcon icon) {
+    MessageType(ImageIcon icon) {
         this.title = Language.get("message@"+this.name().toLowerCase());
         this.icon  = icon;
     }
