@@ -21,8 +21,8 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
     private final Class<?> valParamClass;
     private final Class<?> keyParamClass;
 
-    final ISerializableType<K, ? extends IMask<K>> dbKey;
-    final ISerializableType<V, ? extends IMask<V>> dbVal;
+    private final ISerializableType<K, ? extends IMask<K>> dbKey;
+    private final ISerializableType<V, ? extends IMask<V>> dbVal;
 
     private java.util.Map<K, V> value;
 
@@ -133,6 +133,20 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
                         e.printStackTrace();
                     }
                 });
+    }
+
+    @Override
+    public String toString() {
+        return value == null ? "" : value.entrySet().stream().collect(Collectors.toMap(
+                entry -> {
+                    dbKey.setValue(entry.getKey());
+                    return dbKey.toString();
+                },
+                entry -> {
+                    dbVal.setValue(entry.getValue());
+                    return dbVal.toString();
+                }
+        )).toString();
     }
 
     @Override
