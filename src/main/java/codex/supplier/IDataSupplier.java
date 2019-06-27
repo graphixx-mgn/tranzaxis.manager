@@ -17,5 +17,23 @@ public interface IDataSupplier<T> {
     List<T> get() throws NoDataAvailable;
 
 
-    class NoDataAvailable extends Exception {}
+    class NoDataAvailable extends Exception {
+
+        public NoDataAvailable() {
+            super();
+        }
+
+        public NoDataAvailable(String message) {
+            super(message);
+        }
+
+        public NoDataAvailable(Throwable cause) {
+            super(cause);
+        }
+
+        @Override
+        public String getMessage() {
+            return getCause() != null ? getCause().getMessage() : super.getMessage();
+        }
+    }
 }

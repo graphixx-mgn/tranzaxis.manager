@@ -13,7 +13,7 @@ public abstract class DataSelector<V, R> {
         this.supplier = supplier;
     }
 
-    protected IDataSupplier<V> getSupplier() {
+    public IDataSupplier<V> getSupplier() {
         return supplier;
     }
 
