@@ -4,7 +4,6 @@ import codex.command.EntityCommand;
 import codex.editor.IEditor;
 import codex.editor.IEditorFactory;
 import codex.editor.TextView;
-import codex.model.Entity;
 import codex.model.ParamModel;
 import codex.property.PropertyHolder;
 import codex.type.AnyType;
@@ -66,7 +65,7 @@ public class DebugProfile extends EntityCommand<Offshoot> {
         );
 
         // Parameters
-        PropertyHolder propEnv = new PropertyHolder<EntityRef, Entity>(PARAM_ENVIRONMENT, new EntityRef(Environment.class/*, entity -> entity.model.isValid()*/), true) {
+        PropertyHolder propEnv = new PropertyHolder<EntityRef<Environment>, Environment>(PARAM_ENVIRONMENT, new EntityRef<>(Environment.class), true) {
             @Override
             public boolean isValid() {
                 return !(isRequired() && isEmpty());

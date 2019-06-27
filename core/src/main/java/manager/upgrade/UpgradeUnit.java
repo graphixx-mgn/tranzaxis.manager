@@ -115,7 +115,6 @@ public final class UpgradeUnit extends AbstractUnit implements IInstanceListener
         new Thread(() -> {
             try {
                 IUpgradeService remoteUpService = (IUpgradeService) instance.getService(UpgradeService.class);
-                Logger.getLogger().debug("Check remote instance {0} for upgrade", instance);
                 Version availVersion = remoteUpService.getCurrentVersion();
                 if (availVersion != null && UpgradeService.VER_COMPARATOR.compare(currentVersion, availVersion) < 0) {
                     VersionsDocument diff = remoteUpService.getDiffVersions(currentVersion, availVersion);
@@ -128,7 +127,7 @@ public final class UpgradeUnit extends AbstractUnit implements IInstanceListener
                         providers.add(entry);
                     }
                 } else if (availVersion != null) {
-                    Logger.getLogger().debug("Upgrade is not available. Remote instance version: {0}", availVersion.getNumber());
+                    Logger.getLogger().debug("Remote instance {0} version: {1}", instance, availVersion.getNumber());
                 }
             } catch (RemoteException | NotBoundException e) {
                 // Do nothing
