@@ -5,6 +5,7 @@ import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.component.render.GeneralRenderer;
 import codex.explorer.ExplorerAccessService;
+import codex.explorer.IExplorerAccessService;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.NodeTreeModel;
 import codex.model.Catalog;
@@ -26,7 +27,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -162,14 +162,15 @@ public class EntityRefTreeEditor extends AbstractEditor {
     }
     
     private List<Entity> getValues() {
-        Class<? extends Entity> entityClass  = ((EntityRef) propHolder.getPropValue()).getEntityClass();
-        Predicate<Entity> entityFilter = ((EntityRef) propHolder.getPropValue()).getEntityFilter();
+        EntityRef<Entity> ref = (EntityRef<Entity>) propHolder.getPropValue();
+        Class<? extends Entity> entityClass = ref.getEntityClass();
         ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+
         return entityClass != null ? EAS.getEntitiesByClass(entityClass)
-                    .stream()
-                    .filter(entityFilter)
-                    .collect(Collectors.toList())
-            : new LinkedList<>();
+                .stream()
+                .filter(entity -> ref.getMask().verify(entity))
+                .collect(Collectors.toList())
+                : new LinkedList<>();
     }
     
     private class EntitySelector extends EditorCommand {
@@ -181,48 +182,43 @@ public class EntityRefTreeEditor extends AbstractEditor {
         @Override
         public void execute(PropertyHolder context) {
             JPanel content = new JPanel(new BorderLayout());
-            ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+            IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
             Entity rootEAS = EAS.getRoot();
-            Predicate<Entity> entityFilter = ((EntityRef) propHolder.getPropValue()).getEntityFilter();
             
             NodeTreeModel treeModel = new NodeTreeModel(new EntityProxy(rootEAS));
-            Supplier<Stream<INode>> treeStream = () -> {
-                return ((EntityProxy) treeModel.getRoot()).flattened();
-            };
+            Supplier<Stream<INode>> treeStream = () -> ((EntityProxy) treeModel.getRoot()).flattened();
 
             getValues().forEach((entity) -> {
-                List<Entity> path = entity.getPath().stream().map((node) -> {
-                    return (Entity) node;
-                }).collect(Collectors.toList());
+                List<Entity> path = entity.getPath().stream()
+                        .map((node) -> (Entity) node)
+                        .collect(Collectors.toList());
                 
                 path.forEach((entityEAS) -> {
                     if (entityEAS == rootEAS) {
+                        // Do nothing
                     } else {
-                        boolean existInTree = treeStream.get().anyMatch((node) -> {
-                            return ((EntityProxy) node).getEntity() == entityEAS;
-                        });
+                        boolean existInTree = treeStream.get().anyMatch((node) -> ((EntityProxy) node).getEntity() == entityEAS);
                         if (!existInTree) {
-                            EntityProxy parentProxy = (EntityProxy) treeStream.get().filter((node) -> {
-                                return ((EntityProxy) node).getEntity() == entityEAS.getParent();
-                            }).findFirst().get();
+                            treeStream.get()
+                                    .filter((node) -> ((EntityProxy) node).getEntity() == entityEAS.getParent())
+                                    .findFirst()
+                                    .ifPresent(parentNode -> parentNode.insert(new EntityProxy(entityEAS)));
 
-                            EntityProxy nodeProxy = new EntityProxy(entityEAS);
-                            parentProxy.insert(nodeProxy);
                         }
                     }
                 });
             });
             
             JTree navigator = new JTree(treeModel) {{
-                setRowHeight((int) (getRowHeight()*1.5));
+                setRowHeight((int) (getRowHeight() * 1.5));
                 setBorder(new EmptyBorder(5, 10, 5, 5));
                 getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
                 setCellRenderer(new GeneralRenderer());
             }};
             
             treeStream.get().forEach((nodeProxy) -> {
-                if (!entityFilter.test(((EntityProxy) nodeProxy).getEntity())) {
-                    navigator.expandPath(new TreePath(treeModel.getPathToRoot(nodeProxy)));
+                navigator.expandPath(new TreePath(treeModel.getPathToRoot(nodeProxy)));
+                if (!((EntityRef<Entity>) propHolder.getPropValue()).getMask().verify(((EntityProxy) nodeProxy).getEntity())) {
                     nodeProxy.setMode(INode.MODE_NONE);
                 }
                 if (((EntityProxy) nodeProxy).getEntity() == propHolder.getPropValue().getValue()) {
@@ -294,7 +290,7 @@ public class EntityRefTreeEditor extends AbstractEditor {
         }
 
         @Override
-        public Class getChildClass() {
+        public Class<? extends Entity> getChildClass() {
             return null;
         }
         
