@@ -44,7 +44,9 @@ public class NotificationService extends AbstractService<NotifyServiceOptions> i
     
     @Override
     public void registerSource(String source, NotifyCondition condition) {
-        getConfig().getSources().put(source, condition);
+        if (!getConfig().getSources().containsKey(source)) {
+            getConfig().getSources().put(source, condition);
+        }
         Logger.getLogger().debug("NSS: Registered notification source: ''{0}''", source);
     }
 
