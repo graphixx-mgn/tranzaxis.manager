@@ -8,6 +8,7 @@ import codex.component.messagebox.MessageType;
 import codex.component.render.GeneralRenderer;
 import codex.editor.IEditor;
 import codex.editor.StrEditor;
+import codex.log.Logger;
 import codex.presentation.SelectorTable;
 import codex.property.PropertyHolder;
 import codex.supplier.DataSelector;
@@ -83,6 +84,8 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
         }
     }
 
+    DialogButton btnConfirm = Dialog.Default.BTN_OK.newInstance();
+    DialogButton btnCancel = Dialog.Default.BTN_CANCEL.newInstance();
 
     private final DefaultTableModel tableModel = new DefaultTableModel() {
         @Override
@@ -128,6 +131,14 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
         table.setDefaultRenderer(String.class, new GeneralRenderer());
         table.getTableHeader().setDefaultRenderer(new HeaderRenderer());
         table.setRowSorter(sorter);
+
+        table.getSelectionModel().addListSelectionListener((ListSelectionEvent event) -> {
+            if (event.getValueIsAdjusting()) return;
+            btnConfirm.setEnabled(
+                    table.getRowSorter().getViewRowCount() > 0 &&
+                            table.getSelectedRow() > -1
+            );
+        });
     }
 
     private void readPage() throws IDataSupplier.NoDataAvailable {
@@ -144,17 +155,11 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
 
     @Override
     public R select() {
-        if (getSupplier().ready() && getSupplier().available()) {
-            DialogButton btnConfirm = Dialog.Default.BTN_OK.newInstance();
-            DialogButton btnCancel = Dialog.Default.BTN_CANCEL.newInstance();
+        tableModel.getDataVector().removeAllElements();
+        tableModel.fireTableDataChanged();
+
+        if (getSupplier().ready()) {
             btnConfirm.setEnabled(false);
-            table.getSelectionModel().addListSelectionListener((ListSelectionEvent event) -> {
-                if (event.getValueIsAdjusting()) return;
-                btnConfirm.setEnabled(
-                        table.getRowSorter().getViewRowCount() > 0 &&
-                        table.getSelectedRow() > -1
-                );
-            });
 
             JPanel filterPanel = new JPanel(new BorderLayout());
             PropertyHolder lookupHolder = new PropertyHolder<>(
@@ -206,11 +211,14 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
                             setPreferredSize(new Dimension(
                                     Math.max(table.getColumnCount() * 200, 300), 300
                             ));
+                            super.setVisible(visible);
                         } catch (IDataSupplier.NoDataAvailable e) {
-                            e.printStackTrace();
+                            Logger.getLogger().warn("Database query failed: {0}", e.getMessage());
+                            MessageBox.show(MessageType.ERROR, e.getMessage());
                         }
+                    } else {
+                        super.setVisible(visible);
                     }
-                    super.setVisible(visible);
                 }
             }.setVisible(true);
         }

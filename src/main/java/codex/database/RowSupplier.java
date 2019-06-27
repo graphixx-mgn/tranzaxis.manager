@@ -12,7 +12,6 @@ import java.util.function.Supplier;
 
 public class RowSupplier implements IDataSupplier<Map<String, String>> {
 
-    private final static IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
     private final static String       PAGINATION = Language.get(RowSupplier.class, "pagination", Locale.US);
     private final static List<String> SYSTEM_COLUMNS = Arrays.asList("ROWINDEX");
 
@@ -41,6 +40,8 @@ public class RowSupplier implements IDataSupplier<Map<String, String>> {
     @Override
     public List<Map<String, String>> get() throws NoDataAvailable {
         List<Map<String, String>> result = new LinkedList<>();
+        IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
+
         try (ResultSet resultSet = DAS.select(connection.get(), prepareQuery(query), parameters.get())) {
             ResultSetMetaData meta = resultSet.getMetaData();
             while (resultSet.next()) {
@@ -59,8 +60,7 @@ public class RowSupplier implements IDataSupplier<Map<String, String>> {
             }
             return result;
         } catch (SQLException e) {
-            e.printStackTrace();
-            throw new NoDataAvailable();
+            throw new NoDataAvailable(e);
         }
     }
 
