@@ -4,6 +4,7 @@ import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.database.IDatabaseAccessService;
 import codex.database.OracleAccessService;
+import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.mask.RegexMask;
 import codex.model.Access;
@@ -47,11 +48,6 @@ public class Database extends Entity {
                             Language.get(Database.class, "error@unavailable"),
                             getPID(), url.substring(0, url.indexOf("/"))
                     ));
-                } else {
-                    Logger.getLogger().warn(
-                            Language.get(Database.class, "error@unavailable", Locale.US),
-                            getPID(), url.substring(0, url.indexOf("/"))
-                    );
                 }
                 return null;
             }
@@ -97,6 +93,16 @@ public class Database extends Entity {
         model.addUserProp(PROP_BASE_USER, new Str(null), true, null);
         model.addUserProp(PROP_BASE_PASS, new Str(null), true, Access.Select);
         model.addUserProp(PROP_USER_NOTE, new Str(null), false, null);
+    }
+
+    @Override
+    public void setParent(INode parent) {
+        super.setParent(parent);
+        if (parent != null) {
+            CheckDatabase check = getCommand(CheckDatabase.class);
+            check.setContext(this);
+            check.activate();
+        }
     }
     
     public final String getDatabaseUrl(boolean unsaved) {

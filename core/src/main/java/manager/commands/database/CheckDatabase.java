@@ -2,10 +2,12 @@ package manager.commands.database;
 
 import codex.command.CommandStatus;
 import codex.command.EntityCommand;
+import codex.log.Logger;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import codex.utils.NetTools;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,6 +30,10 @@ public class CheckDatabase extends EntityCommand<Database> {
                     if (checkUrlPort(dbUrl)) {
                         return new CommandStatus(true, ACTIVE);
                     } else {
+                        Logger.getLogger().warn(
+                                Language.get(Database.class, "error@unavailable", Locale.US),
+                                databases.get(0).getPID(), dbUrl.substring(0, dbUrl.indexOf("/"))
+                        );
                         return new CommandStatus(true, PASSIVE);
                     }
                 } else {

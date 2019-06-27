@@ -32,7 +32,9 @@ public class Manager {
         try {
             UIManager.setLookAndFeel(new WindowsLookAndFeel());
             UIManager.put("Tree.drawDashedFocusIndicator", false);
-        } catch (UnsupportedLookAndFeelException e) {}
+        } catch (UnsupportedLookAndFeelException e) {
+            //
+        }
         PlatformLogger.getLogger("java.util.prefs").setLevel(PlatformLogger.Level.OFF);
     }
 
@@ -83,13 +85,13 @@ public class Manager {
 
         splash.setProgress(80, "Start service management unit");
         ServiceUnit serviceOptions = new ServiceUnit();
-        
+
         splash.setProgress(90, "Start instance control unit");
         InstanceUnit networkBrowser = InstanceUnit.getInstance();
 
         splash.setProgress(90, "Start upgrade unit");
         UpgradeUnit upgradeUnit = new UpgradeUnit();
-        
+
         splash.setProgress(100, "Initialize user interface");
         window.addUnit(logViewer,   window.loggingPanel);
         window.addUnit(upgradeUnit, window.upgradePanel);
