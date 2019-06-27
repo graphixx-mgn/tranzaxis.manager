@@ -8,7 +8,7 @@ import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.GeneralPath;
 import java.util.Objects;
-import javax.swing.JComponent;
+import javax.swing.*;
 import javax.swing.plaf.basic.BasicProgressBarUI;
 
 /**
@@ -17,6 +17,9 @@ import javax.swing.plaf.basic.BasicProgressBarUI;
  * 
  */
 public class StripedProgressBarUI extends BasicProgressBarUI {
+
+    public final static Color PROGRESS_NORMAL   = UIManager.getDefaults().getColor("ProgressBar.foreground");
+    public final static Color PROGRESS_INFINITE = Color.decode("#A0C8FF");
     
     private final boolean forward;
     

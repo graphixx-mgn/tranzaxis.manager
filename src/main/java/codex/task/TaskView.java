@@ -122,11 +122,11 @@ public class TaskView extends AbstractTaskView {
         progress.setIndeterminate(isInfinitive);
 
         progress.setForeground(
-                progress.isIndeterminate() ? PROGRESS_INFINITE :
+                progress.isIndeterminate() ? StripedProgressBarUI.PROGRESS_INFINITE :
                         task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
                                 task.getStatus() == Status.FAILED ? PROGRESS_ABORTED :
                                         (task.getStatus() == Status.CANCELLED || task.getStatus() == Status.PAUSED) ? PROGRESS_CANCELED :
-                                                PROGRESS_NORMAL
+                                                StripedProgressBarUI.PROGRESS_NORMAL
         );
         status.setText(task.getDescription());
     }
