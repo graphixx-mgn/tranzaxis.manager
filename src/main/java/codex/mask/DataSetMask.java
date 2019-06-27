@@ -1,7 +1,7 @@
 package codex.mask;
 
 import codex.command.ValueProvider;
-import codex.supplier.IDataSupplier;
+import codex.supplier.DataSelector;
 import codex.type.ArrStr;
 import java.util.List;
 
@@ -13,17 +13,21 @@ import java.util.List;
  *   {size}[{item#1 length}]{item#1}[{item#2 length}]{item#2}...
  * </pre>
  */
-public class DataSetMask extends ValueProvider implements IArrMask {
+public class DataSetMask<V> extends ValueProvider<V> implements IArrMask {
     
     private final String format;
-    
+
+    public DataSetMask(DataSelector<?, V> selector) {
+        this(selector, null);
+    }
+
     /**
      * Конструктор маски.
      * @param format Формат отображения значений в GUI.
-     * @param dataSupplier Реализация внешнего поставщика данных.
+     * @param selector Реализация селектора из внешнего поставщика данных.
      */
-    public DataSetMask(String format, IDataSupplier<String> dataSupplier) {
-        super(dataSupplier);
+    public DataSetMask(DataSelector<?, V> selector, String format) {
+        super(selector);
         this.format = format;
     }
 
