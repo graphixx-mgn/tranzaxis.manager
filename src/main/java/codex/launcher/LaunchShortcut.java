@@ -7,6 +7,7 @@ import codex.log.Logger;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.model.IModelListener;
+import codex.supplier.IDataSupplier;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import java.awt.AlphaComposite;
@@ -99,16 +100,17 @@ final class LaunchShortcut extends LaunchButton implements IModelListener, INode
             if (status == Status.AVAILABLE) {
                 SwingUtilities.invokeLater(() -> {
                     Entity entity = shortcut.getEntity();
-                    EntityCommand command = entity.getCommand(shortcut.getCommand());
+                    EntityCommand<Entity> command = entity.getCommand(shortcut.getCommand());
                     
                     List<Entity> prevContext = command.getContext();
-                    Map<String, IComplexType> params;
                     try {
                         command.setContext(entity);
-                        params = command.getParameters();
-                        if (params != null) {
+                        try {
+                            final Map<String, IComplexType> params = command.getParameters();
                             Logger.getLogger().debug("Perform command [{0}]. Context: {1}", command.getName(), entity);
                             command.execute(entity, params);
+                        } catch (IDataSupplier.NoDataAvailable e) {
+                            // Do not call command
                         }
                     } finally {
                         command.setContext(prevContext);

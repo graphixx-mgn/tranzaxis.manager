@@ -11,6 +11,7 @@ import codex.editor.AbstractEditor;
 import codex.editor.EntityRefEditor;
 import codex.editor.EntityRefTreeEditor;
 import codex.editor.IEditorFactory;
+import codex.mask.EntityFilter;
 import codex.model.Catalog;
 import codex.model.Entity;
 import codex.model.ParamModel;
@@ -93,35 +94,31 @@ class CreateShortcut extends EntityCommand<Entity> {
     public void execute(Entity context, Map<String, IComplexType> params) {
         final DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
 
-        final EntityRef sectionRef = new EntityRef(ShortcutSection.class) {
+        final EntityRef sectionRef = new EntityRef<ShortcutSection>(ShortcutSection.class) {
             @Override
             public IEditorFactory editorFactory() {
-                return (PropertyHolder propHolder) -> {
-                    return new EntityRefEditor(propHolder) {
-                        @Override
-                        protected List<Object> getValues() {
-                            return CAS.readCatalogEntries(null, getEntityClass()).values().stream()
-                                    .filter((PID) -> !PID.equals(ShortcutSection.DEFAULT))
-                                    .map((PID) -> Entity.newInstance(getEntityClass(), null, PID))
-                                    .collect(Collectors.toList());
-                        }
-                    };
+                return (PropertyHolder propHolder) -> new EntityRefEditor(propHolder) {
+                    @Override
+                    protected List<Entity> getValues() {
+                        return CAS.readCatalogEntries(null, getEntityClass()).values().stream()
+                                .filter((PID) -> !PID.equals(ShortcutSection.DEFAULT))
+                                .map((PID) -> Entity.newInstance(getEntityClass(), null, PID))
+                                .collect(Collectors.toList());
+                    }
                 };
             }            
         };
-        
-        final EntityRef catalogRef = new EntityRef(Catalog.class, 
-                (entity) ->
-                        entity.getChildClass() != null &&
-                        Entity.newInstance(entity.getChildClass(), null, null)
-                               .getCommands().stream()
-                               .anyMatch((command) -> command.getKind() == Kind.Action)
-        ) {
+        final EntityRef<Catalog> catalogRef = new EntityRef<Catalog>(Catalog.class) {
             @Override
             public IEditorFactory editorFactory() {
                 return EntityRefTreeEditor::new;
             }
-        };
+        }.setMask(new EntityFilter<>(catalog ->
+                catalog.getChildClass() != null &&
+                catalog.childrenList().stream()
+                    .map(iNode -> (Entity) iNode)
+                    .anyMatch(entity -> entity.getCommands().stream().anyMatch(command -> command.getKind() == Kind.Action))
+        ));
         
         final Str commandRef = new Str(null) {
             @Override
@@ -133,7 +130,7 @@ class CreateShortcut extends EntityCommand<Entity> {
         ParamModel paramModel = new ParamModel();
         paramModel.addProperty(PARAM_SECTION,  sectionRef, false);
         paramModel.addProperty(PARAM_CATALOG,  catalogRef, true);
-        paramModel.addProperty(PARAM_ENTITY,   new EntityRef(null), true);
+        paramModel.addProperty(PARAM_ENTITY,   new EntityRef<>(null), true);
         paramModel.addProperty(PARAM_COMMAND,  commandRef, true);
         paramModel.addProperty(PARAM_LINKNAME, new Str(null), true);
         
@@ -142,9 +139,11 @@ class CreateShortcut extends EntityCommand<Entity> {
                 switch (name) {
                     case PARAM_CATALOG:
                         Class<? extends Entity> entityClass = newValue != null ? ((Catalog) newValue).getChildClass() : null;
-                        EntityRef entityRef;
+                        EntityRef<? extends Entity> entityRef;
                         if (entityClass != null) {
-                            entityRef = new EntityRef(entityClass, (entity) -> entity.getID() != null && entity.getParent().equals(newValue));
+                            entityRef = new EntityRef<>(entityClass).setMask(new EntityFilter<>(
+                                    entity -> entity.getID() != null && entity.getParent().equals(newValue)
+                            ));
                             entityRef.setValue(null);
                         } else {
                             entityRef = null;

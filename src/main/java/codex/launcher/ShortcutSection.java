@@ -233,24 +233,19 @@ public class ShortcutSection extends Entity implements IModelListener {
                     ImageUtils.resize(ImageUtils.getByPath("/images/remove.png"), 22, 22), Language.get("drop@title"), -1, 101
             );
             
-            final EntityRef sectionRef = new EntityRef(ShortcutSection.class) {
+            final EntityRef<ShortcutSection> sectionRef = new EntityRef<ShortcutSection>(ShortcutSection.class) {
 
                 @Override
                 public IEditorFactory editorFactory() {
-                    return (PropertyHolder propHolder) -> {
-                        return new EntityRefEditor(propHolder) {
-                            @Override
-                            protected List<Object> getValues() {
-                                List<Object> values = CAS.readCatalogEntries(null, getEntityClass()).values().stream()
-                                        .filter((PID) -> {
-                                            return !PID.equals(ShortcutSection.DEFAULT) && !PID.equals(getPID());
-                                        })
-                                        .map((PID) -> {
-                                            return Entity.newInstance((Class<Entity>) getEntityClass(), null, PID);
-                                        }).collect(Collectors.toList());
-                                return values;
-                            }
-                        };
+                    return (PropertyHolder propHolder) -> new EntityRefEditor(propHolder) {
+                        @Override
+                        protected List<Entity> getValues() {
+                            List<Entity> values = CAS.readCatalogEntries(null, getEntityClass()).values().stream()
+                                    .filter((PID) -> !PID.equals(ShortcutSection.DEFAULT) && !PID.equals(getPID()))
+                                    .map((PID) -> Entity.newInstance((Class<Entity>) getEntityClass(), null, PID))
+                                    .collect(Collectors.toList());
+                            return values;
+                        }
                     };
                 }            
             };
