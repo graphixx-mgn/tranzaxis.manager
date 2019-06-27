@@ -120,7 +120,7 @@ final class GroupTaskView extends AbstractTaskView {
                     task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
                         task.getStatus() == Status.FAILED ? PROGRESS_ABORTED :
                             task.getStatus() == Status.CANCELLED ? PROGRESS_CANCELED :
-                                PROGRESS_NORMAL
+                                StripedProgressBarUI.PROGRESS_NORMAL
                 );
                 if (mainTask.getStatus() == Status.FINISHED || mainTask.getStatus() == Status.FINISHED) {
                     mainProgress.setString(TaskView.formatDuration(((AbstractTask) mainTask).getDuration()));
@@ -137,7 +137,7 @@ final class GroupTaskView extends AbstractTaskView {
                     new MatteBorder(0, 3, 0, 0, 
                             (task.getStatus() == Status.FAILED || task.getStatus() == Status.CANCELLED) ? PROGRESS_ABORTED :
                                 task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
-                                    task.getStatus() == Status.STARTED ? PROGRESS_INFINITE : 
+                                    task.getStatus() == Status.STARTED ? StripedProgressBarUI.PROGRESS_INFINITE :
                                     Color.GRAY
                     ),
                     new EmptyBorder(new Insets(0, 5, 0, 5))
