@@ -40,6 +40,7 @@ public class SAPConfig extends CommandPlugin<Environment> {
     public SAPConfig() {
         super(environment ->
                 environment.getDataBase(true) != null &&
+                environment.getDataBase(true).getConnectionID(false) != null &&
                 environment.getInstanceId() != null
         );
     }

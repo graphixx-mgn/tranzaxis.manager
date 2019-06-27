@@ -2,7 +2,6 @@ package plugin;
 
 import codex.database.IDatabaseAccessService;
 import codex.database.OracleAccessService;
-import codex.explorer.tree.INode;
 import codex.explorer.tree.NodeTreeModel;
 import codex.model.Catalog;
 import codex.model.Entity;
