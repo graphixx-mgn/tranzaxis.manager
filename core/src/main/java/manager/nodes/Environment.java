@@ -2,27 +2,28 @@ package manager.nodes;
 
 import codex.command.CommandStatus;
 import codex.command.EditorCommand;
-import codex.database.IDatabaseAccessService;
-import codex.database.OracleAccessService;
-import codex.database.RowSelector;
+import codex.command.ValueProvider;
+import codex.database.*;
 import codex.editor.*;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.log.Logger;
 import codex.mask.DataSetMask;
+import codex.mask.EntityFilter;
 import codex.model.*;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
-import codex.supplier.IDataSupplier;
 import codex.type.*;
 import codex.type.Enum;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import javax.swing.*;
 import manager.commands.environment.RunAll;
 import manager.commands.environment.RunExplorer;
@@ -30,6 +31,10 @@ import manager.commands.environment.RunServer;
 import manager.type.SourceType;
 
 public class Environment extends Entity implements INodeListener {
+
+    private final static ImageIcon UNKNOWN   = ImageUtils.resize(ImageUtils.getByPath("/images/unavailable.png"), 20, 20);
+    private final static ImageIcon CHECKED   = ImageUtils.resize(ImageUtils.getByPath("/images/update.png"), 20, 20);
+    private final static ImageIcon UNCHECKED = ImageUtils.resize(ImageUtils.combine(CHECKED, UNKNOWN), 20, 20);
 
     static {
         CommandRegistry.getInstance().registerCommand(RunAll.class);
@@ -58,18 +63,17 @@ public class Environment extends Entity implements INodeListener {
     public final static String PROP_EXPLORER_OPTS = "explorerOpts";
     public final static String PROP_RUN_COMMANDS  = "commands";
 
-    private final IDataSupplier<String> layerSupplier = new RowSelector(
-            RowSelector.Mode.Value,
-            () -> getDataBase(true).getConnectionID(true),
+    private final RowSupplier layerSupplier = new RowSupplier(
+            () -> getDataBase(false).getConnectionID(false),
             "SELECT LAYERURI, VERSION, UPGRADEDATE FROM RDX_DDSVERSION"
     ) {
         @Override
-        public boolean isReady() {
-            return getDataBase(true) != null;
-        } 
+        public boolean ready() {
+            return getDataBase(true) != null && super.ready();
+        }
     };
 
-    private final IDataSupplier<String> versionSupplier = () -> {
+    private final Supplier<String> versionSupplier = () -> {
         Database database = getDataBase(true);
         String   layerUri = getLayerUri(true);
         if (IComplexType.notNull(database, layerUri) && ServiceRegistry.getInstance().isServiceRegistered(OracleAccessService.class)) {
@@ -78,24 +82,25 @@ public class Environment extends Entity implements INodeListener {
                 if (rs.next()) {
                     return rs.getString(1);
                 }
+            } catch (SQLException e) {
+                Logger.getLogger().warn("Database query failed: {0}", e.getMessage());
             }
         }
         return null;
     };
-    
-    private final IDataSupplier<String> instanceSupplier = new RowSelector(
-            RowSelector.Mode.Row,
-            () -> getDataBase(true).getConnectionID(true),
+
+    private final RowSupplier instanceSupplier = new RowSupplier(
+            () -> getDataBase(false).getConnectionID(false),
             "SELECT ID, TITLE FROM RDX_INSTANCE ORDER BY ID"
     ) {
         @Override
-        public boolean isReady() {
-            return getDataBase(true) != null;
-        } 
+        public boolean ready() {
+            return getDataBase(true) != null && super.ready();
+        }
     };
     
-    private final DataSetMask layerSelector    = new DataSetMask(null, layerSupplier);
-    private final DataSetMask instanceSelector = new DataSetMask("{0} - {1}", instanceSupplier);
+    private final ValueProvider<String>     layerSelector = new ValueProvider<>(RowSelector.Single.newInstance(layerSupplier));
+    private final DataSetMask<List<String>> instanceSelector = new DataSetMask<>(RowSelector.Multiple.newInstance(instanceSupplier), "{0} - {1}");
 
     private final Consumer<String> sourceUpdater = propName -> {
         boolean activate = getRepository(true) != null && getSourceType(true).name().toLowerCase().equals(propName);
@@ -108,68 +113,65 @@ public class Environment extends Entity implements INodeListener {
 
         // General properties
         model.addUserProp(PROP_LAYER_URI,    new Str(null),             true,  Access.Select);
-        model.addUserProp(PROP_DATABASE,     new EntityRef(Database.class),   false, null);
+        model.addUserProp(PROP_DATABASE,     new EntityRef<>(Database.class),   false, null);
         model.addDynamicProp(PROP_VERSION,   new Str(null), Access.Select, () -> {
             new Thread(() -> setVersion(getLayerVersion())).start();
             return getVersion();
         });
         model.addUserProp(PROP_INSTANCE_ID,  new ArrStr().setMask(instanceSelector), false, Access.Select);
-        model.addUserProp(PROP_REPOSITORY,   new EntityRef(Repository.class), true, Access.Select);
-        model.addUserProp(PROP_SOURCE_TYPE,  new Enum(SourceType.None), true, Access.Select);
-        model.addUserProp(PROP_OFFSHOOT,     new EntityRef(
-                Offshoot.class, 
-                (entity) -> {
-                    Offshoot offshoot = (Offshoot) entity;
-                    return 
-                        offshoot.getRepository()  == getRepository(true) &&
-                        offshoot.getBuiltStatus() != null &&
-                        offshoot.isWCLoaded();
-                },
-                (entity) -> {
-                    String layerVersion = getVersion();
-                    if (layerVersion == null || layerVersion.isEmpty())
-                        return EntityRef.Match.Unknown;
-
-                    String offshootVersion = ((Offshoot) entity).getVersion();
-                    layerVersion = layerVersion.substring(0, layerVersion.lastIndexOf("."));
-                    return offshootVersion.equals(layerVersion) ? EntityRef.Match.Exact : EntityRef.Match.None;
-                }
+        model.addUserProp(PROP_REPOSITORY,   new EntityRef<>(Repository.class), true, Access.Select);
+        model.addUserProp(PROP_SOURCE_TYPE,  new Enum<>(SourceType.None), true, Access.Select);
+        model.addUserProp(PROP_OFFSHOOT,     new EntityRef<>(Offshoot.class).setMask(
+                new EntityFilter<>(
+                        offshoot ->
+                            offshoot.getRepository()  == getRepository(true) &&
+                            offshoot.getBuiltStatus() != null &&
+                            offshoot.isWCLoaded(),
+                        offshoot -> {
+                            String layerVersion = getVersion();
+                            if (layerVersion == null || layerVersion.isEmpty())
+                                return EntityFilter.Match.Unknown;
+                            String offshootVersion = offshoot.getVersion();
+                            layerVersion = layerVersion.substring(0, layerVersion.lastIndexOf("."));
+                            return offshootVersion.equals(layerVersion) ? EntityFilter.Match.Exact : EntityFilter.Match.None;
+                })
         ), true, Access.Select);
-        model.addUserProp(PROP_RELEASE,      new EntityRef(
-                Release.class,
-                (entity) -> ((Release) entity).getRepository()  == getRepository(true),
-                (entity) -> {
-                    String layerVersion = getVersion();
-                    if (layerVersion == null || layerVersion.isEmpty())
-                        return EntityRef.Match.Unknown;
 
-                    String releaseVersion = ((Release) entity).getVersion();
-                    return releaseVersion.equals(layerVersion) ? EntityRef.Match.Exact : (
-                                releaseVersion.substring(0, releaseVersion.lastIndexOf(".")).equals(
-                                        layerVersion.substring(0, layerVersion.lastIndexOf("."))
-                                ) ? EntityRef.Match.About : EntityRef.Match.None
-                           );
-                }
-        ) {
+        model.addUserProp(PROP_RELEASE, new EntityRef<Release>(Release.class) {
             @Override
             public IEditorFactory editorFactory() {
                 return propHolder -> new EntityRefEditor(propHolder) {
                     @Override
-                    protected List<Object> getValues() {
+                    protected List<Entity> getValues() {
                         Repository repository = getRepository(true);
-                        List<Object> values = new LinkedList<>();
+                        List<Entity> values = new LinkedList<>();
                         if (repository != null) {
-                            Entity e = Entity.newInstance(ReleaseList.class, repository.toRef(), null);
-                            values.addAll(e.childrenList());
+                            Entity.newInstance(ReleaseList.class, repository.toRef(), null).childrenList().forEach(iNode -> {
+                                values.add((Entity) iNode);
+                            });
                         }
                         return values;
                     }
                 };
             }
-        }, true, Access.Select);
+        }.setMask(
+                new EntityFilter<>(
+                        release -> release.getRepository()  == getRepository(true),
+                        release -> {
+                            String layerVersion = getVersion();
+                            if (layerVersion == null || layerVersion.isEmpty())
+                                return EntityFilter.Match.Unknown;
+                            String releaseVersion = release.getVersion();
+                            return releaseVersion.equals(layerVersion) ? EntityFilter.Match.Exact : (
+                                    releaseVersion.substring(0, releaseVersion.lastIndexOf(".")).equals(
+                                            layerVersion.substring(0, layerVersion.lastIndexOf("."))
+                                    ) ? EntityFilter.Match.About : EntityFilter.Match.None
+                            );
+                        })
+        ), true, Access.Select);
         model.addDynamicProp(
                 PROP_BINARIES,
-                new EntityRef(BinarySource.class), Access.Edit,
+                new EntityRef<>(BinarySource.class), Access.Edit,
                 () -> getSourceType(true).getBinarySource(this),
                 PROP_REPOSITORY, PROP_SOURCE_TYPE, PROP_OFFSHOOT, PROP_RELEASE
         );
@@ -470,7 +472,7 @@ public class Environment extends Entity implements INodeListener {
     
     public String getLayerVersion() {
         try {
-            return versionSupplier.call();
+            return versionSupplier.get();
         } catch (Exception e) {
             return null;
         }
@@ -505,10 +507,6 @@ public class Environment extends Entity implements INodeListener {
             }
         }
     }
-    
-    private final static ImageIcon UNKNOWN   = ImageUtils.resize(ImageUtils.getByPath("/images/unavailable.png"), 20, 20);
-    private final static ImageIcon CHECKED   = ImageUtils.resize(ImageUtils.getByPath("/images/update.png"), 20, 20);
-    private final static ImageIcon UNCHECKED = ImageUtils.resize(ImageUtils.combine(CHECKED, UNKNOWN), 20, 20);
     
     private class SyncRelease extends EditorCommand implements IModelListener {
 
