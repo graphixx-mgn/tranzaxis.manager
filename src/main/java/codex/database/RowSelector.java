@@ -60,7 +60,7 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
                         }
                         return result;
                     } else {
-                        return Collections.emptyList();
+                        return null;
                     }
                 }
             };
@@ -113,7 +113,9 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
                 int maximum = scrollBar.getModel().getMaximum();
                 if (extent + event.getValue() == maximum) {
                     try {
+                        table.setCursor(new Cursor(Cursor.WAIT_CURSOR));
                         readPage();
+                        table.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
                     } catch (IDataSupplier.NoDataAvailable e) {
                         e.printStackTrace();
                     }
