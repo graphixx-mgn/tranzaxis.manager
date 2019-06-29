@@ -157,6 +157,7 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
 
     @Override
     public R select() {
+        getSupplier().reset();
         sorter.setRowFilter(null);
         tableModel.getDataVector().removeAllElements();
         tableModel.fireTableDataChanged();
@@ -194,6 +195,9 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
                     Language.get(RowSelector.class, "title"),
                     content,
                     (event) -> {
+                        if (event.getID() != Dialog.OK) {
+                            table.clearSelection();
+                        }
                     },
                     btnConfirm, btnCancel
             ) {
