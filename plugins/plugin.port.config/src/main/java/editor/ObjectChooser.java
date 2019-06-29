@@ -15,7 +15,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
 
-public abstract class ObjectChooser extends AbstractEditor implements ActionListener {
+public abstract class ObjectChooser extends AbstractEditor<AnyType, Object> implements ActionListener {
 
     private JComboBox<Object> comboBox;
 
@@ -27,13 +27,13 @@ public abstract class ObjectChooser extends AbstractEditor implements ActionList
         ));
         propHolder.setValue(new AnyType() {
             @Override
-            public IEditorFactory editorFactory() {
+            public IEditorFactory<AnyType, Object> editorFactory() {
                 return propHolder -> ObjectChooser.this;
             }
         });
     }
 
-    public abstract List getValues();
+    public abstract List<Object> getValues();
 
     @Override
     public void setEditable(boolean editable) {
@@ -50,7 +50,7 @@ public abstract class ObjectChooser extends AbstractEditor implements ActionList
         comboBox.removeActionListener(this);
         comboBox.removeAllItems();
 
-        comboBox.addItem(new NullValue());
+        comboBox.addItem(new AbstractEditor.Undefined());
         getValues().forEach((item) -> comboBox.addItem(item));
         if (!propHolder.getPropValue().isEmpty()) {
             setValue(propHolder.getPropValue().getValue());
@@ -62,13 +62,18 @@ public abstract class ObjectChooser extends AbstractEditor implements ActionList
 
     @Override
     public Box createEditor() {
-        comboBox = new JComboBox<>();
+        comboBox = new JComboBox<Object>() {
+            @Override
+            public Color getForeground() {
+                return getValue() == null ? Color.GRAY : Color.BLACK;
+            }
+        };
         UIManager.put("ComboBox.border", new BorderUIResource(
                 new LineBorder(UIManager.getColor ("Panel.background"), 1))
         );
         SwingUtilities.updateComponentTreeUI(comboBox);
 
-        comboBox.addItem(new NullValue());
+        comboBox.addItem(new AbstractEditor.Undefined());
         comboBox.setFont(FONT_VALUE);
         comboBox.setRenderer(new GeneralRenderer<>());
 
@@ -88,8 +93,6 @@ public abstract class ObjectChooser extends AbstractEditor implements ActionList
     public void setValue(Object value) {
         if (value == null) {
             comboBox.setSelectedItem(comboBox.getItemAt(0));
-            comboBox.setForeground(Color.GRAY);
-            comboBox.setFont(FONT_VALUE);
         } else {
             if (!comboBox.getSelectedItem().equals(value)) {
                 if (((DefaultComboBoxModel) comboBox.getModel()).getIndexOf(value) == -1) {
@@ -97,10 +100,6 @@ public abstract class ObjectChooser extends AbstractEditor implements ActionList
                 }
                 comboBox.setSelectedItem(value);
             }
-            JList list = ((BasicComboPopup) comboBox.getAccessibleContext().getAccessibleChild(0)).getList();
-            Component rendered = comboBox.getRenderer().getListCellRendererComponent(list, value, comboBox.getSelectedIndex(), false, false);
-            comboBox.setForeground(rendered.getForeground());
-            comboBox.setFont(rendered.getFont());
         }
     }
 
