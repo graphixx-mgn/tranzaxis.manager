@@ -248,6 +248,10 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
             String lookupValue = context.getPropValue().getValue();
             if (lookupValue == null || lookupValue.isEmpty()) {
                 RowSelector.this.sorter.setRowFilter(null);
+                if (table.getSelectedRow() != TableModelEvent.HEADER_ROW) {
+                    table.scrollRectToVisible(new Rectangle(table.getCellRect(table.getSelectedRow(), 0, true)));
+                }
+
             } else {
                 RowFilter<TableModel, Object> filter = RowFilter.regexFilter(
                         Pattern.compile(lookupValue, Pattern.CASE_INSENSITIVE).toString()
