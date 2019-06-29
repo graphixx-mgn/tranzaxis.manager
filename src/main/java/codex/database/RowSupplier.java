@@ -65,6 +65,11 @@ public class RowSupplier implements IDataSupplier<Map<String, String>> {
     }
 
     @Override
+    public void reset() {
+        offset = 0L;
+    }
+
+    @Override
     public boolean available() {
         return !finished;
     }

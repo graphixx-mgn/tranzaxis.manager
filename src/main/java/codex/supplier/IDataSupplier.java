@@ -11,10 +11,9 @@ public interface IDataSupplier<T> {
     Integer DEFAULT_LIMIT = 100;
 
     boolean ready();
-    default boolean available() {
-        return false;
-    }
+    boolean available();
     List<T> get() throws NoDataAvailable;
+    void    reset();
 
 
     class NoDataAvailable extends Exception {

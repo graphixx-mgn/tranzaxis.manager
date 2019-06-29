@@ -79,6 +79,11 @@ public class ParametersDialog extends Dialog implements IDataSupplier<PropertyHo
     }
 
     @Override
+    public boolean available() {
+        return false;
+    }
+
+    @Override
     public List<PropertyHolder> get() throws NoDataAvailable {
         Arrays.asList(paramSupplier.get()).forEach(paramModel::addProperty);
         command.preprocessParameters(paramModel);
@@ -92,5 +97,8 @@ public class ParametersDialog extends Dialog implements IDataSupplier<PropertyHo
             throw new NoDataAvailable();
         }
     }
+
+    @Override
+    public void reset() {}
 
 }
