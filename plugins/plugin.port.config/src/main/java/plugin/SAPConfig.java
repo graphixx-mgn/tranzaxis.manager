@@ -13,6 +13,7 @@ import codex.presentation.EditorPage;
 import codex.presentation.ISelectorTableModel;
 import codex.presentation.SelectorTreeTable;
 import codex.property.PropertyHolder;
+import codex.type.AnyType;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -157,7 +158,7 @@ public class SAPConfig extends CommandPlugin<Environment> {
         });
     }
 
-    abstract class SetHost extends EditorCommand {
+    abstract class SetHost extends EditorCommand<AnyType, Object> {
 
         SetHost() {
             super(
@@ -168,7 +169,7 @@ public class SAPConfig extends CommandPlugin<Environment> {
         }
 
         @Override
-        public abstract void execute(PropertyHolder context);// {}
+        public abstract void execute(PropertyHolder<AnyType, Object> context);
 
         String changeHost(String address, String host) {
             return address.contains(":") ? address.replaceAll(".*(:.*)", MessageFormat.format("{0}$1", host)) : address;
