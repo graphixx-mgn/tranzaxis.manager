@@ -1,4 +1,4 @@
-package codex.database;
+package codex.supplier;
 
 import codex.command.EditorCommand;
 import codex.component.button.DialogButton;
@@ -11,8 +11,6 @@ import codex.editor.StrEditor;
 import codex.log.Logger;
 import codex.presentation.SelectorTable;
 import codex.property.PropertyHolder;
-import codex.supplier.DataSelector;
-import codex.supplier.IDataSupplier;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
