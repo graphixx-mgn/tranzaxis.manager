@@ -109,11 +109,6 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
                     item.addNodeListener(EntityRefEditor.this);
                 }
             }
-
-            @Override
-            public Color getForeground() {
-                return getValue() == null ? Color.GRAY : Color.BLACK;
-            }
         };
         comboBox.addItem((T) new Undefined());
         
@@ -211,6 +206,8 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
     public void setValue(T value) {
         if (value == null) {
             comboBox.setSelectedItem(comboBox.getItemAt(0));
+            comboBox.setForeground(Color.GRAY);
+            comboBox.setFont(FONT_VALUE);
         } else {
             if (!comboBox.getSelectedItem().equals(value)) {
                 if (((DefaultComboBoxModel) comboBox.getModel()).getIndexOf(value) == -1) {
@@ -218,6 +215,10 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
                 }
                 comboBox.setSelectedItem(value);
             }
+            JList list = ((BasicComboPopup) comboBox.getAccessibleContext().getAccessibleChild(0)).getList();
+            Component rendered = comboBox.getRenderer().getListCellRendererComponent(list, value, comboBox.getSelectedIndex(), false, false);
+            comboBox.setForeground(rendered.getForeground());
+            comboBox.setFont(rendered.getFont());
         }
     }
     
