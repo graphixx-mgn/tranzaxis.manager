@@ -39,7 +39,7 @@ public class EntityRef<E extends Entity> implements ISerializableType<E, IRefMas
     /**
      * Возвращает класс сущности, используется редактором {@link EntityRefEditor}.
      */
-    public final Class<? extends Entity> getEntityClass() {
+    public final Class<E> getEntityClass() {
         return entityClass;
     }
 
@@ -64,10 +64,10 @@ public class EntityRef<E extends Entity> implements ISerializableType<E, IRefMas
     public boolean isEmpty() {
         return entityInstance == null;
     }
-    
+
     @Override
-    public IEditorFactory editorFactory() {
-        return EntityRefEditor::new;
+    public IEditorFactory<? extends IComplexType<E, IRefMask<E>>, E> editorFactory() {
+        return (IEditorFactory<EntityRef<E>, E>) EntityRefEditor::new;
     }
 
     /**

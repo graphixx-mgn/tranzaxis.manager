@@ -1,9 +1,5 @@
 package codex.editor;
 
-import static codex.editor.IEditor.BORDER_ACTIVE;
-import static codex.editor.IEditor.COLOR_DISABLED;
-import static codex.editor.IEditor.COLOR_NORMAL;
-import static codex.editor.IEditor.FONT_VALUE;
 import codex.property.PropertyHolder;
 import codex.type.Int;
 import codex.utils.ImageUtils;
@@ -32,7 +28,7 @@ import javax.swing.event.DocumentListener;
 /**
  * Редактор свойств типа {@link Int}, представляет собой поле ввода.
  */
-public class IntEditor extends AbstractEditor implements DocumentListener {
+public class IntEditor extends AbstractEditor<Int, Integer> implements DocumentListener {
     
     private JTextField textField;
     private String     previousValue;
@@ -46,7 +42,7 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
      * Конструктор редактора.
      * @param propHolder Редактируемое свойство.
      */
-    public IntEditor(PropertyHolder propHolder) {
+    public IntEditor(PropertyHolder<Int, Integer> propHolder) {
         this(
                 propHolder,
                 (text) -> {
@@ -56,7 +52,7 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
                         return false;
                     }
                 },
-                Integer::valueOf
+                text -> text.isEmpty() ? 0 : Integer.valueOf(text)
         );
     }
 
@@ -67,7 +63,7 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
      * @param transformer Функция-конвертер, вызывается для получения значения 
      * свойства из введенного текста при фиксации изменения.
      */
-    private IntEditor(PropertyHolder propHolder, Predicate<String> checker, Function<String, Object> transformer) {
+    private IntEditor(PropertyHolder<Int, Integer> propHolder, Predicate<String> checker, Function<String, Integer> transformer) {
         super(propHolder);
         
         signDelete = new JLabel(ImageUtils.resize(
@@ -85,11 +81,11 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
             if (checker.test(text)) {
                 previousValue = text;
             } else {
-                setValue(previousValue);
+                setValue(transformer.apply(previousValue));
             }
         };
         this.commit = (text) -> {
-            if (text != propHolder.getPropValue().getValue()) {
+            if (!transformer.apply(text).equals(propHolder.getPropValue().getValue())) {
                 propHolder.setValue(
                         text == null || text.isEmpty() ? null : transformer.apply(text)
                 );
@@ -119,17 +115,17 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
             @Override
             public void keyPressed(KeyEvent event) {
                 if (event.getKeyCode() == KeyEvent.VK_UP) {
-                    Integer curr = Integer.valueOf(previousValue != null && !previousValue.isEmpty() ? previousValue : "0")+1;
+                    int curr = Integer.valueOf(previousValue != null && !previousValue.isEmpty() ? previousValue : "0")+1;
                     if (curr < Integer.MAX_VALUE) {
-                        update.accept(curr.toString());
-                        textField.setText(curr.toString());
+                        update.accept(String.valueOf(curr));
+                        textField.setText(String.valueOf(curr));
                     }
                 }
                 if (event.getKeyCode() == KeyEvent.VK_DOWN) {
-                    Integer curr = Integer.valueOf(previousValue != null && !previousValue.isEmpty() ? previousValue : "0")-1;
+                    int curr = Integer.valueOf(previousValue != null && !previousValue.isEmpty() ? previousValue : "0")-1;
                     if (curr >= 0) {
-                        update.accept(curr.toString());
-                        textField.setText(curr.toString());
+                        update.accept(String.valueOf(curr));
+                        textField.setText(String.valueOf(curr));
                     }
                 }
             }
@@ -178,7 +174,7 @@ public class IntEditor extends AbstractEditor implements DocumentListener {
     }
 
     @Override
-    public void setValue(Object value) {
+    public void setValue(Integer value) {
         SwingUtilities.invokeLater(() -> {
             textField.getDocument().removeDocumentListener(this);
             textField.setText(value == null ? "" : value.toString());

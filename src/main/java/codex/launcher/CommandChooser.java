@@ -6,6 +6,7 @@ import codex.component.render.GeneralRenderer;
 import codex.editor.AbstractEditor;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
+import codex.type.AnyType;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import javax.swing.plaf.BorderUIResource;
@@ -19,14 +20,13 @@ import java.awt.event.ActionListener;
  */
 class CommandChooser extends AbstractEditor implements ActionListener {
     
-    private JComboBox comboBox;
-    //private Entity    entity;
+    private JComboBox<Object> comboBox;
 
     /**
      * Конструктор редактора.
      * @param propHolder Свойство для хранения имени команды.
      */
-    CommandChooser(PropertyHolder propHolder) {
+    CommandChooser(PropertyHolder<AnyType, Object> propHolder) {
         super(propHolder);
     }
     
@@ -36,7 +36,7 @@ class CommandChooser extends AbstractEditor implements ActionListener {
     public final void setEntity(Entity entity) {
         comboBox.removeActionListener(this);
         comboBox.removeAllItems();
-        comboBox.addItem(new NullValue());
+        comboBox.addItem(new Undefined());
         if (entity != null) {
             entity.getCommands().stream()
                 .filter((command) -> (
@@ -51,8 +51,13 @@ class CommandChooser extends AbstractEditor implements ActionListener {
 
     @Override
     public Box createEditor() {
-        comboBox = new JComboBox();
-        comboBox.addItem(new NullValue());
+        comboBox = new JComboBox<Object>() {
+            @Override
+            public Color getForeground() {
+                return getValue() == null ? Color.GRAY : Color.BLACK;
+            }
+        };
+        comboBox.addItem(new Undefined());
         
         UIManager.put("ComboBox.border", new BorderUIResource(
                 new LineBorder(UIManager.getColor ("Panel.background"), 1))
@@ -60,7 +65,7 @@ class CommandChooser extends AbstractEditor implements ActionListener {
         SwingUtilities.updateComponentTreeUI(comboBox);
         
         comboBox.setFont(FONT_VALUE);
-        comboBox.setRenderer(new GeneralRenderer());
+        comboBox.setRenderer(new GeneralRenderer<>());
         comboBox.addFocusListener(this);
         comboBox.addActionListener(this);
         
@@ -89,7 +94,7 @@ class CommandChooser extends AbstractEditor implements ActionListener {
         super.setEditable(editable);
         comboBox.setEnabled(editable);
     }
-    
+
     @Override
     public void actionPerformed(ActionEvent e) {
         if (comboBox.getSelectedIndex() == 0) {

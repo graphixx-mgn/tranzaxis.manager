@@ -3,6 +3,7 @@ package codex.mask;
 import codex.command.ICommand;
 import codex.property.PropertyHolder;
 import codex.type.ArrStr;
+import codex.type.IComplexType;
 import java.util.List;
 
 /**
@@ -10,7 +11,10 @@ import java.util.List;
  * команды редактора. При назначении маски стандартный диалог редактора поля 
  * заменяется на предоставляемый конкретной реализацией маски.
  */
-public interface IArrMask extends IMask<List<String>>, ICommand<PropertyHolder, PropertyHolder> {
+public interface IArrMask extends IMask<List<String>>, ICommand<
+        PropertyHolder<IComplexType<List<String>, IMask<List<String>>>, List<String>>,
+        PropertyHolder<IComplexType<List<String>, IMask<List<String>>>, List<String>>
+    > {
     
     /**
      * Формат отображения элементов списка в редакторе и селекторе. Указывается 

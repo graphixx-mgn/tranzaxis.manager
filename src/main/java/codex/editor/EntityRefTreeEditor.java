@@ -13,6 +13,7 @@ import codex.model.Entity;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
+import codex.type.NullValue;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.BorderLayout;
@@ -50,13 +51,13 @@ import javax.swing.tree.TreeSelectionModel;
 /**
  * Древовидный селектор сущностей.
  */
-public class EntityRefTreeEditor extends AbstractEditor {
+public class EntityRefTreeEditor extends AbstractEditor<EntityRef<Entity>, Entity> {
     
-    private DefaultListModel listModel;
-    protected JTextField     textField;
-    private final JLabel     signDelete;
+    private DefaultListModel<Entity> listModel;
+    protected JTextField textField;
+    private final JLabel signDelete;
 
-    public EntityRefTreeEditor(PropertyHolder propHolder) {
+    public EntityRefTreeEditor(PropertyHolder<EntityRef<Entity>, Entity> propHolder) {
         super(propHolder);
         
         signDelete = new JLabel(ImageUtils.resize(
@@ -97,21 +98,21 @@ public class EntityRefTreeEditor extends AbstractEditor {
         textField.setBackground(Color.WHITE);
         textField.setLayout(new BorderLayout());
         
-        listModel = new DefaultListModel();
-        listModel.addElement(new NullValue());
-        JList list = new JList<>(listModel);
-        list.setCellRenderer(new GeneralRenderer() {
+        listModel = new DefaultListModel<>();
+        listModel.addElement(new Undefined());
+        JList<Entity> list = new JList<>(listModel);
+        list.setCellRenderer(new GeneralRenderer<Entity>() {
             @Override
-            public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean hasFocus) {
-                if (!(value instanceof NullValue)) {
-                    Entity owner = ((Entity) value).getOwner();
+            public Component getListCellRendererComponent(JList<? extends Entity> list, Entity value, int index, boolean isSelected, boolean hasFocus) {
+                if (NullValue.class.isAssignableFrom(value.getClass())) {
+                    Entity owner = value.getOwner();
                     if (owner != null) {
                         JPanel compPanel = new JPanel();
                         compPanel.setLayout(new BoxLayout(compPanel, BoxLayout.X_AXIS));
-                        
+
                         JLabel ownerLabel = (JLabel) super.getListCellRendererComponent(list, owner, index, isSelected, hasFocus);
                         ownerLabel.setText(ownerLabel.getText()+" -");
-                        
+
                         compPanel.add(ownerLabel);
                         compPanel.add(super.getListCellRendererComponent(list, value, index, isSelected, hasFocus));
                         return compPanel;
@@ -119,7 +120,6 @@ public class EntityRefTreeEditor extends AbstractEditor {
                 }
                 return super.getListCellRendererComponent(list, value, index, isSelected, hasFocus);
             }
-            
         });
         list.setEnabled(false);
         list.setBorder(new EmptyBorder(2, 0, 0, 0));
@@ -131,11 +131,11 @@ public class EntityRefTreeEditor extends AbstractEditor {
     }
 
     @Override
-    public void setValue(Object value) {
+    public void setValue(Entity value) {
         if (listModel != null) {
             listModel.removeAllElements();
             if (value == null) {
-                listModel.addElement(new NullValue());
+                listModel.addElement(new Undefined());
             } else {
                 listModel.addElement(value);
             }
@@ -162,7 +162,7 @@ public class EntityRefTreeEditor extends AbstractEditor {
     }
     
     private List<Entity> getValues() {
-        EntityRef<Entity> ref = (EntityRef<Entity>) propHolder.getPropValue();
+        EntityRef<Entity> ref = propHolder.getPropValue();
         Class<? extends Entity> entityClass = ref.getEntityClass();
         ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
 
@@ -173,7 +173,7 @@ public class EntityRefTreeEditor extends AbstractEditor {
                 : new LinkedList<>();
     }
     
-    private class EntitySelector extends EditorCommand {
+    private class EntitySelector extends EditorCommand<EntityRef<Entity>, Entity> {
 
         private EntitySelector() {
             super(ImageUtils.resize(ImageUtils.getByPath("/images/hierachy.png"), 18, 18), Language.get("title"));
@@ -184,7 +184,7 @@ public class EntityRefTreeEditor extends AbstractEditor {
             JPanel content = new JPanel(new BorderLayout());
             IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
             Entity rootEAS = EAS.getRoot();
-            
+
             NodeTreeModel treeModel = new NodeTreeModel(new EntityProxy(rootEAS));
             Supplier<Stream<INode>> treeStream = () -> ((EntityProxy) treeModel.getRoot()).flattened();
 
@@ -192,7 +192,7 @@ public class EntityRefTreeEditor extends AbstractEditor {
                 List<Entity> path = entity.getPath().stream()
                         .map((node) -> (Entity) node)
                         .collect(Collectors.toList());
-                
+
                 path.forEach((entityEAS) -> {
                     if (entityEAS == rootEAS) {
                         // Do nothing
@@ -208,51 +208,51 @@ public class EntityRefTreeEditor extends AbstractEditor {
                     }
                 });
             });
-            
+
             JTree navigator = new JTree(treeModel) {{
                 setRowHeight((int) (getRowHeight() * 1.5));
                 setBorder(new EmptyBorder(5, 10, 5, 5));
                 getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
                 setCellRenderer(new GeneralRenderer());
             }};
-            
+
             treeStream.get().forEach((nodeProxy) -> {
                 navigator.expandPath(new TreePath(treeModel.getPathToRoot(nodeProxy)));
-                if (!((EntityRef<Entity>) propHolder.getPropValue()).getMask().verify(((EntityProxy) nodeProxy).getEntity())) {
+                if (!propHolder.getPropValue().getMask().verify(((EntityProxy) nodeProxy).getEntity())) {
                     nodeProxy.setMode(INode.MODE_NONE);
                 }
                 if (((EntityProxy) nodeProxy).getEntity() == propHolder.getPropValue().getValue()) {
                     navigator.setSelectionPath(new TreePath(treeModel.getPathToRoot(nodeProxy)));
                 }
             });
-            
+
             JScrollPane scrollPane = new JScrollPane(navigator);
             scrollPane.setBorder(new MatteBorder(1, 0, 1, 0, Color.LIGHT_GRAY));
             content.add(scrollPane, BorderLayout.CENTER);
             scrollPane.setPreferredSize(new Dimension(navigator.getPreferredSize().width + 50, navigator.getPreferredSize().height + 50));
-            
+
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             confirmBtn.setEnabled(false);
-            
+
             ActionListener dialogHandler = (event) -> {
                 if (event.getID() == Dialog.OK) {
                     propHolder.setValue(((EntityProxy) navigator.getLastSelectedPathComponent()).getEntity());
                 }
             };
             Dialog selector = new Dialog(
-                    FocusManager.getCurrentManager().getActiveWindow(), 
-                    ImageUtils.getByPath("/images/hierachy.png"), 
-                    Language.get("title"), 
-                    content, 
+                    FocusManager.getCurrentManager().getActiveWindow(),
+                    ImageUtils.getByPath("/images/hierachy.png"),
+                    Language.get("title"),
+                    content,
                     dialogHandler,
                     confirmBtn
             );
-            
+
             navigator.addTreeSelectionListener((TreeSelectionEvent event) -> {
                 SwingUtilities.invokeLater(() -> {
                     final INode nodeProxy = (INode) navigator.getLastSelectedPathComponent();
                     if (nodeProxy == null) return;
-                    
+
                     if ((nodeProxy.getMode() & INode.MODE_SELECTABLE) != INode.MODE_SELECTABLE) {
                         navigator.clearSelection();
                         navigator.getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
@@ -266,7 +266,7 @@ public class EntityRefTreeEditor extends AbstractEditor {
                     if (e.getClickCount() == 2) {
                         final INode nodeProxy = (INode) navigator.getLastSelectedPathComponent();
                         if (nodeProxy == null) return;
-                        
+
                         if ((nodeProxy.getMode() & INode.MODE_SELECTABLE) == INode.MODE_SELECTABLE) {
                             dialogHandler.actionPerformed(new ActionEvent(selector, confirmBtn.getID(), null));
                             selector.dispose();

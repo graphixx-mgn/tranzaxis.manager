@@ -3,7 +3,6 @@ package codex.type;
 import codex.editor.ArrStrEditor;
 import codex.editor.IEditorFactory;
 import codex.mask.IArrMask;
-import codex.mask.StrSetMask;
 import java.text.MessageFormat;
 import java.util.*;
 
@@ -12,7 +11,7 @@ import java.util.*;
  */
 public class ArrStr implements ISerializableType<List<String>, IArrMask> {
     
-    private final static IEditorFactory EDITOR_FACTORY = ArrStrEditor::new;
+    private final static IEditorFactory<ArrStr, List<String>> EDITOR_FACTORY = ArrStrEditor::new;
     
     private List<String> value;
     private IArrMask mask;
@@ -59,21 +58,21 @@ public class ArrStr implements ISerializableType<List<String>, IArrMask> {
     public boolean isEmpty() {
         return 
             value == null || 
-            value.isEmpty() || (
+            value.isEmpty()/* || (
                 (mask instanceof StrSetMask) && 
                 IComplexType.coalesce(value.get(0), "").isEmpty()
-            );
+            )*/;
     }
-    
+
     @Override
-    public IEditorFactory editorFactory() {
-        return EDITOR_FACTORY;
-    }
-    
-    @Override
-    public ISerializableType setMask(IArrMask mask) {
+    public ISerializableType<List<String>, IArrMask> setMask(IArrMask mask) {
         this.mask = mask;
         return this;
+    }
+
+    @Override
+    public IEditorFactory<? extends IComplexType<List<String>, IArrMask>, List<String>> editorFactory() {
+        return EDITOR_FACTORY;
     }
     
     @Override
@@ -119,9 +118,9 @@ public class ArrStr implements ISerializableType<List<String>, IArrMask> {
      * @param asStr Исходная строка.
      */
     public static List<String> parse(String asStr) throws IllegalStateException {
-        List<String> values = new LinkedList();
+        List<String> values = new LinkedList<>();
         int size;
-        if (asStr.length() > 0 && !asStr.isEmpty()) {
+        if (!asStr.isEmpty()) {
             int pos1 = asStr.indexOf('[');
             if (pos1 < 0) {
                 pos1 = asStr.length();

@@ -13,11 +13,11 @@ import java.util.List;
  *   {size}[{item#1 length}]{item#1}[{item#2 length}]{item#2}...
  * </pre>
  */
-public class DataSetMask<V> extends ValueProvider<V> implements IArrMask {
+public class DataSetMask extends ValueProvider<List<String>> implements IArrMask {
     
     private final String format;
 
-    public DataSetMask(DataSelector<?, V> selector) {
+    public DataSetMask(DataSelector<?, List<String>> selector) {
         this(selector, null);
     }
 
@@ -26,19 +26,21 @@ public class DataSetMask<V> extends ValueProvider<V> implements IArrMask {
      * @param format Формат отображения значений в GUI.
      * @param selector Реализация селектора из внешнего поставщика данных.
      */
-    public DataSetMask(DataSelector<?, V> selector, String format) {
+    public DataSetMask(DataSelector<?, List<String>> selector, String format) {
         super(selector);
         this.format = format;
-    }
-
-    @Override
-    public String getFormat() {
-        return format;
     }
 
     @Override
     public boolean verify(List<String> value) {
         return true;
     }
+
+
+    @Override
+    public String getFormat() {
+        return format;
+    }
+
     
 }

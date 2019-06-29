@@ -19,23 +19,23 @@ import javax.swing.plaf.basic.BasicComboPopup;
  * Если свойство содержит перечисление, реализующее интерфейс {@link Iconified}, 
  * отображаются также и иконки для каждого элемента.
  */
-public class EnumEditor extends AbstractEditor implements ActionListener {
+public class EnumEditor<T extends java.lang.Enum> extends AbstractEditor<Enum<T>, T> implements ActionListener {
 
     private final static ImageIcon ICON_NULL = ImageUtils.resize(ImageUtils.getByPath("/images/clearval.png"), 17, 17);
     
-    protected JComboBox<java.lang.Enum> comboBox;
+    protected JComboBox<T> comboBox;
     
     /**
      * Конструктор редактора.
      * @param propHolder Редактируемое свойство.
      */
-    public EnumEditor(PropertyHolder propHolder) {
+    public EnumEditor(PropertyHolder<Enum<T>, T> propHolder) {
         super(propHolder);
     }
 
     @Override
     public Box createEditor() {
-        comboBox = new JComboBox<>(((java.lang.Enum) propHolder.getPropValue().getValue()).getClass().getEnumConstants());
+        comboBox = new JComboBox<>(((Class<T>)propHolder.getPropValue().getValue().getClass()).getEnumConstants());
 
         UIManager.put("ComboBox.border", new BorderUIResource(
                 new LineBorder(UIManager.getColor ( "Panel.background" ), 1))
@@ -43,9 +43,9 @@ public class EnumEditor extends AbstractEditor implements ActionListener {
         SwingUtilities.updateComponentTreeUI(comboBox);
         
         comboBox.setFont(FONT_VALUE);
-        comboBox.setRenderer(new GeneralRenderer<java.lang.Enum>() {
+        comboBox.setRenderer(new GeneralRenderer<T>() {
             @Override
-            public Component getListCellRendererComponent(JList<? extends java.lang.Enum> list, java.lang.Enum value, int index, boolean isSelected, boolean hasFocus) {
+            public Component getListCellRendererComponent(JList<? extends T> list, T value, int index, boolean isSelected, boolean hasFocus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, hasFocus);
                 if (Enum.isUndefined(value)) {
                     label.setIcon(EnumEditor.this.isEditable() ? ICON_NULL : ImageUtils.grayscale(ICON_NULL));
@@ -67,17 +67,16 @@ public class EnumEditor extends AbstractEditor implements ActionListener {
     }
 
     @Override
-    public void setValue(Object value) {
+    public void setValue(T value) {
         if (!comboBox.getSelectedItem().equals(value)) {
             comboBox.setSelectedItem(value);
         }
-        java.lang.Enum enumValue = (java.lang.Enum) value;
-        if (Enum.isUndefined(enumValue)) {
+        if (Enum.isUndefined(value)) {
             comboBox.setForeground(Color.GRAY);
             comboBox.setFont(FONT_VALUE);
         } else {
             JList list = ((BasicComboPopup) comboBox.getAccessibleContext().getAccessibleChild(0)).getList();
-            Component rendered = comboBox.getRenderer().getListCellRendererComponent(list, enumValue, comboBox.getSelectedIndex(), false, false);
+            Component rendered = comboBox.getRenderer().getListCellRendererComponent(list, value, comboBox.getSelectedIndex(), false, false);
             comboBox.setForeground(rendered.getForeground());
             comboBox.setFont(rendered.getFont());
         }
@@ -96,7 +95,7 @@ public class EnumEditor extends AbstractEditor implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent event) {
         if (!comboBox.getSelectedItem().equals(propHolder.getPropValue().getValue())) {
-            propHolder.setValue(comboBox.getSelectedItem());
+            propHolder.setValue(comboBox.getItemAt(comboBox.getSelectedIndex()));
         }
     }
 

@@ -9,6 +9,7 @@ import codex.utils.Language;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.nio.file.Path;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
@@ -17,23 +18,22 @@ import javax.swing.border.EmptyBorder;
  * ввода содержащее путь к файлу/папке. Редактирование осуществляется 
  * в вызываемом командой диалоге выбора объекта файловой системы.
  */
-public class FilePathEditor extends AbstractEditor {
+public class FilePathEditor extends AbstractEditor<FilePath, Path> {
 
     private static final ImageIcon ICON = ImageUtils.getByPath("/images/folder.png");
     
-    private JTextField    textField;
-    private EditorCommand pathSelector;
+    private JTextField   textField;
+    private PathSelector pathSelector;
 
     /**
      * Конструктор редактора.
      * @param propHolder Редактируемое свойство.
      */
-    public FilePathEditor(PropertyHolder propHolder) {
+    public FilePathEditor(PropertyHolder<FilePath, Path> propHolder) {
         super(propHolder);
 
         pathSelector = new PathSelector();
         addCommand(pathSelector);
-
         textField.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent event) {
@@ -69,18 +69,18 @@ public class FilePathEditor extends AbstractEditor {
     }
 
     @Override
-    public void setValue(Object value) {
-        textField.setText(value == null ? "" : value.toString());
+    public void setValue(Path path) {
+        textField.setText(path == null ? "" : path.toString());
     }
     
-    private class PathSelector extends EditorCommand {
+    private class PathSelector extends EditorCommand<FilePath, Path> {
 
         private PathSelector() {
             super(ImageUtils.resize(ICON, 18, 18), Language.get("title"));
         }
 
         @Override
-        public void execute(PropertyHolder context) {
+        public void execute(PropertyHolder<FilePath, Path> context) {
             JFileChooser fileChooser = new JFileChooser(context.getPropValue() == null ? "" : context.toString()) {
                 @Override
                 protected javax.swing.JDialog createDialog(java.awt.Component parent) throws java.awt.HeadlessException {
@@ -91,7 +91,7 @@ public class FilePathEditor extends AbstractEditor {
             };
             fileChooser.setDialogTitle(Language.get("title"));
 
-            IPathMask mask = (IPathMask) context.getPropValue().getMask();
+            IPathMask mask = context.getPropValue().getMask();
             if (mask != null) {
                 fileChooser.setFileSelectionMode(mask.getSelectionMode());
                 if (mask.getFilter() != null) {
@@ -105,11 +105,10 @@ public class FilePathEditor extends AbstractEditor {
 
             if (returnVal == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
-                setValue(file.getPath());
+                setValue(file.toPath());
                 context.setValue(file.toPath());
             }
         }
-    
     }
     
 }

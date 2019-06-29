@@ -1,6 +1,7 @@
 package codex.editor;
 
 import codex.property.PropertyHolder;
+import codex.type.AnyType;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -10,7 +11,7 @@ import java.awt.*;
  * Редактор свойств типа {@link codex.type.Str}, представляет собой нередактируемое текстовое поле
  * для отображения длинных строк.
  */
-public class TextView extends AbstractEditor {
+public class TextView extends AbstractEditor<AnyType, Object> {
 
     private JTextPane pane;
 
@@ -18,7 +19,7 @@ public class TextView extends AbstractEditor {
      * Конструктор редактора.
      * @param propHolder Редактируемое свойство.
      */
-    public TextView(PropertyHolder propHolder) {
+    public TextView(PropertyHolder<AnyType, Object> propHolder) {
         super(propHolder);
     }
 

@@ -19,21 +19,21 @@ import java.util.function.Function;
 /**
  * Редактор свойств типа {@link Str}, представляет собой поле ввода.
  */
-public class StrEditor extends AbstractEditor implements DocumentListener {
+public class StrEditor extends AbstractEditor<Str, String> implements DocumentListener {
     
     private JTextField textField;
     
-    private final Consumer<String>   update;
-    private final Consumer<String>   commit;
+    private final Consumer<String> update;
+    private final Consumer<String> commit;
     
-    private final JLabel  signInvalid;
-    private final JLabel  signDelete;
-    
+    private final JLabel signInvalid;
+    private final JLabel signDelete;
+
     /**
      * Конструктор редактора.
      * @param propHolder Редактируемое свойство.
      */
-    public StrEditor(PropertyHolder propHolder) {
+    public StrEditor(PropertyHolder<Str, String> propHolder) {
         this(
                 propHolder,
                 String::valueOf
@@ -46,8 +46,13 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
      * @param transformer Функция-конвертер, вызывается для получения значения 
      * свойства из введенного текста при фиксации изменения.
      */
-    private StrEditor(PropertyHolder propHolder, Function<String, Object> transformer) {
+    private StrEditor(PropertyHolder<Str, String> propHolder, Function<String, String> transformer) {
         super(propHolder);
+
+        PlaceHolder placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField);
+        placeHolder.setBorder(textField.getBorder());
+        placeHolder.changeAlpha(100);
+        placeHolder.setVisible(textField.getText().isEmpty());
         
         signInvalid = new JLabel(ImageUtils.resize(
                 ImageUtils.getByPath("/images/warn.png"), 
@@ -80,9 +85,9 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
             textField.setForeground(COLOR_NORMAL);
         };
         this.commit = (text) -> {
-            if (text != propHolder.getPropValue().getValue()) {
+            if (!text.equals(propHolder.getPropValue().getValue())) {
                 propHolder.setValue(
-                        text == null || text.isEmpty() ? null : transformer.apply(text)
+                        text.isEmpty() ? null : transformer.apply(text)
                 );
             }
         };
@@ -100,10 +105,6 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
                 }
             }
         });
-        
-        PlaceHolder placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField, PlaceHolder.Show.FOCUS_LOST);
-        placeHolder.setBorder(textField.getBorder());
-        placeHolder.changeAlpha(100);
         
         JPanel controls = new JPanel(new BorderLayout());
         controls.setOpaque(false);
@@ -149,9 +150,9 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
     }
 
     @Override
-    public void setValue(Object value) {
+    public void setValue(String value) {
         textField.getDocument().removeDocumentListener(this);
-        textField.setText(value == null ? "" : value.toString());
+        textField.setText(value == null ? "" : value);
         textField.getDocument().addDocumentListener(this);
         verify();
     }
@@ -167,7 +168,7 @@ public class StrEditor extends AbstractEditor implements DocumentListener {
             signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
         }
         IMask<String> mask = propHolder.getPropValue().getMask();
-        String value = (String) propHolder.getPropValue().getValue();
+        String value = propHolder.getPropValue().getValue();
         boolean inputOk = ((value == null || value.isEmpty()) && !mask.notNull()) || mask.verify(value);
         setBorder(!inputOk ? BORDER_ERROR : textField.isFocusOwner() ? BORDER_ACTIVE : BORDER_NORMAL);
         textField.setForeground(inputOk ? (isEditable() ? COLOR_NORMAL : COLOR_DISABLED) : COLOR_INVALID);

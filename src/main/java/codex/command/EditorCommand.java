@@ -1,6 +1,8 @@
 package codex.command;
 
+import codex.mask.IMask;
 import codex.property.PropertyHolder;
+import codex.type.IComplexType;
 import javax.swing.*;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,22 +13,25 @@ import java.util.function.Predicate;
  * Абстрактная реализация команды редактора свойств {@link PropertyHolder}.
  * Используется для возможности производить различные действия над свойством.
  */
-public abstract class EditorCommand implements ICommand<PropertyHolder, PropertyHolder> {
+public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>>, V> implements ICommand<
+        PropertyHolder<T, V>,
+        PropertyHolder<T, V>
+    > {
 
     /**
      * Свойство связанное с данным редактором.
      */
-    protected PropertyHolder context;
+    protected PropertyHolder<T, V> context;
 
     private final ImageIcon icon;
     private final String    hint;
-    private Predicate<PropertyHolder> available;
-    private final List<ICommandListener<PropertyHolder>> listeners = new LinkedList<>();
+    private Predicate<PropertyHolder<T, V>> available;
+    private final List<ICommandListener<PropertyHolder<T, V>>> listeners = new LinkedList<>();
 
     /**
      * Функция расчета доступности каманды.
      */
-    protected Function<PropertyHolder, CommandStatus> activator = holder -> new CommandStatus(
+    protected Function<PropertyHolder<T, V>, CommandStatus> activator = holder -> new CommandStatus(
             holder != null && (
                     available == null || available.test(holder)
             ) &&
@@ -48,7 +53,7 @@ public abstract class EditorCommand implements ICommand<PropertyHolder, Property
      * @param hint Описание команды, отображается при наведении мыши на кнопку.
      * @param available Предикат определяющий доступность команды.
      */
-    public EditorCommand(ImageIcon icon, String hint, Predicate<PropertyHolder> available) {
+    public EditorCommand(ImageIcon icon, String hint, Predicate<PropertyHolder<T, V>> available) {
         if (icon == null) {
             throw new IllegalStateException("Parameter 'icon' can not be NULL");
         }
@@ -58,12 +63,12 @@ public abstract class EditorCommand implements ICommand<PropertyHolder, Property
     }
 
     @Override
-    public final void addListener(ICommandListener<PropertyHolder> listener) {
+    public final void addListener(ICommandListener<PropertyHolder<T, V>> listener) {
         listeners.add(listener);
     }
 
     @Override
-    public final void removeListener(ICommandListener<PropertyHolder> listener) {
+    public final void removeListener(ICommandListener<PropertyHolder<T, V>> listener) {
         listeners.remove(listener);
     }
     
@@ -79,13 +84,13 @@ public abstract class EditorCommand implements ICommand<PropertyHolder, Property
     }
 
     @Override
-    public void setContext(PropertyHolder context) {
+    public void setContext(PropertyHolder<T, V> context) {
         this.context = context;
         activate();
     }
 
     @Override
-    public PropertyHolder getContext() {
+    public PropertyHolder<T, V> getContext() {
         return context;
     }
 

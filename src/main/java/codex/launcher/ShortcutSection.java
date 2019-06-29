@@ -11,7 +11,6 @@ import codex.model.Entity;
 import codex.model.IModelListener;
 import codex.model.ParamModel;
 import codex.presentation.EditorPage;
-import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.utils.ImageUtils;
@@ -99,27 +98,26 @@ public class ShortcutSection extends Entity implements IModelListener {
     /**
      * Возвращает количество ярлыков в виджете секции.
      */
-    int getLaunchersCount() {
+    private int getLaunchersCount() {
         return ((Container) getView().getComponent(0)).getComponentCount();
     }
     
     /**
      * Возвращает упорядоченный список виджетов ярлыков в виджете секции.
      */
-    List<LaunchShortcut> getLaunchers() {
-        return Arrays.asList(((Container) getView().getComponent(0)).getComponents()).stream()
-                .map((component) -> {
-                    return (LaunchShortcut) component;
-                }).collect(Collectors.toList());
+    private List<LaunchShortcut> getLaunchers() {
+        return Arrays.stream(((Container) getView().getComponent(0)).getComponents())
+                .map((component) -> (LaunchShortcut) component)
+                .collect(Collectors.toList());
     }
     
     /**
      * Возвращает упорядоченный список ярлыков в секции.
      */
     List<Shortcut> getShortcuts() {
-        return getLaunchers().stream().map((launcher) -> {
-            return launcher.getShortcut();
-        }).collect(Collectors.toList());
+        return getLaunchers().stream()
+                .map(LaunchShortcut::getShortcut)
+                .collect(Collectors.toList());
     }
     
     /**
@@ -142,7 +140,9 @@ public class ShortcutSection extends Entity implements IModelListener {
             if (!launcher.getShortcut().model.getChanges().isEmpty()) {
                 try {
                     launcher.getShortcut().model.commit(false);
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                    //
+                }
             }
         });
     }
@@ -234,20 +234,18 @@ public class ShortcutSection extends Entity implements IModelListener {
             );
             
             final EntityRef<ShortcutSection> sectionRef = new EntityRef<ShortcutSection>(ShortcutSection.class) {
-
                 @Override
-                public IEditorFactory editorFactory() {
-                    return (PropertyHolder propHolder) -> new EntityRefEditor(propHolder) {
+                public IEditorFactory<EntityRef<ShortcutSection>, ShortcutSection> editorFactory() {
+                    return propHolder -> new EntityRefEditor<ShortcutSection>(propHolder) {
                         @Override
-                        protected List<Entity> getValues() {
-                            List<Entity> values = CAS.readCatalogEntries(null, getEntityClass()).values().stream()
+                        protected List<ShortcutSection> getValues() {
+                            return CAS.readCatalogEntries(null, getEntityClass()).values().stream()
                                     .filter((PID) -> !PID.equals(ShortcutSection.DEFAULT) && !PID.equals(getPID()))
-                                    .map((PID) -> Entity.newInstance((Class<Entity>) getEntityClass(), null, PID))
+                                    .map((PID) -> newInstance(getEntityClass(), null, PID))
                                     .collect(Collectors.toList());
-                            return values;
                         }
                     };
-                }            
+                }
             };
 
             ParamModel paramModel = new ParamModel();
@@ -265,9 +263,7 @@ public class ShortcutSection extends Entity implements IModelListener {
                                     paramModel.getValue("section") :
                                     Entity.newInstance(ShortcutSection.class, null, ShortcutSection.DEFAULT)
                         );
-                        getLaunchers().forEach((launcher) -> {
-                            newSection.addLauncher(launcher, newSection.getLaunchersCount());
-                        });
+                        getLaunchers().forEach((launcher) -> newSection.addLauncher(launcher, newSection.getLaunchersCount()));
                         if (model.remove()) {
                             Container panel = getView().getParent();
                             panel.remove(getView());
@@ -340,11 +336,11 @@ public class ShortcutSection extends Entity implements IModelListener {
                     String value = ((JTextField) input).getText();
                     return !(
                             value.isEmpty() ||
-                            CAS.readCatalogEntries(null, ShortcutSection.class).entrySet().stream().anyMatch((entry) -> {
-                                return 
-                                        entry.getKey() != ShortcutSection.this.getID() &&
-                                        entry.getValue().equals(value);
-                            })
+                            CAS.readCatalogEntries(null, ShortcutSection.class).entrySet().stream()
+                                    .anyMatch((entry) ->
+                                            !entry.getKey().equals(ShortcutSection.this.getID()) &&
+                                            entry.getValue().equals(value)
+                                    )
                     );
                 }
             });

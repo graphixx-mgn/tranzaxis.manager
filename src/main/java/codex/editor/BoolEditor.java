@@ -15,7 +15,7 @@ import javax.swing.border.EmptyBorder;
 /**
  * Редактор свойств типа {@link Bool}, представляет собой флажек.
  */
-public class BoolEditor extends AbstractEditor implements ItemListener {
+public class BoolEditor extends AbstractEditor<Bool, Boolean> implements ItemListener {
     
     private JCheckBox checkBox;
 
@@ -23,7 +23,7 @@ public class BoolEditor extends AbstractEditor implements ItemListener {
      * Конструктор редактора.
      * @param propHolder Редактируемое свойство.
      */
-    public BoolEditor(PropertyHolder propHolder) {
+    public BoolEditor(PropertyHolder<Bool, Boolean> propHolder) {
         super(propHolder);
     }
 
@@ -45,8 +45,8 @@ public class BoolEditor extends AbstractEditor implements ItemListener {
     }
 
     @Override
-    public void setValue(Object value) {
-        checkBox.setSelected(value != null && ((Boolean) value));
+    public void setValue(Boolean value) {
+        checkBox.setSelected(value != null && value);
     }
     
     @Override

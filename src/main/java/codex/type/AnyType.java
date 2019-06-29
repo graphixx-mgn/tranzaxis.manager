@@ -3,7 +3,6 @@ package codex.type;
 import codex.editor.IEditorFactory;
 import codex.editor.AnyTypeView;
 import codex.mask.IMask;
-
 import java.text.MessageFormat;
 
 /**
@@ -11,7 +10,7 @@ import java.text.MessageFormat;
  */
 public class AnyType implements IComplexType<Object, IMask<Object>> {
 
-    private final static IEditorFactory EDITOR_FACTORY = AnyTypeView::new;
+    private final static IEditorFactory<AnyType, Object> EDITOR_FACTORY = AnyTypeView::new;
 
     private Object value;
 
@@ -29,7 +28,7 @@ public class AnyType implements IComplexType<Object, IMask<Object>> {
     public void valueOf(String value) {}
 
     @Override
-    public IEditorFactory editorFactory() {
+    public IEditorFactory<? extends IComplexType<Object, IMask<Object>>, Object> editorFactory() {
         return EDITOR_FACTORY;
     }
 

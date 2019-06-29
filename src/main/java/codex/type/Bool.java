@@ -3,7 +3,6 @@ package codex.type;
 import codex.editor.BoolEditor;
 import codex.editor.IEditorFactory;
 import codex.mask.IMask;
-import codex.property.PropertyHolder;
 import java.text.MessageFormat;
 import java.util.Objects;
 
@@ -12,7 +11,7 @@ import java.util.Objects;
  */
 public class Bool implements ISerializableType<Boolean, IMask<Boolean>> {
 
-    private final static IEditorFactory EDITOR_FACTORY = BoolEditor::new;
+    private final static IEditorFactory<Bool, Boolean> EDITOR_FACTORY = BoolEditor::new;
     
     private Boolean value;
 
@@ -39,10 +38,10 @@ public class Bool implements ISerializableType<Boolean, IMask<Boolean>> {
     }
 
     @Override
-    public IEditorFactory editorFactory() {
+    public IEditorFactory<? extends IComplexType<Boolean, IMask<Boolean>>, Boolean> editorFactory() {
         return EDITOR_FACTORY;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         IComplexType complex = (IComplexType) obj;

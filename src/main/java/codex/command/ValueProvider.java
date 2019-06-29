@@ -1,5 +1,6 @@
 package codex.command;
 
+import codex.mask.IMask;
 import codex.property.PropertyHolder;
 import codex.supplier.DataSelector;
 import codex.type.IComplexType;
@@ -8,7 +9,7 @@ import codex.utils.ImageUtils;
 /**
  * Команда редактора свойства, позволяющая выбрать значение из внешнего поставщика.
  */
-public class ValueProvider<V> extends EditorCommand {
+public class ValueProvider<V> extends EditorCommand<IComplexType<V, IMask<V>>, V> {
 
     private final DataSelector<?, V> selector;
     
@@ -27,12 +28,15 @@ public class ValueProvider<V> extends EditorCommand {
         this.selector = selector;
     }
 
-    @Override
-    public void execute(PropertyHolder context) {
-        V value = selector.select();
+    public void setValue(V value) {
         if (value != null) {
             context.setValue(value);
         }
+    }
+
+    @Override
+    public void execute(PropertyHolder<IComplexType<V, IMask<V>>, V> context) {
+        setValue(selector.select());
     }
     
 }

@@ -8,7 +8,6 @@ import codex.component.button.PushButton;
 import codex.component.dialog.Dialog;
 import codex.component.list.EditableList;
 import codex.mask.IArrMask;
-import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.type.ArrStr;
 import codex.type.IComplexType;
@@ -23,7 +22,6 @@ import java.awt.event.MouseEvent;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Редактор свойств типа {@link ArrStr}, представляет собой нередактируемое 
@@ -31,7 +29,7 @@ import java.util.function.Function;
  * в вызываемом командой диалоге со списком строк, которые можно редактировать, 
  * добавлять и удалять.
  */
-public class ArrStrEditor extends AbstractEditor {
+public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
     
     private static final ImageIcon EDIT_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 18, 18);
     private static final ImageIcon VIEW_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/view.png"), 18, 18);
@@ -44,7 +42,7 @@ public class ArrStrEditor extends AbstractEditor {
      * Конструктор редактора.
      * @param propHolder Редактируемое свойство.
      */
-    public ArrStrEditor(PropertyHolder propHolder) {
+    public ArrStrEditor(PropertyHolder<ArrStr, List<String>> propHolder) {
         super(propHolder);
         
         signDelete = new JLabel(ImageUtils.resize(
@@ -60,7 +58,7 @@ public class ArrStrEditor extends AbstractEditor {
         signDelete.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                IArrMask mask = (IArrMask) propHolder.getPropValue().getMask();
+                IArrMask mask = propHolder.getPropValue().getMask();
                 if (mask != null) {
                     propHolder.setValue(mask.getCleanValue());
                 } else {
@@ -69,7 +67,7 @@ public class ArrStrEditor extends AbstractEditor {
             }
         });
 
-        IArrMask mask = (IArrMask) propHolder.getPropValue().getMask();
+        IArrMask mask = propHolder.getPropValue().getMask();
         EditorCommand defCommand = mask instanceof EditorCommand ? (EditorCommand) mask : new ArrStrEditor.ListEditor();
         addCommand(defCommand);
 
@@ -114,15 +112,13 @@ public class ArrStrEditor extends AbstractEditor {
     }
 
     @Override
-    public void setValue(Object value) {
-        IArrMask mask = (IArrMask) propHolder.getPropValue().getMask();
+    public void setValue(List<String> value) {
+        IArrMask mask = propHolder.getPropValue().getMask();
         if (mask != null && mask.getFormat() != null && value != null) {
             textField.setText(
                     MessageFormat.format(
                         mask.getFormat(), 
-                        ((List) value).stream().map((item) -> {
-                            return item == null ? "" : item;
-                        }).toArray()
+                        value.stream().map((item) -> item == null ? "" : item).toArray()
                     ).replaceAll("\\{\\d+\\}", "")
             );
         } else {
@@ -151,7 +147,7 @@ public class ArrStrEditor extends AbstractEditor {
     }
 
 
-    private class ListEditor extends EditorCommand {
+    private class ListEditor extends EditorCommand<ArrStr, List<String>> {
 
         private ListEditor() {
             super(EDIT_ICON, Language.get("title"));
@@ -167,13 +163,14 @@ public class ArrStrEditor extends AbstractEditor {
         }
 
         @Override
-        public void execute(PropertyHolder contex) {
-            List<String> propVal = ((ArrStr) contex.getPropValue()).getValue();
-            List<String> values = propVal == null ? new ArrayList() : new ArrayList(propVal);
+        public void execute(PropertyHolder<ArrStr, List<String>> context) {
+            List<String> propVal = context.getPropValue().getValue();
+
+            List<String> values = propVal == null ? new ArrayList<>() : new ArrayList<>(propVal);
             EditableList list = new EditableList(values);
             list.setBorder(new EmptyBorder(5, 5, 5, 5));
             list.setEditable(ArrStrEditor.this.isEditable() && !propHolder.isInherited());
-            
+
             PushButton clean  = new PushButton(ImageUtils.resize(ImageUtils.getByPath("/images/remove.png"), 26, 26), null);
             clean.setEnabled(ArrStrEditor.this.isEditable() && !propHolder.isInherited() && values.size() > 0);
             clean.addActionListener((event) -> {
@@ -182,14 +179,14 @@ public class ArrStrEditor extends AbstractEditor {
                 }
                 clean.setEnabled(false);
             });
-            
+
             PushButton insert = new PushButton(ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 26, 26), null);
             insert.setEnabled(ArrStrEditor.this.isEditable() && !propHolder.isInherited());
             insert.addActionListener((event) -> {
                 list.insertItem(null);
                 clean.setEnabled(values.size() > 0);
             });
-            
+
             PushButton delete = new PushButton(ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 26, 26), null);
             delete.setEnabled(false);
             delete.addActionListener((event) -> {
@@ -199,7 +196,7 @@ public class ArrStrEditor extends AbstractEditor {
             list.addSelectionListener((event) -> {
                 delete.setEnabled(event.getFirstIndex() != -1 && ArrStrEditor.this.isEditable() && !propHolder.isInherited());
             });
-            
+
             Box controls = new Box(BoxLayout.Y_AXIS);
             controls.setBorder(new EmptyBorder(5, 0, 0, 5));
             controls.add(insert);
@@ -211,15 +208,15 @@ public class ArrStrEditor extends AbstractEditor {
             JPanel content = new JPanel(new BorderLayout());
             content.add(list, BorderLayout.CENTER);
             content.add(controls, BorderLayout.EAST);
-            
+
             DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             confirmBtn.setEnabled(isEditable() && !propHolder.isInherited());
             DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
 
             Dialog dialog = new Dialog(
-                    SwingUtilities.getWindowAncestor(editor), 
-                    ArrStrEditor.this.isEditable() && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON, 
-                    Language.get("title"), 
+                    SwingUtilities.getWindowAncestor(editor),
+                    ArrStrEditor.this.isEditable() && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON,
+                    Language.get("title"),
                     content,
                     (event) -> {
                         if (event.getID() == Dialog.OK && (

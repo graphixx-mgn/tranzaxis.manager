@@ -26,7 +26,7 @@ import java.awt.event.MouseEvent;
 import java.util.AbstractMap;
 import java.util.LinkedHashMap;
 
-public class MapEditor<K, V> extends AbstractEditor {
+public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, V>> {
 
     private static final ImageIcon  EDIT_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 18, 18);
     private static final ImageIcon  VIEW_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/view.png"), 18, 18);
@@ -37,12 +37,15 @@ public class MapEditor<K, V> extends AbstractEditor {
 
     private JTextField textField;
     private EditMode mode = EditMode.ModifyAllowed;
-    private java.util.Map<ISerializableType<K, ? extends IMask<K>>, ISerializableType<V, ? extends IMask<V>>> internalValue;
+    private java.util.Map<
+            ISerializableType<K, ? extends IMask<K>>,
+            ISerializableType<V, ? extends IMask<V>>
+    > internalValue;
 
-    public MapEditor(PropertyHolder propHolder) {
+    public MapEditor(PropertyHolder<Map<K, V>, java.util.Map<K, V>> propHolder) {
         super(propHolder);
 
-        EditorCommand defCommand = new TableEditor();
+        TableEditor defCommand = new TableEditor();
         addCommand(defCommand);
 
         textField.addMouseListener(new MouseAdapter() {
@@ -81,15 +84,20 @@ public class MapEditor<K, V> extends AbstractEditor {
     }
 
     @Override
-    public void setValue(Object value) {
+    public void setValue(java.util.Map<K, V> value) {
         internalValue.clear();
 
-        Map<K, V> map = (Map<K, V>) propHolder.getOwnPropValue();
+        Map<K, V> map = propHolder.getOwnPropValue();
         map.getValue().forEach((k, v) -> {
-            java.util.Map.Entry<ISerializableType<K, ? extends IMask<K>>, ISerializableType<V, ? extends IMask<V>>> entry = map.getEntry();
+            java.util.Map.Entry<? extends ISerializableType<K, ? extends IMask<K>>, ? extends ISerializableType<V, ? extends IMask<V>>> entry = map.getEntry();
+
             entry.getKey().setValue(k);
             entry.getValue().setValue(v);
-            internalValue.put(entry.getKey(), entry.getValue());
+
+            internalValue.put(
+                    entry.getKey(),
+                    entry.getValue()
+            );
         });
         if (internalValue.isEmpty()) {
             textField.setText("");
@@ -106,9 +114,13 @@ public class MapEditor<K, V> extends AbstractEditor {
         textField.setOpaque(editable && !propHolder.isInherited());
     }
 
-    public java.util.Map.Entry<PropertyHolder, PropertyHolder> createHolderEntry() {
-        Map<K, V> map = (Map<K, V>) propHolder.getOwnPropValue();
+    private java.util.Map.Entry<
+            PropertyHolder<ISerializableType<K, ? extends IMask<K>>, K>,
+            PropertyHolder<ISerializableType<V, ? extends IMask<V>>, V>
+    > createHolderEntry() {
+        Map<K, V> map = propHolder.getOwnPropValue();
         java.util.Map.Entry<ISerializableType<K, ? extends IMask<K>>, ISerializableType<V, ? extends IMask<V>>> entry = map.getEntry();
+
         return new AbstractMap.SimpleEntry<>(
                 new PropertyHolder<>("key", entry.getKey(), true),
                 new PropertyHolder<>("val", entry.getValue(), true)
@@ -121,7 +133,7 @@ public class MapEditor<K, V> extends AbstractEditor {
     }
 
 
-    private class TableEditor extends EditorCommand {
+    private class TableEditor extends EditorCommand<Map<K, V>, java.util.Map<K, V>> {
 
         TableEditor() {
             super(EDIT_ICON, Language.get(MapEditor.class, "title"));
@@ -215,7 +227,10 @@ public class MapEditor<K, V> extends AbstractEditor {
                 PushButton insert = new PushButton(ADD_ICON, null);
                 insert.setEnabled(MapEditor.this.isEditable() && !propHolder.isInherited());
                 insert.addActionListener((e) -> {
-                    java.util.Map.Entry<PropertyHolder, PropertyHolder>  entry = createHolderEntry();
+                    java.util.Map.Entry<
+                            PropertyHolder<ISerializableType<K, ? extends IMask<K>>, K>,
+                            PropertyHolder<ISerializableType<V, ? extends IMask<V>>, V>
+                    >  entry = createHolderEntry();
 
                     ParamModel model = new ParamModel();
                     model.addProperty(entry.getKey());
@@ -230,13 +245,13 @@ public class MapEditor<K, V> extends AbstractEditor {
                             new EditorPage(model),
                             event -> {
                                 if (event.getID() == codex.component.dialog.Dialog.OK) {
-                                    tableModel.addRow(new Object[]{
-                                            (ISerializableType) entry.getKey().getPropValue(),
-                                            (ISerializableType) entry.getValue().getPropValue()
+                                    tableModel.addRow(new Object[] {
+                                            entry.getKey().getPropValue(),
+                                            entry.getValue().getPropValue()
                                     });
                                     internalValue.put(
-                                            (ISerializableType) entry.getKey().getPropValue(),
-                                            (ISerializableType) entry.getValue().getPropValue()
+                                            entry.getKey().getPropValue(),
+                                            entry.getValue().getPropValue()
                                     );
                                 }
                             },

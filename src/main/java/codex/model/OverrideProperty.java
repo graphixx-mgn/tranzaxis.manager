@@ -4,6 +4,7 @@ import codex.command.CommandStatus;
 import codex.command.EditorCommand;
 import codex.editor.AbstractEditor;
 import codex.editor.IEditor;
+import codex.mask.IMask;
 import codex.property.PropertyHolder;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
@@ -20,7 +21,7 @@ import javax.swing.ImageIcon;
  * Команда переключения наследования значения свойства от одноименного свойства 
  * родительской сущности.
  */
-public final class OverrideProperty extends EditorCommand {
+public final class OverrideProperty extends EditorCommand<IComplexType<Object, IMask<Object>>, Object> {
     
     private static final ImageIcon OVERRIDE = ImageUtils.resize(ImageUtils.getByPath("/images/override.png"), 18, 18);
     private static final ImageIcon INHERIT  = ImageUtils.resize(ImageUtils.getByPath("/images/inherit.png"), 18, 18);
@@ -116,7 +117,7 @@ public final class OverrideProperty extends EditorCommand {
     }
 
     @Override
-    public void execute(PropertyHolder context) {
+    public void execute(PropertyHolder<IComplexType<Object, IMask<Object>>, Object> context) {
         updater.accept(context);
     }
 

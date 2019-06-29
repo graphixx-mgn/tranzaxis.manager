@@ -12,8 +12,6 @@ import java.util.Objects;
 
 public class Enum<T extends java.lang.Enum> implements ISerializableType<T, IMask<T>>, IParametrized {
 
-    private final static IEditorFactory EDITOR_FACTORY = EnumEditor::new;
-
     @Target({ElementType.FIELD})
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Undefined {}
@@ -52,8 +50,8 @@ public class Enum<T extends java.lang.Enum> implements ISerializableType<T, IMas
     }
 
     @Override
-    public IEditorFactory editorFactory() {
-        return EDITOR_FACTORY;
+    public IEditorFactory<? extends IComplexType<T, IMask<T>>, T> editorFactory() {
+        return (IEditorFactory<Enum<T>, T>) EnumEditor::new;
     }
 
     @Override
@@ -75,6 +73,7 @@ public class Enum<T extends java.lang.Enum> implements ISerializableType<T, IMas
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void valueOf(String value) {
         setValue((T) java.lang.Enum.valueOf(this.value.getClass().asSubclass(java.lang.Enum.class), value));
     }

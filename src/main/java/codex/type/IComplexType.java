@@ -61,9 +61,9 @@ public interface IComplexType<T, M extends IMask<T>> extends Serializable {
      * (конечной реализации).
      * @return Реализация интерфейса фабрики {@link IEditorFactory}
      */
-    default IEditorFactory editorFactory() {
-        return (PropertyHolder propHolder) -> new AbstractEditor(propHolder) {
-            
+
+    default IEditorFactory<? extends IComplexType<T, M>, T> editorFactory() {
+        return (IEditorFactory<IComplexType<T, M>, T>) propHolder -> new AbstractEditor<IComplexType<T, M>, T>(propHolder) {
             @Override
             public Box createEditor() {
                 JTextField textField = new JTextField(MessageFormat.format(
@@ -74,14 +74,14 @@ public interface IComplexType<T, M extends IMask<T>> extends Serializable {
                 textField.setHorizontalAlignment(JTextField.CENTER);
                 textField.setEditable(false);
                 textField.setForeground(Color.RED);
-                
+
                 Box container = new Box(BoxLayout.X_AXIS);
                 container.add(textField);
                 return container;
             }
-            
+
             @Override
-            public void setValue(Object value) {}
+            public void setValue(T value) {}
         };
     }
     

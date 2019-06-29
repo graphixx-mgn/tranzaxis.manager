@@ -7,10 +7,7 @@ import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
-import codex.editor.AbstractEditor;
-import codex.editor.EntityRefEditor;
-import codex.editor.EntityRefTreeEditor;
-import codex.editor.IEditorFactory;
+import codex.editor.*;
 import codex.mask.EntityFilter;
 import codex.model.Catalog;
 import codex.model.Entity;
@@ -96,18 +93,19 @@ class CreateShortcut extends EntityCommand<Entity> {
 
         final EntityRef sectionRef = new EntityRef<ShortcutSection>(ShortcutSection.class) {
             @Override
-            public IEditorFactory editorFactory() {
-                return (PropertyHolder propHolder) -> new EntityRefEditor(propHolder) {
+            public IEditorFactory<EntityRef<ShortcutSection>, ShortcutSection> editorFactory() {
+                return propHolder -> new EntityRefEditor<ShortcutSection>(propHolder) {
                     @Override
-                    protected List<Entity> getValues() {
+                    protected List<ShortcutSection> getValues() {
                         return CAS.readCatalogEntries(null, getEntityClass()).values().stream()
                                 .filter((PID) -> !PID.equals(ShortcutSection.DEFAULT))
                                 .map((PID) -> Entity.newInstance(getEntityClass(), null, PID))
                                 .collect(Collectors.toList());
                     }
                 };
-            }            
+            }
         };
+
         final EntityRef<Catalog> catalogRef = new EntityRef<Catalog>(Catalog.class) {
             @Override
             public IEditorFactory editorFactory() {
@@ -185,10 +183,10 @@ class CreateShortcut extends EntityCommand<Entity> {
             confirmBtn.setEnabled(paramModel.getValue(PARAM_COMMAND) != null);
         });
         
-        AbstractEditor sectionEditor = (AbstractEditor) paramModel.getEditor(PARAM_SECTION);
+        EntityRefEditor<ShortcutSection> sectionEditor = (EntityRefEditor<ShortcutSection>) paramModel.getEditor(PARAM_SECTION);
         sectionEditor.addCommand(new AddSection() {
             @Override
-            public void execute(PropertyHolder context) {
+            public void execute(PropertyHolder<EntityRef<ShortcutSection>, ShortcutSection> context) {
                 new CreateSection() {
                     @Override
                     void boundView(ShortcutSection section) {
@@ -228,7 +226,7 @@ class CreateShortcut extends EntityCommand<Entity> {
     }
     
     
-    private class AddSection extends EditorCommand {
+    private class AddSection extends EditorCommand<EntityRef<ShortcutSection>, ShortcutSection> {
 
         private AddSection() {
             super(
@@ -238,7 +236,7 @@ class CreateShortcut extends EntityCommand<Entity> {
         }
 
         @Override
-        public void execute(PropertyHolder context) {}
-    
+        public void execute(PropertyHolder<EntityRef<ShortcutSection>, ShortcutSection> context) {}
+
     }
 }

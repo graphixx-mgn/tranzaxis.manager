@@ -1,19 +1,18 @@
 package codex.editor;
 
 import codex.property.PropertyHolder;
+import codex.type.AnyType;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
-import java.awt.*;
 
 /**
  * Редактор свойств типа {@link codex.type.AnyType}, представляет собой нередактируемое поле
  * в которе выводится строковое предстваление объекта {@link Object#toString()}, а если объект
  * реализует интерыейс {@link Iconified} - то и иконку.
  */
-public class AnyTypeView extends AbstractEditor {
+public class AnyTypeView extends AbstractEditor<AnyType, Object> {
 
     private JTextPane textField;
     private JLabel    iconLabel;
@@ -22,7 +21,7 @@ public class AnyTypeView extends AbstractEditor {
      * Конструктор редактора.
      * @param propHolder Редактируемое свойство.
      */
-    public AnyTypeView(PropertyHolder propHolder) {
+    public AnyTypeView(PropertyHolder<AnyType, Object> propHolder) {
         super(propHolder);
     }
 

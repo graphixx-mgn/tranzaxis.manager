@@ -84,8 +84,8 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
         }
     }
 
-    DialogButton btnConfirm = Dialog.Default.BTN_OK.newInstance();
-    DialogButton btnCancel = Dialog.Default.BTN_CANCEL.newInstance();
+    private DialogButton btnConfirm = Dialog.Default.BTN_OK.newInstance();
+    private DialogButton btnCancel = Dialog.Default.BTN_CANCEL.newInstance();
 
     private final DefaultTableModel tableModel = new DefaultTableModel() {
         @Override
@@ -157,6 +157,7 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
 
     @Override
     public R select() {
+        sorter.setRowFilter(null);
         tableModel.getDataVector().removeAllElements();
         tableModel.fireTableDataChanged();
 
@@ -164,12 +165,12 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
             btnConfirm.setEnabled(false);
 
             JPanel filterPanel = new JPanel(new BorderLayout());
-            PropertyHolder lookupHolder = new PropertyHolder<>(
+            PropertyHolder<Str, String> lookupHolder = new PropertyHolder<>(
                     "filter", null, null,
                     new Str(null), false
             );
-            IEditor lookupEditor = new StrEditor(lookupHolder);
-            EditorCommand search = new ApplyFilter();
+            StrEditor lookupEditor = new StrEditor(lookupHolder);
+            ApplyFilter search = new ApplyFilter();
             lookupEditor.addCommand(search);
             lookupHolder.addChangeListener((name, oldValue, newValue) -> {
                 if (lookupEditor.getFocusTarget().isFocusOwner()) {
@@ -205,21 +206,25 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
                         }
                     };
                 }
+
+                @Override
+                public Dimension getPreferredSize() {
+                    Dimension def = super.getPreferredSize();
+                    return new Dimension(Math.max(table.getColumnCount() * 200, 300), def.height);
+                }
+
                 @Override
                 public void setVisible(boolean visible) {
                     if (visible) {
                         try {
                             readPage();
-                            setPreferredSize(new Dimension(
-                                    Math.max(table.getColumnCount() * 200, 300), 300
-                            ));
-                            super.setVisible(visible);
+                            super.setVisible(true);
                         } catch (IDataSupplier.NoDataAvailable e) {
                             Logger.getLogger().warn("Database query failed: {0}", e.getMessage());
                             MessageBox.show(MessageType.ERROR, e.getMessage());
                         }
                     } else {
-                        super.setVisible(visible);
+                        super.setVisible(false);
                     }
                 }
             }.setVisible(true);
@@ -228,15 +233,15 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
     }
 
 
-    private class ApplyFilter extends EditorCommand {
+    private class ApplyFilter extends EditorCommand<Str, String> {
 
         ApplyFilter() {
             super(ImageUtils.resize(ICON_SEARCH, 18, 18), null);
         }
 
         @Override
-        public void execute(PropertyHolder context) {
-            String lookupValue = (String) context.getPropValue().getValue();
+        public void execute(PropertyHolder<Str, String> context) {
+            String lookupValue = context.getPropValue().getValue();
             if (lookupValue == null || lookupValue.isEmpty()) {
                 RowSelector.this.sorter.setRowFilter(null);
             } else {
@@ -286,6 +291,8 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
                     } else {
                         RowSelector.this.sorter.setRowFilter(null);
                     }
+                } else if (table.getRowSorter().getViewRowCount() == 1) {
+                    table.getSelectionModel().setSelectionInterval(0, 0);
                 }
             }
         }

@@ -20,7 +20,8 @@ public class AbstractModel {
     final Map<String, PropertyHolder> properties = new LinkedHashMap<>();
     final Map<String, IEditor> editors = new HashMap<>();
     final Map<String, Access>  restrictions = new HashMap<>();
-    final Map<String, String>  propertyGroups = new HashMap<>();
+
+    private final Map<String, String> propertyGroups = new HashMap<>();
     
     /**
      * Возвращает признак что модель корректна.
@@ -40,6 +41,7 @@ public class AbstractModel {
         return getProperty(name).isValid() ? PropertyState.Good : PropertyState.Error;
     }
     
+    @SuppressWarnings("unchecked")
     void addProperty(String name, IComplexType value, boolean require, Access restriction) {
         this.addProperty(new PropertyHolder(name, value, require), restriction);
     }
@@ -110,15 +112,14 @@ public class AbstractModel {
                     Access propRestriction = restrictions.get(propHolder.getName());
                     return (propRestriction != grant && propRestriction != Access.Any && propRestriction != Access.Extra) || grant == Access.Any;
                 })
-                .map((propHolder) -> {
-                    return propHolder.getName();
-                })
+                .map(PropertyHolder::getName)
                 .collect(Collectors.toList());
     }
     
     /**
      * Установить значение свойства по его имени.
      */
+    @SuppressWarnings("unchecked")
     public void setValue(String name, Object value) {
         getProperty(name).setValue(value);
     }
@@ -129,7 +130,8 @@ public class AbstractModel {
     public Object getValue(String name) {
         return getProperty(name).getPropValue().getValue();
     }
-    
+
+    @SuppressWarnings("unchecked")
     public IEditor getEditor(String name) {
         if (!editors.containsKey(name)) {
             editors.put(name, properties.get(name).getPropValue().editorFactory().newInstance(properties.get(name)));

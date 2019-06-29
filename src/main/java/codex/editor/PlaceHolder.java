@@ -1,6 +1,5 @@
 package codex.editor;
 
-
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -24,7 +23,7 @@ public final class PlaceHolder extends JLabel implements FocusListener, Document
     public enum Show {
         ALWAYS,
         FOCUS_GAINED,
-        FOCUS_LOST;
+        FOCUS_LOST
     }
 
     private JTextComponent component;
@@ -64,7 +63,7 @@ public final class PlaceHolder extends JLabel implements FocusListener, Document
      *  @param alpha value in the range of 0 - 1.0.
      */
     public void changeAlpha(float alpha) {
-        changeAlpha( (int)(alpha * 255) );
+        changeAlpha((int)(alpha * 255));
     }
 
     /**
@@ -73,7 +72,7 @@ public final class PlaceHolder extends JLabel implements FocusListener, Document
      *
      *  @param alpha value in the range of 0 - 255.
      */
-    public void changeAlpha(int alpha) {
+    void changeAlpha(int alpha) {
         alpha = alpha > 255 ? 255 : alpha < 0 ? 0 : alpha;
 
         Color foreground = getForeground();
@@ -165,6 +164,11 @@ public final class PlaceHolder extends JLabel implements FocusListener, Document
         } else {
             setVisible(show == Show.ALWAYS || show == Show.FOCUS_LOST);
         }
+    }
+
+    @Override
+    public void setVisible(boolean aFlag) {
+        SwingUtilities.invokeLater(() -> super.setVisible(aFlag));
     }
 
     @Override

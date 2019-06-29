@@ -4,8 +4,12 @@ import codex.command.EditorCommand;
 import codex.command.ICommand;
 import codex.command.ICommandListener;
 import codex.component.button.PushButton;
+import codex.mask.IMask;
+import codex.model.Catalog;
+import codex.model.Entity;
 import codex.property.PropertyHolder;
-import codex.type.Iconified;
+import codex.type.IComplexType;
+import codex.type.NullValue;
 import codex.utils.ImageUtils;
 import net.java.balloontip.BalloonTip;
 import net.java.balloontip.styles.EdgedBalloonStyle;
@@ -24,7 +28,7 @@ import java.util.List;
  * Абстрактный редактор свойств {@link PropertyHolder}. Содержит основные функции
  * управления состоянием виджета и свойства, реализуя роль Controller (MVC).
  */
-public abstract class AbstractEditor extends JComponent implements IEditor, FocusListener {
+public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V>>, V> extends JComponent implements IEditor<T, V>, FocusListener {
 
     private static final Border NORMAL_BORDER = new CompoundBorder(
             new MatteBorder(0, 1, 0, 0, Color.LIGHT_GRAY),
@@ -36,15 +40,15 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     private boolean      editable = true;
     private boolean      locked   = false;
     
-    protected final PropertyHolder propHolder;
-    protected final List<ICommand<PropertyHolder, PropertyHolder>> commands = new LinkedList<>();
+    protected final PropertyHolder<T, V> propHolder;
+    protected final List<EditorCommand<T, V>> commands = new LinkedList<>();
     private   final List<IEditorListener> listeners = new LinkedList<>();
 
     /**
      * Конструктор редактора.
      * @param propHolder Редактируемое свойство.
      */
-    public AbstractEditor(PropertyHolder propHolder) {
+    public AbstractEditor(PropertyHolder<T, V> propHolder) {
         this.propHolder = propHolder;
         this.label  = new JLabel(propHolder.getTitle());
         this.editor = createEditor();
@@ -112,7 +116,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     }
 
     @Override
-    public final Object getValue() {
+    public final V getValue() {
         stopEditing();
         return propHolder.getPropValue().getValue();
     }
@@ -182,7 +186,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     }
 
     @Override
-    public void addCommand(EditorCommand command) {
+    public void addCommand(EditorCommand<T, V> command) {
         final EditorCommandButton button = new EditorCommandButton(command);
         commands.add(command);
         editor.add(button);
@@ -191,7 +195,7 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
     }
     
     @Override
-    public List<ICommand<PropertyHolder, PropertyHolder>> getCommands() {
+    public List<EditorCommand<T, V>> getCommands() {
         return new LinkedList<>(commands);
     }
 
@@ -206,29 +210,10 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         getCommands().forEach(ICommand::activate);
         label.setFont((propHolder.isValid() ? IEditor.FONT_NORMAL : IEditor.FONT_BOLD));
     }
-    
-    /**
-     * Класс, используемый при отрисовке NULL значения в списках. 
-     */
-    public class NullValue implements Iconified {
-        
-        private final ImageIcon ICON = ImageUtils.getByPath("/images/clearval.png");
 
-        @Override
-        public ImageIcon getIcon() {
-            return AbstractEditor.this.isEditable() ? ICON : ImageUtils.grayscale(ICON);
-        }
-        
-        @Override
-        public String toString() {
-            return propHolder.getPlaceholder();
-        }
-    }
+    class EditorCommandButton extends PushButton implements ICommandListener<PropertyHolder<T, V>> {
 
-
-    class EditorCommandButton extends PushButton implements ICommandListener<PropertyHolder> {
-
-        EditorCommandButton(EditorCommand command) {
+        EditorCommandButton(EditorCommand<T, V> command) {
             super(command.getIcon(), null);
             button.setBorder(new EmptyBorder(2, 2, 2, 2));
             setHint(command.getHint());
@@ -299,6 +284,20 @@ public abstract class AbstractEditor extends JComponent implements IEditor, Focu
         void setEditable(boolean editable);
         void setLocked(boolean locked);
 
+    }
+
+
+    public class Undefined extends Catalog implements NullValue {
+
+        public Undefined() {
+            super(null, ImageUtils.getByPath("/images/clearval.png"), null, null);
+            setTitle(propHolder.getPlaceholder());
+        }
+
+        @Override
+        public Class<? extends Entity> getChildClass() {
+            return null;
+        }
     }
 
 }

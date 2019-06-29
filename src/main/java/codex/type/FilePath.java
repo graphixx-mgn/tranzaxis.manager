@@ -12,7 +12,7 @@ import java.text.MessageFormat;
  */
 public class FilePath implements ISerializableType<Path, IPathMask> {
     
-    private final static IEditorFactory EDITOR_FACTORY = FilePathEditor::new;
+    private final static IEditorFactory<FilePath, Path> EDITOR_FACTORY = FilePathEditor::new;
     
     private Path      value;
     private IPathMask mask;
@@ -36,7 +36,7 @@ public class FilePath implements ISerializableType<Path, IPathMask> {
     }
 
     @Override
-    public IEditorFactory editorFactory() {
+    public IEditorFactory<? extends IComplexType<Path, IPathMask>, Path> editorFactory() {
         return EDITOR_FACTORY;
     }
 
