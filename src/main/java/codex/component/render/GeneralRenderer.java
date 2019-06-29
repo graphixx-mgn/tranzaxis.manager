@@ -1,19 +1,15 @@
 package codex.component.render;
 
 import codex.component.button.IButton;
-import codex.editor.AbstractEditor;
 import codex.editor.IEditor;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.NodeTreeModel;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.presentation.ISelectorTableModel;
-import codex.presentation.SelectorTableModel;
 import codex.property.PropertyState;
-import codex.type.ArrStr;
-import codex.type.Bool;
+import codex.type.*;
 import codex.type.Enum;
-import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import java.awt.Color;
 import java.awt.Component;
@@ -71,7 +67,7 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
     @Override
     public Component getListCellRendererComponent(JList<? extends E> list, E value, int index, boolean isSelected, boolean hasFocus) {
         return new JLabel(
-                value.toString().concat(DEV_MODE && !(value instanceof AbstractEditor.NullValue) ? ", hash="+value.hashCode() : "")
+                value.toString().concat(DEV_MODE && !(NullValue.class.isAssignableFrom(value.getClass())) ? ", hash="+value.hashCode() : "")
         ) {{
             setOpaque(true);
             setIconTextGap(6);
@@ -88,7 +84,7 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                 }
             }
             setBorder(new EmptyBorder(1, 4, 1, 2));
-            setForeground(value instanceof AbstractEditor.NullValue ? Color.GRAY : IEditor.COLOR_NORMAL);
+            setForeground(NullValue.class.isAssignableFrom(value.getClass()) ? Color.GRAY : IEditor.COLOR_NORMAL);
         }};
     }
 
