@@ -78,7 +78,7 @@ public class Environment extends Entity implements INodeListener {
         String   layerUri = getLayerUri(true);
         if (IComplexType.notNull(database, layerUri) && ServiceRegistry.getInstance().isServiceRegistered(OracleAccessService.class)) {
             IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
-            try (ResultSet rs = DAS.select(database.getConnectionID(false), "SELECT VERSION FROM RDX_DDSVERSION WHERE LAYERURI = ?", layerUri);) {
+            try (ResultSet rs = DAS.select(database.getConnectionID(false), "SELECT VERSION FROM RDX_DDSVERSION WHERE LAYERURI = ?", layerUri)) {
                 if (rs.next()) {
                     return rs.getString(1);
                 }
@@ -99,8 +99,8 @@ public class Environment extends Entity implements INodeListener {
         }
     };
     
-    private final ValueProvider<String>     layerSelector = new ValueProvider<>(RowSelector.Single.newInstance(layerSupplier));
-    private final DataSetMask<List<String>> instanceSelector = new DataSetMask<>(RowSelector.Multiple.newInstance(instanceSupplier), "{0} - {1}");
+    private final ValueProvider<String> layerSelector = new ValueProvider<>(RowSelector.Single.newInstance(layerSupplier));
+    private final DataSetMask instanceSelector = new DataSetMask(RowSelector.Multiple.newInstance(instanceSupplier), "{0} - {1}");
 
     private final Consumer<String> sourceUpdater = propName -> {
         boolean activate = getRepository(true) != null && getSourceType(true).name().toLowerCase().equals(propName);
@@ -139,15 +139,15 @@ public class Environment extends Entity implements INodeListener {
 
         model.addUserProp(PROP_RELEASE, new EntityRef<Release>(Release.class) {
             @Override
-            public IEditorFactory editorFactory() {
-                return propHolder -> new EntityRefEditor(propHolder) {
+            public IEditorFactory<EntityRef<Release>, Release> editorFactory() {
+                return propHolder -> new EntityRefEditor<Release>(propHolder) {
                     @Override
-                    protected List<Entity> getValues() {
+                    protected List<Release> getValues() {
                         Repository repository = getRepository(true);
-                        List<Entity> values = new LinkedList<>();
+                        List<Release> values = new LinkedList<>();
                         if (repository != null) {
-                            Entity.newInstance(ReleaseList.class, repository.toRef(), null).childrenList().forEach(iNode -> {
-                                values.add((Entity) iNode);
+                            newInstance(ReleaseList.class, repository.toRef(), null).childrenList().forEach(iNode -> {
+                                values.add((Release) iNode);
                             });
                         }
                         return values;
@@ -508,7 +508,7 @@ public class Environment extends Entity implements INodeListener {
         }
     }
     
-    private class SyncRelease extends EditorCommand implements IModelListener {
+    private class SyncRelease extends EditorCommand<EntityRef<Release>, Release> implements IModelListener {
 
         SyncRelease() {
             super(
@@ -550,8 +550,16 @@ public class Environment extends Entity implements INodeListener {
             };
         }
 
+        private Entity findEntity(String version) {
+            Entity repository  = Environment.this.getRepository(true);
+            if (repository != null) {
+                return Entity.newInstance(Release.class, repository.toRef(), version);
+            }
+            return null;
+        }
+
         @Override
-        public void execute(PropertyHolder context) {
+        public void execute(PropertyHolder<EntityRef<Release>, Release> context) {
             Environment.this.setAutoRelease(!getAutoRelease(true));
             if (getID() != null) {
                 if (model.getChanges().equals(Collections.singletonList(PROP_AUTO_RELEASE))) {
@@ -561,14 +569,6 @@ public class Environment extends Entity implements INodeListener {
                 }
             }
             activate();
-        }
-        
-        private Entity findEntity(String version) {
-            Entity repository  = Environment.this.getRepository(true);
-            if (repository != null) {
-                return Entity.newInstance(Release.class, repository.toRef(), version);
-            }
-            return null;
         }
 
         @Override
@@ -582,7 +582,7 @@ public class Environment extends Entity implements INodeListener {
                 activate();
             }
         }
-        
+
     }
 
 }
