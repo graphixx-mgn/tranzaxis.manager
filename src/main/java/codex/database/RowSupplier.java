@@ -19,8 +19,8 @@ public class RowSupplier implements IDataSupplier<Map<String, String>> {
     private final String query;
     private final Supplier<Object[]> parameters;
 
-    private Long offset = 0L;
-    private Boolean finished = false;
+    private Long    offset = 0L;
+    private Boolean dataExhausted = false;
 
     public RowSupplier(Supplier<Integer> connectionID, String query, Object... parameters) {
         this(connectionID, query, () -> parameters);
@@ -38,7 +38,7 @@ public class RowSupplier implements IDataSupplier<Map<String, String>> {
     }
 
     @Override
-    public List<Map<String, String>> get() throws NoDataAvailable {
+    public List<Map<String, String>> getNext() throws LoadDataException {
         List<Map<String, String>> result = new LinkedList<>();
         IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
 
@@ -54,24 +54,30 @@ public class RowSupplier implements IDataSupplier<Map<String, String>> {
                 result.add(row);
             }
             if (result.size() < IDataSupplier.DEFAULT_LIMIT) {
-                finished = true;
+                dataExhausted = true;
             } else {
                 offset = offset+IDataSupplier.DEFAULT_LIMIT;
             }
             return result;
         } catch (SQLException e) {
-            throw new NoDataAvailable(e);
+            throw new LoadDataException(e);
         }
+    }
+
+    @Override
+    public List<Map<String, String>> getPrev() throws LoadDataException {
+        return Collections.emptyList();
     }
 
     @Override
     public void reset() {
         offset = 0L;
+        dataExhausted = false;
     }
 
     @Override
-    public boolean available() {
-        return !finished;
+    public boolean available(ReadDirection direction) {
+        return !dataExhausted;
     }
 
     private String prepareQuery(String query) {
