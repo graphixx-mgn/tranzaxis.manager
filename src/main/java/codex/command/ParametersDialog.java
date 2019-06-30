@@ -6,7 +6,6 @@ import codex.model.Access;
 import codex.model.ParamModel;
 import codex.presentation.EditorPage;
 import codex.property.PropertyHolder;
-import codex.supplier.IDataSupplier;
 import codex.type.Bool;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -25,7 +24,7 @@ import javax.swing.JPanel;
  * Реализация поставщика данных - параметров команды. Представляет собой диалог
  * с редакторами свойств, возвращающий данные в команду при закрытии.
  */
-public class ParametersDialog extends Dialog implements IDataSupplier<PropertyHolder> {
+public class ParametersDialog extends Dialog {
 
     private final EntityCommand command;
     private final ParamModel paramModel = new ParamModel();
@@ -73,18 +72,7 @@ public class ParametersDialog extends Dialog implements IDataSupplier<PropertyHo
         }
     }
 
-    @Override
-    public boolean ready() {
-        return paramSupplier.get().length > 0;
-    }
-
-    @Override
-    public boolean available() {
-        return false;
-    }
-
-    @Override
-    public List<PropertyHolder> get() throws NoDataAvailable {
+    public List<PropertyHolder> getProperties() throws Canceled {
         Arrays.asList(paramSupplier.get()).forEach(paramModel::addProperty);
         command.preprocessParameters(paramModel);
         setContent(new EditorPage(paramModel));
@@ -94,11 +82,9 @@ public class ParametersDialog extends Dialog implements IDataSupplier<PropertyHo
                     .map(paramModel::getProperty)
                     .collect(Collectors.toList());
         } else {
-            throw new NoDataAvailable();
+            throw new Canceled();
         }
     }
 
-    @Override
-    public void reset() {}
-
+    public final class Canceled extends Exception {}
 }
