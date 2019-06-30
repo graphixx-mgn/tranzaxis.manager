@@ -1,6 +1,7 @@
 package codex.launcher;
 
 import codex.command.EntityCommand;
+import codex.command.ParametersDialog;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.log.Logger;
@@ -109,7 +110,7 @@ final class LaunchShortcut extends LaunchButton implements IModelListener, INode
                             final Map<String, IComplexType> params = command.getParameters();
                             Logger.getLogger().debug("Perform command [{0}]. Context: {1}", command.getName(), entity);
                             command.execute(entity, params);
-                        } catch (IDataSupplier.NoDataAvailable e) {
+                        } catch (ParametersDialog.Canceled e) {
                             // Do not call command
                         }
                     } finally {

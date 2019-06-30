@@ -2,7 +2,6 @@ package codex.command;
 
 import codex.log.Logger;
 import codex.model.Entity;
-import codex.supplier.IDataSupplier;
 import codex.type.IComplexType;
 import javax.swing.*;
 import java.util.List;
@@ -22,7 +21,7 @@ public abstract class EntityGroupCommand<V extends Entity> extends EntityCommand
             Logger.getLogger().debug("Perform command [{0}]. Group context: {1}", getName(), context);
             try {
                 execute(context, getParameters());
-            } catch (IDataSupplier.NoDataAvailable noDataAvailable) {
+            } catch (ParametersDialog.Canceled e) {
                 // Do not call command
             }
         }

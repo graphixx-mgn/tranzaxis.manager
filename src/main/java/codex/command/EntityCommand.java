@@ -8,7 +8,6 @@ import codex.model.IModelListener;
 import codex.model.ParamModel;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
-import codex.supplier.IDataSupplier;
 import codex.task.ITask;
 import codex.task.ITaskExecutorService;
 import codex.task.ITaskListener;
@@ -254,10 +253,10 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     /**
      * Получение вызов диалога заполнения параметров и возврат значений.
      */
-    public final Map<String, IComplexType> getParameters() throws IDataSupplier.NoDataAvailable {
-        IDataSupplier<PropertyHolder> paramSupplier = new ParametersDialog(this, provider);
-        if (paramSupplier.ready()) {
-            return paramSupplier.get().stream()
+    public final Map<String, IComplexType> getParameters() throws ParametersDialog.Canceled {
+        if (provider.get().length > 0) {
+            ParametersDialog paramDialog = new ParametersDialog(this, provider);
+            return paramDialog.getProperties().stream()
                     .collect(Collectors.toMap(
                             PropertyHolder::getName,
                             PropertyHolder::getOwnPropValue
@@ -281,7 +280,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
                 final Map<String, IComplexType> params = getParameters();
                 Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), context);
                 context.forEach(entity -> execute(entity, params));
-            } catch (IDataSupplier.NoDataAvailable e) {
+            } catch (ParametersDialog.Canceled e) {
                 // Do not call command
             }
         }
@@ -340,5 +339,5 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     public String toString() {
         return IComplexType.coalesce(title, name);
     }
-    
+
 }
