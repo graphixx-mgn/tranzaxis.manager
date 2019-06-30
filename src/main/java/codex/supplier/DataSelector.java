@@ -17,6 +17,6 @@ public abstract class DataSelector<V, R> {
         return supplier;
     }
 
-    public abstract R select();
+    public abstract R select(R initialVal);
 
 }
