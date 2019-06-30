@@ -11,22 +11,26 @@ public interface IDataSupplier<T> {
     Integer DEFAULT_LIMIT = 100;
 
     boolean ready();
-    boolean available();
-    List<T> get() throws NoDataAvailable;
+    boolean available(ReadDirection direction);
+    List<T> getNext() throws LoadDataException;
+    List<T> getPrev() throws LoadDataException;
     void    reset();
 
+    public enum ReadDirection {
+        Forward, Backward
+    }
 
-    class NoDataAvailable extends Exception {
+    class LoadDataException extends Exception {
 
-        public NoDataAvailable() {
+        public LoadDataException() {
             super();
         }
 
-        public NoDataAvailable(String message) {
+        public LoadDataException(String message) {
             super(message);
         }
 
-        public NoDataAvailable(Throwable cause) {
+        public LoadDataException(Throwable cause) {
             super(cause);
         }
 
