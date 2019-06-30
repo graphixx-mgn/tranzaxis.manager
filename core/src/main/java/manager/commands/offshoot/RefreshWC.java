@@ -12,6 +12,7 @@ import manager.commands.offshoot.build.BuildKernelTask;
 import manager.commands.offshoot.build.BuildSourceTask;
 import manager.nodes.Offshoot;
 import manager.type.WCStatus;
+import org.tmatesoft.svn.core.wc.SVNRevision;
 
 public class RefreshWC extends EntityCommand<Offshoot> {
 
@@ -42,7 +43,7 @@ public class RefreshWC extends EntityCommand<Offshoot> {
                 offshoot, 
                 new GroupTask<>(
                         Language.get("title") + ": "+(offshoot).getLocalPath(),
-                        offshoot.getCommand(UpdateWC.class).new UpdateTask(offshoot),
+                        offshoot.getCommand(UpdateWC.class).new UpdateTask(offshoot, SVNRevision.HEAD),
                         new BuildKernelTask(offshoot),
                         new BuildSourceTask(offshoot, map.get(PARAM_CLEAN).getValue() == Boolean.TRUE)
                 ), 

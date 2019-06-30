@@ -38,6 +38,7 @@ public class Offshoot extends BinarySource {
         CommandRegistry.getInstance().registerCommand(DeleteWC.class);
         CommandRegistry.getInstance().registerCommand(RefreshWC.class);
         CommandRegistry.getInstance().registerCommand(UpdateWC.class);
+        CommandRegistry.getInstance().registerCommand(UpdateToRevision.class);
         CommandRegistry.getInstance().registerCommand(BuildWC.class);
         CommandRegistry.getInstance().registerCommand(RunDesigner.class);
         CommandRegistry.getInstance().registerCommand(DebugProfile.class);
@@ -47,7 +48,7 @@ public class Offshoot extends BinarySource {
         super(owner, ICON, title);
         
         // Properties
-        model.addDynamicProp(PROP_WC_STATUS,   new Enum(WCStatus.Absent), Access.Edit, () -> {
+        model.addDynamicProp(PROP_WC_STATUS, new Enum<>(WCStatus.Absent), Access.Edit, () -> {
             if (this.getOwner() != null) {
                 return getWorkingCopyStatus();
             } else {
@@ -119,7 +120,7 @@ public class Offshoot extends BinarySource {
             IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
             Development dev = CAS.findReferencedEntries(Repository.class, getRepository().getID()).stream()
                     .filter(link -> link.entryClass.equals(Development.class.getCanonicalName()))
-                    .map(link -> (Development) EntityRef.build(Development.class, link.entryID).getValue())
+                    .map(link -> EntityRef.build(Development.class, link.entryID).getValue())
                     .findFirst()
                     .orElse(Entity.newPrototype(Development.class));
             return dev.getJvmDesigner();

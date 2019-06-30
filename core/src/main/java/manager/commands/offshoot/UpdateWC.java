@@ -47,16 +47,22 @@ public class UpdateWC extends EntityCommand<Offshoot> {
 
     @Override
     public void execute(Offshoot offshoot, Map<String, IComplexType> map) {
-        executeTask(offshoot, new UpdateTask(offshoot), false);
+        executeTask(offshoot, new UpdateTask(offshoot, SVNRevision.HEAD), false);
     }
     
     public class UpdateTask extends AbstractTask<Void> {
 
-        private final Offshoot offshoot;
+        private final Offshoot    offshoot;
+        private final SVNRevision revision;
 
-        public UpdateTask(Offshoot offshoot) {
-            super(Language.get(UpdateWC.class, "title") + ": \""+offshoot.getLocalPath()+"\"");
+        public UpdateTask(Offshoot offshoot, SVNRevision revision) {
+            super(MessageFormat.format(
+                    Language.get(UpdateWC.class, "task@title"),
+                    offshoot.getLocalPath(),
+                    revision
+            ));
             this.offshoot = offshoot;
+            this.revision = revision;
         }
         
         @Override
@@ -79,7 +85,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
 
             setProgress(0, Language.get(UpdateWC.class, "command@calc"));
             try {
-                List<Path> changes = SVN.changes(wcPath, repoUrl, SVNRevision.HEAD, authMgr, new ISVNEventHandler() {
+                List<Path> changes = SVN.changes(wcPath, repoUrl, revision, authMgr, new ISVNEventHandler() {
                     @Override
                     public void handleEvent(SVNEvent event, double d) throws SVNException {
                         if (event.getErrorMessage() != null && event.getErrorMessage().getErrorCode() == SVNErrorCode.WC_CLEANUP_REQUIRED) {
@@ -100,6 +106,8 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                     }
                 });
                 if (changes.size() > 0) {
+                    Logger.getLogger().debug("Found changes of branch ''{0}'': {1}", wcPath, changes.size());
+
                     offshoot.setWCLoaded(false);
                     offshoot.model.commit(false);
                     
@@ -114,7 +122,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                     AtomicInteger changed  = new AtomicInteger(0);
 
                     long total = changes.size();
-                    SVN.update(repoUrl, wcPath, SVNRevision.HEAD, authMgr, new ISVNEventHandler() {
+                    SVN.update(repoUrl, wcPath, revision, authMgr, new ISVNEventHandler() {
                             @Override
                             public void handleEvent(SVNEvent event, double d) throws SVNException {
                                 if (event.getAction() != SVNEventAction.UPDATE_STARTED && event.getAction() != SVNEventAction.UPDATE_COMPLETED) {

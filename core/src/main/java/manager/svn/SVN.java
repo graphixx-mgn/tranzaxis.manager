@@ -8,16 +8,11 @@ import java.net.Socket;
 import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
-import org.tmatesoft.svn.core.SVNCancelException;
-import org.tmatesoft.svn.core.SVNDepth;
-import org.tmatesoft.svn.core.SVNDirEntry;
-import org.tmatesoft.svn.core.SVNErrorCode;
-import org.tmatesoft.svn.core.SVNErrorMessage;
-import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.SVNNodeKind;
-import org.tmatesoft.svn.core.SVNProperties;
-import org.tmatesoft.svn.core.SVNURL;
+
+import org.tmatesoft.svn.core.*;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
 import org.tmatesoft.svn.core.internal.wc.DefaultSVNOptions;
@@ -283,6 +278,33 @@ public class SVN {
         repository.getFile(path, -1, properties, baos);
 
         return new ByteArrayInputStream(baos.toByteArray());
+    }
+
+    public static SVNRevision getMinimalRevision(String url, ISVNAuthenticationManager authMgr) throws SVNException {
+        final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
+        AtomicReference<SVNLogEntry> logEntry = new AtomicReference<>();
+        try {
+            SVNURL svnUrl = SVNURL.parseURIEncoded(url);
+            SVNLogClient client = clientMgr.getLogClient();
+            client.doLog(svnUrl, new String[]{""}, SVNRevision.HEAD, SVNRevision.create(1), SVNRevision.HEAD, true, false, 1, logEntry::set);
+        } finally {
+            clientMgr.dispose();
+        }
+        return logEntry.get() != null ? SVNRevision.create(logEntry.get().getRevision()) : SVNRevision.UNDEFINED;
+    }
+
+    public static List<SVNLogEntry> log(String url, SVNRevision from, SVNRevision to, long limit, ISVNAuthenticationManager authMgr) throws SVNException {
+        List<SVNLogEntry> log = new LinkedList<>();
+        final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
+
+        try {
+            SVNURL svnUrl = SVNURL.parseURIEncoded(url);
+            SVNLogClient client = clientMgr.getLogClient();
+            client.doLog(svnUrl, new String[]{""}, SVNRevision.HEAD, from, to, true, false, limit, log::add);
+        } finally {
+            clientMgr.dispose();
+        }
+        return log;
     }
     
 }

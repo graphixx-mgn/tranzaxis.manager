@@ -13,6 +13,7 @@ import codex.mask.EntityFilter;
 import codex.model.*;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
+import codex.supplier.RowSelector;
 import codex.type.*;
 import codex.type.Enum;
 import codex.utils.ImageUtils;
