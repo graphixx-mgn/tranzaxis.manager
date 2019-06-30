@@ -86,12 +86,18 @@ public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>
     @Override
     public void setContext(PropertyHolder<T, V> context) {
         this.context = context;
-        activate();
+        if (commandDirection() != Direction.Supplier) {
+            activate();
+        }
     }
 
     @Override
     public PropertyHolder<T, V> getContext() {
         return context;
+    }
+
+    public Direction commandDirection() {
+        return Direction.Consumer;
     }
 
     @Override
@@ -106,5 +112,10 @@ public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>
 
     public final String getHint() {
         return hint;
+    }
+
+
+    public enum Direction {
+        Supplier, Consumer
     }
 }

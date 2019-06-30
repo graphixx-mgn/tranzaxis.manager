@@ -36,7 +36,11 @@ public class ValueProvider<V> extends EditorCommand<IComplexType<V, IMask<V>>, V
 
     @Override
     public void execute(PropertyHolder<IComplexType<V, IMask<V>>, V> context) {
-        setValue(selector.select());
+        setValue(selector.select(context.getPropValue().getValue()));
     }
-    
+
+    @Override
+    public Direction commandDirection() {
+        return Direction.Supplier;
+    }
 }

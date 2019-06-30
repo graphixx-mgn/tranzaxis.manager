@@ -191,7 +191,7 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
         commands.add(command);
         editor.add(button);
         command.setContext(propHolder);
-        updateUI();
+        //updateUI();
     }
     
     @Override
@@ -207,11 +207,16 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
         super.updateUI();
         setValue(propHolder.getPropValue().getValue());
         setEditable(isEditable());
-        getCommands().forEach(ICommand::activate);
+        if (getEditor().isVisible()) {
+            getCommands().stream()
+                    // Обновляем только команды-потребители или если редактор еще не отображается (начальная инициализация)
+                    .filter(command -> command.commandDirection() == EditorCommand.Direction.Consumer || !getEditor().isShowing())
+                    .forEach(ICommand::activate);
+        }
         label.setFont((propHolder.isValid() ? IEditor.FONT_NORMAL : IEditor.FONT_BOLD));
     }
 
-    class EditorCommandButton extends PushButton implements ICommandListener<PropertyHolder<T, V>> {
+    class EditorCommandButton extends PushButton {
 
         EditorCommandButton(EditorCommand<T, V> command) {
             super(command.getIcon(), null);
@@ -220,12 +225,11 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
             setBackground(null);
             setBorder(NORMAL_BORDER);
 
+            button.setEnabled(false);
+
             button.addActionListener(e -> {
                 command.execute(command.getContext());
-                SwingUtilities.invokeLater(() -> {
-                    if (!locked) commands.forEach(ICommand::activate);
-                    updateUI();
-                });
+                SwingUtilities.invokeLater(this::updateUI);
             });
 
             AbstractEditor.this.addListener(new IEditorListener() {
@@ -250,18 +254,18 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
                 }
             });
 
-            command.addListener(this);
-        }
+            command.addListener(new ICommandListener<PropertyHolder<T, V>>() {
+                @Override
+                public void commandIconChanged(ImageIcon icon) {
+                    button.setIcon(icon);
+                    button.setDisabledIcon(ImageUtils.grayscale(icon));
+                }
 
-        @Override
-        public void commandStatusChanged(boolean active) {
-            button.setEnabled(active);
-        }
-
-        @Override
-        public void commandIconChanged(ImageIcon icon) {
-            button.setIcon(icon);
-            button.setDisabledIcon(ImageUtils.grayscale(icon));
+                @Override
+                public void commandStatusChanged(boolean active) {
+                    button.setEnabled(active && (!command.disableWithContext() || isEditable()));
+                }
+            });
         }
 
         @Override
@@ -280,10 +284,8 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
     }
 
     interface IEditorListener {
-
         void setEditable(boolean editable);
         void setLocked(boolean locked);
-
     }
 
 
