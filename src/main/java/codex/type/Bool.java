@@ -24,7 +24,7 @@ public class Bool implements ISerializableType<Boolean, IMask<Boolean>> {
      * @param value Внутреннее хранимое значение.
      */
     public Bool(Boolean value) {
-        this.value = Boolean.TRUE.equals(value);
+        this.value = value;
     }
 
     @Override
