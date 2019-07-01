@@ -1,5 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<versions current="2.2.1" xmlns="manager/schemas/VersionInfo.xsd">
+<versions current="2.2.2" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="2.2.2" date="2019-07-01">
+        <changelog>
+            <change scope="API" type="Change">
+                <description>Доработан тип данных Map и его редактор.</description>
+            </change>
+            <change scope="API" type="Change">
+                <description>Доработан интерфейс поставщика данных и стандартный селектор RowSelector. Теперь данные читаются порционно в двух направлениях.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлено удаление записи БД о рабочей копии при потере связи с сущностью 'Environment'.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлен пустой список релизов в сущности 'Environment'.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлено зависание приложение при старте вследствие deadlock-а.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Исправлена проблема обновления зависимых сущностей в команде утилите рабочего каталога.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>В сущность 'Repository' добавлен флаг необходимости загружать архивные версии исходников и релизы (по умолчанию выключен).</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Добавлена команда обновления рабочей копии  до определенной ревизии SVN.</description>
+            </change>
+        </changelog>
+    </version>
     <version number="2.2.1" date="2019-06-17">
         <changelog>
             <change scope="CORE" type="Bugfix">
@@ -70,10 +98,10 @@
                 <description>Реализация расширенных настроек сущностей, вызывается командой в редакторе.</description>
             </change>
             <change scope="APP" type="Bugfix">
-                <description>Исправлен ряд ошибок редакторе сущности типа "Environment" (условия видимости редакторов свойств и доступности их команд).</description>
+                <description>Исправлен ряд ошибок редакторе сущности типа 'Environment' (условия видимости редакторов свойств и доступности их команд).</description>
             </change>
             <change scope="APP" type="Bugfix">
-                <description>Исправлена ошибка автообновления релиза в сущностях типа Environment при наличии двух и более таких сущностей с идентичным релизом перед обновлением.</description>
+                <description>Исправлена ошибка автообновления релиза в сущностях типа 'Environment' при наличии двух и более таких сущностей с идентичным релизом перед обновлением.</description>
             </change>
             <change scope="APP" type="Bugfix">
                 <description>Исправлено зависание приложения при компиляции рабочей копии, имеющей большое количество сообщений уровня Warning.</description>
@@ -91,7 +119,7 @@
                 <description>Презентация селектора и редактора в правой часть проводника размещены на вкладках ("Дочерние сущности" и "Настройки").</description>
             </change>
             <change scope="APP" type="Feature">
-                <description>Добавлены настройки в корневую сущность 'Окружения' (Флаги RW Starter, Server и Explorer), наследуемые в дочерних объектах.
+                <description>Добавлены настройки в корневую сущность 'Environment' (Флаги RW Starter, Server и Explorer), наследуемые в дочерних объектах.
 Данные настройки дочерних объектов вынесены в список расширенных.</description>
             </change>
             <change scope="APP" type="Feature">
@@ -174,7 +202,7 @@
                 <description>Потокобезопасное вычисление значения динамических свойств.</description>
             </change>
             <change scope="CORE" type="Bugfix">
-                <description>Исправлена периодическая ошибка инициализации ветки 'Окружения'.</description>
+                <description>Исправлена периодическая ошибка инициализации ветки 'Environment'.</description>
             </change>
             <change scope="CORE" type="Change">
                 <description>Улучшен алгоритм отслеживания подключений инстанций и обрывов соединений.</description>
