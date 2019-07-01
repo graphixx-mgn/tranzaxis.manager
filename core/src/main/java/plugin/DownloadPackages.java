@@ -227,7 +227,7 @@ class DownloadPackages extends EntityGroupCommand<RemotePackageView> {
             }
 
             if (needPublish) {
-                PackageView packageView = Entity.newInstance(PackageView.class, null, newPackage.getTitle());
+                PackageView packageView = new PackageView(newPackage);
                 try {
                     packageView.setPublished(true);
                     Logger.getLogger().info(fillStepResult(STEP_PUBLISH, STEP_SUCCESS, null));
