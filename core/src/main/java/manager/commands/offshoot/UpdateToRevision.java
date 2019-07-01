@@ -69,21 +69,6 @@ public class UpdateToRevision extends EntityCommand<Offshoot> {
             }
         };
         paramModel.getEditor(PARAM_REVISION).addCommand(provider);
-
-//        Offshoot context = getContext().get(0);
-//        if (SVNWCUtil.isVersionedDirectory(new File(context.getLocalPath())) && context.getWCStatus() != WCStatus.Absent) {
-//            SVNRevision revision = context.getWorkingCopyRevision(false);
-//            System.err.println("Curr rev."+revision);
-//        }
-//        System.err.println("Head rev."+context.getWorkingCopyRevision(true));
-//        try {
-//            System.err.println("Min  rev."+ SVN.getMinimalRevision(context.getRemotePath(), context.getRepository().getAuthManager()));
-//        } catch (SVNException e) {
-//            e.printStackTrace();
-//        }
-//            if (revision.getNumber() > 0) {
-//                paramModel.setValue(PARAM_REVISION, new Long(revision.getNumber()).intValue());
-//            }
     }
 
     @Override
