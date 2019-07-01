@@ -256,7 +256,7 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
             JPanel filterPanel = new JPanel(new BorderLayout());
             PropertyHolder<Str, String> lookupHolder = new PropertyHolder<>(
                     "filter", null, null,
-                    new Str("212512"), false //F-212700, B-213110
+                    new Str(null), false
             );
             StrEditor lookupEditor = new StrEditor(lookupHolder);
 
