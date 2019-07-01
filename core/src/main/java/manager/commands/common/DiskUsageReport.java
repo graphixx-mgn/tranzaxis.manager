@@ -85,6 +85,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
                     .flatMap(Collection::stream)
                     .collect(Collectors.toList());
             return entries.stream()
+                    .peek(entry -> entry.model.updateDynamicProps())
                     .collect(Collectors.groupingBy(
                             entry -> {
                                 if (entry.getOwner() == null) {
@@ -108,7 +109,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
             final File localDir = new File(workDir, branchClass.getAnnotation(RepositoryBranch.Branch.class).localDir());
             Map<String, Repository> REPO_INDEX = CAS.readCatalogEntries(null, Repository.class)
                     .entrySet().stream()
-                    .map((entry) -> (Repository) EntityRef.build(Repository.class, entry.getKey()).getValue()).collect(Collectors.toMap(
+                    .map((entry) -> EntityRef.build(Repository.class, entry.getKey()).getValue()).collect(Collectors.toMap(
                             entry -> Repository.urlToDirName(entry.getRepoUrl()),
                             entry -> entry
                     ));

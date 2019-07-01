@@ -53,7 +53,7 @@ public class SourceEntry extends DirEntry {
 
     @Override
     protected ITask createDeleteTask() {
-        Offshoot offshoot = (Offshoot) entityRef.getValue();
+        Offshoot offshoot = (Offshoot) findEntity();
         return ((DeleteWC) offshoot.getCommand("clean")).new DeleteTask(offshoot) {
             @Override
             public void finished(Void result) {

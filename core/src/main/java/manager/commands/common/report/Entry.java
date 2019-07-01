@@ -35,11 +35,11 @@ public class Entry extends Catalog {
 
     private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
 
-    private final static String PROP_USED = "used";
+    public  final static String PROP_USED = "used";
     private final static String PROP_SIZE = "size";
 
-    private   Long size = 0L;
-    protected final EntityRef entityRef;
+    private Long size = 0L;
+    //protected final Entity entity;
 
     static {
         CommandRegistry.getInstance().registerCommand(DeleteEntry.class);
@@ -52,14 +52,19 @@ public class Entry extends Catalog {
     public Entry(EntityRef owner, ImageIcon icon, String filePath) {
         super(owner, icon, filePath, null);
         if (filePath != null) {
-            setTitle(new File(filePath).getName());
-        }
-        entityRef = findEntity();
+            File   file = new File(filePath);
+            String name = file.getName();
+            setTitle(name);
+            //entity = findEntity(name);
+        }/* else {
+            entity = null;
+        }*/
 
         // Properties
         model.addDynamicProp(PROP_USED, new ArrStr(), null, () -> {
-            if (entityRef != null) {
-                return CAS.findReferencedEntries(entityRef.getEntityClass(), entityRef.getId()).stream()
+            Entity entity = findEntity();
+            if (entity != null && entity.getID() != null) {
+                return CAS.findReferencedEntries(entity.getClass(), entity.getID()).stream()
                         .map((link) -> EntityRef.build(link.entryClass, link.entryID).getValue().getPID())
                         .collect(Collectors.toList());
             }
@@ -141,19 +146,18 @@ public class Entry extends Catalog {
     }
 
 
-    private EntityRef findEntity() {
+    protected Entity findEntity() {
         if (getOwner() != null) {
             Repository repo = (Repository) getOwner();
             RepoView view = Entity.newInstance(RepoView.class, repo.toRef(), Repository.urlToDirName(repo.getRepoUrl()));
             Class<? extends RepositoryBranch> branchCatalogClass = getClass().getAnnotation(BranchLink.class).branchCatalogClass();
             if (!Modifier.isAbstract(branchCatalogClass.getModifiers())) {
                 RepositoryBranch repositoryBranch = Entity.newPrototype(branchCatalogClass);
-                Class branchClass = repositoryBranch.getChildClass();
+                Class<? extends Entity> branchClass = repositoryBranch.getChildClass();
                 return view.getLinkedEntities().stream()
                         .filter(entity -> entity.getClass().equals(branchClass) && entity.getPID().equals(new File(getPID()).getName()))
                         .findFirst()
-                        .map(Entity::toRef)
-                        .orElse(null);
+                        .orElse(Entity.newInstance(branchClass, repo.toRef(), getPID()));
             }
         }
         return null;
