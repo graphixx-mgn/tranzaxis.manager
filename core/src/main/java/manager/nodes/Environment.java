@@ -65,7 +65,7 @@ public class Environment extends Entity implements INodeListener {
     public final static String PROP_RUN_COMMANDS  = "commands";
 
     private final RowSupplier layerSupplier = new RowSupplier(
-            () -> getDataBase(false).getConnectionID(false),
+            () -> getDataBase(true).getConnectionID(false),
             "SELECT LAYERURI, VERSION, UPGRADEDATE FROM RDX_DDSVERSION"
     ) {
         @Override
@@ -91,7 +91,7 @@ public class Environment extends Entity implements INodeListener {
     };
 
     private final RowSupplier instanceSupplier = new RowSupplier(
-            () -> getDataBase(false).getConnectionID(false),
+            () -> getDataBase(true).getConnectionID(false),
             "SELECT ID, TITLE FROM RDX_INSTANCE ORDER BY ID"
     ) {
         @Override
