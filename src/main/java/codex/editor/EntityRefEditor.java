@@ -232,7 +232,7 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
     public void actionPerformed(ActionEvent e) {
         if (comboBox.getSelectedIndex() == 0) {
             propHolder.setValue(null);
-        } else {
+        } else if (comboBox.getSelectedIndex() > 0) {
             if (!comboBox.getSelectedItem().equals(propHolder.getPropValue().getValue())) {
                 propHolder.setValue(comboBox.getItemAt(comboBox.getSelectedIndex()));
             }
