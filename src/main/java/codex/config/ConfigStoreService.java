@@ -740,15 +740,19 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                     .filter(entry -> exporter.getClassFilter().test(entry.getValue()))
                     .collect(
                             LinkedHashMap::new,
-                            (map, entry) -> map.put(
-                                    entry.getValue(),
-                                    new LinkedList<>(
-                                            readCatalogIDs(entry.getValue()).stream()
-                                                .map(ID -> EntityRef.build(entry.getValue(), ID).getValue())
-                                                .filter(exporter.getEntityFilter())
-                                                .collect(Collectors.toCollection(LinkedList::new))
-                                    )
-                            ),
+                            (map, entry) -> {
+                                List<Entity> entities = readCatalogIDs(entry.getValue()).stream()
+                                        .map(ID -> EntityRef.build(entry.getValue(), ID).getValue())
+                                        .filter(entity ->
+                                                exporter.getEntityFilter().test(entity) &&
+                                                entity.getParent() != null &&
+                                                entity.getParent().allowModifyChild()
+                                        )
+                                        .collect(Collectors.toCollection(LinkedList::new));
+                                if (!entities.isEmpty()) {
+                                    map.put(entry.getValue(), entities);
+                                }
+                            },
                             Map::putAll
                     )
             );
