@@ -7,16 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.text.MessageFormat;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.ServiceConfigurationError;
-import java.util.ServiceLoader;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -49,7 +40,7 @@ public final class ServiceRegistry {
     private Constructor<MethodHandles.Lookup> lookup;
     
     private final Map<Class<? extends IService>, IService> stubs = new HashMap<>();
-    private final Map<Class<? extends IService>, IService> registry = new LinkedHashMap<>();
+    private final Map<Class<? extends IService>, IService> registry = new ConcurrentHashMap<>();
     private final Map<Class<? extends IService>, List<IRegistryListener>> listeners = new ConcurrentHashMap<>();
     
     private ServiceCatalog serviceCatalog;
@@ -64,7 +55,7 @@ public final class ServiceRegistry {
         } catch (NoSuchMethodException e) {
             Logger.getLogger().error("Unable to start Service Registry", e);
         }
-    };
+    }
     
     /**
      * Возвращает singletone - экземпляр реестра.
@@ -110,7 +101,7 @@ public final class ServiceRegistry {
      * @param service Регистрируемый сервис.
      * @param startImmediately Запустить сервис после регистрации.
      */
-    public void registerService(IService service, boolean startImmediately) {
+    private void registerService(IService service, boolean startImmediately) {
         registry.put(service.getClass(), service);
         Logger.getLogger().debug("Service Registry: register service ''{0}''", service.getTitle());
         if (startImmediately) {
