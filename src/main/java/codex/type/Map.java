@@ -14,8 +14,6 @@ import java.util.stream.Collectors;
 
 public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<java.util.Map<K, V>>> {
 
-    private final static IEditorFactory EDITOR_FACTORY = MapEditor::new;
-
     private final Class<? extends ISerializableType<K, ? extends IMask<K>>> keyClass;
     private final Class<? extends ISerializableType<V, ? extends IMask<V>>> valClass;
     private final Class<?> valParamClass;
@@ -69,7 +67,7 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
         return value;
     }
 
-    public java.util.Map.Entry<ISerializableType<K, ? extends IMask<K>>, ISerializableType<V, ? extends IMask<V>>> getEntry() {
+    public java.util.Map.Entry<? extends ISerializableType<K, ? extends IMask<K>>, ? extends ISerializableType<V, ? extends IMask<V>>> getEntry() {
         return new AbstractMap.SimpleEntry<>(createKey(), createVal());
     }
 
@@ -83,8 +81,8 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
     }
 
     @Override
-    public IEditorFactory editorFactory() {
-        return EDITOR_FACTORY;
+    public IEditorFactory<Map<K, V>, java.util.Map<K, V>> editorFactory() {
+        return MapEditor::new;
     }
 
     private ISerializableType<K, ? extends IMask<K>> createKey() {
