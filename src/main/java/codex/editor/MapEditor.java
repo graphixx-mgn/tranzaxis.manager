@@ -37,10 +37,7 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
 
     private JTextField textField;
     private EditMode mode = EditMode.ModifyAllowed;
-    private java.util.Map<
-            ISerializableType<K, ? extends IMask<K>>,
-            ISerializableType<V, ? extends IMask<V>>
-    > internalValue;
+    private java.util.Map<K, V> internalValue;
 
     public MapEditor(PropertyHolder<Map<K, V>, java.util.Map<K, V>> propHolder) {
         super(propHolder);
@@ -86,19 +83,7 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
     @Override
     public void setValue(java.util.Map<K, V> value) {
         internalValue.clear();
-
-        Map<K, V> map = propHolder.getOwnPropValue();
-        map.getValue().forEach((k, v) -> {
-            java.util.Map.Entry<? extends ISerializableType<K, ? extends IMask<K>>, ? extends ISerializableType<V, ? extends IMask<V>>> entry = map.getEntry();
-
-            entry.getKey().setValue(k);
-            entry.getValue().setValue(v);
-
-            internalValue.put(
-                    entry.getKey(),
-                    entry.getValue()
-            );
-        });
+        internalValue.putAll(value);
         if (internalValue.isEmpty()) {
             textField.setText("");
         } else {
@@ -119,7 +104,7 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
             PropertyHolder<ISerializableType<V, ? extends IMask<V>>, V>
     > createHolderEntry() {
         Map<K, V> map = propHolder.getOwnPropValue();
-        java.util.Map.Entry<ISerializableType<K, ? extends IMask<K>>, ISerializableType<V, ? extends IMask<V>>> entry = map.getEntry();
+        java.util.Map.Entry<? extends ISerializableType<K, ? extends IMask<K>>, ? extends ISerializableType<V, ? extends IMask<V>>> entry = map.getEntry();
 
         return new AbstractMap.SimpleEntry<>(
                 new PropertyHolder<>("key", entry.getKey(), true),
@@ -250,8 +235,8 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
                                             entry.getValue().getPropValue()
                                     });
                                     internalValue.put(
-                                            entry.getKey().getPropValue(),
-                                            entry.getValue().getPropValue()
+                                            entry.getKey().getPropValue().getValue(),
+                                            entry.getValue().getPropValue().getValue()
                                     );
                                 }
                             },
@@ -305,9 +290,9 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
                     content,
                     event -> {
                         if (event.getID() == Dialog.OK) {
-                            java.util.Map<K, V> newValue = new LinkedHashMap<>();
-                            internalValue.forEach((key, value) -> newValue.put(key.getValue(), value.getValue()));
-                            propHolder.setValue(newValue);
+                            propHolder.setValue(new LinkedHashMap<>(internalValue));
+                        } else {
+                            setValue(new LinkedHashMap<>(propHolder.getPropValue().getValue()));
                         }
                     },
                     confirmBtn,
@@ -323,21 +308,28 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
 
     private class CellEditor extends AbstractCellEditor implements TableCellEditor {
 
-        private IEditor editor;
+        private java.util.Map.Entry<? extends ISerializableType<K, ? extends IMask<K>>, ? extends ISerializableType<V, ? extends IMask<V>>> entry;
+        private IEditor<? extends ISerializableType<V, ? extends IMask<V>>, V> editor;
 
         CellEditor() {}
 
         @Override
+        @SuppressWarnings("unchecked")
         public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            ISerializableType complexVal = (ISerializableType) table.getModel().getValueAt(row, column);
-            editor = complexVal.editorFactory().newInstance(new PropertyHolder<>(
+            entry = propHolder.getPropValue().getEntry();
+            entry.getKey().setValue((K) table.getValueAt(row, 0));
+            entry.getValue().setValue((V) value);
+
+            PropertyHolder propertyHolder = new PropertyHolder<>(
                     "row#"+row,
-                    complexVal,
+                    entry.getValue(),
                     true
-            ));
+            );
+
+            editor = entry.getValue().editorFactory().newInstance(propertyHolder);
             EventQueue.invokeLater(() -> editor.getFocusTarget().requestFocus());
 
-            if (value.getClass() == Bool.class) {
+            if (entry.getValue().getClass() == Bool.class) {
                 JComponent renderedComp = (JComponent) table.getCellRenderer(row, column).getTableCellRendererComponent(table, value, true, true, row, column);
                 JPanel container = new JPanel();
                 container.setOpaque(true);
@@ -354,7 +346,9 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
         @Override
         public Object getCellEditorValue() {
             editor.stopEditing();
-            return ((AbstractEditor) editor).propHolder.getOwnPropValue();
+            V value = editor.getValue();
+            internalValue.put(entry.getKey().getValue(), entry.getValue().getValue());
+            return value;
         }
 
     }

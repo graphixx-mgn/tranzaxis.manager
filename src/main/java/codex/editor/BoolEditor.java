@@ -58,7 +58,8 @@ public class BoolEditor extends AbstractEditor<Bool, Boolean> implements ItemLis
 
     @Override
     public void itemStateChanged(ItemEvent e) {
-        if (!propHolder.getPropValue().getValue().equals(e.getStateChange() == ItemEvent.SELECTED)) {
+        Boolean newValue = e.getStateChange() == ItemEvent.SELECTED;
+        if (!newValue.equals(propHolder.getPropValue().getValue())) {
             propHolder.setValue(e.getStateChange() == ItemEvent.SELECTED);
         }
     }
