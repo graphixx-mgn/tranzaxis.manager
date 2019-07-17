@@ -35,6 +35,7 @@ import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -83,7 +84,7 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
                 Dialog.Default.BTN_CLOSE.newInstance()
         );
         SwingUtilities.invokeLater(() -> {
-            dialog.setPreferredSize(new Dimension(600, 500));
+            dialog.setPreferredSize(new Dimension(610, 500));
             dialog.setResizable(false);
             ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).quietTask(importTask);
             dialog.setVisible(true);
@@ -98,6 +99,8 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
         private Set<Catalog> updateCatalogs = new HashSet<>();
         private Set<Entity>  importedEntities = new HashSet<>();
         private Set<Entity>  updatedEntities  = new HashSet<>();
+        private final AtomicInteger total     = new AtomicInteger(0);
+        private final AtomicInteger processed = new AtomicInteger(0);
 
         ImportEntities(Path filePath) {
             super(Language.get(ImportObjects.class, "task@title"));
@@ -118,11 +121,17 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
             updateCatalogs.clear();
             try {
                 xmlDoc = ConfigurationDocument.Factory.parse(filePath.toFile());
-                int size = Arrays.stream(xmlDoc.getConfiguration().getCatalogArray()).mapToInt(xmlCatalog -> xmlCatalog.getEntityArray().length).sum();
 
                 Logger.getLogger().info(fillStepResult(
                         Language.get(ImportObjects.class, "step@parse"),
-                        MessageFormat.format(Language.get(ImportObjects.class, "step@parse.result"), size),
+                        MessageFormat.format(
+                                Language.get(ImportObjects.class, "step@parse.result"),
+                                total.addAndGet(
+                                        Arrays.stream(xmlDoc.getConfiguration().getCatalogArray())
+                                                .mapToInt(xmlCatalog -> xmlCatalog.getEntityArray().length)
+                                                .sum()
+                                )
+                        ),
                         null
                 ));
                 Arrays.asList(xmlDoc.getConfiguration().getCatalogArray()).forEach(this::importCatalog);
@@ -169,9 +178,16 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
 
             try {
                 if (!Catalog.class.isAssignableFrom(entityClass)) {
+                    processed.addAndGet(1);
+
                     Catalog entityParent = findEntityParent(entityClass.getCanonicalName(), PID);
                     Entity  entity = Entity.newInstance(entityClass, null, PID);
-                    String  step   = MessageFormat.format(Language.get(ImportObjects.class, "step@import"), entityParent.getPID(), entity.getPID());
+                    String  step   = MessageFormat.format(
+                            Language.get(ImportObjects.class, "step@import"),
+                            String.format("%2d", processed.get()),
+                            entityParent.getPID(),
+                            entity.getPID()
+                    );
 
                     if (entity.getID() == null) {
                         updateCatalogs.add(entityParent);
@@ -281,6 +297,7 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
                             Logger.getLogger().info(fillStepResult(step, Language.get(ImportObjects.class, "step@import.skip"), null));
                         }
                     }
+                    setProgress(100 * processed.get() / total.get(), getDescription());
                     return entity;
                 }
             } catch (Exception e) {
