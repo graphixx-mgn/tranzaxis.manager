@@ -5,11 +5,7 @@ import codex.model.EntityModel;
 import codex.service.IService;
 import codex.type.IComplexType;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Интерфейс сервиса загрузки и сохранения данных модели {@link EntityModel}.
@@ -26,7 +22,7 @@ public interface IConfigStoreService extends IService {
      * @throws Exception
      */
     default Map<String, Integer> initClassInstance(Class clazz, String PID, Map<String, IComplexType> propDefinition, Integer ownerId) throws Exception {
-        return null;
+        return Collections.emptyMap();
     }
     
     /**
@@ -36,7 +32,7 @@ public interface IConfigStoreService extends IService {
      * @param properties Список имен свойств, которые требуется сохранить.
      * @throws Exception
      */
-    default void updateClassInstance(Class clazz, Integer ID, Map<String, IComplexType> properties) throws Exception {};
+    default void updateClassInstance(Class clazz, Integer ID, Map<String, IComplexType> properties) throws Exception {}
     
     /**
      * Проверка существования сущности в каталоге.
@@ -62,7 +58,7 @@ public interface IConfigStoreService extends IService {
      * @param ID Уникальный числовой идентификатор сущности.
      */
     default Map<String, String> readClassInstance(Class clazz, Integer ID) {
-        return new HashMap<>();
+        return Collections.emptyMap();
     }
     
     /**Получить список значений свойств сущности.
@@ -71,7 +67,7 @@ public interface IConfigStoreService extends IService {
      * @param ownerId Идентификатор владельца сущности.
      */
     default Map<String, String> readClassInstance(Class clazz, String PID, Integer ownerId) {
-        return new HashMap<>();
+        return Collections.emptyMap();
     }
     
     /**
@@ -80,14 +76,13 @@ public interface IConfigStoreService extends IService {
      * @param clazz Класс сущности.
      */
     default Map<Integer, String> readCatalogEntries(Integer ownerId, Class clazz) {
-        return new LinkedHashMap<>();
+        return Collections.emptyMap();
     }
     
     /**
      * Удалить запись в каталоге по её уникальному ключу.
      * @param clazz Класс сущности.
      * @param ID Уникальный числовой идентификатор сущности.
-     * @throws Exception
      */
     default void removeClassInstance(Class clazz, Integer ID) throws Exception {}
 
@@ -97,7 +92,7 @@ public interface IConfigStoreService extends IService {
      * @param ID Идентификатор сущности
      */
     default List<ForeignLink> findReferencedEntries(Class clazz, Integer ID) {
-        return new ArrayList<>();
+        return Collections.emptyList();
     }
     
     /**
@@ -105,14 +100,18 @@ public interface IConfigStoreService extends IService {
      * @param clazz Класс сущности.
      * @param unusedProperties Список неиспользуемых колонок
      * @param newProperties Список новых колонок
-     * @throws Exception
      */
     default void maintainClassCatalog(Class clazz, List<String> unusedProperties, Map<String, IComplexType> newProperties) throws Exception {}
-    
+
+    default Map<String, Class<? extends Entity>> getClassCatalogs() throws Exception {
+        return Collections.emptyMap();
+    }
+
+    default void exportConfiguration(Exporter exporter) {}
+
     /**
      * Получение класса владельца сущности
      * @param clazz Класс сущности
-     * @throws Exception
      */
     default Class<? extends Entity> getOwnerClass(Class clazz) throws Exception {
         return null;
@@ -122,7 +121,7 @@ public interface IConfigStoreService extends IService {
     default String getTitle() {
         return "Configuration Access Service";
     }
-    
+
     /**
      * Класс содержащий основную информацию о ссылке.
      */

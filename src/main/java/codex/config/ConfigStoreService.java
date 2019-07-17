@@ -2,6 +2,7 @@ package codex.config;
 
 import codex.database.IDatabaseAccessService;
 import codex.log.Logger;
+import codex.model.Catalog;
 import codex.model.Entity;
 import codex.service.AbstractService;
 import codex.type.EntityRef;
@@ -87,12 +88,9 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     public boolean isStoppable() {
         return false;
     }
-    
+
     private synchronized void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {
         final String className = clazz.getSimpleName().toUpperCase();
-
-
-
         Map<String, String> columns = new LinkedHashMap<String, String>() {{
             put("ID",  "INTEGER PRIMARY KEY AUTOINCREMENT");
             put("SEQ", "INTEGER NOT NULL");
@@ -528,7 +526,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     }
     
     @Override
-    public  synchronized void maintainClassCatalog(Class clazz, List<String> unusedProperties, Map<String, IComplexType> newProperties) throws Exception {
+    public synchronized void maintainClassCatalog(Class clazz, List<String> unusedProperties, Map<String, IComplexType> newProperties) throws Exception {
         final String  className = clazz.getSimpleName().toUpperCase();
         final List<String> queries = new LinkedList<>();
         
@@ -691,7 +689,74 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 )
         );
     }
-    
+
+    @Override
+    public Map<String, Class<? extends Entity>> getClassCatalogs() throws Exception {
+        Map<String, Class<? extends Entity>> classes = new LinkedHashMap<>();
+        String selectSQL = "SELECT * FROM CLASSDEF";
+        try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
+            try (ResultSet selectRS = select.executeQuery()) {
+                while (selectRS.next()) {
+                    try {
+                        classes.put(
+                                selectRS.getString(1),
+                                Class.forName(selectRS.getString(2)).asSubclass(Entity.class)
+                        );
+                    } catch (ClassNotFoundException e) {
+                        //
+                    }
+                }
+            }
+        }
+        return classes;
+    }
+
+    List<Integer> readCatalogIDs(Class clazz) {
+        List<Integer> IDs = new LinkedList<>();
+
+        final String className = clazz.getSimpleName().toUpperCase();
+        if (tableRegistry.containsKey(className)) {
+            final String selectSQL  = MessageFormat.format("SELECT ID FROM {0} ORDER BY SEQ", className);;
+            try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
+                select.setFetchSize(10);
+                try (ResultSet selectRS = select.executeQuery()) {
+                    while (selectRS.next()) {
+                        IDs.add(selectRS.getInt(1));
+                    }
+                } catch (SQLException e) {
+                    Logger.getLogger().error("CAS: Unable to read catalog", e);
+                }
+            } catch (SQLException e) {
+                Logger.getLogger().error("CAS: Unable to read catalog", e);
+            }
+        }
+        return IDs;
+    }
+
+    public void exportConfiguration(Exporter exporter) {
+        try {
+            exporter.loadEntities(getClassCatalogs().entrySet().stream()
+                    .filter(entry ->!Catalog.class.isAssignableFrom(entry.getValue()))
+                    .filter(entry -> exporter.getClassFilter().test(entry.getValue()))
+                    .collect(
+                            LinkedHashMap::new,
+                            (map, entry) -> map.put(
+                                    entry.getValue(),
+                                    new LinkedList<>(
+                                            readCatalogIDs(entry.getValue()).stream()
+                                                .map(ID -> EntityRef.build(entry.getValue(), ID).getValue())
+                                                .filter(exporter.getEntityFilter())
+                                                .collect(Collectors.toCollection(LinkedList::new))
+                                    )
+                            ),
+                            Map::putAll
+                    )
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void initClassDef() {
         String createSQL = "CREATE TABLE IF NOT EXISTS CLASSDEF (TABLE_NAME TEXT, TABLE_CLASS TEXT)";
         try (final Statement statement = connection.createStatement()) {
@@ -702,7 +767,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         }
     } 
     
-    private Class<? extends Entity>  getCatalogClass(String tableName) throws Exception {
+    private Class<? extends Entity> getCatalogClass(String tableName) throws Exception {
         String selectSQL = "SELECT TABLE_CLASS FROM CLASSDEF WHERE TABLE_NAME = ?";
         try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
             select.setString(1, tableName.toUpperCase());
@@ -759,7 +824,8 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 tableName
         );
     }
-    
+
+
     private class TableInfo {
         
         final String name;
@@ -911,7 +977,8 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             return builder.toString();
         }
     }
-    
+
+
     private class ColumnInfo {
         
         final String  name;
@@ -925,7 +992,8 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         }
 
     }
-    
+
+
     private class IndexInfo {
         
         final String name;
@@ -940,7 +1008,8 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         }
         
     }
-    
+
+
     private class ReferenceInfo {
         
         final String pkTable;
@@ -954,6 +1023,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         }
         
     }
+
 
     private enum TriggerKind {
         

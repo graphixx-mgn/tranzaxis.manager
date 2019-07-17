@@ -1,6 +1,7 @@
 package codex.config;
 
 import codex.model.Access;
+import codex.model.CommandRegistry;
 import codex.service.LocalServiceOptions;
 import codex.type.Bool;
 import codex.type.EntityRef;
@@ -12,6 +13,11 @@ public class ConfigServiceOptions extends LocalServiceOptions {
     
     public final static String PROP_DB_FILE  = "dbFile";
     public final static String PROP_SHOW_SQL = "showSql";
+
+    static {
+        CommandRegistry.getInstance().registerCommand(ExportObjects.class);
+        CommandRegistry.getInstance().registerCommand(ImportObjects.class);
+    }
 
     public ConfigServiceOptions(EntityRef owner, String title) {
         super(owner, title);
