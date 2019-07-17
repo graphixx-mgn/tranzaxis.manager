@@ -6,8 +6,6 @@ import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.component.render.GeneralRenderer;
-import codex.launcher.Shortcut;
-import codex.launcher.ShortcutSection;
 import codex.log.Logger;
 import codex.mask.FileMask;
 import codex.model.*;
@@ -69,19 +67,20 @@ public class ExportObjects extends EntityCommand<ConfigServiceOptions> {
             }
         });
         setParameters(filePath);
+        objectSelector = new EntityFilter();
+    }
 
-        Exporter exporter = new Exporter() {
-            @Override
-            protected Predicate<Class<? extends Entity>> getClassFilter() {
-                return entityClass -> !(
-                       // Todo: подумать над фильтрацией по allowModifyChild()
-                       entityClass.equals(ShortcutSection.class) ||
-                       entityClass.equals(Shortcut.class)
-                );
-            }
-        };
+    @Override
+    protected void process() {
+        Exporter exporter = new Exporter();
         CAS.exportConfiguration(exporter);
-        objectSelector = new EntityFilter(exporter.getEntities());
+
+        if (!exporter.getEntities().isEmpty()) {
+            objectSelector.loadEntities(exporter.getEntities());
+            super.process();
+        } else {
+            MessageBox.show(MessageType.INFORMATION, Language.get("info@empty"));
+        }
     }
 
     @Override
@@ -118,15 +117,18 @@ public class ExportObjects extends EntityCommand<ConfigServiceOptions> {
 
     class EntityFilter extends EditorCommand<FilePath, Path> implements Predicate<Entity> {
 
-        private final java.util.Map<Class<? extends Entity>, List<? extends Entity>> entities;
-        private final java.util.Map<Entity, Boolean> filteredEntities;
+        private java.util.Map<Class<? extends Entity>, List<? extends Entity>> entities = new LinkedHashMap<>();
+        private java.util.Map<Entity, Boolean> filteredEntities = new LinkedHashMap<>();
 
-        EntityFilter(
-                java.util.Map<Class<? extends Entity>, List<? extends Entity>> entities
-        ) {
+        EntityFilter() {
             super(IMAGE_EDIT, Language.get(ExportObjects.class, "choose.title"));
-            this.entities = entities;
-            filteredEntities = new HashMap<>(
+        }
+
+        void loadEntities(java.util.Map<Class<? extends Entity>, List<? extends Entity>> entities) {
+            this.entities.clear();
+            this.entities.putAll(entities);
+            this.filteredEntities.clear();
+            this.filteredEntities.putAll(
                     entities.values().stream()
                         .flatMap(Collection::stream)
                         .collect(Collectors.toMap(
@@ -140,6 +142,9 @@ public class ExportObjects extends EntityCommand<ConfigServiceOptions> {
         public void execute(PropertyHolder<FilePath, Path> context) {
             EntityProxy root = new EntityProxy(null, null);
             this.entities.forEach((entityClass, childEntities) -> {
+                if (childEntities.isEmpty()) {
+                    return;
+                }
                 Entity classCatalog = (Entity) childEntities.get(0).getParent();
                 EntityProxy catalog = new EntityProxy(
                         classCatalog.toRef(),
