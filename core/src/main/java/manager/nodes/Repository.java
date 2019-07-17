@@ -154,8 +154,8 @@ public class Repository extends Entity {
     @Override
     public void setParent(INode parent) {
         super.setParent(parent);
-        if (parent != null) {
-            getCommand(LoadWC.class).execute(this, null);
+        if (parent != null && isLocked(true)) {
+            getCommand(LoadWC.class).load(this);
         }
     }
     
