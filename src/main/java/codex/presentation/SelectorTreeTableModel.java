@@ -27,6 +27,6 @@ public class SelectorTreeTableModel extends DefaultOutlineModel implements ISele
 
     @Override
     public String getPropertyForColumn(int column) {
-        return propList.get(column);
+        return column == 0 ? EntityModel.THIS : propList.get(column-1);
     }
 }

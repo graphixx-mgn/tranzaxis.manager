@@ -12,13 +12,11 @@ import codex.property.PropertyHolder;
 import codex.type.Bool;
 import codex.type.IComplexType;
 import codex.utils.Language;
-import org.apache.log4j.lf5.viewer.categoryexplorer.TreeModelAdapter;
 import org.netbeans.swing.outline.Outline;
 import org.netbeans.swing.outline.RowModel;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.TableModelEvent;
-import javax.swing.event.TreeModelEvent;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.util.Arrays;
@@ -42,10 +40,10 @@ public class SelectorTreeTable<T extends Entity> extends Outline implements IEdi
                 true,
                 Language.get(Entity.class, EntityModel.THIS+PropertyHolder.PROP_NAME_SUFFIX)
         );
-
         setModel(treeTableModel);
         unsetQuickFilter();
         setRowSorter(null);
+        setColumnHidingAllowed(false);
         setRowHeight(IEditor.FONT_VALUE.getSize() * 2);
         setShowVerticalLines(false);
         setIntercellSpacing(new Dimension(0,0));
@@ -88,19 +86,9 @@ public class SelectorTreeTable<T extends Entity> extends Outline implements IEdi
         setDefaultRenderer(IComplexType.class, renderer);
         getTableHeader().setDefaultRenderer(renderer);
 
-        setDefaultEditor(Bool.class, new GeneralEditor() {
-            @Override
-            public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-                return super.getTableCellEditorComponent(table, value, isSelected, row, column-1);
-            }
-        });
-
-        setDefaultEditor(IComplexType.class, new GeneralEditor() {
-            @Override
-            public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-                return super.getTableCellEditorComponent(table, value, isSelected, row, column-1);
-            }
-        });
+        GeneralEditor editor = new GeneralEditor();
+        setDefaultEditor(Bool.class, editor);
+        setDefaultEditor(IComplexType.class, editor);
     }
 
     @Override
@@ -152,7 +140,7 @@ public class SelectorTreeTable<T extends Entity> extends Outline implements IEdi
 
         @Override
         public boolean isCellEditable(Object node, int column) {
-            return editableProps.contains(((ISelectorTableModel) getModel()).getPropertyForColumn(column));
+            return editableProps.contains(((ISelectorTableModel) getModel()).getPropertyForColumn(column+1));
         }
 
         @Override
