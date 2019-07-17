@@ -54,8 +54,7 @@ public class Exporter {
                     entity.model.getProperties(Access.Edit).stream()
                             .filter(propName -> !entity.model.isPropertyDynamic(propName) && !EntityModel.PID.equals(propName))
                             .forEach(propName -> {
-                                Object value = entity.model.getValue(propName);
-                                if (value != null) {
+                                if (!entity.model.getProperty(propName).isEmpty()) {
                                     codex.xml.Property xmlProperty = xmlProps.addNewProperty();
                                     xmlProperty.setName(propName);
                                     if (EntityRef.class.isAssignableFrom(entity.model.getPropertyType(propName))) {
