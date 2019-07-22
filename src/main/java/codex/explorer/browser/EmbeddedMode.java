@@ -5,10 +5,12 @@ import codex.model.Access;
 import codex.model.Entity;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
+import codex.type.IComplexType;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import javax.swing.border.TitledBorder;
 import java.awt.*;
 
 public final class EmbeddedMode extends BrowseMode<JPanel> {
@@ -49,7 +51,10 @@ public final class EmbeddedMode extends BrowseMode<JPanel> {
             if (!((Entity) node).model.getProperties(Access.Edit).isEmpty()) {
                 selectorPresentation.setBorder(new CompoundBorder(
                         new EmptyBorder(0, 5, 3, 5),
-                        new LineBorder(Color.GRAY, 1)
+                        new TitledBorder(
+                                new LineBorder(Color.GRAY, 1),
+                                IComplexType.coalesce(getDescription(getClassHierarchy(node), "group@title"), SELECTOR_TITLE)
+                        )
                 ));
             }
             selectorPanel.add(selectorPresentation);

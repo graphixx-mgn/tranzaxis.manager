@@ -3,10 +3,11 @@ package codex.explorer.browser;
 import codex.explorer.tree.INode;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
+import codex.type.IComplexType;
 import codex.utils.ImageUtils;
-import codex.utils.Language;
 import javax.swing.*;
 import java.awt.*;
+
 
 public final class TabbedMode extends BrowseMode<JTabbedPane> {
 
@@ -27,7 +28,7 @@ public final class TabbedMode extends BrowseMode<JTabbedPane> {
         if (selectorPresentation != null) {
             selectorPresentation.refresh();
             container.insertTab(
-                    TabKind.Selector.title,
+                    IComplexType.coalesce(getDescription(getClassHierarchy(node), "group@title"), SELECTOR_TITLE),
                     TabKind.Selector.icon,
                     selectorPresentation,
                     null, container.getTabCount()
@@ -37,7 +38,7 @@ public final class TabbedMode extends BrowseMode<JTabbedPane> {
         if (editorPresentation != null) {
             editorPresentation.refresh();
             container.insertTab(
-                    TabKind.Editor.title,
+                    EDITOR_TITLE,
                     TabKind.Editor.icon,
                     new JPanel(new BorderLayout()) {{
                         add(editorPresentation, BorderLayout.NORTH);
@@ -47,16 +48,14 @@ public final class TabbedMode extends BrowseMode<JTabbedPane> {
         }
     }
 
-    private enum TabKind {
 
-        Selector(ImageUtils.resize(ImageUtils.getByPath("/images/selector.png"), 20,20), Language.get(Browser.class, "tab@selector")),
-        Editor(ImageUtils.resize(ImageUtils.getByPath("/images/general.png"), 20,20), Language.get(Browser.class, "tab@general"));
+    private enum TabKind {
+        Selector(ImageUtils.resize(ImageUtils.getByPath("/images/selector.png"), 20,20)),
+        Editor(ImageUtils.resize(ImageUtils.getByPath("/images/general.png"), 20,20));
 
         private final ImageIcon icon;
-        private final String    title;
-        TabKind(ImageIcon icon, String title) {
+        TabKind(ImageIcon icon) {
             this.icon  = icon;
-            this.title = title;
         }
     }
 

@@ -4,6 +4,7 @@ import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
+import codex.explorer.browser.BrowseMode;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.model.*;
@@ -511,6 +512,10 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                             SelectorPresentation embedded = context.getSelectorPresentation();
                             if (embedded != null) {
                                 add(context.getSelectorPresentation(), BorderLayout.CENTER);
+                                embedded.setBorder(new TitledBorder(
+                                        new LineBorder(Color.GRAY, 1),
+                                        IComplexType.coalesce(BrowseMode.getDescription(BrowseMode.getClassHierarchy(context), "group@title"), BrowseMode.SELECTOR_TITLE)
+                                ));
                             }
                         }
 
