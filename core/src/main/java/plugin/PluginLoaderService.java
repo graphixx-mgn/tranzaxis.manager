@@ -3,6 +3,7 @@ package plugin;
 import codex.log.Logger;
 import codex.model.Entity;
 import codex.service.AbstractRemoteService;
+import codex.service.RemoteServiceControl;
 import codex.utils.LocaleContextHolder;
 import manager.upgrade.stream.RemoteInputStream;
 import manager.upgrade.stream.RemoteInputStreamServer;
@@ -20,7 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-public final class PluginLoaderService extends AbstractRemoteService<PluginLoaderOptions> implements IPluginLoaderService {
+public final class PluginLoaderService extends AbstractRemoteService<PluginLoaderOptions, RemoteServiceControl> implements IPluginLoaderService {
 
     private final List<IPublicationListener> listeners = new LinkedList<>();
 
