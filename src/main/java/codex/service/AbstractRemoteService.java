@@ -8,9 +8,9 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.stream.Collectors;
 
-public abstract class AbstractRemoteService<T extends RemoteServiceOptions> extends UnicastRemoteObject implements IRemoteService {
+public abstract class AbstractRemoteService<P extends RemoteServiceOptions, C extends RemoteServiceControl> extends UnicastRemoteObject implements IRemoteService {
 
-    private T serviceConfig;
+    private P serviceConfig;
 
     protected AbstractRemoteService() throws RemoteException {
         super(0,
@@ -23,7 +23,7 @@ public abstract class AbstractRemoteService<T extends RemoteServiceOptions> exte
         );
     }
 
-    public final T getConfig() {
+    public final P getConfiguration() {
         if (serviceConfig == null) {
             try {
                 serviceConfig = Entity.newInstance(ServiceCatalog.getServiceConfigClass(
