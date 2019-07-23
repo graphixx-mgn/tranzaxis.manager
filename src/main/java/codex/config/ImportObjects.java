@@ -6,6 +6,7 @@ import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.log.Logger;
 import codex.mask.FileMask;
+import codex.mask.IMask;
 import codex.model.Access;
 import codex.model.Catalog;
 import codex.model.Entity;
@@ -179,10 +180,24 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
             try {
                 if (!Catalog.class.isAssignableFrom(entityClass)) {
                     processed.addAndGet(1);
+                    Entity  entity;
 
                     Catalog entityParent = findEntityParent(entityClass.getCanonicalName(), PID);
-                    Entity  entity = Entity.newInstance(entityClass, null, PID);
-                    String  step   = MessageFormat.format(
+                    Entity  prototype = Entity.newInstance(entityClass, null, PID);
+
+                    if (prototype.getID() == null) {
+                        Entity byUnqKey = findEntityByUniqueKey(prototype, xmlProperties);
+                        if (byUnqKey != null) {
+                            //TODO: confirmation
+                            entity = byUnqKey;
+                        } else {
+                            entity = prototype;
+                        }
+                    } else {
+                        entity = prototype;
+                    }
+
+                    String step = MessageFormat.format(
                             Language.get(ImportObjects.class, "step@import"),
                             String.format("%2d", processed.get()),
                             entityParent.getPID(),
@@ -193,9 +208,18 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
                         updateCatalogs.add(entityParent);
 
                         Map<String, IComplexType> propDefs = getPropDefinitions(entity.model);
-                        CAS.initClassInstance(entityClass, PID, propDefs,null).forEach(entity.model::setValue);
+                        Map<String, Object>       propVals = getPropertyValues(entity, xmlProperties);
 
-                        Map<String, Object> propVals = getPropertyValues(entity, xmlProperties);
+//                        for (Map.Entry<String, Object> entry : propVals.entrySet()) {
+//                            if (entity.model.getProperty(entry.getKey()).getOwnPropValue().getMask() != null) {
+//                                IMask mask = entity.model.getProperty(entry.getKey()).getOwnPropValue().getMask();
+//                                if (!mask.verify(entry.getValue())) {
+//                                    throw new Error("Mask validation error: "+mask.getErrorHint());
+//                                }
+//                            }
+//                        }
+
+                        CAS.initClassInstance(entityClass, PID, propDefs,null).forEach(entity.model::setValue);
                         propVals.forEach(entity.model::setValue);
                         entity.model.commit(true);
 
@@ -303,6 +327,28 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
             } catch (Exception e) {
                 e.printStackTrace();
                 return null;
+            }
+            return null;
+        }
+
+        private Entity findEntityByUniqueKey(Entity prototype, List<codex.xml.Property> xmlProperties) {
+            List<codex.xml.Property> uniqueProps = prototype.model.getProperties(Access.Any).stream()
+                    .filter(prototype.model::isPropUnique)
+                    .filter(propName -> !EntityModel.PID.equals(propName))
+                    .filter(propName -> xmlProperties.stream().anyMatch(xmlProperty -> xmlProperty.getName().equals(propName)))
+                    .map(propName -> xmlProperties.stream().filter(xmlProperty -> xmlProperty.getName().equals(propName)).findFirst().get())
+                    .collect(Collectors.toList());
+            if (!uniqueProps.isEmpty()) {
+                Map<String, Object> uniqueValues = getPropertyValues(prototype, uniqueProps);
+                List<Integer> IDs = CAS.readCatalogIDs(prototype.getClass());
+                for (Integer ID : IDs) {
+                    EntityRef ref = EntityRef.build(prototype.getClass(), ID);
+                    if (uniqueValues.entrySet().stream().allMatch(entry -> {
+                        return entry.getValue().equals(ref.getValue().model.getValue(entry.getKey()));
+                    })) {
+                        return ref.getValue();
+                    }
+                }
             }
             return null;
         }

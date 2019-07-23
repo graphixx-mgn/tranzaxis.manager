@@ -114,7 +114,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                     columns.entrySet().stream()
                             .map((entry) -> String.format(nameFormat, entry.getKey()).concat(entry.getValue()))
                             .collect(Collectors.joining(",\n\t"))
-            );
+        );
         String indexSQL = MessageFormat.format(
                 "CREATE UNIQUE INDEX IF NOT EXISTS IDX_{0}_PID_OWN ON {0} (PID, OWN)",
                 className
@@ -294,7 +294,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             
             Savepoint savepoint = connection.setSavepoint(className);
             try (
-                PreparedStatement update = connection.prepareStatement(updateSQL);
+                PreparedStatement update = connection.prepareStatement(updateSQL)
             ) {
                 List<String> keys = new ArrayList<>(properties.keySet());
                 for (Map.Entry<String, IComplexType> entry : properties.entrySet()) {
