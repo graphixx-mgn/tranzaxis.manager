@@ -11,7 +11,7 @@ import java.util.Objects;
  */
 public class Str implements ISerializableType<String, IMask<String>> {
     
-    private final static IEditorFactory EDITOR_FACTORY = StrEditor::new;
+    private final static IEditorFactory<Str, String> EDITOR_FACTORY = StrEditor::new;
     
     private String value;
     private IMask<String> mask;
@@ -26,7 +26,6 @@ public class Str implements ISerializableType<String, IMask<String>> {
      */
     public Str(String value) {
         this.value = value;
-        this.mask  = (String text) -> true;
     }
 
     @Override
@@ -45,7 +44,7 @@ public class Str implements ISerializableType<String, IMask<String>> {
     }
 
     @Override
-    public IEditorFactory editorFactory() {
+    public IEditorFactory<? extends IComplexType<String, IMask<String>>, String> editorFactory() {
         return EDITOR_FACTORY;
     }
     

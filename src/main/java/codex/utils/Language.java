@@ -1,13 +1,7 @@
 package codex.utils;
 
 import codex.property.PropertyHolder;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.MissingResourceException;
-import java.util.ResourceBundle;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -17,7 +11,7 @@ public class Language {
     
     public  static final String NOT_FOUND = "<not defined>";
     private static final Map<Class, ResourceBundle> BUNDLES = new HashMap<>();
-    private static final List<Class> EXCLUDES = new ArrayList<>();
+    private static final List<Class> EXCLUDES = Collections.synchronizedList(new ArrayList<>());
     
     /**
      * Получить строку по ключу. Класс-владелец определяется по стеку вызовов.
