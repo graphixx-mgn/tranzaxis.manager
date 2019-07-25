@@ -11,6 +11,7 @@ import codex.model.Access;
 import codex.model.Catalog;
 import codex.model.Entity;
 import codex.model.EntityModel;
+import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
@@ -38,7 +39,6 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
 
@@ -88,7 +88,7 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
             dialog.setPreferredSize(new Dimension(610, 500));
             dialog.setResizable(false);
             ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).quietTask(importTask);
-            dialog.setVisible(true);
+            SwingUtilities.invokeLater(() -> dialog.setVisible(true));
         });
     }
 
@@ -98,8 +98,7 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
         private final Path filePath;
         private ConfigurationDocument xmlDoc = null;
         private Set<Catalog> updateCatalogs = new HashSet<>();
-        private Set<Entity>  importedEntities = new HashSet<>();
-        private Set<Entity>  updatedEntities  = new HashSet<>();
+        private Map<GroupKey, Entity> importedEntities = new HashMap<>();
         private final AtomicInteger total     = new AtomicInteger(0);
         private final AtomicInteger processed = new AtomicInteger(0);
 
@@ -108,13 +107,39 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
             this.filePath = filePath;
         }
 
-        private String fillStepResult(String step, String result, Throwable error) {
-            int htmlLength = result.replaceAll("\\<[^>]*>","").length();
-            return ""
+        private String formatStepResult(String step, String result, List<ImportProblem> problems) {
+            int htmlLength =
+                    step.replaceAll("<[^>]*>","").length() +
+                    result.replaceAll("<[^>]*>","").length();
+            String message = " "
                     .concat(step)
-                    .concat(String.join("", Collections.nCopies(80-step.length()-htmlLength, ".")))
-                    .concat(result)
-                    .concat(error == null ? "" : MessageFormat.format("\n   &#9888; {0}", error.getMessage()));
+                    .concat(String.join("", Collections.nCopies(80-htmlLength, ".")))
+                    .concat(result);
+            if (problems != null && !problems.isEmpty()) {
+                message = message
+                        .concat("<br>")
+                        .concat(problems.stream().map(problem -> " "+problem.toString()).collect(Collectors.joining("<br>")));
+            }
+            return message+"<br>";
+        }
+
+        private boolean confirmedOverwrite(Entity entity, Collection<String> changedProps) {
+            return MessageBox.confirmation(
+                    ImageUtils.combine(
+                            Entity.newPrototype(entity.getClass()).getIcon(),
+                            ImageUtils.resize(ICON_INVALID, 20, 20),
+                            SwingConstants.SOUTH_EAST
+                    ),
+                    MessageType.CONFIRMATION.toString(),
+                    MessageFormat.format(
+                            Language.get(ImportObjects.class, "confirm@overwrite"),
+                            entity.getPID(),
+                            changedProps.stream().map(
+                                    propName -> "&nbsp;&bull;&nbsp;"+Language.get(entity.getClass(), propName+PropertyHolder.PROP_NAME_SUFFIX)
+                            )
+                            .collect(Collectors.joining("<br>"))
+                    )
+            );
         }
 
         @Override
@@ -122,11 +147,10 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
             updateCatalogs.clear();
             try {
                 xmlDoc = ConfigurationDocument.Factory.parse(filePath.toFile());
-
-                Logger.getLogger().info(fillStepResult(
+                Logger.getLogger().info(formatStepResult(
                         Language.get(ImportObjects.class, "step@parse"),
                         MessageFormat.format(
-                                Language.get(ImportObjects.class, "step@parse.result"),
+                                Language.get(ImportObjects.class, "parse@result"),
                                 total.addAndGet(
                                         Arrays.stream(xmlDoc.getConfiguration().getCatalogArray())
                                                 .mapToInt(xmlCatalog -> xmlCatalog.getEntityArray().length)
@@ -135,6 +159,7 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
                         ),
                         null
                 ));
+
                 Arrays.asList(xmlDoc.getConfiguration().getCatalogArray()).forEach(this::importCatalog);
                 updateCatalogs.forEach(Catalog::loadChildren);
             } catch (XmlException | IOException e) {
@@ -146,211 +171,192 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
         }
 
         private void importCatalog(codex.xml.Catalog xmlCatalog) {
-                Map<GroupKey, List<codex.xml.Entity>> group =
-                        Arrays.stream(xmlCatalog.getEntityArray())
-                        .collect(Collectors.groupingBy(
-                                xmlEntity -> new GroupKey(xmlEntity.getParent())
-                        ));
+            Map<GroupKey, List<codex.xml.Entity>> group =
+                    Arrays.stream(xmlCatalog.getEntityArray())
+                    .collect(Collectors.groupingBy(
+                            xmlEntity -> new GroupKey(xmlEntity.getParent())
+                    ));
 
-                for (Map.Entry<GroupKey, List<codex.xml.Entity>> groupEntry : group.entrySet()) {
-                    for (codex.xml.Entity xmlEntity : groupEntry.getValue()) {
-                        try {
-                            importEntity(
-                                    Class.forName(xmlCatalog.getClassName()).asSubclass(Entity.class),
-                                    xmlEntity.getPid(),
-                                    xmlEntity.getProperties() == null ?
-                                            Collections.emptyList() :
-                                            Arrays.asList(xmlEntity.getProperties().getPropertyArray())
-                            );
-                        } catch (ClassNotFoundException e) {
-                            System.err.println(MessageFormat.format("Class '{0}' not found", xmlCatalog.getClassName()));
-                        }
+            for (Map.Entry<GroupKey, List<codex.xml.Entity>> groupEntry : group.entrySet()) {
+                for (codex.xml.Entity xmlEntity : groupEntry.getValue()) {
+                    try {
+                        importEntity(
+                                Class.forName(xmlCatalog.getClassName()).asSubclass(Entity.class),
+                                xmlEntity.getPid(),
+                                xmlEntity.getProperties() == null ?
+                                        Collections.emptyList() :
+                                        Arrays.asList(xmlEntity.getProperties().getPropertyArray())
+                        );
+                    } catch (ClassNotFoundException e) {
+                        System.err.println(MessageFormat.format("Class '{0}' not found", xmlCatalog.getClassName()));
                     }
                 }
+            }
         }
 
         private Entity importEntity(Class<? extends Entity> entityClass, String PID, List<codex.xml.Property> xmlProperties) {
-            Entity importedEntity = importedEntities.parallelStream()
-                    .filter(entity -> entity.getClass().equals(entityClass) && entity.getPID().equals(PID))
+            List<ImportProblem> problems = new LinkedList<>();
+
+            Entity importedEntity = importedEntities.entrySet().parallelStream()
+                    .filter(entry -> entry.getKey().pid.equals(PID) && entry.getKey().clazz.equals(entityClass.getCanonicalName()))
+                    .map(Map.Entry::getValue)
                     .findFirst().orElse(null);
             if (importedEntity != null) {
                 return importedEntity;
             }
-
             try {
                 if (!Catalog.class.isAssignableFrom(entityClass)) {
-                    processed.addAndGet(1);
-                    Entity  entity;
+                    String  result;
+                    Catalog parent = findEntityParent(entityClass.getCanonicalName(), PID);
+                    Entity  entity = prepareEntity(entityClass, PID);
+                    boolean isNew  = entity.getID() == null;
 
-                    Catalog entityParent = findEntityParent(entityClass.getCanonicalName(), PID);
-                    Entity  prototype = Entity.newInstance(entityClass, null, PID);
-
-                    if (prototype.getID() == null) {
-                        Entity byUnqKey = findEntityByUniqueKey(prototype, xmlProperties);
-                        if (byUnqKey != null) {
-                            //TODO: confirmation
-                            entity = byUnqKey;
-                        } else {
-                            entity = prototype;
+                    Map<String, Object> propValues = getPropertyValues(entity, xmlProperties);
+                    propValues.entrySet().removeIf(entry -> {
+                        if (entry.getValue() instanceof ImportProblem) {
+                            problems.add((ImportProblem) entry.getValue());
+                            return true;
                         }
-                    } else {
-                        entity = prototype;
+                        return false;
+                    });
+                    Map<String, Object> changedProps = propValues.entrySet().stream()
+                            .filter(entry -> !Objects.equals(entry.getValue(), entity.model.getValue(entry.getKey())))
+                            .collect(
+                                    LinkedHashMap::new,
+                                    (map, entry) -> map.put(entry.getKey(), entry.getValue()),
+                                    Map::putAll
+                            );
+
+                    if (isNew) {
+                        Map<String, IComplexType> propDefinitions = getPropDefinitions(entity.model);
+                        CAS.initClassInstance(entityClass, PID, propDefinitions,null).forEach(entity.model::setValue);
+                        if (parent != null) {
+                            updateCatalogs.add(parent);
+                        }
                     }
 
-                    String step = MessageFormat.format(
-                            Language.get(ImportObjects.class, "step@import"),
-                            String.format("%2d", processed.get()),
-                            entityParent.getPID(),
-                            entity.getPID()
-                    );
-
-                    if (entity.getID() == null) {
-                        updateCatalogs.add(entityParent);
-
-                        Map<String, IComplexType> propDefs = getPropDefinitions(entity.model);
-                        Map<String, Object>       propVals = getPropertyValues(entity, xmlProperties);
-
-//                        for (Map.Entry<String, Object> entry : propVals.entrySet()) {
-//                            if (entity.model.getProperty(entry.getKey()).getOwnPropValue().getMask() != null) {
-//                                IMask mask = entity.model.getProperty(entry.getKey()).getOwnPropValue().getMask();
-//                                if (!mask.verify(entry.getValue())) {
-//                                    throw new Error("Mask validation error: "+mask.getErrorHint());
-//                                }
-//                            }
-//                        }
-
-                        CAS.initClassInstance(entityClass, PID, propDefs,null).forEach(entity.model::setValue);
-                        propVals.forEach(entity.model::setValue);
+                    if (isNew) {
+                        result = Language.get(ImportObjects.class, "result@new");
+                        updateEntity(entity, changedProps);
+                        problems.addAll(checkEntityValues(entity, changedProps, xmlProperties));
                         entity.model.commit(true);
 
-                        String result = fillStepResult(step, Language.get(ImportObjects.class, "step@import.new"), null);
-                        List<String> refProps = xmlProperties.stream()
-                                .filter(xmlProperty ->
-                                        EntityRef.class.isAssignableFrom(propDefs.get(xmlProperty.getName()).getClass()) &&
-                                        propVals.get(xmlProperty.getName()) == null
-                                )
-                                .map(Property::getName)
-                                .collect(Collectors.toList());
-                        if (!refProps.isEmpty()) {
-                            result = Stream.concat(
-                                    Stream.of(result),
-                                    refProps.stream()
-                                        .map(refPropName -> fillStepResult(
-                                                MessageFormat.format(
-                                                        Language.get(ImportObjects.class, "step@ref.title"),
-                                                        Language.get(entityClass, refPropName+PropertyHolder.PROP_NAME_SUFFIX)
-                                                ),
-                                                MessageFormat.format(
-                                                        Language.get(ImportObjects.class, "step@ref.notfound"),
-                                                        xmlProperties.stream()
-                                                                .filter(xmlProperty -> xmlProperty.getName().equals(refPropName))
-                                                                .findFirst().get().getValue()
-                                                ),
-                                                null
-                                        ))
-                            ).collect(Collectors.joining("\n"));
-                        }
-                        Logger.getLogger().info(result);
-                        importedEntities.add(entity);
-
                     } else {
-                        Map<String, Object> changes = getPropertyValues(entity, xmlProperties).entrySet().stream()
-                                .filter(entry -> !Objects.equals(entry.getValue(), entity.model.getValue(entry.getKey())))
-                                .collect(Collectors.toMap(
-                                        Map.Entry::getKey,
-                                        Map.Entry::getValue
-                                ));
+                        if (changedProps.isEmpty()) {
+                            result = Language.get(ImportObjects.class, "result@skip");
+                            problems.clear();
 
-                        if (!changes.isEmpty()) {
-                            if (MessageBox.confirmation(
-                                    ImageUtils.combine(
-                                            Entity.newPrototype(entityClass).getIcon(),
-                                            ImageUtils.resize(ICON_INVALID, 20, 20),
-                                            SwingConstants.SOUTH_EAST
-                                    ),
-                                    MessageType.CONFIRMATION.toString(),
-                                    MessageFormat.format(
-                                            Language.get(ImportObjects.class, "step@import.overwrite"),
-                                            PID,
-                                            changes.keySet().stream().map(
-                                                    propName -> "&nbsp;&bull;&nbsp;"+Language.get(entityClass, propName+PropertyHolder.PROP_NAME_SUFFIX)
-                                            )
-                                            .collect(Collectors.joining("<br>"))
-                                    )
-                            )) {
-                                changes.forEach(entity.model::setValue);
+                        } else {
+                            updateEntity(entity, changedProps);
+                            if (entity.model.getChanges().isEmpty()) {
+                                result = Language.get(ImportObjects.class, "result@skip");
+                                problems.clear();
+
+                            } else if (confirmedOverwrite(entity, entity.model.getChanges())) {
+                                result = Language.get(ImportObjects.class, "result@update");
+                                problems.addAll(checkEntityValues(entity, changedProps, xmlProperties));
                                 entity.model.commit(true);
 
-                                String result = fillStepResult(step, Language.get(ImportObjects.class, "step@import.update"), null);
-                                List<String> refProps = xmlProperties.stream()
-                                        .filter(xmlProperty ->
-                                                EntityRef.class.isAssignableFrom(entity.model.getPropertyType(xmlProperty.getName())) &&
-                                                        changes.get(xmlProperty.getName()) == null &&
-                                                        xmlProperty.isSetValue() && (
-                                                        entity.model.getValue(xmlProperty.getName()) == null ||
-                                                                !((Entity) entity.model.getValue(xmlProperty.getName())).getPID().equals(xmlProperty.getValue())
-                                                )
-                                        )
-                                        .map(Property::getName)
-                                        .collect(Collectors.toList());
-                                if (!refProps.isEmpty()) {
-                                    result = Stream.concat(
-                                            Stream.of(result),
-                                            refProps.stream()
-                                                    .map(refPropName -> fillStepResult(
-                                                            MessageFormat.format(
-                                                                    Language.get(ImportObjects.class, "step@ref.title"),
-                                                                    Language.get(entityClass, refPropName+PropertyHolder.PROP_NAME_SUFFIX)
-                                                            ),
-                                                            MessageFormat.format(
-                                                                    Language.get(ImportObjects.class, "step@ref.notfound"),
-                                                                    xmlProperties.stream()
-                                                                            .filter(xmlProperty -> xmlProperty.getName().equals(refPropName))
-                                                                            .findFirst().get().getValue()
-                                                            ),
-                                                            null
-                                                    ))
-                                    ).collect(Collectors.joining("\n"));
-                                }
-                                Logger.getLogger().info(result);
-                                updatedEntities.add(entity);
                             } else {
-                                Logger.getLogger().info(fillStepResult(step, Language.get(ImportObjects.class, "step@import.cancel"), null));
+                                result = Language.get(ImportObjects.class, "result@cancel");
+                                entity.model.rollback();
+                                problems.clear();
                             }
-                        } else {
-                            Logger.getLogger().info(fillStepResult(step, Language.get(ImportObjects.class, "step@import.skip"), null));
                         }
                     }
+
+                    importedEntities.put(new GroupKey(entityClass.getCanonicalName(), PID), entity);
+                    processed.addAndGet(1);
+                    String stepName = MessageFormat.format(
+                            Language.get(ImportObjects.class, "step@import"),
+                            String.format("%2d", processed.get()),
+                            parent == null ? "" : parent.getPID(),
+                            entity.getPID()
+                    );
+                    Logger.getLogger().info(formatStepResult(stepName, result, problems));
                     setProgress(100 * processed.get() / total.get(), getDescription());
                     return entity;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                return null;
             }
             return null;
         }
 
-        private Entity findEntityByUniqueKey(Entity prototype, List<codex.xml.Property> xmlProperties) {
-            List<codex.xml.Property> uniqueProps = prototype.model.getProperties(Access.Any).stream()
-                    .filter(prototype.model::isPropUnique)
-                    .filter(propName -> !EntityModel.PID.equals(propName))
-                    .filter(propName -> xmlProperties.stream().anyMatch(xmlProperty -> xmlProperty.getName().equals(propName)))
-                    .map(propName -> xmlProperties.stream().filter(xmlProperty -> xmlProperty.getName().equals(propName)).findFirst().get())
-                    .collect(Collectors.toList());
-            if (!uniqueProps.isEmpty()) {
-                Map<String, Object> uniqueValues = getPropertyValues(prototype, uniqueProps);
-                List<Integer> IDs = CAS.readCatalogIDs(prototype.getClass());
-                for (Integer ID : IDs) {
-                    EntityRef ref = EntityRef.build(prototype.getClass(), ID);
-                    if (uniqueValues.entrySet().stream().allMatch(entry -> {
-                        return entry.getValue().equals(ref.getValue().model.getValue(entry.getKey()));
-                    })) {
-                        return ref.getValue();
+        private Entity prepareEntity(Class<? extends Entity> entityClass, String PID) {
+            Entity newEntity = Entity.newInstance(entityClass, null, PID);
+            if (newEntity.getID() == null) {
+                codex.xml.Entity xmlEntity = findEntity(entityClass.getCanonicalName(), PID);
+                if (xmlEntity != null) {
+                    List<codex.xml.Property> softUniqueKeys = getSoftUniqueKeys(
+                            newEntity,
+                            Arrays.asList(xmlEntity.getProperties().getPropertyArray())
+                    );
+                    if (!softUniqueKeys.isEmpty()) {
+                        Set<Entity> foundByUnqKeys = findEntityByUniqueKeys(entityClass, softUniqueKeys);
+                        if (foundByUnqKeys.size() == 1) {
+                            return foundByUnqKeys.iterator().next();
+                        }
                     }
                 }
             }
-            return null;
+            return newEntity;
+        }
+
+        private void updateEntity(Entity entity, Map<String, Object> changedProps) throws Exception {
+            final Set<String> recurseChanges = new HashSet<>();
+            IPropertyChangeListener restoreDeps = (name, oldValue, newValue) -> {
+                if (oldValue != null && oldValue.equals(changedProps.get(name)) && !recurseChanges.contains(name)) {
+                    recurseChanges.add(name);
+                    entity.model.setValue(name, oldValue);
+                }
+            };
+            changedProps.keySet().forEach(propName -> entity.model.getProperty(propName).addChangeListener(restoreDeps));
+            changedProps.forEach(entity.model::setValue);
+            changedProps.keySet().forEach(propName -> entity.model.getProperty(propName).removeChangeListener(restoreDeps));
+        }
+
+        @SuppressWarnings("unchecked")
+        private List<ImportProblem> checkEntityValues(Entity entity, Map<String, Object> changedProps, List<codex.xml.Property> xmlProperties) {
+            List<ImportProblem> problems = new LinkedList<>();
+            changedProps.forEach((propName, propValue) -> {
+                if (entity.model.getProperty(propName).getOwnPropValue().getMask() != null) {
+                    IMask mask = entity.model.getProperty(propName).getOwnPropValue().getMask();
+                    if (!mask.verify(propValue)) {
+                        problems.add(new CheckMaskError(
+                                Language.get(entity.getClass(), propName+PropertyHolder.PROP_NAME_SUFFIX),
+                                xmlProperties.stream()
+                                        .filter(property -> property.getName().equals(propName))
+                                        .map(Property::getValue)
+                                        .findFirst().get()
+                        ));
+                        entity.model.rollback(propName);
+                    }
+                }
+            });
+            return problems;
+        }
+
+        private List<codex.xml.Property> getSoftUniqueKeys(Entity entity, List<codex.xml.Property> xmlProperties) {
+            return xmlProperties.stream()
+                    .filter(xmlProperty -> entity.model.isPropUnique(xmlProperty.getName()))
+                    .collect(Collectors.toList());
+        }
+
+        private Set<Entity> findEntityByUniqueKeys(Class<? extends Entity> entityClass, List<codex.xml.Property> uniqueKeys) {
+            Set<Entity> found = new HashSet<>();
+            List<Entity> existEntities = CAS.readCatalogIDs(entityClass).stream()
+                    .map(ID -> EntityRef.build(entityClass, ID).getValue())
+                    .collect(Collectors.toList());
+
+            for (codex.xml.Property uniqueKey : uniqueKeys) {
+                for (Entity entity : existEntities) {
+                    if (uniqueKey.getValue().equals(entity.model.getProperty(uniqueKey.getName()).getOwnPropValue().toString())) {
+                        found.add(entity);
+                    }
+                }
+            }
+            return found;
         }
 
         private Map<String, IComplexType> getPropDefinitions(EntityModel model) {
@@ -376,15 +382,27 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
                             xmlProperty.getOwner(),
                             xmlProperty.getValue()
                     );
-                    if (refEntity != null && refEntity.getID() != null) {
+                    if (refEntity != null/* && refEntity.getID() != null*/) {
                         values.put(propName, refEntity);
+                    } else {
+                        values.put(propName, new RefNotFound(
+                                Language.get(entity.getClass(), propName+PropertyHolder.PROP_NAME_SUFFIX),
+                                xmlProperty.getValue())
+                        );
                     }
                 } else {
-                    Object defValue = entity.model.getProperty(propName).getOwnPropValue().getValue();
-                    entity.model.getProperty(propName).getOwnPropValue().valueOf(xmlProperty.getValue());
-                    Object newValue = entity.model.getProperty(propName).getOwnPropValue().getValue();
-                    entity.model.getProperty(propName).getOwnPropValue().setValue(defValue);
-                    values.put(propName, newValue);
+                    try {
+                        Object defValue = entity.model.getProperty(propName).getOwnPropValue().getValue();
+                        entity.model.getProperty(propName).getOwnPropValue().valueOf(xmlProperty.getValue());
+                        Object newValue = entity.model.getProperty(propName).getOwnPropValue().getValue();
+                        entity.model.getProperty(propName).getOwnPropValue().setValue(defValue);
+                        values.put(propName, newValue);
+                    } catch (Exception e) {
+                        values.put(propName, new InvalidValue(
+                                Language.get(entity.getClass(), propName+PropertyHolder.PROP_NAME_SUFFIX),
+                                xmlProperty.getValue()
+                        ));
+                    }
                 }
             });
             return values;
@@ -398,9 +416,9 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
 
             if (CAS.isInstanceExists(entityClass, PID, owner == null ? null : owner.getID())) {
                 Entity ref = Entity.newInstance(entityClass, owner == null ? null : owner.toRef(), PID);
-                if (ref.getID() != null) {
+                //if (ref.getID() != null) {
                     return ref;
-                }
+                //}
             }
             codex.xml.Entity foundXmlEntity = findEntity(entityClass.getCanonicalName(), PID);
             if (foundXmlEntity != null) {
@@ -411,6 +429,9 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
                                 Collections.emptyList() :
                                 Arrays.asList(foundXmlEntity.getProperties().getPropertyArray())
                 );
+            }
+            if (Entity.getDefinition(entityClass).autoGenerated()) {
+                return Entity.newInstance(entityClass, owner == null ? null : owner.toRef(), PID);
             }
             return null;
         }
@@ -465,9 +486,74 @@ public class ImportObjects extends EntityCommand<ConfigServiceOptions> {
     }
 
 
-    class GroupKey {
+    enum Severity {
+        Warning(Language.get(ImportObjects.class, "problem@warn")),
+        Error(Language.get(ImportObjects.class, "problem@error"));
 
+        final String format;
+        Severity(String format) {
+            this.format = format;
+        }
+    }
+
+    abstract class ImportProblem {
+        final String propName, propValue;
+        final Severity severity;
+
+        ImportProblem(Severity severity, String propName, String propValue) {
+            this.propName  = propName;
+            this.propValue = propValue;
+            this.severity  = severity;
+        }
+    }
+
+    class InvalidValue extends ImportProblem {
+        InvalidValue(String propName, String propValue) {
+            super(Severity.Warning, propName, propValue);
+        }
+        @Override
+        public String toString() {
+            return MessageFormat.format(
+                    severity.format,
+                    MessageFormat.format(Language.get(ImportObjects.class, "problem@invalid"), propName, propValue)
+            );
+        }
+    }
+
+    class RefNotFound extends ImportProblem {
+        RefNotFound(String propName, String propValue) {
+            super(Severity.Warning, propName, propValue);
+        }
+        @Override
+        public String toString() {
+            return MessageFormat.format(
+                    severity.format,
+                    MessageFormat.format(Language.get(ImportObjects.class, "problem@notfound"), propName, propValue)
+            );
+        }
+    }
+
+    class CheckMaskError extends ImportProblem {
+        CheckMaskError(String propName, String propValue) {
+            super(Severity.Warning, propName, propValue);
+        }
+        @Override
+        public String toString() {
+            return MessageFormat.format(
+                    severity.format,
+                    MessageFormat.format(Language.get(ImportObjects.class, "problem@notaccepted"), propName, propValue)
+            );
+        }
+    }
+
+
+    class GroupKey {
         final String clazz, pid;
+
+        GroupKey(String clazz, String PID) {
+            this.clazz = clazz;
+            this.pid   = PID;
+        }
 
         GroupKey(codex.xml.Ref parent) {
             this.clazz = parent != null ? parent.getClassName() : null;
