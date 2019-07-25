@@ -77,11 +77,13 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
     public Box getEditor() {
         comboBox.removeActionListener(this);
         comboBox.removeAllItems();
-        
-        comboBox.addItem((T) new Undefined());
+
         if (!propHolder.getPropValue().isEmpty()) {
             comboBox.addItem(propHolder.getPropValue().getValue());
             setValue(propHolder.getPropValue().getValue());
+        } else {
+            comboBox.addItem((T) new Undefined());
+            setValue(null);
         }
         comboBox.addActionListener(this);
         return super.getEditor();
@@ -104,9 +106,13 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
 
             @Override
             public void addItem(T item) {
-                super.addItem(item);
-                if (item != null) {
-                    item.addNodeListener(EntityRefEditor.this);
+                try {
+                    super.addItem(item);
+                    if (item != null) {
+                        item.addNodeListener(EntityRefEditor.this);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         };

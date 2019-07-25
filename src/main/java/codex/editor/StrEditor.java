@@ -2,6 +2,7 @@ package codex.editor;
 
 import codex.mask.IMask;
 import codex.property.PropertyHolder;
+import codex.type.IComplexType;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import net.java.balloontip.BalloonTip;
@@ -66,8 +67,8 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
         signInvalid.setBorder(new EmptyBorder(0, 3, 0, 0));
         signInvalid.setCursor(Cursor.getDefaultCursor());
         signDelete.setCursor(Cursor.getDefaultCursor());
-        
-        IMask<String> mask = propHolder.getPropValue().getMask();
+
+        IMask<String> mask = IComplexType.coalesce(propHolder.getPropValue().getMask(), (String text) -> true);
         if (mask.getErrorHint() != null) {
             signInvalid.addMouseListener(new MouseAdapter() {
                 @Override
@@ -167,7 +168,7 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
         if (signDelete!= null) {
             signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
         }
-        IMask<String> mask = propHolder.getPropValue().getMask();
+        IMask<String> mask = IComplexType.coalesce(propHolder.getPropValue().getMask(), (String text) -> true);
         String value = propHolder.getPropValue().getValue();
         boolean inputOk = ((value == null || value.isEmpty()) && !mask.notNull()) || mask.verify(value);
         setBorder(!inputOk ? BORDER_ERROR : textField.isFocusOwner() ? BORDER_ACTIVE : BORDER_NORMAL);

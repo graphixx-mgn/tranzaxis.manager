@@ -207,7 +207,7 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
         super.updateUI();
         setValue(propHolder.getPropValue().getValue());
         setEditable(isEditable());
-        if (getEditor().isVisible()) {
+        if (editor.isVisible()) {
             getCommands().stream()
                     // Обновляем только команды-потребители или если редактор еще не отображается (начальная инициализация)
                     .filter(command -> command.commandDirection() == EditorCommand.Direction.Consumer || !getEditor().isShowing())
