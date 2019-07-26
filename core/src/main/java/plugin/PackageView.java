@@ -122,6 +122,11 @@ public class PackageView extends Catalog {
                     insert(pluginView);
                 });
             }
+            if (packageSupplier.get().isBuild()) {
+                try {
+                    setPublished(false);
+                } catch (Exception e) {/**/}
+            }
         }
         setIcon(getStatusIcon());
     }
