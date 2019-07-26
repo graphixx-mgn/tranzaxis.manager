@@ -30,7 +30,7 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
     
     public final static String VERSION_RESOURCE = "/version.xml";
     
-    static final  Comparator<Version> VER_COMPARATOR = (v1, v2) -> {
+    public static final  Comparator<Version> VER_COMPARATOR = (v1, v2) -> {
         String[] vals1 = v1.getNumber().split("\\.");
         String[] vals2 = v2.getNumber().split("\\.");
         
