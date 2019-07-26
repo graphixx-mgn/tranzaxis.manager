@@ -1,6 +1,8 @@
 package plugin;
 
 import codex.log.Logger;
+import manager.xml.VersionsDocument;
+import org.apache.xmlbeans.XmlException;
 import org.atteo.classindex.ClassIndex;
 import java.io.*;
 import java.lang.reflect.Constructor;
@@ -18,9 +20,11 @@ import java.util.stream.StreamSupport;
 
 public final class PluginPackage implements Closeable {
 
-    static final Comparator<PluginPackage> PKG_COMPARATOR = (pkg1, pkg2) -> {
-        String[] vals1 = pkg1.version.split("\\.");
-        String[] vals2 = pkg2.version.split("\\.");
+    private final static String VERSION_RESOURCE = "version.xml";
+
+    static final Comparator<String> VER_COMPARATOR = (ver1, ver2) -> {
+        String[] vals1 = ver1.split("\\.");
+        String[] vals2 = ver2.split("\\.");
 
         int i = 0;
         while (i < vals1.length && i < vals2.length && vals1[i].equals(vals2[i])) {
@@ -33,6 +37,7 @@ public final class PluginPackage implements Closeable {
             return Integer.signum(vals1.length - vals2.length);
         }
     };
+    static final Comparator<PluginPackage> PKG_COMPARATOR = (pkg1, pkg2) -> VER_COMPARATOR.compare(pkg1.version, pkg2.version);
 
     static Attributes getAttributes(File jarFile) throws IOException {
         try (
@@ -67,6 +72,7 @@ public final class PluginPackage implements Closeable {
 
         classLoader = new URLClassLoader(new URL[]{ conn.getURL() });
         pluginList = loadPlugins(conn.getURL());
+        getChanges();
     }
 
     String getId() {
@@ -91,6 +97,23 @@ public final class PluginPackage implements Closeable {
 
     Boolean isBuild() {
         return build;
+    }
+
+    VersionsDocument getChanges() {
+        try {
+            URL jarUrl = classLoader.getURLs()[0];
+            URLConnection conn = jarUrl.openConnection();
+            conn.setUseCaches(false);
+            conn.setDefaultUseCaches(false);
+
+            ClassLoader jarLoader = new URLClassLoader(new URL[]{ conn.getURL() }, null);
+            if (jarLoader.getResource(VERSION_RESOURCE) != null) {
+                return VersionsDocument.Factory.parse(jarLoader.getResourceAsStream(VERSION_RESOURCE));
+            }
+        } catch (XmlException | IOException e) {
+            //
+        }
+        return null;
     }
 
     List<PluginHandler> getPlugins() {

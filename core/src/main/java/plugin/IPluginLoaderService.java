@@ -7,6 +7,7 @@ import codex.model.EntityModel;
 import codex.service.IRemoteService;
 import codex.type.Iconified;
 import manager.upgrade.stream.RemoteInputStream;
+import manager.xml.VersionsDocument;
 import javax.swing.*;
 import java.io.Serializable;
 import java.rmi.RemoteException;
@@ -36,6 +37,7 @@ public interface IPluginLoaderService extends IRemoteService {
 
         private final String vendor, title, version, author;
         private final ImageIcon icon;
+        private final VersionsDocument   changes;
         private final List<Instance>     instances = new LinkedList<>();
         private final List<RemotePlugin> plugins = new LinkedList<>();
 
@@ -43,6 +45,7 @@ public interface IPluginLoaderService extends IRemoteService {
             vendor  = pluginPackage.getVendor();
             title   = pluginPackage.getTitle();
             version = pluginPackage.getVersion();
+            changes = pluginPackage.getChanges();
             author  = pluginPackage.getAuthor();
             icon    = pluginPackage.getPlugins().size() == 1 ? pluginPackage.getPlugins().get(0).getTypeDefinition().getIcon() : PackageView.PACKAGE;
 
@@ -62,6 +65,10 @@ public interface IPluginLoaderService extends IRemoteService {
 
         String getVersion() {
             return version;
+        }
+
+        VersionsDocument getChanges() {
+            return changes;
         }
 
         String getAuthor() {
