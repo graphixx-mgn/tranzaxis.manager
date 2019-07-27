@@ -110,12 +110,14 @@ public interface IPluginLoaderService extends IRemoteService {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             RemotePackage that = (RemotePackage) o;
-            return vendor.equals(that.vendor) && title.equals(that.title);
+            return vendor.equals(that.vendor) &&
+                    title.equals(that.title) &&
+                    version.equals(that.version);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(vendor, title);
+            return Objects.hash(vendor, title, version);
         }
     }
 
@@ -213,8 +215,6 @@ public interface IPluginLoaderService extends IRemoteService {
 
 
     interface IPublicationListener {
-
         void publicationEvent(RemotePackage remotePackage, boolean published);
-
     }
 }

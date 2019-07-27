@@ -4,6 +4,7 @@ import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.log.Logger;
 import codex.service.ServiceRegistry;
+import javax.swing.*;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
@@ -46,6 +47,13 @@ class PluginLoader {
     private void registerPluginPackages(PluginPackage... newPackages) {
         if (newPackages != null && newPackages.length > 0) {
             for (PluginPackage newPackage : newPackages) {
+//                try {
+//                    APIChecker.analyzeFile(newPackage.jarFilePath.toFile());
+//                    continue;
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+
                 if (!plugins.containsKey(newPackage)) {
                     addPluginPackage(newPackage);
                 } else {
@@ -85,14 +93,16 @@ class PluginLoader {
         );
 
         plugins.get(pluginPackage).forEach(pluginHandler -> {
-            if (pluginHandler.getView().isEnabled()) {
-                try {
-                    pluginHandler.loadPlugin();
-                } catch (PluginException e) {
-                    Logger.getLogger().warn("Unable to load plugin ''{0}''\n{1}", Plugin.getId(pluginHandler), Logger.stackTraceToString(e));
-                    pluginHandler.getView().setEnabled(false, false);
+            SwingUtilities.invokeLater(() -> {
+                if (pluginHandler.getView().isEnabled()) {
+                    try {
+                        pluginHandler.loadPlugin();
+                    } catch (PluginException e) {
+                        Logger.getLogger().warn("Unable to load plugin ''{0}''\n{1}", Plugin.getId(pluginHandler), Logger.stackTraceToString(e));
+                        pluginHandler.getView().setEnabled(false, false);
+                    }
                 }
-            }
+            });
         });
     }
 
