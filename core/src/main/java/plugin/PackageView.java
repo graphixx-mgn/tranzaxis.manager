@@ -1,9 +1,11 @@
 package plugin;
 
 import codex.command.CommandStatus;
+import codex.command.EditorCommand;
 import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
+import codex.editor.AnyTypeView;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.instance.InstanceCommunicationService;
@@ -14,6 +16,8 @@ import codex.service.ServiceRegistry;
 import codex.type.*;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import manager.xml.VersionsDocument;
+
 import javax.swing.*;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -27,6 +31,7 @@ import java.util.stream.Collectors;
 
 public class PackageView extends Catalog {
 
+    private final static ImageIcon ICON_INFO = ImageUtils.getByPath("/images/info.png");
     private final static InstanceCommunicationService ICS = (InstanceCommunicationService) ServiceRegistry.getInstance().lookupService(InstanceCommunicationService.class);
 
     final static ImageIcon PACKAGE   = ImageUtils.getByPath("/images/repository.png");
@@ -129,6 +134,9 @@ public class PackageView extends Catalog {
             }
         }
         setIcon(getStatusIcon());
+        if (pluginPackage != null) {
+            ((AnyTypeView) model.getEditor(PROP_VERSION)).addCommand(new ShowChanges());
+        }
     }
 
     void setPublished(boolean published) throws Exception {
@@ -187,6 +195,30 @@ public class PackageView extends Catalog {
             fieldDesc.set(propHolder, desc);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             //
+        }
+    }
+
+
+    class ShowChanges extends EditorCommand<AnyType, Object> {
+        ShowChanges() {
+            super(
+                    ImageUtils.resize(ICON_INFO,20,20),
+                    Language.get(PluginManager.class, "history@command"),
+                    holder -> packageSupplier.get().getChanges() != null
+            );
+        }
+
+        @Override
+        public void execute(PropertyHolder<AnyType, Object> context) {
+            VersionsDocument verDoc = packageSupplier.get().getChanges();
+            if (verDoc != null) {
+                PluginManager.showVersionInfo(Arrays.asList(verDoc.getVersions().getVersionArray()));
+            }
+        }
+
+        @Override
+        public boolean disableWithContext() {
+            return false;
         }
     }
 
