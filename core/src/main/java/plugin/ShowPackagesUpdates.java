@@ -4,7 +4,6 @@ import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.component.dialog.Dialog;
 import codex.explorer.tree.INode;
-import codex.explorer.tree.INodeListener;
 import codex.explorer.tree.NodeTreeModel;
 import codex.instance.IInstanceListener;
 import codex.instance.Instance;
@@ -16,10 +15,12 @@ import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import codex.utils.LocaleContextHolder;
+import org.apache.log4j.lf5.viewer.categoryexplorer.TreeModelAdapter;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
+import javax.swing.event.TreeModelEvent;
 import java.awt.*;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -27,7 +28,6 @@ import java.rmi.server.RemoteServer;
 import java.rmi.server.ServerNotActiveException;
 import java.util.*;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements IInstanceListener, IPluginLoaderService.IPublicationListener {
@@ -79,19 +79,20 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
             if (pluginCatalogs.isEmpty()) {
                 return new CommandStatus(false);
             } else {
-                List<PluginPackage> localPackages = PluginManager.getInstance().getPluginLoader().getPackages();
                 synchronized (remotePackages) {
-                    List<IPluginLoaderService.RemotePackage> updates = remotePackages.stream()
-                            .filter(remotePackage -> {
-                                return
-                                        localPackages.stream().noneMatch(localPackage -> localPackage.getId().equals(remotePackage.getId())) ||
-                                        localPackages.stream().anyMatch(localPackage -> {
-                                            return
-                                                    localPackage.getId().equals(remotePackage.getId()) &&
-                                                    VER_COMPARATOR.compare(remotePackage.getVersion(), localPackage.getVersion()) > 0;
-                                        });
-                            })
-                            .collect(Collectors.toList());
+                    Map<String, IPluginLoaderService.RemotePackage> updateMap = new HashMap<>();
+                    remotePackages.forEach(remotePackage -> {
+                        PluginPackage localPackage = PluginManager.getInstance().getPluginLoader().getPackageById(remotePackage.getId());
+                        if (localPackage == null || VER_COMPARATOR.compare(remotePackage.getVersion(), localPackage.getVersion()) > 0) {
+                            if (!updateMap.containsKey(remotePackage.getId())) {
+                                updateMap.put(remotePackage.getId(), remotePackage);
+                            } else if (VER_COMPARATOR.compare(remotePackage.getVersion(), updateMap.get(remotePackage.getId()).getVersion()) > 0) {
+                                updateMap.put(remotePackage.getId(), remotePackage);
+                            }
+                        }
+                    });
+                    Collection<IPluginLoaderService.RemotePackage> updates = updateMap.values();
+
                     for (INode node: treeModel) {
                         RemotePackageView pkgView = (RemotePackageView) node;
                         if (pkgView != treeModel.getRoot()) {
@@ -111,6 +112,8 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
                             ((INode) treeModel.getRoot()).insert(new RemotePackageView(remotePackage));
                         }
                     });
+                    treeModel.nodeStructureChanged((INode) treeModel.getRoot());
+
                     return new CommandStatus(
                             updates.size() > 0,
                             updates.size() == 0 ? CMD_ICON : ImageUtils.combine(
@@ -131,8 +134,6 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
 
     @Override
     public final void execute(PluginCatalog context, Map<String, IComplexType> params) {
-        final INode updatesCatalog = (INode) treeModel.getRoot();
-
         Dialog dialog = new Dialog(
                 FocusManager.getCurrentManager().getActiveWindow(),
                 CMD_ICON,
@@ -141,17 +142,14 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
                 e -> {},
                 Dialog.Default.BTN_CLOSE.newInstance()
         );
-
-        INodeListener closeIfNoUpdates = new INodeListener() {
+        treeModel.addTreeModelListener(new TreeModelAdapter() {
             @Override
-            public void childDeleted(INode parentNode, INode childNode, int index) {
-                if (updatesCatalog.childrenList().isEmpty() && dialog.isVisible()) {
-                    updatesCatalog.removeNodeListener(this);
+            public void treeStructureChanged(TreeModelEvent e) {
+                if (((INode) treeModel.getRoot()).childrenList().isEmpty()) {
                     dialog.setVisible(false);
                 }
             }
-        };
-        updatesCatalog.addNodeListener(closeIfNoUpdates);
+        });
 
         dialog.setPreferredSize(new Dimension(800, 600));
         dialog.setResizable(false);
@@ -180,6 +178,9 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
                 registerPackages(instance, pluginLoader.getPublishedPackages(LocaleContextHolder.getLocale()));
             } catch (NotBoundException e) {
                 //
+            } catch (ClassCastException e) {
+                //TODO: Временная заглушка до перехода на 2.2.2
+                //Теперь передается наименования класса редактора, не кастектс в класс (а класс не мог быть сериализован)
             } catch (RemoteException e) {
                 Logger.getLogger().warn("Failed remote service ''{0}'' call to instance ''{1}''", PluginLoaderService.class, instance);
             }
