@@ -21,15 +21,13 @@
     <modules>
         <!-- Plugins -->
         <module>plugin.port.config</module>
+        <module>plugin.developer.pack</module>
     </modules>
 
     <profiles>
         <profile>
             <id>build plugin templates</id>
             <modules>
-                <!-- Plugins -->
-                <module>plugin.port.config</module>
-                <!-- Templates -->
                 <module>template.command</module>
             </modules>
         </profile>
