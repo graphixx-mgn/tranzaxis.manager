@@ -125,7 +125,7 @@ public class Environment extends Entity implements INodeListener {
         model.addUserProp(PROP_OFFSHOOT,     new EntityRef<>(Offshoot.class).setMask(
                 new EntityFilter<>(
                         offshoot ->
-                            offshoot.getRepository()  == getRepository(true) &&
+                            offshoot.getRepository() == getRepository(true) &&
                             offshoot.getBuiltStatus() != null &&
                             offshoot.isWCLoaded(),
                         offshoot -> {
@@ -228,8 +228,8 @@ public class Environment extends Entity implements INodeListener {
         // Editor settings
         model.getEditor(PROP_LAYER_URI).addCommand(layerSelector);
         model.getEditor(PROP_SOURCE_TYPE).setVisible(getRepository(true) != null);
-        model.getEditor(PROP_INSTANCE_ID).setVisible(getDataBase(true) != null);
-        model.getEditor(PROP_VERSION).setVisible(getDataBase(true)     != null);
+        model.getEditor(PROP_INSTANCE_ID).setVisible(getDataBase(true)   != null);
+        model.getEditor(PROP_VERSION).setVisible(getDataBase(true)       != null);
         
         SyncRelease syncRelease = new SyncRelease();
         model.addModelListener(syncRelease);
@@ -533,14 +533,14 @@ public class Environment extends Entity implements INodeListener {
                         if (model.getChanges().equals(Collections.singletonList(PROP_RELEASE))) {
                             try {
                                 Environment.this.model.commit(true);
+                                Logger.getLogger().info(
+                                        "Environment ''{0}'' release has been updated automatically to ''{1}''",
+                                        Environment.this.getPID(), newValue
+                                );
                             } catch (Exception e) {
                                 //
                             }
                         }
-                        Logger.getLogger().info(
-                                "Environment ''{0}'' release has been updated automatically to ''{1}''",
-                                Environment.this.getPID(), newValue
-                        );
                         releaseEditor.updateUI();
                     }
                 }
