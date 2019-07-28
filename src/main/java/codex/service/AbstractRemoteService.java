@@ -27,7 +27,6 @@ public abstract class AbstractRemoteService<P extends RemoteServiceOptions, C ex
         if (serviceConfig == null) {
             try {
                 serviceConfig = Entity.newInstance(ServiceCatalog.getServiceConfigClass(
-                        RemoteServiceOptions.class,
                         AbstractRemoteService.class,
                         getClass()
                 ), null, getTitle());
