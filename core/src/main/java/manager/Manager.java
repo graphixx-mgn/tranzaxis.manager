@@ -10,7 +10,6 @@ import codex.service.ServiceUnit;
 import codex.task.TaskManager;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import it.sauronsoftware.junique.AlreadyLockedException;
 import it.sauronsoftware.junique.JUnique;
 import manager.nodes.Common;
@@ -29,10 +28,10 @@ import java.util.prefs.Preferences;
 public class Manager {
     
     static {
+        UIManager.put("Tree.drawDashedFocusIndicator", false);
         try {
-            UIManager.setLookAndFeel(new WindowsLookAndFeel());
-            UIManager.put("Tree.drawDashedFocusIndicator", false);
-        } catch (UnsupportedLookAndFeelException e) {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (UnsupportedLookAndFeelException | ClassNotFoundException | InstantiationException | IllegalAccessException e) {
             //
         }
         PlatformLogger.getLogger("java.util.prefs").setLevel(PlatformLogger.Level.OFF);
