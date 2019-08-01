@@ -12,20 +12,19 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Vector;
 import java.util.stream.Collectors;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 
 public class SelectorTableModel extends DefaultTableModel implements IModelListener, ISelectorTableModel {
 
-    private final List<Class<? extends IComplexType>> columnClasses = new LinkedList<>();
-    private final Entity entity;
-    private final Entity prototype;
+    private final List<ColumnInfo> columnModel = new LinkedList<>();
+    private final Entity rootEntity;
     
-    public SelectorTableModel(Entity entity, final Entity prototype) {
-        super(generateData(entity), generateHeader(entity, prototype));
-        entity.childrenList().forEach((node) -> {
+    public SelectorTableModel(Entity rootEntity) {
+        super();
+        this.rootEntity = rootEntity;
+        rootEntity.childrenList().forEach((node) -> {
             Entity      childEntity = (Entity) node;
             EntityModel childModel  = childEntity.model;
             
@@ -44,33 +43,45 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
             childModel.addModelListener(this);
             childModel.addChangeListener((name, oldValue, newValue) -> {
                 if (childModel.isPropertyDynamic(name)) {
-                    final int entityIdx = entity.getIndex(node);
+                    final int entityIdx = rootEntity.getIndex(node);
                     if (childModel.getProperties(Access.Select).contains(name)) {
                         setValueAt(newValue, entityIdx, childModel.getProperties(Access.Select).indexOf(name));
                     }
                 }
             });
+            addEntity(childEntity);
         });
-        prototype.model.getProperties(Access.Select).forEach((propName) -> {
-            columnClasses.add(prototype.model.getPropertyType(propName));
-        });
-        this.entity    = entity;
-        this.prototype = prototype;
+    }
+
+    @Override
+    public void addEntity(Entity entity) {
+        if (getColumnCount() == 0) {
+            columnModel.addAll(entity.model.getProperties(Access.Select).stream()
+                    .map(propName -> new ColumnInfo(
+                        entity.model.getPropertyType(propName),
+                        propName,
+                        entity.model.getPropertyTitle(propName)
+                    ))
+                    .collect(Collectors.toList())
+            );
+            columnModel.forEach(columnInfo -> addColumn(columnInfo.title));
+        }
+        addRow(entity.model.getProperties(Access.Select).stream().map(entity.model::getValue).toArray());
     }
 
     @Override
     public Entity getEntityForRow(int row) {
-        return (Entity) entity.childrenList().get(row);
+        return (Entity) rootEntity.childrenList().get(row);
     }
 
     @Override
     public String getPropertyForColumn(int column) {
-        return prototype.model.getProperties(Access.Select).get(column);
+        return columnModel.get(column).name;
     }
 
     @Override
-    public Class<?> getColumnClass(int columnIndex) {
-        return columnClasses.get(columnIndex) == Bool.class ? Bool.class : IComplexType.class;
+    public Class<?> getColumnClass(int column) {
+        return columnModel.get(column).type == Bool.class ? Bool.class : IComplexType.class;
     }
 
     @Override
@@ -81,18 +92,16 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
     @Override
     public void moveRow(int start, int end, int to) {
         super.moveRow(start, end, to);
-        entity.move(getEntityForRow(start), to);
+        rootEntity.move(getEntityForRow(start), to);
         
         SwingUtilities.invokeLater(() -> {
-            List<Integer> sequences = entity.childrenList().stream()
-                .map((childNode) -> {
-                    return ((Entity) childNode).getSEQ();
-                })
+            List<Integer> sequences = rootEntity.childrenList().stream()
+                .map((childNode) -> ((Entity) childNode).getSEQ())
                 .collect(Collectors.toList());
             Collections.sort(sequences);
             Iterator<Integer> seqIterator = sequences.iterator();
-            
-            entity.childrenList().forEach((childNode) -> {
+
+            rootEntity.childrenList().forEach((childNode) -> {
                 Entity childEntity = (Entity) childNode;
                 childEntity.setSEQ(seqIterator.next());
                 if (!childEntity.model.getChanges().isEmpty()) {
@@ -123,27 +132,6 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
                 break;
             }
         }
-    }
-    
-    private static Vector generateHeader(Entity entity, final Entity prototype) {
-        Vector headerVector = new Vector();
-        prototype.model.getProperties(Access.Select).forEach((propName) -> {
-            headerVector.add(prototype.model.getPropertyTitle(propName));
-        });
-        return headerVector;
-    }
-    
-    private static Vector generateData(Entity entity) {
-        Vector dataVector = new Vector();
-        entity.childrenList().forEach((node) -> {
-            Vector rowVector = new Vector<>();
-            Entity child = (Entity) node;
-            child.model.getProperties(Access.Select).forEach((String propName) -> {
-                rowVector.add(child.model.getValue(propName));
-            });
-            dataVector.addElement(rowVector);
-        });
-        return dataVector;
     }
 
 }

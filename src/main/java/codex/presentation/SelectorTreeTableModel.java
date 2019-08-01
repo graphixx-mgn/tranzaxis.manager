@@ -21,6 +21,11 @@ public class SelectorTreeTableModel extends DefaultOutlineModel implements ISele
     }
 
     @Override
+    public void addEntity(Entity entity) {
+
+    }
+
+    @Override
     public Entity getEntityForRow(int row) {
         return (Entity) getValueAt(row, 0);
     }

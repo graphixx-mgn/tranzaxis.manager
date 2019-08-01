@@ -24,23 +24,33 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
 public class SelectorTreeTable<T extends Entity> extends Outline implements IEditableTable {
 
     private final static Icon ICON_COLLAPSE = UIManager.getIcon("Tree.collapsedIcon");
     private final static Icon ICON_EXPAND   = UIManager.getIcon("Tree.expandedIcon");
 
+    final List<ISelectorTableModel.ColumnInfo> columnModel = new LinkedList<>();
     private final List<String> editableProps = new LinkedList<>();
 
     public SelectorTreeTable(T rootEntity, Class<T> entityClass) {
         final NodeTreeModel treeModel = new NodeTreeModel(rootEntity);
+        columnModel.addAll(rootEntity.model.getProperties(Access.Select).stream()
+                .filter(propName -> !EntityModel.THIS.equals(propName))
+                .map(propName -> new ISelectorTableModel.ColumnInfo(
+                        rootEntity.model.getPropertyType(propName),
+                        propName,
+                        rootEntity.model.getPropertyTitle(propName)
+                ))
+                .collect(Collectors.toList())
+        );
+
         final SelectorTreeTableModel treeTableModel = new SelectorTreeTableModel(
                 treeModel,
-                new TableRowModel(entityClass),
+                new TableRowModel(),
                 true,
                 Language.get(Entity.class, EntityModel.THIS+PropertyHolder.PROP_NAME_SUFFIX)
         );
-        setModel(treeTableModel);
+
         unsetQuickFilter();
         setRowSorter(null);
         setColumnHidingAllowed(false);
@@ -52,7 +62,7 @@ public class SelectorTreeTable<T extends Entity> extends Outline implements IEdi
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 JComponent component = (JComponent) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                if (column == 0 && row != TableModelEvent.HEADER_ROW) {
+                if (column == 0 && row != TableModelEvent.HEADER_ROW && value instanceof INode) {
                     INode    node = (INode) value;
                     TreePath path = new TreePath(treeModel.getPathToRoot(node));
                     boolean  expanded = treeTableModel.getTreePathSupport().isExpanded(path);
@@ -89,6 +99,8 @@ public class SelectorTreeTable<T extends Entity> extends Outline implements IEdi
         GeneralEditor editor = new GeneralEditor();
         setDefaultEditor(Bool.class, editor);
         setDefaultEditor(IComplexType.class, editor);
+
+        setModel(treeTableModel);
     }
 
     @Override
@@ -105,36 +117,24 @@ public class SelectorTreeTable<T extends Entity> extends Outline implements IEdi
 
     private class TableRowModel implements RowModel {
 
-        private final T prototype;
-        final List<String> propList;
-
-        TableRowModel(Class<T> entityClass) {
-            this.prototype = Entity.newPrototype(entityClass);
-            this.propList  = prototype.model.getProperties(Access.Select).stream()
-                    .filter(propName -> !EntityModel.THIS.equals(propName))
-                    .collect(Collectors.toList());
-        }
-
         @Override
         public Class getColumnClass(int column) {
-            String propName = propList.get(column);
-            return prototype.model.getPropertyType(propName) == Bool.class ? Bool.class : IComplexType.class;
+            return columnModel.get(column).type == Bool.class ? Bool.class : IComplexType.class;
         }
         @Override
         public int getColumnCount() {
-            return propList.size();
+            return columnModel.size();
         }
 
         @Override
         public String getColumnName(int column) {
-            String propName = propList.get(column);
-            return prototype.model.getPropertyTitle(propName);
+            return columnModel.get(column).title;
         }
 
         @Override
         public Object getValueFor(Object node, int column) {
             Entity entity = (Entity) node;
-            String propName = propList.get(column);
+            String propName = columnModel.get(column).name;
             return entity.model.getUnsavedValue(propName);
         }
 
@@ -146,9 +146,8 @@ public class SelectorTreeTable<T extends Entity> extends Outline implements IEdi
         @Override
         public void setValueFor(Object node, int column, Object value) {
             Entity entity = (Entity) node;
-            String propName = propList.get(column);
+            String propName = columnModel.get(column).name;
             entity.model.setValue(propName, value);
-
         }
     }
 

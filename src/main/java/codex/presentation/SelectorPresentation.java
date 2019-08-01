@@ -56,13 +56,10 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         this.entity = entity;
         entityClass = entity.getChildClass();
 
-        Entity prototype = Entity.newPrototype(entityClass);
-
         EditEntity editEntity = new EditEntity();
         systemCommands.add(editEntity);
         if (entity.allowModifyChild()) {
             systemCommands.add(new CreateEntity());
-
             systemCommands.add(new CloneEntity());
             systemCommands.add(new DeleteEntity());
         }
@@ -75,7 +72,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         commandPanel = new CommandPanel(systemCommands);
         add(commandPanel, BorderLayout.NORTH);
         
-        tableModel = new SelectorTableModel(entity, prototype);
+        tableModel = new SelectorTableModel(entity/*, prototype*/);
         table = new SelectorTable(tableModel);
         table.getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         
@@ -139,10 +136,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             @Override
             public void childInserted(INode parentNode, INode childNode) {
                 Entity newEntity = (Entity) childNode;
-                tableModel.addRow(
-                        newEntity.model.getProperties(Access.Select).stream()
-                                .map(newEntity.model::getValue).toArray()
-                );
+                tableModel.addEntity(newEntity);
                 newEntity.model.addModelListener(tableModel);
                 newEntity.model.addChangeListener((name, oldValue, newValue) -> {
                     List<String> selectorProps = newEntity.model.getProperties(Access.Select);
