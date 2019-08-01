@@ -216,6 +216,10 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                     setIcon(icon);
                 }
 
+                boolean selected =
+                        tree.getSelectionModel().getLeadSelectionPath() != null &&
+                        tree.getSelectionModel().getLeadSelectionPath().getLastPathComponent() == value;
+
                 setForeground(selected ? Color.WHITE : IEditor.COLOR_NORMAL);
                 setBackground(selected ? Color.decode("#55AAFF") : Color.WHITE);
                 setBorder(new EmptyBorder(15, 2, 15, 7));
