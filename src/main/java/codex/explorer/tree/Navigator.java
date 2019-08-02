@@ -29,7 +29,7 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
     public Navigator() {
         super();
         setRowHeight(IEditor.FONT_VALUE.getSize()*2-2);
-        setBorder(new EmptyBorder(5, 10, 5, 2));
+        setBorder(new EmptyBorder(5, 10, 5, 30));
         addTreeSelectionListener((TreeSelectionEvent event) -> {
             SwingUtilities.invokeLater(() -> {
                 final INode node = (INode) getLastSelectedPathComponent();

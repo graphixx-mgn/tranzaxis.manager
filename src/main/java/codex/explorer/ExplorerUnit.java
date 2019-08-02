@@ -9,12 +9,16 @@ import codex.explorer.tree.NodeTreeModel;
 import codex.log.Logger;
 import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
+import org.apache.log4j.lf5.viewer.categoryexplorer.TreeModelAdapter;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.event.TreeExpansionEvent;
+import javax.swing.event.TreeExpansionListener;
+import javax.swing.event.TreeModelEvent;
 import javax.swing.tree.TreePath;
 
 /**
@@ -26,7 +30,8 @@ public final class ExplorerUnit extends AbstractUnit {
     public  final static ExplorerUnit getInstance() {
         return INSTANCE;
     }
-    
+
+    private JSplitPane      splitPanel;
     private JPanel          browsePanel;
     private JScrollPane     navigatePanel;
     private final Navigator navigator;
@@ -52,14 +57,12 @@ public final class ExplorerUnit extends AbstractUnit {
     
     @Override
     public JComponent createViewport() {
-        JSplitPane splitPanel = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true);
+        splitPanel = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true);
         splitPanel.setBorder(null);
-        splitPanel.setDividerLocation(250);
         splitPanel.setContinuousLayout(true);
         splitPanel.setDividerSize(6);
 
         JPanel leftPanel = new JPanel(new BorderLayout());
-        leftPanel.setMinimumSize(new Dimension(250, 0));
         navigatePanel = new JScrollPane();
         navigatePanel.setBorder(null);
         leftPanel.add(navigatePanel, BorderLayout.CENTER);
@@ -71,13 +74,39 @@ public final class ExplorerUnit extends AbstractUnit {
         browsePanel.setBorder(null);
         rightPanel.add(browsePanel, BorderLayout.CENTER);
         splitPanel.setRightComponent(rightPanel);
+
+        navigator.addTreeExpansionListener(new TreeExpansionListener() {
+            @Override
+            public void treeExpanded(TreeExpansionEvent event) {
+                resizeNavigationPane();
+            }
+
+            @Override
+            public void treeCollapsed(TreeExpansionEvent event) {}
+        });
+        navigator.getModel().addTreeModelListener(new TreeModelAdapter() {
+            @Override
+            public void treeNodesInserted(TreeModelEvent e) {
+                resizeNavigationPane();
+            }
+        });
+
         return splitPanel;
+    }
+
+    private void resizeNavigationPane() {
+        int dividerPos = splitPanel.getDividerLocation();
+        int navWidth   = navigator.getPreferredScrollableViewportSize().width;
+        if (navWidth > dividerPos) {
+            splitPanel.setDividerLocation(navWidth);
+        }
     }
 
     @Override
     public void viewportBound() {
         navigatePanel.setViewportView(navigator);
         browsePanel.add(browser, BorderLayout.CENTER);
+        resizeNavigationPane();
         navigator.expandRow(0);
     }
     
