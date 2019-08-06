@@ -33,7 +33,7 @@ class EntityCache {
                     if (registry.get(entityClass).values().parallelStream().anyMatch(entity ->
                             entity.getPID().equals(PID) && (
                                 (ownerId == null && entity.getOwner() == null) ||
-                                (ownerId != null && ownerId.equals(entity.getOwner().getID()))
+                                (ownerId != null && entity.getOwner() != null && ownerId.equals(entity.getOwner().getID()))
                             )
                     )) {
                         Logger.getLogger().warn("Entity not found by key {1} but similar entity has been found", key);
