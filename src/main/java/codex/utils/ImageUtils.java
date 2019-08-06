@@ -38,6 +38,11 @@ public class ImageUtils {
             return new ImageIcon();
         }
     }
+
+    public static ImageIcon resize(ImageIcon icon, float scale) {
+        int newSize = (int) (icon.getIconHeight() * scale);
+        return resize(icon, newSize, newSize);
+    }
     
     public static ImageIcon resize(ImageIcon icon, int width, int height) {
         int w = icon.getIconWidth();
