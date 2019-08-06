@@ -13,10 +13,9 @@ public interface IInstanceCommunicationService extends IService {
         return "Instance Communication Service";
     }
 
-    Map<String, IRemoteService> getServices()  throws RemoteException;
+    Map<String, IRemoteService> getServices() throws RemoteException;
     
     IRemoteService getService(Class clazz) throws RemoteException, NotBoundException;
     
     IRemoteService getService(String className) throws RemoteException, NotBoundException;
-    
 }

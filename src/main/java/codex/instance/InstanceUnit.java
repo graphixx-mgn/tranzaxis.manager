@@ -1,6 +1,8 @@
 package codex.instance;
 
 import codex.explorer.ExplorerUnit;
+import codex.explorer.browser.BrowseMode;
+import codex.explorer.browser.EmbeddedMode;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.Navigator;
 import codex.explorer.tree.NodeTreeModel;
@@ -45,9 +47,9 @@ public class InstanceUnit extends AbstractUnit {
         InstanceCommunicationService ICS = (InstanceCommunicationService) ServiceRegistry.getInstance().lookupService(InstanceCommunicationService.class);
         instancesTree = new NodeTreeModel(new Localhost());
         try {
-            Constructor ctor = ExplorerUnit.class.getDeclaredConstructor();
+            Constructor ctor = ExplorerUnit.class.getDeclaredConstructor(BrowseMode.class);
             ctor.setAccessible(true);
-            explorer = (ExplorerUnit) ctor.newInstance();
+            explorer = (ExplorerUnit) ctor.newInstance(new EmbeddedMode());
             explorer.createViewport();
             
             Field navigatorField = ExplorerUnit.class.getDeclaredField("navigator");
@@ -80,11 +82,9 @@ public class InstanceUnit extends AbstractUnit {
             @Override
             public void instanceUnlinked(Instance instance) {
                 INode root = (INode) instancesTree.getRoot();
-                getViews().stream().filter((view) -> {
-                    return view.getInstance().equals(instance);
-                }).forEach((view) -> {
-                    root.delete(view);
-                });
+                getViews().stream()
+                        .filter((view) -> view.getInstance().equals(instance))
+                        .forEach(root::delete);
             }
         });
     }

@@ -1,19 +1,15 @@
 package codex.instance;
 
-import codex.service.AbstractRemoteService;
+import codex.service.*;
 import codex.log.Logger;
-import codex.service.AbstractService;
-import codex.service.IRemoteService;
 import java.io.IOException;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.ServerSocket;
-import java.net.SocketException;
+import java.net.*;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.RemoteServer;
+import java.rmi.server.ServerNotActiveException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -80,7 +76,8 @@ public final class InstanceCommunicationService extends AbstractService<Communic
                 IRemoteService service = iterator.next();
                 Logger.getLogger().debug("ICS: register remote service: ''{0}''", service.getTitle());
                 rmiRegistry.rebind(service.getClass().getCanonicalName(), service);
-                getConfig().insert(((AbstractRemoteService) service).getConfig());
+                getConfig().insert(((AbstractRemoteService) service).getConfiguration());
+
             } catch (RemoteException e) {
                 // Do nothing
             } catch (ServiceConfigurationError e) {
@@ -134,12 +131,24 @@ public final class InstanceCommunicationService extends AbstractService<Communic
             throw new IllegalStateException();
         }
     }
-    
+
     /**
      * Возвращяет список подключенных инстанций.
      */
     public List<Instance> getInstances() {
         return lookupServer.getInstances();
+    }
+
+    public Instance getClientInstance() {
+        try {
+            String clientIP = RemoteServer.getClientHost();
+            return getInstances().stream()
+                    .filter(instance -> instance.getRemoteAddress().getAddress().getHostAddress().equals(clientIP))
+                    .findFirst().orElse(null);
+        } catch (ServerNotActiveException e) {
+            //
+        }
+        return null;
     }
     
     private static Map<NetworkInterface, InetAddress> loadInterfaces() {

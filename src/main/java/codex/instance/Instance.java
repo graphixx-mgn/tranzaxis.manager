@@ -47,7 +47,12 @@ public final class Instance implements IInstanceCommunicationService {
     public String toString() {
         return MessageFormat.format("[host={0}, user={1}, addr={2}]", host, user, address);
     }
-    
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(host, user, address);
+    }
+
     /**
      * Возвращает адрес сокета реестра сетевых сервисов.
      */
