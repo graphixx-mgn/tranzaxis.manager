@@ -1,5 +1,6 @@
 package manager.upgrade;
 
+import codex.instance.RemoteHost;
 import codex.service.RemoteServiceControl;
 import codex.type.EntityRef;
 import codex.type.Iconified;
@@ -7,6 +8,7 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.xml.Version;
 import javax.swing.*;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.text.MessageFormat;
 
@@ -14,7 +16,7 @@ public class UpgradeServiceControl extends RemoteServiceControl<IUpgradeService>
 
     private final static ImageIcon ICON_INFO = ImageUtils.getByPath("/images/info.png");
 
-    public UpgradeServiceControl(EntityRef owner, String title) {
+    public UpgradeServiceControl(EntityRef<RemoteHost> owner, String title) {
         super(owner, title);
         setIcon(ImageUtils.getByPath("/images/upgrade.png"));
     }
@@ -39,7 +41,9 @@ public class UpgradeServiceControl extends RemoteServiceControl<IUpgradeService>
                     }
                 };
             }
-        } catch (RemoteException e) {/**/}
+        } catch (RemoteException | NotBoundException e) {
+            serviceCallFault(e);
+        }
         return null;
     }
 
