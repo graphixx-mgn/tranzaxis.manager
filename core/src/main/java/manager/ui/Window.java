@@ -1,6 +1,8 @@
 package manager.ui;
 
+import codex.notification.Message;
 import codex.unit.AbstractUnit;
+import codex.unit.EventQueue;
 import codex.utils.ImageUtils;
 import java.awt.*;
 import javax.swing.*;
@@ -76,13 +78,37 @@ public final class Window extends JFrame {
     public final void addUnit(AbstractUnit unit) {
         tabbedPanel.addTab(
                 null,
-                ImageUtils.resize(unit.getIcon(), 20, 20),
+                ImageUtils.resize(unit.getIcon(), 24, 24),
                 new JPanel(new BorderLayout()) {{
                     add(unit.getViewport(), BorderLayout.CENTER);
                     unit.getViewport().setPreferredSize(getSize());
                 }},
                 unit.getTitle()
         );
+        final int tabIndex = tabbedPanel.getTabCount()-1;
         unit.viewportBound();
+        unit.addEventListener(new EventQueue.IEventListener() {
+            @Override
+            public void putMessage(Message message, int queueSize, TrayIcon.MessageType maxSeverity) {
+                tabbedPanel.setIconAt(tabIndex, ImageUtils.combine(
+                        ImageUtils.resize(unit.getIcon(), 24, 24),
+                        ImageUtils.createBadge(
+                                String.valueOf(queueSize),
+                                maxSeverity.ordinal() > TrayIcon.MessageType.INFO.ordinal() ? Color.decode("#DE5347") : Color.decode("#3399FF"),
+                                Color.WHITE
+                        ),
+                        SwingUtilities.SOUTH_EAST
+                ));
+            }
+
+            @Override
+            public void dropMessage(Message message, int queueSize, TrayIcon.MessageType maxSeverity) {
+                if (queueSize > 0) {
+                    putMessage(message, queueSize, maxSeverity);
+                } else {
+                    tabbedPanel.setIconAt(tabIndex, ImageUtils.resize(unit.getIcon(), 24, 24));
+                }
+            }
+        });
     }
 }
