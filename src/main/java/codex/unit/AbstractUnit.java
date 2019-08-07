@@ -12,6 +12,7 @@ import java.util.Locale;
 public abstract class AbstractUnit implements Iconified {
     
     protected JComponent view;
+    protected EventQueue eventQueue = new EventQueue();
     
     /**
      * Создает виджет модуля для размещение в окне приложения.
@@ -30,6 +31,14 @@ public abstract class AbstractUnit implements Iconified {
             view = createViewport();
         }
         return view;
+    }
+
+    public void addEventListener(EventQueue.IEventListener listener) {
+        eventQueue.addListener(listener);
+    }
+
+    public void removeEventListener(EventQueue.IEventListener listener) {
+        eventQueue.removeListener(listener);
     }
 
     @Override
