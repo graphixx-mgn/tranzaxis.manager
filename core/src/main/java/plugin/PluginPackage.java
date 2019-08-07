@@ -101,14 +101,13 @@ public final class PluginPackage implements Closeable {
 
     VersionsDocument getChanges() {
         try {
-            URL jarUrl = classLoader.getURLs()[0];
-            URLConnection conn = jarUrl.openConnection();
+            URLConnection conn = jarFilePath.toFile().toURI().toURL().openConnection();
             conn.setUseCaches(false);
             conn.setDefaultUseCaches(false);
-
-            ClassLoader jarLoader = new URLClassLoader(new URL[]{ conn.getURL() }, null);
-            if (jarLoader.getResource(VERSION_RESOURCE) != null) {
-                return VersionsDocument.Factory.parse(jarLoader.getResourceAsStream(VERSION_RESOURCE));
+            try (URLClassLoader jarLoader = new URLClassLoader(new URL[]{ conn.getURL() }, null)) {
+                if (jarLoader.getResource(VERSION_RESOURCE) != null) {
+                    return VersionsDocument.Factory.parse(jarLoader.getResourceAsStream(VERSION_RESOURCE));
+                }
             }
         } catch (XmlException | IOException e) {
             //
