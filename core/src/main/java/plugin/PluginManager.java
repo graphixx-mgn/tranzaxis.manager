@@ -1,5 +1,6 @@
 package plugin;
 
+import codex.command.ICommandListener;
 import codex.component.dialog.Dialog;
 import codex.explorer.ExplorerUnit;
 import codex.explorer.browser.BrowseMode;
@@ -7,6 +8,7 @@ import codex.explorer.browser.EmbeddedMode;
 import codex.explorer.tree.Navigator;
 import codex.explorer.tree.NodeTreeModel;
 import codex.log.Logger;
+import codex.notification.Message;
 import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -17,6 +19,8 @@ import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultCaret;
 import javax.swing.text.Style;
@@ -26,11 +30,13 @@ import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.text.MessageFormat;
+import java.util.*;
 import java.util.List;
 
 public final class PluginManager extends AbstractUnit {
 
     private final static ImageIcon ICON_INFO = ImageUtils.getByPath("/images/info.png");
+    //private final static Message   MSG_UPDATE = new Message("UPDATE");
 
     static final File PLUGIN_DIR = new File("plugins");
     private static final PluginManager INSTANCE = new PluginManager();
@@ -64,6 +70,23 @@ public final class PluginManager extends AbstractUnit {
 
             Navigator navigator = (Navigator) navigatorField.get(explorer);
             navigator.setModel(new NodeTreeModel(pluginCatalog));
+
+            pluginCatalog.getCommand(ShowPackagesUpdates.class).addListener(new ICommandListener<PluginCatalog>() {
+                @Override
+                public void commandStatusChanged(boolean active) {
+                    updateNotifications(navigator.isShowing() && pluginCatalog == navigator.getLastSelectedPathComponent());
+                }
+            });
+            navigator.addAncestorListener(new AncestorListener() {
+                @Override
+                public void ancestorAdded(AncestorEvent event) {
+                    updateNotifications(navigator.isShowing() && pluginCatalog == navigator.getLastSelectedPathComponent());
+                }
+                @Override
+                public void ancestorRemoved(AncestorEvent event) {}
+                @Override
+                public void ancestorMoved(AncestorEvent event) {}
+            });
         } catch (Exception e) {
             //
         }
@@ -81,6 +104,29 @@ public final class PluginManager extends AbstractUnit {
     @Override
     public void viewportBound() {
         explorer.viewportBound();
+    }
+
+    private final Set<IPluginLoaderService.RemotePackage> checkedUpdates = new HashSet<>();
+    private final Map<IPluginLoaderService.RemotePackage, Message> notifications = new HashMap<>();
+    private void updateNotifications(boolean clearAll) {
+        List<IPluginLoaderService.RemotePackage> updates = pluginCatalog.getCommand(ShowPackagesUpdates.class).getUpdatedPlugins();
+        if (clearAll) {
+            checkedUpdates.addAll(updates);
+        } else {
+            updates.stream()
+                    .filter(remotePackage -> !(checkedUpdates.contains(remotePackage) || notifications.containsKey(remotePackage)))
+                    .forEach(remotePackage -> {
+                            notifications.put(remotePackage, new Message(remotePackage.getId()));
+                            eventQueue.putMessage(notifications.get(remotePackage));
+                    });
+        }
+        notifications.entrySet().removeIf(entry -> {
+            boolean condition = !updates.contains(entry.getKey()) || checkedUpdates.contains(entry.getKey());
+            if (condition) {
+                eventQueue.dropMessage(entry.getValue());
+            }
+            return condition;
+        });
     }
 
     static void showVersionInfo(List<Version> versions) {

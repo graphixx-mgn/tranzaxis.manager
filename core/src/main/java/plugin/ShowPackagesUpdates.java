@@ -28,6 +28,7 @@ import java.rmi.server.RemoteServer;
 import java.rmi.server.ServerNotActiveException;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements IInstanceListener, IPluginLoaderService.IPublicationListener {
@@ -76,55 +77,57 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
         }
 
         activator = pluginCatalogs -> {
-            if (pluginCatalogs.isEmpty()) {
-                return new CommandStatus(false);
-            } else {
-                synchronized (remotePackages) {
-                    Map<String, IPluginLoaderService.RemotePackage> updateMap = new HashMap<>();
-                    remotePackages.forEach(remotePackage -> {
-                        PluginPackage localPackage = PluginManager.getInstance().getPluginLoader().getPackageById(remotePackage.getId());
-                        if (localPackage == null || VER_COMPARATOR.compare(remotePackage.getVersion(), localPackage.getVersion()) > 0) {
-                            if (!updateMap.containsKey(remotePackage.getId())) {
-                                updateMap.put(remotePackage.getId(), remotePackage);
-                            } else if (VER_COMPARATOR.compare(remotePackage.getVersion(), updateMap.get(remotePackage.getId()).getVersion()) > 0) {
-                                updateMap.put(remotePackage.getId(), remotePackage);
-                            }
-                        }
-                    });
-                    Collection<IPluginLoaderService.RemotePackage> updates = updateMap.values();
-
-                    for (INode node: treeModel) {
-                        RemotePackageView pkgView = (RemotePackageView) node;
-                        if (pkgView != treeModel.getRoot()) {
-                            if (!updates.contains(pkgView.remotePackage)) {
-                                ((INode) treeModel.getRoot()).delete(pkgView);
-                            } else {
-                                pkgView.refreshUpgradeInfo();
-                            }
+            synchronized (remotePackages) {
+                Map<String, IPluginLoaderService.RemotePackage> updateMap = new HashMap<>();
+                remotePackages.forEach(remotePackage -> {
+                    PluginPackage localPackage = PluginManager.getInstance().getPluginLoader().getPackageById(remotePackage.getId());
+                    if (localPackage == null || VER_COMPARATOR.compare(remotePackage.getVersion(), localPackage.getVersion()) > 0) {
+                        if (!updateMap.containsKey(remotePackage.getId())) {
+                            updateMap.put(remotePackage.getId(), remotePackage);
+                        } else if (VER_COMPARATOR.compare(remotePackage.getVersion(), updateMap.get(remotePackage.getId()).getVersion()) > 0) {
+                            updateMap.put(remotePackage.getId(), remotePackage);
                         }
                     }
-                    updates.forEach(remotePackage -> {
-                        boolean nodeNotExists = StreamSupport.stream(treeModel.spliterator(), false).noneMatch(node ->
-                                treeModel.getRoot() != node &&
-                                ((RemotePackageView) node).remotePackage.equals(remotePackage)
-                        );
-                        if (nodeNotExists) {
-                            ((INode) treeModel.getRoot()).insert(new RemotePackageView(remotePackage));
-                        }
-                    });
-                    treeModel.nodeStructureChanged((INode) treeModel.getRoot());
+                });
+                Collection<IPluginLoaderService.RemotePackage> updates = updateMap.values();
 
-                    return new CommandStatus(
-                            updates.size() > 0,
-                            updates.size() == 0 ? CMD_ICON : ImageUtils.combine(
-                                        CMD_ICON,
-                                        ImageUtils.createBadge(String.valueOf(updates.size()), Color.decode("#DE5347"), Color.WHITE),
-                                        SwingConstants.SOUTH_EAST
-                            )
-                    );
+                for (INode node: treeModel) {
+                    RemotePackageView pkgView = (RemotePackageView) node;
+                    if (pkgView != treeModel.getRoot()) {
+                        if (!updates.contains(pkgView.remotePackage)) {
+                            ((INode) treeModel.getRoot()).delete(pkgView);
+                        } else {
+                            pkgView.refreshUpgradeInfo();
+                        }
+                    }
                 }
+                updates.forEach(remotePackage -> {
+                    boolean nodeNotExists = StreamSupport.stream(treeModel.spliterator(), false).noneMatch(node ->
+                            treeModel.getRoot() != node &&
+                            ((RemotePackageView) node).remotePackage.equals(remotePackage)
+                    );
+                    if (nodeNotExists) {
+                        ((INode) treeModel.getRoot()).insert(new RemotePackageView(remotePackage));
+                    }
+                });
+                treeModel.nodeStructureChanged((INode) treeModel.getRoot());
+
+                return new CommandStatus(
+                        updates.size() > 0,
+                        updates.size() == 0 ? CMD_ICON : ImageUtils.combine(
+                                    CMD_ICON,
+                                    ImageUtils.createBadge(String.valueOf(updates.size()), Color.decode("#3399FF"), Color.WHITE),
+                                    SwingConstants.SOUTH_EAST
+                        )
+                );
             }
         };
+    }
+
+    List<IPluginLoaderService.RemotePackage> getUpdatedPlugins() {
+        return ((INode) treeModel.getRoot()).childrenList().stream()
+                .map(iNode -> ((RemotePackageView) iNode).remotePackage)
+                .collect(Collectors.toList());
     }
 
     @Override
