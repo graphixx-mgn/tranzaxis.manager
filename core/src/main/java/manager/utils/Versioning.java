@@ -1,4 +1,4 @@
-package utils;
+package manager.utils;
 
 import codex.utils.Language;
 import manager.upgrade.UpgradeUnit;
@@ -36,7 +36,6 @@ public class Versioning {
     }
 
     private static String getScopeRows(Map.Entry<Change.Scope.Enum, List<Change>> entry) {
-        System.err.println(Versioning.class.getResource(Language.get(UpgradeUnit.class, "html@type.Bugfix")));
         return entry.getValue().stream()
                 .map(change -> MessageFormat.format(
                         entry.getValue().indexOf(change) == 0 ?

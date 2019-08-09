@@ -13,7 +13,7 @@ import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.xml.Version;
-import utils.Versioning;
+import manager.utils.Versioning;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
