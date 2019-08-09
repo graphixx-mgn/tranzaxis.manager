@@ -13,12 +13,7 @@ import codex.type.Enum;
 import codex.utils.ImageUtils;
 import java.awt.Color;
 import java.awt.Component;
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JTable;
-import javax.swing.JTree;
-import javax.swing.ListCellRenderer;
+import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
@@ -221,7 +216,10 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                         tree.getSelectionModel().getLeadSelectionPath().getLastPathComponent() == value;
 
                 setForeground(selected ? Color.WHITE : IEditor.COLOR_NORMAL);
-                setBackground(selected ? Color.decode("#55AAFF") : Color.WHITE);
+                setBackground(selected ?
+                        UIManager.getDefaults().getColor("Tree.selectionBackground") :
+                        UIManager.getDefaults().getColor("Tree.background")
+                );
                 setBorder(new EmptyBorder(15, 2, 15, 7));
                 setEnabled((entity.getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED);
             }};
