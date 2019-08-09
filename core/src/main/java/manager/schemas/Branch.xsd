@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<xs:schema version="1.0"
+           xmlns="http://schemas.radixware.org/product.xsd"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified"
+           targetNamespace="http://schemas.radixware.org/product.xsd">
+
+    <xs:element name="Branch" type="Branch"/>
+
+    <xs:complexType name="Branch">
+        <xs:attribute name="BaseDistUri">
+            <xs:simpleType>
+                <xs:list itemType="xs:string"/>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="Type" use="required" type="Type"/>
+        <xs:attribute name="Name" type="xs:string"/>
+        <xs:attribute name="Title" type="xs:string"/>
+        <xs:attribute name="BaseDevUri" type="xs:string"/>
+        <xs:attribute name="LastRelease" type="xs:string"/>
+        <xs:attribute name="SrcBranch" type="xs:string"/>
+        <xs:attribute name="BaseRelease" type="xs:string"/>
+        <xs:attribute name="FormatVersion" type="xs:int"/>
+    </xs:complexType>
+
+    <xs:simpleType name="Type">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Dev"/>
+            <xs:enumeration value="Offshoot"/>
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>
