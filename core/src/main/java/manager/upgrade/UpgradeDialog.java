@@ -7,25 +7,20 @@ import codex.utils.Language;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
-import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultCaret;
-import javax.swing.text.Document;
-import javax.swing.text.Style;
-import javax.swing.text.StyleConstants;
-import manager.xml.Change;
-import manager.xml.Version;
 import manager.xml.VersionsDocument;
+import utils.Versioning;
 
 
 class UpgradeDialog extends Dialog {
 
     private final JLabel upgradeInfo;
     private final JTextPane infoPane;
-    private final Document infoDocument;
 
     UpgradeDialog(ActionListener closeAction) {
         super(
@@ -41,8 +36,6 @@ class UpgradeDialog extends Dialog {
                         Dialog.Default.BTN_CANCEL.newInstance()
                 }
         );
-        setResizable(false);
-
         upgradeInfo = new JLabel(
                 ImageUtils.resize(ImageUtils.getByPath("/images/remotehost.png"), 24, 24),
                 SwingConstants.LEFT
@@ -55,30 +48,19 @@ class UpgradeDialog extends Dialog {
             @Override
             public void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
                 g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
                 g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
                 super.paintComponent(g2);
             }
         };
-        infoDocument = infoPane.getDocument();
+        infoPane.setContentType("text/html");
+        infoPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
         infoPane.setEditable(false);
-        infoPane.setPreferredSize(new Dimension(700, 300));
+        infoPane.setPreferredSize(new Dimension(800, 400));
         infoPane.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         ((DefaultCaret) infoPane.getCaret()).setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
-
-
-        Style defStyle  = infoPane.addStyle(Change.Type.CHANGE.toString(),  null);
-        Style addStyle  = infoPane.addStyle(Change.Type.FEATURE.toString(), defStyle);
-        Style fixStyle  = infoPane.addStyle(Change.Type.BUGFIX.toString(),  defStyle);
-        Style apiStyle  = infoPane.addStyle(Change.Scope.API.toString(),    defStyle);
-        Style headStyle = infoPane.addStyle("head", null);
-
-        StyleConstants.setFontSize(headStyle, 14);
-        StyleConstants.setUnderline(headStyle, true);
-        StyleConstants.setFontFamily(headStyle, "Arial Black");
-        StyleConstants.setForeground(addStyle, Color.decode("#00822C"));
-        StyleConstants.setForeground(fixStyle, Color.decode("#FF3333"));
-        StyleConstants.setForeground(apiStyle, Color.decode("#006FC2"));
 
         JScrollPane scrollPane = new JScrollPane();
         scrollPane.setLayout(new ScrollPaneLayout());
@@ -102,33 +84,7 @@ class UpgradeDialog extends Dialog {
                 changes.getVersions().getCurrent(),
                 providers
         ));
-        infoPane.setText(null);
-        try {
-            for (Version version : changes.getVersions().getVersionArray()) {
-                infoDocument.insertString(
-                        infoDocument.getLength(),
-                        MessageFormat.format(
-                                Language.get(UpgradeUnit.class, "info@next"),
-                                version.getNumber(), version.getDate()
-                        ).concat("\n"), infoPane.getStyle("head")
-                );
-                for (Change change : version.getChangelog().getChangeArray()) {
-                    infoDocument.insertString(
-                            infoDocument.getLength(),
-                            MessageFormat.format(
-                                    "\u2022 [{0}] {1}\n",
-                                    String.format("%4s", change.getScope()),
-                                    change.getDescription().trim().replaceAll("\\n\\s*", " ")
-                            ),
-                            change.getScope().equals(Change.Scope.API) ?
-                                    infoPane.getStyle(Change.Scope.API.toString()) :
-                                    infoPane.getStyle(change.getType().toString())
-                    );
-                }
-                infoDocument.insertString(infoDocument.getLength(), "\n", infoPane.getStyle(Change.Type.CHANGE.toString()));
-            }
-        } catch (BadLocationException e1) {
-        }
+        infoPane.setText(Versioning.getChangesHtml(Arrays.asList(changes.getVersions().getVersionArray())));
     }
 
 }
