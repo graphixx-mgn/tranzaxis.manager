@@ -28,5 +28,17 @@
         <xs:attribute name="SrcBranch" type="xs:string" use="required"/>
         <xs:attribute name="RepositoryRevision" type="xs:integer" use="required"/>
         <xs:attribute name="PrevReleaseNumber" type="xs:string"/>
+        <xs:attribute name="Status" use="required" type="Status"/>
     </xs:complexType>
+
+    <xs:simpleType name="Status">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="New"/>
+            <xs:enumeration value="Expired"/>
+            <xs:enumeration value="Prod"/>
+            <xs:enumeration value="Test"/>
+            <xs:enumeration value="Urgent"/>
+            <xs:enumeration value="Invalid"/>
+        </xs:restriction>
+    </xs:simpleType>
 </xs:schema>
