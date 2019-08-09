@@ -22,17 +22,17 @@ public interface IEditor<T extends IComplexType<V, ? extends IMask<V>>, V> {
     /**
      * Стандартный цвет шрифта для отрисовки значения свойств.
      */
-    Color COLOR_NORMAL = UIManager.getDefaults().getColor("Label.foreground");
+    Color COLOR_NORMAL = SystemColor.textText;
     
     /**
      * Стандартный цвет шрифта для отрисовки не редактиремых свойств.
      */
-    Color COLOR_INACTIVE = Color.DARK_GRAY;
+    Color COLOR_INACTIVE = SystemColor.textInactiveText;
     
     /**
      * Цвет шрифта для отрисовки значения заблокированных свойств.
      */
-    Color COLOR_DISABLED = Color.GRAY;
+    Color COLOR_DISABLED = SystemColor.textInactiveText;
     
     /**
      * Цвет шрифта для отрисовки значения свойств с ошибочным значением.

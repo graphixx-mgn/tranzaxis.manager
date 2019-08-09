@@ -66,8 +66,11 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
                                         16, 16
                                     ), 
                                     SwingConstants.LEADING
-                            ), 
-                            new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
+                            ),
+                            new EdgedBalloonStyle(
+                                    UIManager.getDefaults().getColor("window"),
+                                    UIManager.getDefaults().getColor("windowText")
+                            ),
                             false
                     );
                     TimingUtils.showTimedBalloon(tooltipBalloon, 4000);
