@@ -22,7 +22,7 @@ public interface IEditor<T extends IComplexType<V, ? extends IMask<V>>, V> {
     /**
      * Стандартный цвет шрифта для отрисовки значения свойств.
      */
-    Color COLOR_NORMAL = SystemColor.textText;
+    Color COLOR_NORMAL = UIManager.getDefaults().getColor("textText");
     
     /**
      * Стандартный цвет шрифта для отрисовки не редактиремых свойств.

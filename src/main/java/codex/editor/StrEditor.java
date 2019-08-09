@@ -236,8 +236,11 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
                 signInvalid, new JLabel(mask.getErrorHint(), ImageUtils.resize(
                     ImageUtils.getByPath("/images/warn.png"), 
                     textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
-                ), SwingConstants.LEADING), 
-                new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
+                ), SwingConstants.LEADING),
+                new EdgedBalloonStyle(
+                        UIManager.getDefaults().getColor("window"),
+                        UIManager.getDefaults().getColor("windowText")
+                ),
                 BalloonTip.Orientation.RIGHT_ABOVE, 
                 BalloonTip.AttachLocation.NORTH,
                 5, 5, false
