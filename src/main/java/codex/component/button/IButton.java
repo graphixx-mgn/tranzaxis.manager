@@ -31,12 +31,12 @@ public interface IButton {
     /**
      * Цвет фона по-умолчанию для подсветки кнопки в момент наведения мыши.
      */
-    public final static Color  HOVER_COLOR  = Color.decode("#D8E6F2");
+    public final static Color  HOVER_COLOR  = new Color(0x55D8E6F2, true); //Color.decode("#D8E6F2");
     
     /**
      * Цвет фона по-умолчанию для подсветки кнопки в момент нажатия мыши.
      */
-    public final static Color  PRESS_COLOR  = Color.decode("#C0DCF3");
+    public final static Color  PRESS_COLOR  = new Color(0x55C0DCF3, true);//Color.decode("#C0DCF3");
     
     /**
      * Установка внешнего слушателя события нажатия кнопки.

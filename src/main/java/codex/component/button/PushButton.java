@@ -1,20 +1,12 @@
 package codex.component.button;
 
 import codex.utils.ImageUtils;
-import java.awt.Color;
-import java.awt.Event;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import javax.swing.BoxLayout;
-import javax.swing.Icon;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.SwingConstants;
-import javax.swing.Timer;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -45,6 +37,7 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
         }
         setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
         setBorder(IButton.EMPTY_BORDER);
+        setOpaque(false);
         
         button = new JButton(title);
         button.setFocusPainted(false);
@@ -69,8 +62,11 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
                                         16, 16
                                     ), 
                                     SwingConstants.LEADING
-                            ), 
-                            new EdgedBalloonStyle(Color.WHITE, Color.GRAY), 
+                            ),
+                            new EdgedBalloonStyle(
+                                    UIManager.getDefaults().getColor("window"),
+                                    UIManager.getDefaults().getColor("windowText")
+                            ),
                             false
                     );
                     TimingUtils.showTimedBalloon(tooltipBalloon, 4000);
@@ -107,14 +103,16 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
             }
         });
     }
+
+    @Override
+    public void paintComponent(Graphics g) {
+        g.setColor(getBackground());
+        g.fillRect(0, 0, getWidth(), getHeight());
+    }
     
     @Override
     public void addActionListener(ActionListener listener) {
-        button.addActionListener((event) -> {
-            //if (!isInactive()) {
-                listener.actionPerformed(new ActionEvent(PushButton.this, event.getID(), event.getActionCommand()));
-            //}
-        });
+        button.addActionListener((event) -> listener.actionPerformed(new ActionEvent(PushButton.this, event.getID(), event.getActionCommand())));
     }
 
     /**
