@@ -116,7 +116,7 @@ public final class CommandRegistry {
     private static EntityCommand<? extends Entity> getCommandInstance(Class<? extends EntityCommand<? extends Entity>> commandClass) {
         try {
             Class<Entity> entityClass = getCommandEntityClass(commandClass);
-            if (commandClass.isMemberClass() && commandClass.getEnclosingClass().equals(entityClass)) {
+            if (commandClass.isMemberClass() && commandClass.getEnclosingClass().equals(entityClass) && !Modifier.isStatic(commandClass.getModifiers())) {
                 Constructor<? extends EntityCommand<? extends Entity>> ctor = commandClass.getDeclaredConstructor(entityClass);
                 ctor.setAccessible(true);
                 return ctor.newInstance(Entity.newPrototype(entityClass));
