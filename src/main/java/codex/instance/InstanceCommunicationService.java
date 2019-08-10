@@ -47,11 +47,6 @@ public final class InstanceCommunicationService extends AbstractService<Communic
     public InstanceCommunicationService() throws IOException {}
 
     @Override
-    public boolean isStoppable() {
-        return false;
-    }
-
-    @Override
     public void startService() {
         super.startService();
         int length = IFACE_ADDRS.keySet().stream()

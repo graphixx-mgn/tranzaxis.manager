@@ -31,8 +31,8 @@ public final class ServiceRegistry {
         }
         INSTANCE.registry.values().forEach((service) -> {
             if (!service.isStarted()) {
-                Logger.getLogger().debug("Service Registry: start service: ''{0}''", service.getTitle());
                 service.startService();
+                Logger.getLogger().debug("Service Registry: start service: ''{0}''", service.getTitle());
             }
         });
     }
@@ -84,9 +84,7 @@ public final class ServiceRegistry {
         
         new LinkedHashMap<>(listeners).forEach((serviceClass, listenerList) -> {
             if (serviceClass.isAssignableFrom(service.getClass())) {
-                listenerList.forEach((listener) -> {
-                    listener.serviceRegistered(service);
-                });
+                listenerList.forEach((listener) -> listener.serviceRegistered(service));
             }
         });
     }
@@ -105,7 +103,7 @@ public final class ServiceRegistry {
         registry.put(service.getClass(), service);
         Logger.getLogger().debug("Service Registry: register service ''{0}''", service.getTitle());
         if (startImmediately) {
-            registry.get(service.getClass()).startService();
+            service.startService();
         }
     }
     
@@ -114,7 +112,7 @@ public final class ServiceRegistry {
      * объект заглушка, руализующий методы по-умолчанию и выдается ппредупреждающее
      * сообщение в трассу о поппытке запроса к несуществующему сервису.
      */
-    public IService lookupService(Class serviceClass) {
+    public IService lookupService(Class<? extends IService> serviceClass) {
         if (registry.containsKey(serviceClass) && !registry.get(serviceClass).isStarted()) {
             registry.get(serviceClass).startService();
         }
@@ -146,9 +144,9 @@ public final class ServiceRegistry {
                                             "Called not registered service ''{0}''\nService call: {1}({2})", 
                                             stubs.get(serviceInterface).getTitle(),
                                             method.getName(),
-                                            Arrays.asList(method.getParameterTypes()).stream().map((param) -> {
-                                                return "<".concat(param.getSimpleName()).concat(">");
-                                            }).collect(Collectors.joining(", "))
+                                            Arrays.stream(method.getParameterTypes())
+                                                    .map((param) -> "<".concat(param.getSimpleName()).concat(">"))
+                                                    .collect(Collectors.joining(", "))
                                     );
                                 }
                                 return lookup.newInstance(serviceInterface,
@@ -181,11 +179,11 @@ public final class ServiceRegistry {
                 serviceCatalog == null ? Stream.empty() : 
                 serviceCatalog.childrenList().stream()
                         .map((node) -> (LocalServiceOptions) node);
-        Optional<LocalServiceOptions> serviceConrtrol = stream
+        Optional<LocalServiceOptions> serviceControl = stream
                 .filter((control) -> control.getService().getClass().equals(serviceClass))
                 .findFirst();
         
-        return !serviceConrtrol.isPresent() || serviceConrtrol.get().isStarted();
+        return !serviceControl.isPresent() || serviceControl.get().isStarted();
     }
     
     public final void addRegistryListener(IRegistryListener listener) {

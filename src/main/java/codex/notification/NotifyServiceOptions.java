@@ -10,7 +10,7 @@ import codex.type.Str;
 import codex.utils.ImageUtils;
 import java.util.LinkedHashMap;
 
-public class NotifyServiceOptions extends LocalServiceOptions {
+public class NotifyServiceOptions extends LocalServiceOptions<NotificationService> {
     
     private final static String PROP_SOURCES = "sources";
     

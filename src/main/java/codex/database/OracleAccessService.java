@@ -30,11 +30,6 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
     } 
     
     private OracleAccessService() {}
-
-    @Override
-    public boolean isStoppable() {
-        return false;
-    }
     
     private final AtomicInteger SEQ = new AtomicInteger(0);
     private final Map<String, Integer>     urlToIdMap = new HashMap<>();

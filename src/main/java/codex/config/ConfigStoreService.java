@@ -2,12 +2,12 @@ package codex.config;
 
 import codex.database.IDatabaseAccessService;
 import codex.log.Logger;
-import codex.model.Catalog;
 import codex.model.Entity;
 import codex.service.AbstractService;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import java.io.File;
+import java.rmi.RemoteException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -35,7 +35,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     /**
      * Конструктор сервиса.
      */
-    public ConfigStoreService() {
+    public ConfigStoreService() throws RemoteException {
         File configFile = new File(System.getProperty("user.home") + getOption("file"));
         if (!configFile.exists()) {
             configFile.getParentFile().mkdirs();
@@ -82,11 +82,6 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                     }).collect(Collectors.joining("\n\n"))
             );
         }
-    }
-    
-    @Override
-    public boolean isStoppable() {
-        return false;
     }
 
     private synchronized void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {
@@ -690,76 +685,76 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         );
     }
 
-    @Override
-    public Map<String, Class<? extends Entity>> getClassCatalogs() throws Exception {
-        Map<String, Class<? extends Entity>> classes = new LinkedHashMap<>();
-        String selectSQL = "SELECT * FROM CLASSDEF";
-        try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
-            try (ResultSet selectRS = select.executeQuery()) {
-                while (selectRS.next()) {
-                    try {
-                        classes.put(
-                                selectRS.getString(1),
-                                Class.forName(selectRS.getString(2)).asSubclass(Entity.class)
-                        );
-                    } catch (ClassNotFoundException e) {
-                        //
-                    }
-                }
-            }
-        }
-        return classes;
-    }
+//    @Override
+//    public Map<String, Class<? extends Entity>> getClassCatalogs() throws Exception {
+//        Map<String, Class<? extends Entity>> classes = new LinkedHashMap<>();
+//        String selectSQL = "SELECT * FROM CLASSDEF";
+//        try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
+//            try (ResultSet selectRS = select.executeQuery()) {
+//                while (selectRS.next()) {
+//                    try {
+//                        classes.put(
+//                                selectRS.getString(1),
+//                                Class.forName(selectRS.getString(2)).asSubclass(Entity.class)
+//                        );
+//                    } catch (ClassNotFoundException e) {
+//                        //
+//                    }
+//                }
+//            }
+//        }
+//        return classes;
+//    }
 
-    List<Integer> readCatalogIDs(Class clazz) {
-        List<Integer> IDs = new LinkedList<>();
+//    List<Integer> readCatalogIDs(Class clazz) {
+//        List<Integer> IDs = new LinkedList<>();
+//
+//        final String className = clazz.getSimpleName().toUpperCase();
+//        if (tableRegistry.containsKey(className)) {
+//            final String selectSQL  = MessageFormat.format("SELECT ID FROM {0} ORDER BY SEQ", className);;
+//            try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
+//                select.setFetchSize(10);
+//                try (ResultSet selectRS = select.executeQuery()) {
+//                    while (selectRS.next()) {
+//                        IDs.add(selectRS.getInt(1));
+//                    }
+//                } catch (SQLException e) {
+//                    Logger.getLogger().error("CAS: Unable to read catalog", e);
+//                }
+//            } catch (SQLException e) {
+//                Logger.getLogger().error("CAS: Unable to read catalog", e);
+//            }
+//        }
+//        return IDs;
+//    }
 
-        final String className = clazz.getSimpleName().toUpperCase();
-        if (tableRegistry.containsKey(className)) {
-            final String selectSQL  = MessageFormat.format("SELECT ID FROM {0} ORDER BY SEQ", className);;
-            try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
-                select.setFetchSize(10);
-                try (ResultSet selectRS = select.executeQuery()) {
-                    while (selectRS.next()) {
-                        IDs.add(selectRS.getInt(1));
-                    }
-                } catch (SQLException e) {
-                    Logger.getLogger().error("CAS: Unable to read catalog", e);
-                }
-            } catch (SQLException e) {
-                Logger.getLogger().error("CAS: Unable to read catalog", e);
-            }
-        }
-        return IDs;
-    }
-
-    public void exportConfiguration(Exporter exporter) {
-        try {
-            exporter.loadEntities(getClassCatalogs().entrySet().stream()
-                    .filter(entry ->!Catalog.class.isAssignableFrom(entry.getValue()))
-                    .filter(entry -> exporter.getClassFilter().test(entry.getValue()))
-                    .collect(
-                            LinkedHashMap::new,
-                            (map, entry) -> {
-                                List<Entity> entities = readCatalogIDs(entry.getValue()).stream()
-                                        .map(ID -> EntityRef.build(entry.getValue(), ID).getValue())
-                                        .filter(entity ->
-                                                exporter.getEntityFilter().test(entity) &&
-                                                entity.getParent() != null &&
-                                                entity.getParent().allowModifyChild()
-                                        )
-                                        .collect(Collectors.toCollection(LinkedList::new));
-                                if (!entities.isEmpty()) {
-                                    map.put(entry.getValue(), entities);
-                                }
-                            },
-                            Map::putAll
-                    )
-            );
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+//    public void exportConfiguration(Exporter exporter) {
+//        try {
+//            exporter.loadEntities(getClassCatalogs().entrySet().stream()
+//                    .filter(entry ->!Catalog.class.isAssignableFrom(entry.getValue()))
+//                    .filter(entry -> exporter.getClassFilter().test(entry.getValue()))
+//                    .collect(
+//                            LinkedHashMap::new,
+//                            (map, entry) -> {
+//                                List<Entity> entities = readCatalogIDs(entry.getValue()).stream()
+//                                        .map(ID -> EntityRef.build(entry.getValue(), ID).getValue())
+//                                        .filter(entity ->
+//                                                exporter.getEntityFilter().test(entity) &&
+//                                                entity.getParent() != null &&
+//                                                entity.getParent().allowModifyChild()
+//                                        )
+//                                        .collect(Collectors.toCollection(LinkedList::new));
+//                                if (!entities.isEmpty()) {
+//                                    map.put(entry.getValue(), entities);
+//                                }
+//                            },
+//                            Map::putAll
+//                    )
+//            );
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     private void initClassDef() {
         String createSQL = "CREATE TABLE IF NOT EXISTS CLASSDEF (TABLE_NAME TEXT, TABLE_CLASS TEXT)";

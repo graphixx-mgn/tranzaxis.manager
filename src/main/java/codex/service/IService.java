@@ -10,18 +10,17 @@ public interface IService {
      */
     default String getTitle() {
         return "Local service instance ["+getClass().getCanonicalName()+"]";
-    };
+    }
     
     /**
      * Запуск сервиса - регистрация в модуле управления сервисами.
      */
-    default void startService() {};
+    default void startService() {}
     
     /**
      * Возвращает признак регистрации сервиса в модуле управления сервисами.
      */
     default boolean isStarted() {
         return true;
-    };
-    
+    }
 }

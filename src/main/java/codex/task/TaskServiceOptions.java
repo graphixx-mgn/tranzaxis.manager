@@ -4,7 +4,7 @@ import codex.service.LocalServiceOptions;
 import codex.type.EntityRef;
 import codex.utils.ImageUtils;
 
-public class TaskServiceOptions extends LocalServiceOptions {
+public class TaskServiceOptions extends LocalServiceOptions<TaskManager.TaskExecutorService> {
 
     public TaskServiceOptions(EntityRef owner, String title) {
         super(owner, title);

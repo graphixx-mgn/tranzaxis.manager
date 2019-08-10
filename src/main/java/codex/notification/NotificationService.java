@@ -2,6 +2,7 @@ package codex.notification;
 
 import codex.log.Logger;
 import codex.service.AbstractService;
+import codex.service.Definition;
 import java.awt.*;
 import java.awt.event.AWTEventListener;
 import static java.awt.event.WindowEvent.WINDOW_OPENED;
@@ -12,6 +13,7 @@ import javax.swing.JFrame;
  * Сервис отображения уведомлений в системном трее. Уведомления назначаются на 
  * иконку в трее.
  */
+@Definition(optional = true)
 public class NotificationService extends AbstractService<NotifyServiceOptions> implements INotificationService {
     
     private TrayIcon trayIcon;

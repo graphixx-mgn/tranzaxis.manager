@@ -10,7 +10,7 @@ import codex.type.Enum;
 import codex.utils.ImageUtils;
 import java.util.List;
 
-public final class LoggerServiceOptions extends LocalServiceOptions {
+public final class LoggerServiceOptions extends LocalServiceOptions<LogManagementService> {
     
     ILogManagementService LMS = (ILogManagementService) ServiceRegistry.getInstance().lookupService(LogManagementService.class);
     

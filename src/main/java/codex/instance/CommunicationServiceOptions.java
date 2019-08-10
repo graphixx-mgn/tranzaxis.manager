@@ -9,7 +9,7 @@ import codex.type.EntityRef;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 
-public class CommunicationServiceOptions extends LocalServiceOptions {
+public class CommunicationServiceOptions extends LocalServiceOptions<InstanceCommunicationService> {
     
     private final static String PROP_SHOW_NET_OPS = "showNetOps";
     public CommunicationServiceOptions(EntityRef owner, String title) {

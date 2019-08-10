@@ -8,11 +8,6 @@ import java.util.EnumSet;
 
 
 public class LogManagementService extends AbstractService<LoggerServiceOptions> implements ILogManagementService {
-    
-    @Override
-    public boolean isStoppable() {
-        return false;
-    }
 
     @Override
     public void startService() {

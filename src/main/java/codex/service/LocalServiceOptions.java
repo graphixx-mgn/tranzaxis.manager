@@ -5,33 +5,29 @@ import codex.model.*;
 import codex.type.*;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import java.util.Map;
 import javax.swing.*;
+import java.lang.reflect.ParameterizedType;
+import java.util.Map;
 
 /**
  * Класс для хранения обцих настроек сервисов
  */
-public class LocalServiceOptions extends Catalog {
+public class LocalServiceOptions<S extends IService> extends Catalog {
     
     private final static String PROP_CLASS   = "class";
     private final static String PROP_STARTED = "started";
     
     private final static ImageIcon ICON_STARTED = ImageUtils.getByPath("/images/start.png"); 
     private final static ImageIcon ICON_STOPPED = ImageUtils.getByPath("/images/stop.png");
-
-    static {
-        CommandRegistry.getInstance().registerCommand(StartService.class);
-        CommandRegistry.getInstance().registerCommand(StopService.class);
-    }
     
-    private AbstractService service;
+    private S service;
     
     public LocalServiceOptions(EntityRef owner, String title) {
         super(owner, ImageUtils.getByPath("/images/services.png"), title, null);
         model.addDynamicProp(PROP_CLASS, new AnyType(), Access.Edit, () -> new Iconified() {
             @Override
             public ImageIcon getIcon() {
-                return LocalServiceOptions.this.isStarted() ? LocalServiceOptions.this.getIcon() : ImageUtils.combine(
+                return isStarted() ? LocalServiceOptions.this.getIcon() : ImageUtils.combine(
                         ImageUtils.grayscale(LocalServiceOptions.this.getIcon()),
                         ImageUtils.resize(ICON_STOPPED, 20, 20),
                         SwingConstants.SOUTH_EAST
@@ -47,6 +43,12 @@ public class LocalServiceOptions extends Catalog {
 
         // Property settings
         setPropertyRestriction(EntityModel.THIS, Access.Any);
+
+        Definition definition = getServiceDefinition();
+        if (definition != null && definition.optional()) {
+            CommandRegistry.getInstance().registerCommand(getClass(), StartService.class);
+            CommandRegistry.getInstance().registerCommand(getClass(), StopService.class);
+        }
     }
     
     @Override
@@ -54,11 +56,12 @@ public class LocalServiceOptions extends Catalog {
         return null;
     }
     
-    void setService(AbstractService service) {
+    void setService(S service) {
         this.service = service;
+        setTitle(service.getTitle());
     }
     
-    protected AbstractService getService() {
+    protected S getService() {
         return this.service;
     }
     
@@ -70,20 +73,23 @@ public class LocalServiceOptions extends Catalog {
         model.setValue(PROP_STARTED, started);
         try {
             model.commit(false);
-        } catch (Exception e) {
-            //
-        }
+        } catch (Exception e) {/**/}
     }
-    
-    private class StartService extends EntityCommand<LocalServiceOptions> {
+
+    private Definition getServiceDefinition() {
+        return ((Class<?>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0]).getAnnotation(Definition.class);
+    }
+
+
+    private static class StartService extends EntityCommand<LocalServiceOptions> {
 
         StartService() {
             super(
-                    "start", 
+                    "start",
                     Language.get(LocalServiceOptions.class, "start@title"),
                     ICON_STARTED,
                     Language.get(LocalServiceOptions.class, "start@title"),
-                    (control) -> control.getService().isStoppable() && !control.isStarted()
+                    (control) -> !control.isStarted()
             );
         }
 
@@ -91,18 +97,18 @@ public class LocalServiceOptions extends Catalog {
         public void execute(LocalServiceOptions context, Map<String, IComplexType> params) {
             context.setStarted(true);
         }
-    
+
     }
-    
-    private class StopService extends EntityCommand<LocalServiceOptions> {
+
+    private static class StopService extends EntityCommand<LocalServiceOptions> {
 
         StopService() {
             super(
-                    "stop", 
+                    "stop",
                     Language.get(LocalServiceOptions.class, "stop@title"),
                     ICON_STOPPED,
                     Language.get(LocalServiceOptions.class, "stop@title"),
-                    (control) -> control.getService().isStoppable() && control.isStarted()
+                    LocalServiceOptions::isStarted
             );
         }
 
@@ -110,7 +116,6 @@ public class LocalServiceOptions extends Catalog {
         public void execute(LocalServiceOptions context, Map<String, IComplexType> params) {
             context.setStarted(false);
         }
-    
     }
     
 }

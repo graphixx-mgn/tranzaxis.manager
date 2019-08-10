@@ -1,9 +1,6 @@
 package codex.service;
 
 import codex.model.Entity;
-
-import java.util.HashMap;
-import java.util.Map;
 import java.util.ResourceBundle;
 
 /**
@@ -11,23 +8,17 @@ import java.util.ResourceBundle;
  * сущность и регистрирует в каталоге настроек {@link ServiceRegistry}.
  * @param <T> 
  */
+@Definition
 public abstract class AbstractService<T extends LocalServiceOptions> implements IService {
-    
-    private final static Map<Class, Boolean> STARTED_SERVICES = new HashMap<>();
+
     private T serviceConfig;
-    
-    /**
-     * Возвращает признак возможности остановить сервис.
-     */
-    public boolean isStoppable() {
-        return true;
-    }
+    private boolean serviceStarted = false;
     
     @Override
     public void startService() {
         synchronized (this) {
-            if (!Boolean.TRUE.equals(STARTED_SERVICES.get(getClass()))) {
-                STARTED_SERVICES.put(getClass(), Boolean.TRUE);
+            if (!serviceStarted) {
+                serviceStarted = true;
                 LocalServiceOptions control = getConfig();
                 control.setService(this);
                 ServiceRegistry.getInstance().getCatalog().insert(control);
@@ -37,8 +28,8 @@ public abstract class AbstractService<T extends LocalServiceOptions> implements 
     
     @Override
     public boolean isStarted() {
-        return Boolean.TRUE.equals(STARTED_SERVICES.get(getClass()));
-    };
+        return serviceStarted;
+    }
     
     /**
      * Получение сущности с настройками сервиса.
@@ -49,7 +40,7 @@ public abstract class AbstractService<T extends LocalServiceOptions> implements 
                     LocalServiceOptions.class,
                     AbstractService.class,
                     getClass()
-            ), null, getTitle());
+            ), null, getClass().getCanonicalName());
         }
         return serviceConfig;
     }

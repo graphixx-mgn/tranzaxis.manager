@@ -122,11 +122,6 @@ public final class TaskManager extends AbstractUnit {
         public void quietTask(ITask task) {
             execute(task, true);
         }
-        
-        @Override
-        public boolean isStoppable() {
-            return false;
-        }
 
     }
 

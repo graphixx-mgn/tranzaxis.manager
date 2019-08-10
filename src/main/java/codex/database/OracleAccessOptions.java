@@ -7,7 +7,7 @@ import codex.type.EntityRef;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 
-public class OracleAccessOptions extends LocalServiceOptions {
+public class OracleAccessOptions extends LocalServiceOptions<OracleAccessService> {
 
     public final static String PROP_SHOW_SQL = "showSql";
 
