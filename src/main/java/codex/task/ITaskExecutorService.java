@@ -12,20 +12,20 @@ public interface ITaskExecutorService extends IService {
      * При закрытии диалога, все задачи перемещаются в очередь.
      * @param task Задача.
      */
-    default void executeTask(ITask task) {};
+    default void executeTask(ITask task) {}
     
     /**
      * Добавление задачи в очередь на исполнение и регистрация в окне просмотра
      * задач.
      * @param task Задача.
      */
-    default void enqueueTask(ITask task) {};
+    default void enqueueTask(ITask task) {}
     
     /**
      * Незамедлительное исполнение задачи без регистрации в модальном диалоге.
      * @param task Задача.
      */
-    default void quietTask(ITask task) {};
+    default void quietTask(ITask task) {}
     
     @Override
     default String getTitle() {

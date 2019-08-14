@@ -1,24 +1,14 @@
 package codex.task;
 
 import codex.component.panel.ScrollablePanel;
-import codex.notification.INotificationService;
-import codex.notification.NotificationService;
-import codex.notification.NotifyCondition;
-import codex.service.ServiceRegistry;
-import codex.utils.Language;
-import javax.swing.FocusManager;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
 /**
@@ -27,40 +17,29 @@ import java.util.function.Consumer;
  * @see TaskView
  * @see GroupTaskView
  */
-final class TaskMonitor extends JPopupMenu implements ITaskListener {
-    
-    private final static String  NS_SOURCE    = "TaskManager/Task finished";
+final class TaskMonitor extends JPopupMenu implements ITaskMonitor {
 
-    private final Map<ITask, AbstractTaskView> taskRegistry = new HashMap<>();
-    private final List<ExecutorService>        threadPool;
-    
-    private final ScrollablePanel   taskList;
-    private final Consumer<ITask>   cancelAction;
-    private boolean viewPortBound = false;
-    
-    static {
-        UIManager.getDefaults().put("TabbedPane.contentBorderInsets", new Insets(0,0,0,0));
-        UIManager.getDefaults().put("TabbedPane.tabsOverlapBorder", true);
-    }
+    private final List<ITaskMonitorListener>   listeners = new LinkedList<>();
+    private final Map<ITask, AbstractTaskView> taskViews = new HashMap<>();
+
+    private final ScrollablePanel taskViewList;
 
     /**
      * Конструктор монитора.
      * @param invoker Компонент GUI который вызывает отображение монитора. Необходим
      * для позиционирования окна.
-     * @param cancelAction Действие по нажатии кнопки отмены на виджете задачи.
      */
-    TaskMonitor(JComponent invoker, List<ExecutorService> threadPool, Consumer<ITask> cancelAction) {
+    TaskMonitor(JComponent invoker) {
         super();
         setInvoker(invoker);
         setBorder(new MatteBorder(1, 1, 0, 1, Color.GRAY));
-        this.threadPool = threadPool;
 
-        taskList = new ScrollablePanel();
-        taskList.setLayout(new BoxLayout(taskList, BoxLayout.Y_AXIS));
-        taskList.add(Box.createVerticalGlue());
-        taskList.setScrollableWidth(ScrollablePanel.ScrollableSizeHint.FIT);
+        taskViewList = new ScrollablePanel();
+        taskViewList.setLayout(new BoxLayout(taskViewList, BoxLayout.Y_AXIS));
+        taskViewList.add(Box.createVerticalGlue());
+        taskViewList.setScrollableWidth(ScrollablePanel.ScrollableSizeHint.FIT);
 
-        JScrollPane taskScrollPane = new JScrollPane(taskList);        
+        JScrollPane taskScrollPane = new JScrollPane(taskViewList);
         taskScrollPane.getViewport().setBackground(Color.decode("#F5F5F5"));
         taskScrollPane.setBorder(new CompoundBorder(
                 new EmptyBorder(2, 2, 1, 2),
@@ -68,11 +47,6 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
         ));
         taskScrollPane.setColumnHeader(null);
         add(taskScrollPane);
-        
-        this.cancelAction = cancelAction;
-        ServiceRegistry.getInstance().addRegistryListener(NotificationService.class, (service) -> {
-            ((NotificationService) service).registerSource(NS_SOURCE, NotifyCondition.INACTIVE);
-        });
     }
 
     /**
@@ -84,16 +58,6 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
             repaint();
             Point invokerLocation = getInvoker().getLocationOnScreen();
             setLocation(invokerLocation.x + 5, invokerLocation.y - getPreferredSize().height);
-        }
-        if (!viewPortBound && FocusManager.getCurrentManager().getActiveWindow() != null) {
-            viewPortBound = true;
-            FocusManager.getCurrentManager().getActiveWindow().addComponentListener(new ComponentAdapter() {
-                
-                @Override
-                public void componentResized(ComponentEvent ev) {
-                    setVisible(visibility);
-                }
-            });
         }
         super.setVisible(visibility);
     }
@@ -111,59 +75,94 @@ final class TaskMonitor extends JPopupMenu implements ITaskListener {
         }
         super.repaint();
     }
-    
-    /**
-     * Регистрация новой задачи в мониторе и добавление её виджета в окно.
-     */
-    void registerTask(ITask task) {
-        task.addListener(this);
-        taskRegistry.put(task, task.createView(new Consumer<ITask>() {
-            
+
+    @Override
+    public void beforeExecute(ITask task) {
+        registerTask(task);
+    }
+
+    @Override
+    public void statusChanged(ITask task, Status status) {
+        Collection<ITask> tasks = new HashSet<>(taskViews.keySet());
+        long running  = tasks.stream().filter(queued -> !queued.getStatus().isFinal()).count();
+        long stopped  = tasks.stream().filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED).count();
+        long failed   = tasks.stream().filter(queued -> queued.getStatus() == Status.FAILED).count();
+        boolean ready = running + stopped == 0;
+        if (!tasks.isEmpty() && ready) {
+            clearRegistry();
+        }
+        new LinkedList<>(listeners).forEach(listener -> listener.statusChanged(
+                taskViews.size(), running, stopped, failed, getTotalProgress(tasks)
+        ));
+    }
+
+    @Override
+    public void progressChanged(ITask task, int percent, String description) {
+        Collection<ITask> tasks = new HashSet<>(taskViews.keySet());
+        long running = tasks.stream().filter(queued -> !queued.getStatus().isFinal()).count();
+        long stopped = tasks.stream().filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED).count();
+        long failed  = tasks.stream().filter(queued -> queued.getStatus() == Status.FAILED).count();
+        new LinkedList<>(listeners).forEach(listener -> listener.statusChanged(
+                taskViews.size(), running, stopped, failed, getTotalProgress(tasks)
+        ));
+    }
+
+    @Override
+    public void registerTask(ITask task) {
+        taskViews.put(task, task.createView(new Consumer<ITask>() {
             @Override
             public void accept(ITask context) {
                 if (!context.getStatus().isFinal()) {
                     context.cancel(true);
                 } else {
-                    taskList.remove(taskRegistry.get(context));
-                    cancelAction.accept(context);
                     unregisterTask(context);
+                    statusChanged(context, context.getStatus());
                 }
             }
         }));
-        taskList.add(taskRegistry.get(task));
-    }
-    
-    /**
-     * Удаление задачи из монитора и её виджета из окна.
-     */
-    void unregisterTask(ITask task) {
-        if (taskRegistry.containsKey(task)) {
-            taskList.remove(taskRegistry.get(task));
-            taskRegistry.remove(task);
-        }
-    }
-    
-    /**
-     * Очистка списка задач и окна виджетов.
-     */
-    void clearRegistry() {
-        taskRegistry.keySet().stream().forEach((task) -> {
-            taskList.remove(taskRegistry.get(task));
-        });
-        taskRegistry.clear();
+        taskViewList.add(taskViews.get(task));
+        statusChanged(task, task.getStatus());
     }
 
     @Override
-    public void statusChanged(ITask task, Status status) {
-        if (task.getStatus() == Status.FAILED || task.getStatus() == Status.FINISHED) {
-            String msgTitle = Language.get(TaskMonitor.class,"notify@"+task.getStatus().name().toLowerCase());
-            ((INotificationService) ServiceRegistry.getInstance().lookupService(NotificationService.class)).showMessage(
-                    NS_SOURCE,
-                    msgTitle, 
-                    task.getTitle(), 
-                    task.getStatus() == Status.FINISHED ? TrayIcon.MessageType.INFO : TrayIcon.MessageType.ERROR
-            );
+    public void unregisterTask(ITask task) {
+        if (taskViews.containsKey(task)) {
+            taskViewList.remove(taskViews.remove(task));
+            task.removeListener(this);
+            if (isVisible()) {
+                repaint();
+                setVisible(!taskViews.isEmpty());
+            }
         }
+    }
+
+    @Override
+    public void clearRegistry() {
+        new HashSet<>(taskViews.keySet()).forEach(this::unregisterTask);
+        statusChanged(null, null);
+    }
+
+    private int getTotalProgress(Collection<ITask> tasks) {
+        return tasks.size() == 0 ? 0 : tasks.parallelStream()
+                .mapToInt(task -> !task.getStatus().isFinal() ? task.getProgress() : 100)
+                .sum() / tasks.size();
+    }
+
+    void addMonitorListener(ITaskMonitorListener listener) {
+        synchronized (listeners) {
+            listeners.add(listener);
+        }
+    }
+
+    void removeMonitorListener(ITaskMonitorListener listener) {
+        synchronized (listeners) {
+            listeners.remove(listener);
+        }
+    }
+
+    @FunctionalInterface
+    interface ITaskMonitorListener {
+        void statusChanged(int count, long running, long stopped, long failed, int progress);
     }
  
 }

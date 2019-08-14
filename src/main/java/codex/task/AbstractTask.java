@@ -58,11 +58,11 @@ public abstract class AbstractTask<T> implements ITask<T> {
      */
     public AbstractTask(final String title) {
         future = new FutureTask<T>(() -> {
-            setStatus(Status.STARTED);
             try {
                 LoggerContext.enterLoggerContext(this);
                 new LinkedList<>(listeners).forEach((listener) -> listener.beforeExecute(this));
-                T result = null;
+                T result;
+                setStatus(Status.STARTED);
                 try {
                     result = execute();
                 } finally {

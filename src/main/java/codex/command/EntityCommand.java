@@ -8,10 +8,7 @@ import codex.model.IModelListener;
 import codex.model.ParamModel;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
-import codex.task.ITask;
-import codex.task.ITaskExecutorService;
-import codex.task.ITaskListener;
-import codex.task.TaskManager;
+import codex.task.*;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.Language;
@@ -32,7 +29,7 @@ import java.util.stream.Collectors;
 @EntityCommand.Definition(parentCommand = EntityCommand.class)
 public abstract class EntityCommand<V extends Entity> implements ICommand<V, List<V>>, Iconified {
     
-    private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
+    private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskExecutorService.class));
 
     @Inherited
     @Target(ElementType.TYPE)

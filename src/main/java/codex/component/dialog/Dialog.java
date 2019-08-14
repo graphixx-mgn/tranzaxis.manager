@@ -6,6 +6,7 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.*;
 import javax.swing.FocusManager;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Arrays;
@@ -110,7 +111,8 @@ public class Dialog extends JDialog {
             return new DialogButton(icon, title, key, ID);
         }
     }
-    
+
+    final DialogButton[] buttons;
     private final JPanel contentPanel;
     protected Function<DialogButton, ActionListener> handler;
     
@@ -166,7 +168,8 @@ public class Dialog extends JDialog {
             }
         };
 
-        int maxWidth = Arrays.asList(buttons).stream().map((button) -> button.getPreferredSize().width).max(Integer::compareTo).get();
+        this.buttons = buttons;
+        int maxWidth = Arrays.stream(buttons).map((button) -> button.getPreferredSize().width).max(Integer::compareTo).get();
         InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = rootPane.getActionMap();
         for (DialogButton button : buttons) {
@@ -232,6 +235,15 @@ public class Dialog extends JDialog {
     public final void setContent(JPanel content) {
         contentPanel.removeAll();
         contentPanel.add(content);
+    }
+
+    protected DialogButton getButton(int ID) {
+        for (DialogButton button : buttons) {
+            if (button.getID() == ID) {
+                return button;
+            }
+        }
+        throw new IllegalStateException("Dialog does not have button with ID = "+ID);
     }
 
 }

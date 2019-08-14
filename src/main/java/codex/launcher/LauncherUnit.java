@@ -10,7 +10,7 @@ import codex.presentation.CommandPanel;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.task.ITaskExecutorService;
-import codex.task.TaskManager;
+import codex.task.TaskExecutorService;
 import codex.unit.AbstractUnit;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -36,7 +36,7 @@ import javax.swing.border.EmptyBorder;
 public final class LauncherUnit extends AbstractUnit {
 
     private final static IConfigStoreService  CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
-    private final static ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class);
+    private final static ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskExecutorService.class);
     
     private final SectionContainer shortcutPanel = new SectionContainer();
     private final DragHandler      dragHandler = new DragHandler();
@@ -102,7 +102,7 @@ public final class LauncherUnit extends AbstractUnit {
         }
 
         @Override
-        public Void execute() throws Exception {
+        public Void execute() {
             Map<Integer, Map<String, String>> shortcutData = CAS.readCatalogEntries(null, Shortcut.class).entrySet().stream()
                     .collect(
                             LinkedHashMap::new,
@@ -110,19 +110,16 @@ public final class LauncherUnit extends AbstractUnit {
                             Map::putAll
                     );
             CAS.readCatalogEntries(null, ShortcutSection.class).forEach((ID, PID) -> {
-                ShortcutSection section = (ShortcutSection) Entity.newInstance(ShortcutSection.class, null, PID);
+                ShortcutSection section = Entity.newInstance(ShortcutSection.class, null, PID);
                 addSection(section);
                 shortcutData.values().stream()
-                        .filter((values) -> {
-                            return  section.getID().toString().equals(values.get("section")) || (
-                                        values.get("section") == null && section.getPID().equals(ShortcutSection.DEFAULT)
-                                    );
-                        }).forEach((values) -> {
-                            addShortcut(
-                                    section,
-                                    (Shortcut) Entity.newInstance(Shortcut.class, null, values.get("PID"))
-                            );
-                        });
+                        .filter((values) ->
+                                section.getID().toString().equals(values.get("section")) || (
+                                    values.get("section") == null && section.getPID().equals(ShortcutSection.DEFAULT)
+                                )).forEach((values) -> addShortcut(
+                                section,
+                                Entity.newInstance(Shortcut.class, null, values.get("PID"))
+                        ));
             });
             return null;
         }
@@ -158,7 +155,7 @@ public final class LauncherUnit extends AbstractUnit {
                     shortcutPanel, 
                     location.x, location.y
             );
-            if (comp != null && comp instanceof LaunchShortcut) {
+            if (comp instanceof LaunchShortcut) {
                 dragStartPoint = location;
                 sourceLauncher = (LaunchShortcut) comp;
                 

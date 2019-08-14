@@ -17,7 +17,7 @@ import javax.swing.ImageIcon;
  */
 public abstract class Catalog extends Entity {
 
-    private final static ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class);
+    private final static ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskExecutorService.class);
 
     public Catalog(EntityRef owner, ImageIcon icon, String title, String hint) {
         super(owner, icon, title, hint);

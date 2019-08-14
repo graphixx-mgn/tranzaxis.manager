@@ -9,70 +9,78 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import java.awt.*;
-import java.awt.event.ActionListener;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
  * Диалог отображения исполнения задач. Окно, содержащее виджеты исполняющихся 
- * в данный момент задач, запущенных методом {@link TaskManager.TaskExecutorService#executeTask(codex.task.ITask)}.
+ * в данный момент задач, запущенных методом {@link TaskExecutorService#executeTask(codex.task.ITask)}.
  */
-class TaskDialog extends Dialog implements ITaskListener {
-    
-    /**
-     * Код выхода при нажатии кнопки перемещения задач в очередь.
-     */
-    static final int  ENQUEUE = 100;
-    /**
-     * Код выхода при нажатии кнопки отмены всех задач.
-     */
-    static  final int CANCEL  = 1;
-    
-    private static final DialogButton BTN_QUEUE  = new DialogButton(
-            ImageUtils.resize(ImageUtils.getByPath("/images/enqueue.png"), 22, 22), Language.get("enqueue@title"), -1, ENQUEUE
-    );
-    private static final DialogButton BTN_CANCEL = new DialogButton(
-            ImageUtils.resize(ImageUtils.getByPath("/images/cancel.png"), 22, 22), Language.get("cancel@title"), -1, CANCEL
-    );
+class TaskDialog extends Dialog implements ITaskMonitor {
 
     private static final int MIN_WIDTH = 600;
 
-    private final JPanel viewPanel;
-    final Map<ITask, AbstractTaskView> taskRegistry = new ConcurrentHashMap<>();
+    private final Map<ITask, AbstractTaskView> taskViews = new HashMap<>();
+    private final JPanel taskViewList;
+
+    private final Container    buttonPanel;
+    private final DialogButton buttonEnqueue;
 
     /**
      * Конструктор окна.
-     * @param closeAction Слушатель события закрытия окна.
+     * //@param closeAction Слушатель события закрытия окна.
      */
-    TaskDialog(Window parent, ActionListener closeAction) {
-        super(parent, 
+    TaskDialog(Window parent) {
+        super(
+                parent,
                 ImageUtils.getByPath("/images/progress.png"),
                 Language.get("title"),
                 new JPanel(),
-                closeAction,
-                BTN_QUEUE, BTN_CANCEL
+                null,
+                Default.BTN_OK.newInstance(
+                        ImageUtils.getByPath("/images/enqueue.png"),
+                        Language.get("enqueue@title")
+                ),
+                Default.BTN_CANCEL.newInstance()
         );
         setResizable(false);
 
-        JPanel viewPort = new JPanel();
-        viewPort.setLayout(new BorderLayout());
-        
-        viewPanel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setClip(getVisibleRect());
-                super.paintComponent(g);
+        handler = (button) -> (keyEvent) -> {
+            setVisible(false);
+            int ID = button == null ? EXIT : button.getID();
+            if (ID == Dialog.CANCEL || ID == Dialog.EXIT) {
+                taskViews.keySet().forEach((task) -> task.cancel(true));
+                clearRegistry();
+            }
+            if (ID == Dialog.OK) {
+                new HashSet<>(taskViews.keySet()).forEach(task -> {
+                    unregisterTask(task);
+                    if (!task.getStatus().isFinal()) {
+                        taskRecipient.registerTask(task);
+                        task.addListener(taskRecipient);
+                    }
+                });
             }
         };
-        viewPanel.setLayout(new BoxLayout(viewPanel, BoxLayout.Y_AXIS));
-        viewPanel.setBorder(new CompoundBorder(
+
+        JPanel viewPort = new JPanel();
+        viewPort.setLayout(new BorderLayout());
+
+        taskViewList = new JPanel();
+        taskViewList.setLayout(new BoxLayout(taskViewList, BoxLayout.Y_AXIS));
+        taskViewList.setBorder(new CompoundBorder(
                 new EmptyBorder(5, 5, 5, 5),
                 new MatteBorder(1, 1, 0, 1, Color.LIGHT_GRAY)
         ));
-        viewPort.add(viewPanel, BorderLayout.NORTH);
+        viewPort.add(taskViewList, BorderLayout.NORTH);
         setContent(viewPort);
+
+        buttonEnqueue = getButton(Dialog.OK);
+        buttonPanel = buttonEnqueue.getParent();
+        buttonPanel.remove(buttonEnqueue);
     }
 
     @Override
@@ -81,83 +89,71 @@ class TaskDialog extends Dialog implements ITaskListener {
         return new Dimension(Math.max(preferred.width, MIN_WIDTH), preferred.height);
     }
 
-    /**
-     * Регистрация новой задачи.
-     */
-    void addTask(ITask task) {
-        task.addListener(this);
-        AbstractTaskView view = task.createView(new Consumer<ITask>() {
+    @Override
+    public void beforeExecute(ITask task) {
+        registerTask(task);
+    }
+
+    @Override
+    public void statusChanged(ITask task, Status status) {
+        Collection<ITask> tasks = new HashSet<>(taskViews.keySet());
+        long running  = tasks.stream().filter(queued -> !queued.getStatus().isFinal()).count();
+        long stopped  = tasks.stream().filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED).count();
+        boolean ready = running + stopped == 0;
+        if (!tasks.isEmpty() && ready) {
+            clearRegistry();
+        }
+    }
+
+    @Override
+    public void registerTask(ITask task) {
+        taskViews.put(task, task.createView(new Consumer<ITask>() {
             @Override
-            public void accept(ITask task) {
-                if (task.getStatus() == Status.PENDING || task.getStatus() == Status.STARTED) {
-                    task.cancel(true);
-                } else {
-                    removeTask(task);
-                }
+            public void accept(ITask context) {
+                context.cancel(true);
+                unregisterTask(context);
+                statusChanged(context, context.getStatus());
             }
-        });
-        taskRegistry.put(task, view);
-        viewPanel.add(view);
+        }));
+        taskViewList.add(taskViews.get(task));
 
         if (!isVisible()) {
-            new Thread(() -> {
-                setVisible(true);
-            }).start();
+            new Thread(() -> setVisible(true)).start();
         } else {
             pack();
         }
     }
 
-    void removeTask(ITask task) {
-        task.removeListener(this);
-        AbstractTaskView view = taskRegistry.remove(task);
-        viewPanel.remove(view);
-        pack();
-    }
-    
-    /**
-     * Очистка окна.
-     */
-    void clearTasks() {
-        for (ITask task : taskRegistry.keySet()) {
+    @Override
+    public void unregisterTask(ITask task) {
+        if (taskViews.containsKey(task)) {
+            taskViewList.remove(taskViews.remove(task));
             task.removeListener(this);
-        }
-        taskRegistry.clear();
-        viewPanel.removeAll();
-        new Thread(() -> {
-            setVisible(false);
-        }).start();
-    }
-
-    long runningTasks() {
-        return taskRegistry.keySet().stream().filter(queued -> !queued.getStatus().isFinal()).count();
-    }
-
-    long failedTasks() {
-        return taskRegistry.keySet().stream().filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED).count();
-    }
-
-    boolean isReady() {
-        return runningTasks() + failedTasks() == 0;
-    }
-
-    @Override
-    public void statusChanged(ITask task, Status status) {
-        if (status == Status.CANCELLED|| status == Status.FINISHED) {
-            removeTask(task);
-        }
-        BTN_QUEUE.setEnabled(runningTasks() != 0);
-        if (isReady()) {
-            clearTasks();
+            if (isVisible()) {
+                repaint();
+                if (taskViews.isEmpty()) {
+                    new Thread(() -> setVisible(false)).start();
+                } else {
+                    pack();
+                }
+            }
         }
     }
 
     @Override
-    public void setVisible(boolean visible) {
-        try {
-            super.setVisible(visible);
-        } catch (Throwable e) {
-            //
+    public void clearRegistry() {
+        new HashSet<>(taskViews.keySet()).forEach(this::unregisterTask);
+        statusChanged(null, null);
+    }
+
+    private ITaskMonitor taskRecipient;
+    @Override
+    public void setTaskRecipient(ITaskMonitor monitor) {
+        taskRecipient = monitor;
+        if (taskRecipient != null) {
+            buttonPanel.add(buttonEnqueue, 0);
+        } else if (buttonEnqueue.getParent() != null) {
+            buttonPanel.remove(buttonEnqueue);
         }
     }
     
