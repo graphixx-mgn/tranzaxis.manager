@@ -3,12 +3,10 @@ package codex.service;
 import codex.log.Logger;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.text.MessageFormat;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -18,6 +16,9 @@ import java.util.stream.Stream;
 public final class ServiceRegistry {
     
     private static final ServiceRegistry INSTANCE = new ServiceRegistry();
+    public  static ServiceRegistry getInstance() {
+        return INSTANCE;
+    }
     static {
         Logger.getLogger().debug("Service Registry: load local services...");
         ServiceLoader<IService> services = ServiceLoader.load(IService.class);
@@ -38,8 +39,6 @@ public final class ServiceRegistry {
     }
     
     private Constructor<MethodHandles.Lookup> lookup;
-    
-    private final Map<Class<? extends IService>, IService> stubs = new HashMap<>();
     private final Map<Class<? extends IService>, IService> registry = new ConcurrentHashMap<>();
     private final Map<Class<? extends IService>, List<IRegistryListener>> listeners = new ConcurrentHashMap<>();
     
@@ -56,24 +55,17 @@ public final class ServiceRegistry {
             Logger.getLogger().error("Unable to start Service Registry", e);
         }
     }
-    
-    /**
-     * Возвращает singletone - экземпляр реестра.
-     */
-    public static ServiceRegistry getInstance() {
-        return INSTANCE;
+
+    private Class<? extends IService> getServiceInterface(Class<? extends IService> serviceClass) {
+        return serviceClass.isInterface() ?
+               serviceClass :
+               Arrays.stream(serviceClass.getInterfaces())
+                    .filter(IService.class::isAssignableFrom)
+                    .map(aClass -> (Class<? extends IService>) aClass.asSubclass(IService.class))
+                    .findFirst()
+                    .get();
     }
-    
-    /**
-     * Возвращает каталог настроек сервисов {@link AbstractService}.
-     */
-    public final ServiceCatalog getCatalog() {
-        if (serviceCatalog == null) {
-            serviceCatalog = new ServiceCatalog();
-        }
-        return serviceCatalog;
-    }
-    
+
     /**
      * Регистрация реализации сервиса в реестре. Каждый сервис мжет быть только 
      * в одном экземпляре. Запуск сервиса будет отложен до первого обращения.
@@ -81,16 +73,6 @@ public final class ServiceRegistry {
      */
     public void registerService(IService service) {
         registerService(service, true);
-        
-        new LinkedHashMap<>(listeners).forEach((serviceClass, listenerList) -> {
-            if (serviceClass.isAssignableFrom(service.getClass())) {
-                listenerList.forEach((listener) -> listener.serviceRegistered(service));
-            }
-        });
-    }
-    
-    public boolean isServiceRegistered(Class<? extends IService> serviceClass) {
-        return registry.containsKey(serviceClass);
     }
     
     /**
@@ -100,114 +82,156 @@ public final class ServiceRegistry {
      * @param startImmediately Запустить сервис после регистрации.
      */
     private void registerService(IService service, boolean startImmediately) {
-        registry.put(service.getClass(), service);
-        Logger.getLogger().debug("Service Registry: register service ''{0}''", service.getTitle());
-        if (startImmediately) {
-            service.startService();
+        Class<? extends IService> serviceInterface = getServiceInterface(service.getClass());
+        if (!registry.containsKey(serviceInterface)) {
+            registry.put(serviceInterface, createServiceProxy(serviceInterface, service));
+            Logger.getLogger().debug("Service Registry: register service ''{0}''", service.getTitle());
+            if (startImmediately) {
+                service.startService();
+            }
+            new LinkedHashMap<>(listeners).forEach((serviceClass, listenerList) -> {
+                if (serviceClass.isAssignableFrom(service.getClass())) {
+                    listenerList.forEach((listener) -> listener.serviceRegistered(service));
+                }
+            });
         }
     }
-    
+
+//    public boolean isServiceRegistered(Class<? extends IService> serviceClass) {
+//        return registry.containsKey(serviceClass);
+//    }
+
     /**
      * Поиск сервиса в реестре. Если сервис не был ранее зарегистрирован, возвращаеется
      * объект заглушка, руализующий методы по-умолчанию и выдается ппредупреждающее
      * сообщение в трассу о поппытке запроса к несуществующему сервису.
      */
-    public IService lookupService(Class<? extends IService> serviceClass) {
-        if (registry.containsKey(serviceClass) && !registry.get(serviceClass).isStarted()) {
-            registry.get(serviceClass).startService();
+    @SuppressWarnings("unchecked")
+    public <T extends IService> T lookupService(Class<T> serviceInterface) {
+        if (!serviceInterface.isInterface()) {
+            throw new IllegalStateException(serviceInterface+" is not an interface");
         }
-        if (registry.containsKey(serviceClass) && isEnabled(serviceClass)) {
-            return registry.get(serviceClass);
-        } else {
-            Class serviceInterface = serviceClass.getInterfaces()[0];
-            try {
-                //https://stackoverflow.com/questions/37812393/how-to-explicitly-invoke-default-method-from-a-dynamic-proxy
-                if (!stubs.containsKey(serviceInterface)) {
-                    stubs.put(serviceInterface, 
-                        (IService) Proxy.newProxyInstance(serviceInterface.getClassLoader(),
-                            new Class[]{serviceInterface}, 
-                            (Object proxy, Method method, Object[] arguments) -> {
-                                boolean isEnabled = isEnabled(serviceClass);
-                                if (registry.containsKey(serviceClass) && isEnabled) {
-                                    for (Method classMethod : registry.get(serviceClass).getClass().getMethods()) {
-                                        if (classMethod.getName().equals(method.getName())) {
-                                            try {
-                                                return classMethod.invoke(registry.get(serviceClass), arguments);
-                                            } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                                                e.printStackTrace();
-                                            }
-                                        }
-                                    }
-                                }
-                                if (!method.getName().equals("getTitle") && isEnabled) {
-                                    Logger.getLogger().warn(
-                                            "Called not registered service ''{0}''\nService call: {1}({2})", 
-                                            stubs.get(serviceInterface).getTitle(),
-                                            method.getName(),
-                                            Arrays.stream(method.getParameterTypes())
-                                                    .map((param) -> "<".concat(param.getSimpleName()).concat(">"))
-                                                    .collect(Collectors.joining(", "))
-                                    );
-                                }
-                                return lookup.newInstance(serviceInterface,
-                                        MethodHandles.Lookup.PRIVATE
-                                )
-                                    .unreflectSpecial(method, method.getDeclaringClass())
-                                    .bindTo(proxy)
-                                    .invokeWithArguments(arguments);
-                            }
-                        )
-                    );
-                }
-                return stubs.get(serviceInterface);
-            } catch (IllegalArgumentException | SecurityException e1) {
-                Logger.getLogger().error(MessageFormat.format(
-                        "Service ''{0}'' invocation error", 
-                        stubs.get(serviceInterface).getTitle()
-                ), e1);
-                return null;
+        if (registry.containsKey(serviceInterface)) {
+            T service = (T) registry.get(serviceInterface);
+            if (!service.isStarted()) {
+                service.startService();
             }
+            return service;
+        } else {
+            return createServicePreloader(serviceInterface);
         }
-    }
-    
-    /**
-     * Возвращает признак включен ли сервис в настройках.
-     * @param serviceClass Класс сервиса. 
-     */
-    private boolean isEnabled(Class serviceClass) {
-        Stream<LocalServiceOptions> stream =
-                serviceCatalog == null ? Stream.empty() : 
-                serviceCatalog.childrenList().stream()
-                        .map((node) -> (LocalServiceOptions) node);
-        Optional<LocalServiceOptions> serviceControl = stream
-                .filter((control) -> control.getService().getClass().equals(serviceClass))
-                .findFirst();
-        
-        return !serviceControl.isPresent() || serviceControl.get().isStarted();
     }
     
     public final void addRegistryListener(IRegistryListener listener) {
         addRegistryListener(IService.class, listener);
     }
     
-    public final void addRegistryListener(Class<? extends IService> serviceClass, IRegistryListener listener) {
-        if (!listeners.containsKey(serviceClass)) {
-            listeners.put(serviceClass, new LinkedList<>());
+    public final void addRegistryListener(Class<? extends IService> serviceInterface, IRegistryListener listener) {
+        Class<? extends IService> srvIface = getServiceInterface(serviceInterface);
+
+        if (!listeners.containsKey(srvIface)) {
+            listeners.put(srvIface, new LinkedList<>());
         }
-        listeners.get(serviceClass).add(listener);
-        
+        listeners.get(srvIface).add(listener);
         registry.values().forEach((service) -> {
-            if (serviceClass.isAssignableFrom(service.getClass())) {
+            if (srvIface.isAssignableFrom(service.getClass())) {
                 listener.serviceRegistered(service);
             }
         });
     }
-    
+
+    /**
+     * Возвращает каталог настроек сервисов {@link AbstractService}.
+     */
+    final ServiceCatalog getCatalog() {
+        if (serviceCatalog == null) {
+            serviceCatalog = new ServiceCatalog();
+        }
+        return serviceCatalog;
+    }
+
+    /**
+     * Возвращает признак включен ли сервис в настройках.
+     * @param serviceClass Класс интерфейса сервиса.
+     */
+    private boolean isEnabled(Class serviceClass) {
+        Stream<LocalServiceOptions> stream =
+                serviceCatalog == null ? Stream.empty() :
+                        serviceCatalog.childrenList().stream()
+                                .map((node) -> (LocalServiceOptions) node);
+        Optional<LocalServiceOptions> serviceControl = stream
+                .filter((control) -> control.getService().getClass().equals(serviceClass))
+                .findFirst();
+
+        return !serviceControl.isPresent() || serviceControl.get().isStarted();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends IService> T createServicePreloader(Class<T> serviceInterface) {
+        return (T) Proxy.newProxyInstance(
+                serviceInterface.getClassLoader(),
+                new Class[]{ serviceInterface },
+                (Object proxy, Method method, Object[] arguments) -> {
+                    if (isEnabled(serviceInterface)) {
+                        if (registry.containsKey(serviceInterface)) {
+                            IService service = registry.get(serviceInterface);
+                            return method.invoke(service, arguments);
+                        }
+                        if (!method.getName().equals("getTitle")) {
+                            T preloader = (T) proxy;
+                            Logger.getLogger().warn(
+                                    "Called not registered service ''{0}''\nService call: {1}({2})",
+                                    preloader.getTitle(),
+                                    method.getName(),
+                                    Arrays.stream(method.getParameterTypes())
+                                            .map((param) -> "<".concat(param.getSimpleName()).concat(">"))
+                                            .collect(Collectors.joining(", "))
+                            );
+                        }
+                    }
+                    return lookup.newInstance(serviceInterface,
+                            MethodHandles.Lookup.PRIVATE
+                    )
+                        .unreflectSpecial(method, method.getDeclaringClass())
+                        .bindTo(proxy)
+                        .invokeWithArguments(arguments);
+                }
+        );
+    }
+
+    ExecutorService executor = Executors.newCachedThreadPool();
+
+    private IService createServiceProxy(Class<? extends IService> serviceInterface, IService service) {
+        return (IService) Proxy.newProxyInstance(
+                serviceInterface.getClassLoader(),
+                new Class[]{ serviceInterface },
+                (Object proxy, Method method, Object[] arguments) -> {
+                    boolean isContext = IContext.class.isAssignableFrom(serviceInterface);
+                    boolean ownMethod = Arrays.asList(serviceInterface.getDeclaredMethods()).contains(method);
+                    if (ownMethod && isContext) {
+                        Callable<Object> methodCallable = new Callable<Object>() {
+                            @Override
+                            public Object call() throws Exception {
+                                try {
+                                    ServiceCallContext.enterContext((IContext) service);
+                                    return method.invoke(service, arguments);
+                                } finally {
+                                    ServiceCallContext.leaveContext();
+                                }
+                            }
+                        };
+                        Future<Object> methodFuture = executor.submit(methodCallable);
+                        return methodFuture.get();
+                    } else {
+                        return method.invoke(service, arguments);
+                    }
+                }
+        );
+    }
+
     @FunctionalInterface
     public interface IRegistryListener {
-        
         void serviceRegistered(IService service);
-        
     }
     
 }
