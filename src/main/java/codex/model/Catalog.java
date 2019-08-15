@@ -1,6 +1,5 @@
 package codex.model;
 
-import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
 import codex.service.ServiceRegistry;
@@ -17,7 +16,7 @@ import javax.swing.ImageIcon;
  */
 public abstract class Catalog extends Entity {
 
-    private final static ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskExecutorService.class);
+    private final static ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
 
     public Catalog(EntityRef owner, ImageIcon icon, String title, String hint) {
         super(owner, icon, title, hint);
@@ -68,7 +67,7 @@ public abstract class Catalog extends Entity {
     protected Collection<String> getChildrenPIDs() {
         Entity owner = this.getOwner();
         Integer ownerId = owner == null ? null : owner.getID();
-        final IConfigStoreService  CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+        final IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
         return CAS.readCatalogEntries(ownerId, getChildClass()).values();
     }
     

@@ -4,7 +4,6 @@ import codex.command.EntityCommand;
 import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
-import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.editor.AbstractEditor;
 import codex.editor.IEditor;
@@ -110,7 +109,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 if (changes.contains(EntityModel.PID)) {
                     setTitle(model.getPID(false));
                 }
-                ((IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class)).findReferencedEntries(Entity.this.getClass(), getID()).stream()
+                ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).findReferencedEntries(Entity.this.getClass(), getID()).stream()
                         .filter(link -> link.isIncoming)
                         .forEach(link -> {
                             EntityRef ref = EntityRef.build(link.entryClass, link.entryID);
