@@ -64,7 +64,7 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
 
     @Override
     public java.util.Map<K, V> getValue() {
-        return value;
+        return new LinkedHashMap<>(value);
     }
 
     public java.util.Map.Entry<? extends ISerializableType<K, ? extends IMask<K>>, ? extends ISerializableType<V, ? extends IMask<V>>> getEntry() {
@@ -118,19 +118,21 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
     @Override
     public void valueOf(String value) {
         this.value.clear();
-        Arrays.stream(value.replaceAll("^\\{(.*)\\}$", "$1").split(", ", -1))
-                .map(pair -> pair.split("="))
-                .forEachOrdered(pair -> {
-                    try {
-                        if (dbKey != null) dbKey.valueOf(pair[0]);
-                        if (dbVal != null) dbVal.valueOf(pair[1]);
-                        if (dbKey != null) {
-                            this.value.put(dbKey.getValue(), dbVal == null ? null : dbVal.getValue());
+        if (value != null && !value.isEmpty()) {
+            Arrays.stream(value.replaceAll("^\\{(.*)\\}$", "$1").split(", ", -1))
+                    .map(pair -> pair.split("="))
+                    .forEachOrdered(pair -> {
+                        try {
+                            if (dbKey != null) dbKey.valueOf(pair[0]);
+                            if (dbVal != null) dbVal.valueOf(pair[1]);
+                            if (dbKey != null) {
+                                this.value.put(dbKey.getValue(), dbVal == null ? null : dbVal.getValue());
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                });
+                    });
+        }
     }
 
     @Override
@@ -150,10 +152,10 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
     @Override
     public String getQualifiedValue(java.util.Map<K, V> val) {
         return val == null || val.isEmpty() ? "<NULL>" : MessageFormat.format(
-                "[{0}]",
+                "[\n{0}]",
                 val.entrySet().stream()
                         .map(kvEntry -> MessageFormat.format(
-                                "{0}={1}",
+                                "\t{0}={1}\n",
                                 dbKey.getQualifiedValue(kvEntry.getKey()),
                                 dbVal.getQualifiedValue(kvEntry.getValue()))
                         )

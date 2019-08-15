@@ -1,6 +1,5 @@
 package codex.type;
 
-import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.editor.EntityRefEditor;
 import codex.editor.IEditorFactory;
@@ -14,7 +13,7 @@ import java.util.Map;
  */
 public class EntityRef<E extends Entity> implements ISerializableType<E, IRefMask<E>>, IParametrized {
 
-    private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private final static IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
 
     private Class<E> entityClass;
     private E entityInstance;
