@@ -33,7 +33,6 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
     private static final ImageIcon   ADD_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 26, 26);
     private static final ImageIcon   DEL_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 26, 26);
     private static final ImageIcon CLEAR_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/remove.png"), 26, 26);
-    private static final Dimension SIZE = new Dimension(450, 400);
 
     private JTextField textField;
     private EditMode mode = EditMode.ModifyAllowed;
@@ -286,7 +285,7 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
             Dialog dialog = new codex.component.dialog.Dialog(
                     SwingUtilities.getWindowAncestor(editor),
                     MapEditor.this.isEditable() && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON,
-                    Language.get(MapEditor.class, "title"),
+                    propHolder.getTitle(),
                     content,
                     event -> {
                         if (event.getID() == Dialog.OK) {
@@ -299,8 +298,6 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
                     declineBtn
             );
             dialog.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            dialog.setMinimumSize(SIZE);
-            dialog.setPreferredSize(SIZE);
             dialog.setVisible(true);
         }
     }
