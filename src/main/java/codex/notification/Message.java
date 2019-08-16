@@ -5,22 +5,32 @@ import java.util.Objects;
 import java.util.UUID;
 
 public final class Message {
-    private UUID                 uuid;
-    private String               text;
-    private TrayIcon.MessageType type;
+    private final UUID                 uuid;
+    private final String               head;
+    private final String               text;
+    private final TrayIcon.MessageType type;
 
     public Message(String text) {
-        this(TrayIcon.MessageType.INFO, text);
+        this(null, text);
     }
 
-    public Message(TrayIcon.MessageType type, String text) {
+    public Message(String head, String text) {
+        this(TrayIcon.MessageType.INFO, head, text);
+    }
+
+    public Message(TrayIcon.MessageType type, String head, String text) {
         this.type = type;
+        this.head = head;
         this.text = text;
         this.uuid = UUID.randomUUID();
     }
 
     public final UUID getUuid() {
         return uuid;
+    }
+
+    public final String getHead() {
+        return head;
     }
 
     public final String getText() {

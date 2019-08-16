@@ -1,26 +1,25 @@
 package codex.notification;
 
+import codex.service.ContextPresentation;
 import codex.service.IService;
-import java.awt.TrayIcon;
+import java.util.Map;
 
 /**
- * Интерфейс сервиса отображения уведомлений в системном трее.
+ * Интерфейс сервиса отображения уведомлений.
  */
 public interface INotificationService extends IService {
-    
-    /**
-     * Показать уведомление пользователю.
-     * @param title Заголовок уведомления.
-     * @param details Текст детального описания.
-     * @param type Тип уведомления.
-     */
-    default void showMessage(String source, String title, String details, TrayIcon.MessageType type) {}
-    
+
     @Override
     default String getTitle() {
         return "Notification Service";
     }
-    
-    default void registerSource(String source, NotifyCondition condition) {}
-    
+
+    default void registerChannel(IMessageChannel channel) {}
+    default void registerSource(INotificationContext source) {}
+    default void sendMessage(IMessageChannel channel, Message message) {}
+
+    Accessor getAccessor();
+    abstract class Accessor {
+        abstract Map<ContextPresentation, NotifyCondition> getSources();
+    }
 }
