@@ -117,7 +117,6 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
 
     @Override
     public void valueOf(String value) {
-        this.value.clear();
         if (value != null && !value.isEmpty()) {
             Arrays.stream(value.replaceAll("^\\{(.*)\\}$", "$1").split(", ", -1))
                     .map(pair -> pair.split("="))
@@ -125,13 +124,14 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
                         try {
                             if (dbKey != null) dbKey.valueOf(pair[0]);
                             if (dbVal != null) dbVal.valueOf(pair[1]);
-                            if (dbKey != null) {
+                            if (dbKey != null && this.value.containsKey(dbKey.getValue())) {
                                 this.value.put(dbKey.getValue(), dbVal == null ? null : dbVal.getValue());
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
                     });
+
         }
     }
 
