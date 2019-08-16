@@ -39,6 +39,7 @@ public final class ServiceRegistry {
     }
     
     private Constructor<MethodHandles.Lookup> lookup;
+    private final ExecutorService executor = Executors.newCachedThreadPool();
     private final Map<Class<? extends IService>, IService> registry = new ConcurrentHashMap<>();
     private final Map<Class<? extends IService>, List<IRegistryListener>> listeners = new ConcurrentHashMap<>();
     
@@ -111,7 +112,7 @@ public final class ServiceRegistry {
         if (!serviceInterface.isInterface()) {
             throw new IllegalStateException(serviceInterface+" is not an interface");
         }
-        if (registry.containsKey(serviceInterface)) {
+        if (registry.containsKey(serviceInterface) && isEnabled(serviceInterface)) {
             T service = (T) registry.get(serviceInterface);
             if (!service.isStarted()) {
                 service.startService();
@@ -152,15 +153,15 @@ public final class ServiceRegistry {
 
     /**
      * Возвращает признак включен ли сервис в настройках.
-     * @param serviceClass Класс интерфейса сервиса.
+     * @param serviceInterface Класс интерфейса сервиса.
      */
-    private boolean isEnabled(Class serviceClass) {
+    private boolean isEnabled(Class<? extends IService> serviceInterface) {
         Stream<LocalServiceOptions> stream =
                 serviceCatalog == null ? Stream.empty() :
                         serviceCatalog.childrenList().stream()
                                 .map((node) -> (LocalServiceOptions) node);
         Optional<LocalServiceOptions> serviceControl = stream
-                .filter((control) -> control.getService().getClass().equals(serviceClass))
+                .filter((control) -> serviceInterface.isAssignableFrom(control.getService().getClass()))
                 .findFirst();
 
         return !serviceControl.isPresent() || serviceControl.get().isStarted();
@@ -198,8 +199,6 @@ public final class ServiceRegistry {
                 }
         );
     }
-
-    ExecutorService executor = Executors.newCachedThreadPool();
 
     private IService createServiceProxy(Class<? extends IService> serviceInterface, IService service) {
         return (IService) Proxy.newProxyInstance(
