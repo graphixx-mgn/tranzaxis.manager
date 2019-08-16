@@ -1,10 +1,11 @@
 package codex.notification;
 
+import codex.context.ContextPresentation;
+import codex.context.IContext;
 import codex.log.Logger;
 import codex.service.*;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Сервис отображения уведомлений.
@@ -24,8 +25,9 @@ public class NotificationService extends AbstractService<NotifyServiceOptions> i
     public Accessor getAccessor() {
         return new Accessor() {
             @Override
-            Map<ContextPresentation, NotifyCondition> getSources() {
-                return getConfig().getSources();
+            boolean contextAllowed(Class<? extends IContext> contextClass) {
+                NotifyCondition condition = getConfig().getSources().get(new ContextPresentation(contextClass));
+                return condition != null && condition.getCondition().get();
             }
         };
     }
@@ -36,22 +38,6 @@ public class NotificationService extends AbstractService<NotifyServiceOptions> i
             channels.add(channel);
             Logger.getLogger().debug("NSS: Register channel ''{0}''", channel.getTitle());
         }
-    }
-
-    @Override
-    public void registerSource(INotificationContext source) {
-        Map<ContextPresentation, NotifyCondition> sources = getConfig().getSources();
-        sources.putIfAbsent(
-                source.getClassPresentation(),
-                source.getDefaultCondition()
-        );
-        getConfig().setSources(sources);
-        try {
-            getConfig().model.commit(false);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        Logger.getLogger().debug("NSS: Register source ''{0}''", source.getClassPresentation());
     }
 
     @Override

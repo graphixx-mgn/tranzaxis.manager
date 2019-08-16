@@ -204,27 +204,7 @@ public final class ServiceRegistry {
         return (IService) Proxy.newProxyInstance(
                 serviceInterface.getClassLoader(),
                 new Class[]{ serviceInterface },
-                (Object proxy, Method method, Object[] arguments) -> {
-                    boolean isContext = IContext.class.isAssignableFrom(serviceInterface);
-                    boolean ownMethod = Arrays.asList(serviceInterface.getDeclaredMethods()).contains(method);
-                    if (ownMethod && isContext) {
-                        Callable<Object> methodCallable = new Callable<Object>() {
-                            @Override
-                            public Object call() throws Exception {
-                                try {
-                                    ServiceCallContext.enterContext((IContext) service);
-                                    return method.invoke(service, arguments);
-                                } finally {
-                                    ServiceCallContext.leaveContext();
-                                }
-                            }
-                        };
-                        Future<Object> methodFuture = executor.submit(methodCallable);
-                        return methodFuture.get();
-                    } else {
-                        return method.invoke(service, arguments);
-                    }
-                }
+                (Object proxy, Method method, Object[] arguments) -> method.invoke(service, arguments)
         );
     }
 

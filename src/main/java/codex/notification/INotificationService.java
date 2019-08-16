@@ -1,8 +1,7 @@
 package codex.notification;
 
-import codex.service.ContextPresentation;
+import codex.context.IContext;
 import codex.service.IService;
-import java.util.Map;
 
 /**
  * Интерфейс сервиса отображения уведомлений.
@@ -15,11 +14,10 @@ public interface INotificationService extends IService {
     }
 
     default void registerChannel(IMessageChannel channel) {}
-    default void registerSource(INotificationContext source) {}
     default void sendMessage(IMessageChannel channel, Message message) {}
 
     Accessor getAccessor();
     abstract class Accessor {
-        abstract Map<ContextPresentation, NotifyCondition> getSources();
+        abstract boolean contextAllowed(Class<? extends IContext> contextClass);
     }
 }

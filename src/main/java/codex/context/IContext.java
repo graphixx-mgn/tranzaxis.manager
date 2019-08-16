@@ -1,15 +1,13 @@
-package codex.service;
+package codex.context;
 
+import org.atteo.classindex.IndexSubclasses;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+@IndexSubclasses
 public interface IContext {
-
-    default ContextPresentation getClassPresentation() {
-        return new ContextPresentation(this.getClass());
-    }
 
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.RUNTIME)
@@ -17,5 +15,4 @@ public interface IContext {
         String icon();
         String title();
     }
-
 }

@@ -1,4 +1,4 @@
-package codex.service;
+package codex.context;
 
 import codex.mask.IMask;
 import codex.type.IComplexType;

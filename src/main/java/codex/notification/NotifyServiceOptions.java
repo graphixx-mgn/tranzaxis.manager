@@ -2,14 +2,17 @@ package codex.notification;
 
 import codex.editor.MapEditor;
 import codex.model.Access;
-import codex.service.ContextPresentation;
-import codex.service.ContextType;
+import codex.context.ContextPresentation;
+import codex.context.ContextType;
+import codex.context.IContext;
 import codex.service.LocalServiceOptions;
 import codex.type.EntityRef;
 import codex.type.Enum;
-import codex.type.Map;
 import codex.utils.ImageUtils;
-import java.util.LinkedHashMap;
+import org.atteo.classindex.ClassIndex;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class NotifyServiceOptions extends LocalServiceOptions<NotificationService> {
     
@@ -18,24 +21,27 @@ public class NotifyServiceOptions extends LocalServiceOptions<NotificationServic
     public NotifyServiceOptions(EntityRef owner, String title) {
         super(owner, title);
         setIcon(ImageUtils.getByPath("/images/notify.png"));
+
+        Map<ContextPresentation, NotifyCondition> sources = StreamSupport.stream(ClassIndex.getSubclasses(IContext.class).spliterator(), false)
+                .filter(aClass -> aClass.isAnnotationPresent(NotifySource.class))
+                .collect(Collectors.toMap(
+                        ContextPresentation::new,
+                        ctxClass -> ctxClass.getAnnotation(NotifySource.class).condition()
+                ));
         
         model.addUserProp(PROP_CONDITIONS,
-                new Map<>(
+                new codex.type.Map<>(
                         ContextType.class,
                         new Enum<NotifyCondition>(NotifyCondition.class){}.getClass(),
-                        new LinkedHashMap<>()
+                        sources
                 ),
                 false, Access.Select
         );
         ((MapEditor) model.getEditor(PROP_CONDITIONS)).setMode(MapEditor.EditMode.ModifyPermitted);
     }
     
-    public final java.util.Map<ContextPresentation, NotifyCondition> getSources() {
+    final java.util.Map<ContextPresentation, NotifyCondition> getSources() {
         return (java.util.Map<ContextPresentation, NotifyCondition>) model.getValue(PROP_CONDITIONS);
-    }
-
-    public final void setSources(java.util.Map<ContextPresentation, NotifyCondition> value) {
-        model.setValue(PROP_CONDITIONS, value);
     }
     
 }

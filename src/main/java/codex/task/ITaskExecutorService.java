@@ -1,13 +1,12 @@
 package codex.task;
 
-import codex.notification.INotificationContext;
-import codex.notification.NotifyCondition;
+import codex.context.IContext;
 import codex.service.IService;
 
 /**
  * Интерфейс сервиса исполнения задач {@link ITask}.
  */
-public interface ITaskExecutorService extends IService, INotificationContext {
+public interface ITaskExecutorService extends IService, IContext {
 
     @Override
     default String getTitle() {
@@ -33,11 +32,6 @@ public interface ITaskExecutorService extends IService, INotificationContext {
      * @param task Задача.
      */
     default void quietTask(ITask task) {}
-
-    @Override
-    default NotifyCondition getDefaultCondition() {
-        return NotifyCondition.INACTIVE;
-    }
 
     Accessor getAccessor();
     abstract class Accessor {

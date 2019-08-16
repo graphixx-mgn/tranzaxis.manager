@@ -1,5 +1,7 @@
 package codex.task;
 
+import codex.context.IContext;
+import codex.notification.NotifySource;
 import codex.notification.INotificationService;
 import codex.notification.Message;
 import codex.notification.TrayInformer;
@@ -7,13 +9,12 @@ import codex.service.*;
 import codex.utils.Language;
 import java.awt.*;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 
 /**
  * Сервис, принимающий задачи на исполнение.
  */
+@NotifySource
 @IContext.Definition(icon = "/images/tasks.png", title = "Task Executor Service")
 public class TaskExecutorService extends AbstractService<TaskServiceOptions> implements ITaskExecutorService {
 
@@ -40,10 +41,6 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
         super.startService();
         attachMonitor(null, taskDialog); //Default monitor
         attachMonitor(ThreadPoolKind.Demand, taskDialog);
-
-        ServiceRegistry.getInstance().addRegistryListener(INotificationService.class, (service) -> {
-            ((INotificationService) service).registerSource(this);
-        });
     }
 
     @Override
@@ -98,17 +95,7 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
                 task.addListener(notifyListener);
             }
         }
-        final List<IContext> context = ServiceCallContext.getContext();
-        Callable<Object> taskCallable = new Callable<Object>() {
-            @Override
-            public Object call() throws Exception {
-                ServiceCallContext.clearContext();
-                context.forEach(ServiceCallContext::enterContext);
-                task.run();
-                return task.get();
-            }
-        };
-        kind.getExecutor().submit(taskCallable);
+        kind.getExecutor().submit(task);
     }
 
 }

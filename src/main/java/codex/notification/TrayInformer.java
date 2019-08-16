@@ -1,15 +1,12 @@
 package codex.notification;
 
 import codex.log.Logger;
-import codex.service.ContextPresentation;
-import codex.service.IContext;
-import codex.service.ServiceCallContext;
+import codex.context.ServiceCallContext;
 import codex.service.ServiceRegistry;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.AWTEventListener;
 import java.awt.event.WindowEvent;
-import java.util.Map;
 
 public class TrayInformer implements IMessageChannel {
 
@@ -57,12 +54,7 @@ public class TrayInformer implements IMessageChannel {
 
     private boolean checkConditions() {
         INotificationService NSS = ServiceRegistry.getInstance().lookupService(INotificationService.class);
-        Map<ContextPresentation, NotifyCondition> sources = NSS.getAccessor().getSources();
-        return ServiceCallContext.getContext().stream()
-                .map(IContext::getClassPresentation)
-                .anyMatch(ctxObject ->
-                        sources.containsKey(ctxObject) &&
-                        sources.get(ctxObject).getCondition().get()
-                );
+        return ServiceCallContext.getContextStack().stream()
+                .anyMatch(ctxClass -> NSS.getAccessor().contextAllowed(ctxClass));
     }
 }

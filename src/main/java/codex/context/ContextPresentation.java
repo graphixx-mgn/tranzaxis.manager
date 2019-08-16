@@ -1,4 +1,4 @@
-package codex.service;
+package codex.context;
 
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
