@@ -23,6 +23,7 @@ import javax.swing.table.TableCellEditor;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.LinkedHashMap;
 
@@ -86,7 +87,7 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
         if (internalValue.isEmpty()) {
             textField.setText("");
         } else {
-            textField.setText(Language.get(Map.class, "defined"));
+            textField.setText(MessageFormat.format(Language.get(Map.class, "defined"), internalValue.size()));
         }
     }
 
