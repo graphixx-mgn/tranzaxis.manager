@@ -1,12 +1,19 @@
 package codex.task;
 
+import codex.notification.INotificationContext;
+import codex.notification.NotifyCondition;
 import codex.service.IService;
 
 /**
  * Интерфейс сервиса исполнения задач {@link ITask}.
  */
-public interface ITaskExecutorService extends IService {
-    
+public interface ITaskExecutorService extends IService, INotificationContext {
+
+    @Override
+    default String getTitle() {
+        return "Task Executor Service";
+    }
+
     /**
      * Незамедлительное исполнение задачи и регистрация в модальном диалоге.
      * При закрытии диалога, все задачи перемещаются в очередь.
@@ -26,10 +33,14 @@ public interface ITaskExecutorService extends IService {
      * @param task Задача.
      */
     default void quietTask(ITask task) {}
-    
+
     @Override
-    default String getTitle() {
-        return "Task Executor Service";
+    default NotifyCondition getDefaultCondition() {
+        return NotifyCondition.INACTIVE;
     }
-    
+
+    Accessor getAccessor();
+    abstract class Accessor {
+        abstract void attachMonitor(ThreadPoolKind kind, ITaskMonitor monitor);
+    }
 }
