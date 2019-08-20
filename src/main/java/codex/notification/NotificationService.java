@@ -1,6 +1,6 @@
 package codex.notification;
 
-import codex.context.ContextPresentation;
+import codex.context.ContextView;
 import codex.context.IContext;
 import codex.log.Logger;
 import codex.service.*;
@@ -10,8 +10,9 @@ import java.util.List;
 /**
  * Сервис отображения уведомлений.
  */
-@Definition(optional = true)
-public class NotificationService extends AbstractService<NotifyServiceOptions> implements INotificationService {
+@IService.Definition(optional = true)
+@IContext.Definition(id = "NSS", name = "Notification Service", icon = "/images/notify.png")
+public class NotificationService extends AbstractService<NotifyServiceOptions> implements INotificationService, IContext {
 
     private final List<IMessageChannel> channels = new LinkedList<>();
 
@@ -26,7 +27,7 @@ public class NotificationService extends AbstractService<NotifyServiceOptions> i
         return new Accessor() {
             @Override
             boolean contextAllowed(Class<? extends IContext> contextClass) {
-                NotifyCondition condition = getConfig().getSources().get(new ContextPresentation(contextClass));
+                NotifyCondition condition = getConfig().getSources().get(new ContextView(contextClass));
                 return condition != null && condition.getCondition().get();
             }
         };
@@ -36,7 +37,7 @@ public class NotificationService extends AbstractService<NotifyServiceOptions> i
     public void registerChannel(IMessageChannel channel) {
         if (!channels.contains(channel)) {
             channels.add(channel);
-            Logger.getLogger().debug("NSS: Register channel ''{0}''", channel.getTitle());
+            Logger.getLogger().debug("Register channel ''{0}''", channel.getTitle());
         }
     }
 

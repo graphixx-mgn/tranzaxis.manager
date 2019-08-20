@@ -2,7 +2,7 @@ package codex.notification;
 
 import codex.editor.MapEditor;
 import codex.model.Access;
-import codex.context.ContextPresentation;
+import codex.context.ContextView;
 import codex.context.ContextType;
 import codex.context.IContext;
 import codex.service.LocalServiceOptions;
@@ -22,10 +22,10 @@ public class NotifyServiceOptions extends LocalServiceOptions<NotificationServic
         super(owner, title);
         setIcon(ImageUtils.getByPath("/images/notify.png"));
 
-        Map<ContextPresentation, NotifyCondition> sources = StreamSupport.stream(ClassIndex.getSubclasses(IContext.class).spliterator(), false)
+        Map<ContextView, NotifyCondition> sources = StreamSupport.stream(ClassIndex.getSubclasses(IContext.class).spliterator(), false)
                 .filter(aClass -> aClass.isAnnotationPresent(NotifySource.class))
                 .collect(Collectors.toMap(
-                        ContextPresentation::new,
+                        ContextView::new,
                         ctxClass -> ctxClass.getAnnotation(NotifySource.class).condition()
                 ));
         
@@ -40,8 +40,9 @@ public class NotifyServiceOptions extends LocalServiceOptions<NotificationServic
         ((MapEditor) model.getEditor(PROP_CONDITIONS)).setMode(MapEditor.EditMode.ModifyPermitted);
     }
     
-    final java.util.Map<ContextPresentation, NotifyCondition> getSources() {
-        return (java.util.Map<ContextPresentation, NotifyCondition>) model.getValue(PROP_CONDITIONS);
+    @SuppressWarnings("unchecked")
+    final java.util.Map<ContextView, NotifyCondition> getSources() {
+        return (java.util.Map<ContextView, NotifyCondition>) model.getValue(PROP_CONDITIONS);
     }
     
 }
