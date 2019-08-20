@@ -813,8 +813,6 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 case EntityModel.OWN:
                 case EntityModel.OVR:
                     editor.setEditable(false);
-                    editor.setEditable(false);
-                    editor.setEditable(false);
                     break;
             }
         }
