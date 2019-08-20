@@ -1,5 +1,6 @@
 package codex.component.editor;
 
+import codex.editor.IEditor;
 import codex.model.EntityModel;
 import codex.presentation.ISelectorTableModel;
 import codex.type.Bool;
@@ -50,6 +51,9 @@ public class GeneralEditor extends AbstractCellEditor implements TableCellEditor
         EventQueue.invokeLater(() -> model.getEditor(propName).getFocusTarget().requestFocusInWindow());
         attachKeyBinding();
 
+        IEditor editor = model.isPropertyDynamic(propName) ?
+                model.getProperty(propName).getPropValue().editorFactory().newInstance(model.getProperty(propName)) :
+                model.getEditor(propName);
         if (model.getPropertyType(propName) == Bool.class) {
             JComponent renderedComp = (JComponent) table.getCellRenderer(row, column).getTableCellRendererComponent(table, value, true, true, row, column);
 
@@ -58,10 +62,10 @@ public class GeneralEditor extends AbstractCellEditor implements TableCellEditor
             container.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 2));
             container.setBackground(renderedComp.getBackground());
             container.setBorder(renderedComp.getBorder());
-            container.add(model.getEditor(propName).getEditor());
+            container.add(editor.getEditor());
             return container;
         } else {
-            return model.getEditor(propName).getEditor();
+            return editor.getEditor();
         }
     }
 
