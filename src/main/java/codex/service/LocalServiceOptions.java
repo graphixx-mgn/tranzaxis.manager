@@ -44,7 +44,7 @@ public class LocalServiceOptions<S extends IService> extends Catalog {
         // Property settings
         setPropertyRestriction(EntityModel.THIS, Access.Any);
 
-        Definition definition = getServiceDefinition();
+        IService.Definition definition = getServiceDefinition();
         if (definition != null && definition.optional()) {
             CommandRegistry.getInstance().registerCommand(getClass(), StartService.class);
             CommandRegistry.getInstance().registerCommand(getClass(), StopService.class);
@@ -76,8 +76,8 @@ public class LocalServiceOptions<S extends IService> extends Catalog {
         } catch (Exception e) {/**/}
     }
 
-    private Definition getServiceDefinition() {
-        return ((Class<?>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0]).getAnnotation(Definition.class);
+    private IService.Definition getServiceDefinition() {
+        return ((Class<?>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0]).getAnnotation(IService.Definition.class);
     }
 
 

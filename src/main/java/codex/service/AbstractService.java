@@ -1,5 +1,6 @@
 package codex.service;
 
+import codex.log.LoggingSource;
 import codex.model.Entity;
 import java.util.ResourceBundle;
 
@@ -8,7 +9,8 @@ import java.util.ResourceBundle;
  * сущность и регистрирует в каталоге настроек {@link ServiceRegistry}.
  * @param <T> 
  */
-@Definition
+@LoggingSource
+@IService.Definition
 public abstract class AbstractService<T extends LocalServiceOptions> implements IService {
 
     private T serviceConfig;
