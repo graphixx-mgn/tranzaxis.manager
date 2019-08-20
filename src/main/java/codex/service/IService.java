@@ -1,5 +1,7 @@
 package codex.service;
 
+import java.lang.annotation.*;
+
 /**
  * Интерфейс сервиса.
  */
@@ -22,5 +24,12 @@ public interface IService {
      */
     default boolean isStarted() {
         return true;
+    }
+
+    @Inherited
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    @interface Definition {
+        boolean optional() default false;
     }
 }
