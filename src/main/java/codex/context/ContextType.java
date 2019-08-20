@@ -6,21 +6,21 @@ import codex.type.ISerializableType;
 import java.text.MessageFormat;
 import java.util.Objects;
 
-public class ContextType implements ISerializableType<ContextPresentation, IMask<ContextPresentation>> {
+public class ContextType implements ISerializableType<ContextView, IMask<ContextView>> {
 
-    private ContextPresentation value;
+    private ContextView value;
 
     public ContextType() {
         setValue(null);
     }
 
     @Override
-    public ContextPresentation getValue() {
+    public ContextView getValue() {
         return value;
     }
 
     @Override
-    public void setValue(ContextPresentation value) {
+    public void setValue(ContextView value) {
         this.value = value;
     }
 
@@ -44,20 +44,20 @@ public class ContextType implements ISerializableType<ContextPresentation, IMask
 
     @Override
     public String toString() {
-        return IComplexType.coalesce(getValue().getContextClass().getCanonicalName(), "");
+        return IComplexType.coalesce(getValue().getContextClass().getTypeName(), "");
     }
 
     @Override
     public void valueOf(String value) {
         try {
-            setValue(new ContextPresentation(Class.forName(value).asSubclass(IContext.class)));
+            setValue(new ContextView(Class.forName(value).asSubclass(IContext.class)));
         } catch (ClassNotFoundException e) {
             setValue(null);
         }
     }
 
     @Override
-    public String getQualifiedValue(ContextPresentation val) {
+    public String getQualifiedValue(ContextView val) {
         return val == null ? "<NULL>" : MessageFormat.format("({0})", val);
     }
 }
