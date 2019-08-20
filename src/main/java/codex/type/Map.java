@@ -152,14 +152,14 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
     @Override
     public String getQualifiedValue(java.util.Map<K, V> val) {
         return val == null || val.isEmpty() ? "<NULL>" : MessageFormat.format(
-                "[\n{0}]",
+                "[\n{0}\n]",
                 val.entrySet().stream()
                         .map(kvEntry -> MessageFormat.format(
-                                "\t{0}={1}\n",
+                                "    {0}={1}",
                                 dbKey.getQualifiedValue(kvEntry.getKey()),
                                 dbVal.getQualifiedValue(kvEntry.getValue()))
                         )
-                        .collect(Collectors.joining(", "))
+                        .collect(Collectors.joining(",\n"))
         );
     }
 }
