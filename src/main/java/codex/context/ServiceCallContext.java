@@ -1,6 +1,7 @@
 package codex.context;
 
 import codex.utils.Caller;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -16,17 +17,20 @@ public class ServiceCallContext {
     }
 
     private static Stream<Class<? extends IContext>> getContextStream() {
+        List<Class> callStack = Caller.getInstance().getClassStack();
+        Collections.reverse(callStack);
         return Stream.concat(
                 Stream.of(RootContext.class),
-                Caller.getInstance().getClassStack().stream()
+                callStack.stream()
                         .map(aClass -> {
                             Class<?> parentClass = aClass;
                             while (!IContext.class.isAssignableFrom(parentClass) && parentClass.getEnclosingClass() != null) {
-                                parentClass = aClass.getEnclosingClass();
+                                parentClass = parentClass.getEnclosingClass();
                             }
                             return parentClass;
                         })
                         .filter(IContext.class::isAssignableFrom)
+                        .distinct()
                         .map(aClass -> (Class<? extends IContext>) aClass.asSubclass(IContext.class))
         );
     }
