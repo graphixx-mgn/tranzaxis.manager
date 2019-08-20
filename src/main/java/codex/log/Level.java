@@ -7,10 +7,11 @@ import javax.swing.ImageIcon;
 
 public enum Level implements Iconified {
     
-    Debug(org.apache.log4j.Level.DEBUG, LogUnit.DEBUG),
-    Info(org.apache.log4j.Level.INFO,   LogUnit.INFO),
-    Warn(org.apache.log4j.Level.WARN,   LogUnit.WARN),
-    Error(org.apache.log4j.Level.ERROR, LogUnit.ERROR);
+    Debug(org.apache.log4j.Level.DEBUG, Logger.DEBUG),
+    Info(org.apache.log4j.Level.INFO,   Logger.INFO),
+    Warn(org.apache.log4j.Level.WARN,   Logger.WARN),
+    Error(org.apache.log4j.Level.ERROR, Logger.ERROR),
+    Off(org.apache.log4j.Level.OFF,     Logger.OFF);
     
     private final String    title;
     private final ImageIcon icon;
