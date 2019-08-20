@@ -1,4 +1,7 @@
 package codex.context;
 
-@IContext.Definition(icon = "", title = "Application")
+import codex.log.LoggingSource;
+
+@LoggingSource
+@IContext.Definition(id = "APP", name = "Application", icon = "/images/general.png")
 public class RootContext implements IContext {}
