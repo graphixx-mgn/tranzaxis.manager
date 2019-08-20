@@ -12,7 +12,9 @@ public interface IContext {
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.RUNTIME)
     @interface Definition {
-        String icon();
-        String title();
+        String id();
+        String name();
+        String icon() default "";
+        Class<? extends IContext> parent() default RootContext.class;
     }
 }
