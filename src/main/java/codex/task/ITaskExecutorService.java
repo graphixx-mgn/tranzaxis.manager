@@ -1,12 +1,11 @@
 package codex.task;
 
-import codex.context.IContext;
 import codex.service.IService;
 
 /**
  * Интерфейс сервиса исполнения задач {@link ITask}.
  */
-public interface ITaskExecutorService extends IService, IContext {
+public interface ITaskExecutorService extends IService {
 
     @Override
     default String getTitle() {

@@ -1,6 +1,8 @@
 package codex.task;
 
 import codex.context.IContext;
+import codex.log.Level;
+import codex.log.Logger;
 import codex.notification.NotifySource;
 import codex.notification.INotificationService;
 import codex.notification.Message;
@@ -15,8 +17,8 @@ import java.util.Map;
  * Сервис, принимающий задачи на исполнение.
  */
 @NotifySource
-@IContext.Definition(icon = "/images/tasks.png", title = "Task Executor Service")
-public class TaskExecutorService extends AbstractService<TaskServiceOptions> implements ITaskExecutorService {
+@IContext.Definition(id = "TES", name = "Task Executor Service", icon = "/images/tasks.png")
+public class TaskExecutorService extends AbstractService<TaskServiceOptions> implements ITaskExecutorService, IContext {
 
     private final static INotificationService NSS = ServiceRegistry.getInstance().lookupService(INotificationService.class);
 
@@ -35,6 +37,10 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
             }
         }
     };
+
+    static void logEvent(Level level, String message) {
+        Logger.getLogger().log(level, message);
+    }
 
     @Override
     public void startService() {
