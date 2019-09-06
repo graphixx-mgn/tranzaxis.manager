@@ -1,13 +1,13 @@
 package codex.config;
 
+import codex.context.IContext;
 import codex.database.IDatabaseAccessService;
-import codex.log.Logger;
+import codex.log.*;
 import codex.model.Entity;
 import codex.service.AbstractService;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import java.io.File;
-import java.rmi.RemoteException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -24,18 +24,44 @@ import org.sqlite.JDBC;
 import org.sqlite.core.Codes;
 
 /**
- * Реализация интерфейса сервиса загрузки и сохранения данных модели на базе
- * SQLite.
+ * Реализация интерфейса сервиса загрузки и сохранения данных модели на базе SQLite.
  */
-public final class ConfigStoreService extends AbstractService<ConfigServiceOptions> implements IConfigStoreService {
+@IContext.Definition(id = "CAS", name = "Configuration Access Service", icon = "/images/config.png")
+public final class ConfigStoreService extends AbstractService<ConfigServiceOptions> implements IConfigStoreService, IContext {
 
     private Connection connection;
     private final Map<String, TableInfo> tableRegistry = new HashMap<>();
 
+    // Контексты
+    @LoggingSource(debugOption = true)
+    @IContext.Definition(id = "CAS.Dmp", name = "Table structure dump", icon = "/images/dump.png", parent = ConfigStoreService.class)
+    private static class DumpContext implements IContext {
+        static void logEvent(Level level, String message) {
+            Logger.getLogger().log(level, message);
+        }
+    }
+
+    @LoggingSource(debugOption = true)
+    @IContext.Definition(id = "CAS.Sql", name = "Preview SQL queries", icon = "/images/command.png", parent = ConfigStoreService.class)
+    private static class QueryContext implements IContext {
+        static void logEvent(Level level, String message) {
+            Logger.getLogger().log(level, message);
+        }
+    }
+
+    @LoggingSource(debugOption = true)
+    @IContext.Definition(id = "CAS.Ddl", name = "Table structure changes", icon = "/images/maintenance.png", parent = ConfigStoreService.class)
+    private static class DdlContext implements IContext {
+        static void logEvent(Level level, String message) {
+            Logger.getLogger().log(level, message);
+        }
+    }
+
+
     /**
      * Конструктор сервиса.
      */
-    public ConfigStoreService() throws RemoteException {
+    public ConfigStoreService() {
         File configFile = new File(System.getProperty("user.home") + getOption("file"));
         if (!configFile.exists()) {
             configFile.getParentFile().mkdirs();
@@ -58,7 +84,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                                     tableRegistry.put(tableName, new TableInfo(tableName));
                                 }
                             } catch (Exception e) {
-                                Logger.getLogger().error("CAS: Unable to build table registry", e);
+                                Logger.getLogger().error("Unable to build table registry", e);
                             }
                         }
                     }
@@ -67,21 +93,22 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 initClassDef();
             }
         } catch (SQLException e) {
-            Logger.getLogger().error("CAS: Unable to read DB file", e);
+            Logger.getLogger().error("Unable to read DB file", e);
         }
     }
 
     @Override
     public void startService() {
         super.startService();
-        if (getConfig().isShowSQL()) {
-            Logger.getLogger().debug(
-                    "CAS: Table structure dump:\n{0}", 
-                    tableRegistry.values().stream().map((tableInfo) -> {
-                        return MessageFormat.format("[{0}]\n", tableInfo.name).concat(tableInfo.toString());
-                    }).collect(Collectors.joining("\n\n"))
-            );
-        }
+        DumpContext.logEvent(
+                Level.Debug,
+                MessageFormat.format(
+                        "Table structure dump:\n{0}",
+                        tableRegistry.values().stream().map((tableInfo) -> {
+                            return MessageFormat.format("[{0}]\n", tableInfo.name).concat(tableInfo.toString());
+                        }).collect(Collectors.joining("\n\n"))
+                )
+        );
     }
 
     private synchronized void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {
@@ -116,16 +143,17 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         );
         String triggerBI = generateTriggerCode(className, TriggerKind.Before_Insert);
         String triggerBU = generateTriggerCode(className, TriggerKind.Before_Update);
-        
-        if (getConfig().isShowSQL()) {
-            Logger.getLogger().debug(
-                    "CAS: Create table queries:\n{0}", 
-                            "[1] ".concat(createSQL)
-                            .concat("\n[2] ").concat(indexSQL)
-                            .concat("\n[3] ").concat(triggerBI)
-                            .concat("\n[4] ").concat(triggerBU)
-            );
-        }
+
+        QueryContext.logEvent(
+                Level.Debug,
+                MessageFormat.format(
+                        "Create table queries:\n{0}",
+                        "[1] ".concat(createSQL)
+                              .concat("\n[2] ").concat(indexSQL)
+                              .concat("\n[3] ").concat(triggerBI)
+                              .concat("\n[4] ").concat(triggerBU)
+                )
+        );
         
         String registerSQL = "INSERT INTO CLASSDEF (TABLE_NAME, TABLE_CLASS) SELECT ?, ? WHERE NOT EXISTS(SELECT 1 FROM CLASSDEF WHERE TABLE_NAME = ?)";
         
@@ -149,23 +177,30 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             if (!tableRegistry.containsKey(className)) {
                 tableRegistry.put(className, new TableInfo(className));
             }
-            Logger.getLogger().debug(MessageFormat.format("CAS: Created class catalog {0} => {1}: {2}{3}", 
-                    clazz.getCanonicalName(), 
-                    className, 
-                    tableRegistry.get(className).columnInfos.stream()
-                            .map((columnInfo) -> columnInfo.name)
-                            .collect(Collectors.joining(",")),
-                    getConfig().isShowSQL() ? "\n".concat(tableRegistry.get(className).toString()) : ""
-            ));
+            boolean showDump = LogManagementService.checkPermission(DumpContext.class, Level.Debug);
+            DdlContext.logEvent(
+                    Level.Debug,
+                    MessageFormat.format("Created class catalog {0} => {1}: {2}{3}",
+                            clazz.getCanonicalName(),
+                            className,
+                            tableRegistry.get(className).columnInfos.stream()
+                                    .map((columnInfo) -> columnInfo.name)
+                                    .collect(Collectors.joining(",")),
+                            showDump ? "\n".concat(tableRegistry.get(className).toString()) : ""
+                    )
+            );
             connection.releaseSavepoint(savepoint);
             connection.commit();
         } catch (SQLException e) {
-            Logger.getLogger().error("CAS: Unable to create class catalog ''{0}'': {1}", className, e.getMessage());
+            DdlContext.logEvent(
+                    Level.Error,
+                    MessageFormat.format("Unable to create class catalog ''{0}'': {1}", className, e.getMessage())
+            );
             try {
-                Logger.getLogger().warn("CAS: Perform rollback");
+                Logger.getLogger().warn("Perform rollback");
                 connection.rollback(savepoint);
             } catch (SQLException e1) {
-                Logger.getLogger().error("CAS: Unable to rollback database", e1);
+                Logger.getLogger().error("Unable to rollback database", e1);
             }
             throw e;
         }
@@ -214,17 +249,18 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         final String insertSQL = MessageFormat.format(
                 "INSERT INTO {0} (SEQ, PID, OWN) VALUES ((SELECT IFNULL(MAX(SEQ), 0)+1 FROM {0}), ?, ?)", className
         );
-        
-        if (getConfig().isShowSQL()) {
-            Logger.getLogger().debug(
-                    "CAS: Insert query: {0}", 
-                    IDatabaseAccessService.prepareTraceSQL(
-                            MessageFormat.format("INSERT INTO {0} (PID, OWN) VALUES (?, ?)", className), 
-                            PID, 
-                            ownerId
-                    )
-            );
-        }
+
+        QueryContext.logEvent(
+                Level.Debug,
+                MessageFormat.format(
+                        "Insert query: {0}",
+                        IDatabaseAccessService.prepareTraceSQL(
+                                MessageFormat.format("INSERT INTO {0} (PID, OWN) VALUES (?, ?)", className),
+                                PID,
+                                ownerId
+                        )
+                )
+        );
         
         Savepoint savepoint = connection.setSavepoint(className);
         try (
@@ -246,7 +282,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             try (ResultSet updateRS = insert.getGeneratedKeys()) {                        
                 if (updateRS.next()) {
                     Logger.getLogger().debug(MessageFormat.format(
-                            "CAS: Created new catalog {0} entry: #{1}-{2}", className, updateRS.getInt(1), PID
+                            "Created new catalog {0} entry: #{1}-{2}", className, updateRS.getInt(1), PID
                     ));
                     keys.put("ID", updateRS.getInt(1));
                     try (PreparedStatement read = connection.prepareStatement(
@@ -265,12 +301,12 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             connection.commit();
             return keys;
         } catch (SQLException e) {
-            Logger.getLogger().error("CAS: Unable to save instance ''{0}'' to class catalog ''{1}'': {2}", PID, className, e.getMessage());
+            Logger.getLogger().error("Unable to save instance ''{0}'' to class catalog ''{1}'': {2}", PID, className, e.getMessage());
             try {
-                Logger.getLogger().warn("CAS: Perform rollback");
+                Logger.getLogger().warn("Perform rollback");
                 connection.rollback(savepoint);
             } catch (SQLException e1) {
-                Logger.getLogger().error("CAS: Unable to rollback database", e1);
+                Logger.getLogger().error("Unable to rollback database", e1);
             }
             throw e;
         }
@@ -283,9 +319,13 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             final String[] parts   = properties.keySet().toArray(new String[]{});
             
             final String updateSQL = "UPDATE "+className+" SET "+String.join(" = ?, ", parts)+" = ? WHERE ID = ?";
-            if (getConfig().isShowSQL()) {
-                Logger.getLogger().debug("CAS: Update query: {0}", IDatabaseAccessService.prepareTraceSQL(updateSQL, properties.values().toArray(), ID));
-            }
+            QueryContext.logEvent(
+                    Level.Debug,
+                    MessageFormat.format(
+                            "Update query: {0}",
+                            IDatabaseAccessService.prepareTraceSQL(updateSQL, properties.values().toArray(), ID)
+                    )
+            );
             
             Savepoint savepoint = connection.setSavepoint(className);
             try (
@@ -301,18 +341,19 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 update.setInt(properties.size()+1, ID);
                 update.executeUpdate();
 
-                Logger.getLogger().debug(MessageFormat.format(
-                        "CAS: Altered catalog {0} entry: #{1} {2}", className, ID, properties
-                ));
+                Logger.getLogger().debug(
+                "Altered catalog {0} entry: #{1} {2}",
+                        className, ID, properties
+                );
                 connection.releaseSavepoint(savepoint);
                 connection.commit();
             } catch (SQLException e) {
-                Logger.getLogger().error("CAS: Unable to update catalog entry: {0}", e.getMessage());
+                Logger.getLogger().error("Unable to update catalog entry: {0}", e.getMessage());
                 try {
-                    Logger.getLogger().warn("CAS: Perform rollback");
+                    Logger.getLogger().warn("Perform rollback");
                     connection.rollback(savepoint);
                 } catch (SQLException e1) {
-                    Logger.getLogger().error("CAS: Unable to rollback database", e1);
+                    Logger.getLogger().error("Unable to rollback database", e1);
                 }
                 throw e;
             }
@@ -345,10 +386,10 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                         }
                     }
                 } catch (SQLException e) {
-                    Logger.getLogger().error("CAS: Unable to read instance", e);
+                    Logger.getLogger().error("Unable to read instance", e);
                 }
             } catch (SQLException e) {
-                Logger.getLogger().error("CAS: Unable to read instance", e);
+                Logger.getLogger().error("Unable to read instance", e);
             }
         }
         return rowData;
@@ -378,10 +419,10 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                         }
                     }
                 } catch (SQLException e) {
-                    Logger.getLogger().error("CAS: Unable to read instance", e);
+                    Logger.getLogger().error("Unable to read instance", e);
                 }
             } catch (SQLException e) {
-                Logger.getLogger().error("CAS: Unable to read instance", e);
+                Logger.getLogger().error("Unable to read instance", e);
             }
         }
         return rowData;
@@ -408,10 +449,10 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                         rows.put(selectRS.getInt(1), selectRS.getString(2));
                     }
                 } catch (SQLException e) {
-                    Logger.getLogger().error("CAS: Unable to read catalog", e);
+                    Logger.getLogger().error("Unable to read catalog", e);
                 }
             } catch (SQLException e) {
-                Logger.getLogger().error("CAS: Unable to read catalog", e);
+                Logger.getLogger().error("Unable to read catalog", e);
             }
         }
         return rows;
@@ -456,7 +497,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                                             !fkColumnName.toUpperCase().equals("OWN"))
                                     );
                                 } catch (ClassNotFoundException e) {
-                                    Logger.getLogger().warn("CAS: Class '{0}' is not found", entityClassName);
+                                    Logger.getLogger().warn("Class '{0}' is not found", entityClassName);
                                 }
                             }
                         }
@@ -470,13 +511,14 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         final String className = clazz.getSimpleName().toUpperCase();
         String PID = readClassInstance(clazz, ID).get("PID");
         final String deleteSQL = MessageFormat.format("DELETE FROM {0} WHERE ID = ?", className);
-        
-        if (getConfig().isShowSQL()) {
-            Logger.getLogger().debug(
-                    "CAS: Delete query: {0}", 
-                    IDatabaseAccessService.prepareTraceSQL(deleteSQL, ID)
-            );
-        }
+
+        QueryContext.logEvent(
+                Level.Debug,
+                MessageFormat.format(
+                        "Delete query: {0}",
+                        IDatabaseAccessService.prepareTraceSQL(deleteSQL, ID)
+                )
+        );
         
         Savepoint savepoint = connection.setSavepoint(className);
         try (
@@ -488,15 +530,15 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             connection.releaseSavepoint(savepoint);
             connection.commit();
             Logger.getLogger().debug(MessageFormat.format(
-                    "CAS: Deleted catalog {0} entry: #{1}-{2}", className, ID, PID
+                    "Deleted catalog {0} entry: #{1}-{2}", className, ID, PID
             ));
         } catch (SQLException e) {
-            Logger.getLogger().error("CAS: Unable to delete class catalog entry: {0}", e.getMessage());
+            Logger.getLogger().error("Unable to delete class catalog entry: {0}", e.getMessage());
             try {
-                Logger.getLogger().warn("CAS: Perform rollback");
+                Logger.getLogger().warn("Perform rollback");
                 connection.rollback(savepoint);
             } catch (SQLException e1) {
-                Logger.getLogger().error("CAS: Unable to rollback database", e1);
+                Logger.getLogger().error("Unable to rollback database", e1);
             }
             throw e;
         }
@@ -507,7 +549,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         final String className = clazz.getSimpleName().toUpperCase();
         if (!tableRegistry.containsKey(className)) {
             buildClassCatalog(clazz, new HashMap<String, IComplexType>() {{
-                put("OWN", new EntityRef(null));
+                put("OWN", new EntityRef<>(null));
             }});
         }
         Optional<ReferenceInfo> ownReference = tableRegistry.get(className).refInfos.stream()
@@ -615,15 +657,16 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                         );
                     }).collect(Collectors.toList()));
         }
-        
-        if (getConfig().isShowSQL()) {
-            Logger.getLogger().debug(
-                    "CAS: Alter table queries:\n{0}", 
+
+        QueryContext.logEvent(
+                Level.Debug,
+                MessageFormat.format(
+                    "Alter table queries:\n{0}",
                     queries.stream()
                         .map((query) -> "[".concat(Integer.toString(queries.indexOf(query)+1).concat("] ").concat(query)))
                         .collect(Collectors.joining("\n"))
-            );
-        }
+                )
+        );
         
         if (unusedProperties != null && !unusedProperties.isEmpty()) {
             connection.setAutoCommit(true);
@@ -640,12 +683,12 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             connection.releaseSavepoint(savepoint);
             connection.commit();
         } catch (SQLException e) {
-            Logger.getLogger().error("CAS: Unable to reduce class catalog: {0}", e.getMessage());
+            Logger.getLogger().error("Unable to maintain class catalog: {0}", e.getMessage());
             try {
-                Logger.getLogger().warn("CAS: Perform rollback");
+                Logger.getLogger().warn("Perform rollback");
                 connection.rollback(savepoint);
             } catch (SQLException e1) {
-                Logger.getLogger().error("CAS: Unable to rollback database", e1);
+                Logger.getLogger().error("Unable to rollback database", e1);
             }
             throw e;
         } finally {
@@ -677,10 +720,13 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         }
 
         tableRegistry.put(className, new TableInfo(className));
-        Logger.getLogger().debug(MessageFormat.format("CAS: Catalog {0} maintainance complete:\n{1}{2}", 
-                    className,
-                    joiner.toString(),
-                    getConfig().isShowSQL() ? "\n".concat(tableRegistry.get(className).toString()) : ""
+        boolean showDump = LogManagementService.checkPermission(DumpContext.class, Level.Debug);
+        DdlContext.logEvent(
+                Level.Debug,
+                MessageFormat.format("Catalog {0} maintenance complete:\n{1}{2}",
+                        className,
+                        joiner.toString(),
+                        showDump ? "\n".concat(tableRegistry.get(className).toString()) : ""
                 )
         );
     }
@@ -719,10 +765,10 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
 //                        IDs.add(selectRS.getInt(1));
 //                    }
 //                } catch (SQLException e) {
-//                    Logger.getLogger().error("CAS: Unable to read catalog", e);
+//                    Logger.getLogger().error("Unable to read catalog", e);
 //                }
 //            } catch (SQLException e) {
-//                Logger.getLogger().error("CAS: Unable to read catalog", e);
+//                Logger.getLogger().error("Unable to read catalog", e);
 //            }
 //        }
 //        return IDs;
@@ -762,7 +808,10 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             statement.execute(createSQL);
             connection.commit();
         } catch (SQLException e) {
-            Logger.getLogger().error("CAS: Unable to create class definition table", e);
+            DdlContext.logEvent(
+                    Level.Error,
+                    MessageFormat.format("Unable to create class definition table:\n{0}", e)
+            );
         }
     } 
     
@@ -787,7 +836,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             if ((refClazz = ((EntityRef) propVal).getEntityClass()) != null) {
                 if (!tableRegistry.containsKey(refClazz.getSimpleName().toUpperCase())) {
                     buildClassCatalog(refClazz, new HashMap<String, IComplexType>() {{
-                        put("OWN", new EntityRef(null));
+                        put("OWN", new EntityRef<>(null));
                     }});
                 }
                 joiner.add(
@@ -824,7 +873,6 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         );
     }
 
-
     private class TableInfo {
         
         final String name;
@@ -846,7 +894,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 if (rs.next()) {
                     return rs.getString("COLUMN_NAME");
                 } else {
-                    return "< not defined>";
+                    return "<not defined>";
                 }
             }
         }
