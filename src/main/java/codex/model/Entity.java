@@ -79,7 +79,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         this.hint  = hint;
         this.model = new EntityModel(
                 owner,
-                this.getClass(), 
+                this.getClass().asSubclass(Entity.class),
                 PID
         ) {
             @Override

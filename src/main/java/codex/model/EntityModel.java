@@ -30,23 +30,25 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public final static String SEQ  = "SEQ";  // Order sequence number
     public final static String PID  = "PID";  // Title or name
     public final static String OVR  = "OVR";  // List of overridden values
-    public final static String THIS = "THIS"; // List of overridden values
+    public final static String THIS = "THIS"; // Reference to the entity object
     
     private static final Boolean      DEV_MODE  = "1".equals(java.lang.System.getProperty("showSysProps"));
     public  final static List<String> SYSPROPS  = Arrays.asList(ID, OWN, SEQ, PID, OVR);
     private final static IExplorerAccessService EAS = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class);
     
-    private final Class           entityClass;
-    private final DynamicResolver dynamicResolver = new DynamicResolver();
-    private final List<String>    dynamicProps    = new LinkedList<>();
-    private final UndoRegistry    undoRegistry    = new UndoRegistry();
+    private final Class<? extends Entity>       entityClass;
+    private final List<String>                  bootProps;
+    private final DynamicResolver               dynamicResolver = new DynamicResolver();
+    private final List<String>                  dynamicProps    = new LinkedList<>();
+    private final UndoRegistry                  undoRegistry    = new UndoRegistry();
     private final Map<String, String>           databaseValues;
     private final Map<String, Object>           initialValues   = new HashMap<>();
     private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
     private final List<IModelListener>          modelListeners  = new LinkedList<>();
     
-    EntityModel(EntityRef owner, Class entityClass, String PID) {
+    EntityModel(EntityRef owner, Class<? extends Entity> entityClass, String PID) {
         this.entityClass = entityClass;
+        this.bootProps   = getBootProps();
         Integer ownerId = owner == null ? null : owner.getId();
         this.databaseValues = getConfigService().readClassInstance(entityClass, PID, ownerId);
         
@@ -83,6 +85,21 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         
         addPropertyGroup("System properties", ID, SEQ, OWN, OVR);
         setPropUnique(EntityModel.PID);
+    }
+
+    private List<String> getBootProps() {
+        return Arrays.stream(entityClass.getDeclaredFields())
+                .filter(field -> field.getAnnotation(Bootstrap.BootProperty.class) != null)
+                .map(field -> {
+                    field.setAccessible(true);
+                    try {
+                        return (String) field.get(this);
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                        return null;
+                    }
+                })
+                .collect(Collectors.toList());
     }
 
     private IConfigStoreService getConfigService() {
@@ -158,7 +175,15 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             );
         }
         super.addProperty(propHolder, restriction);
-        getProperty(propHolder.getName()).addChangeListener(this);
+        propHolder.addChangeListener(this);
+        if (bootProps.contains(propHolder.getName())) {
+            Bootstrap.setProperty(
+                    entityClass,
+                    getPID(false),
+                    propHolder.getName(),
+                    propHolder.getOwnPropValue().toString()
+            );
+        }
     }
     
     /**
@@ -170,10 +195,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * селекторе.
      */
     public final void addUserProp(String name, ISerializableType value, boolean require, Access restriction) {
-        addProperty(name, value, require, restriction);
+        PropertyHolder propHolder = new PropertyHolder<>(name, value, require);
         if (databaseValues != null && databaseValues.get(name) != null) {
-            getProperty(name).getPropValue().valueOf(databaseValues.get(name));
+            propHolder.getPropValue().valueOf(databaseValues.get(name));
         }
+        addProperty(propHolder, restriction);
     }
     
     /**
@@ -186,10 +212,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         if (!ISerializableType.class.isAssignableFrom(propHolder.getType())) {
             throw new IllegalStateException("It is not allowed to create user property of not serializable type '"+propHolder.getType()+"'");
         }
-        addProperty(propHolder, restriction);
         if (databaseValues != null && databaseValues.get(propHolder.getName()) != null) {
-            getProperty(propHolder.getName()).getPropValue().valueOf(databaseValues.get(propHolder.getName()));
+            propHolder.getPropValue().valueOf(databaseValues.get(propHolder.getName()));
         }
+        addProperty(propHolder, restriction);
     }
 
     /**
@@ -213,7 +239,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public final boolean isPropertyExtra(String propName) {
         if (!properties.containsKey(propName)) {
             throw new IllegalStateException(
-                    MessageFormat.format("Model already has property ''{0}''", propName)
+                    MessageFormat.format("Model does not have property ''{0}''", propName)
             );
         }
         return Access.Extra.equals(restrictions.get(propName));
@@ -590,6 +616,14 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 changes.forEach(propName -> {
                     if (undoRegistry.exists(propName)) {
                         undoRegistry.put(propName, undoRegistry.current(propName), undoRegistry.previous(propName));
+                    }
+                    if (bootProps.contains(propName)) {
+                        Bootstrap.setProperty(
+                                entityClass,
+                                getPID(false),
+                                propName,
+                                getProperty(propName).getOwnPropValue().toString()
+                        );
                     }
                 });
             }
