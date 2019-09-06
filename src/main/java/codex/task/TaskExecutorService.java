@@ -1,8 +1,6 @@
 package codex.task;
 
 import codex.context.IContext;
-import codex.log.Level;
-import codex.log.Logger;
 import codex.notification.NotifySource;
 import codex.notification.INotificationService;
 import codex.notification.Message;
@@ -12,6 +10,8 @@ import codex.utils.Language;
 import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Сервис, принимающий задачи на исполнение.
@@ -37,10 +37,6 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
             }
         }
     };
-
-    static void logEvent(Level level, String message) {
-        Logger.getLogger().log(level, message);
-    }
 
     @Override
     public void startService() {
@@ -101,7 +97,12 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
                 task.addListener(notifyListener);
             }
         }
-        kind.getExecutor().submit(task);
+        Callable<Object> r = () -> execute(task);
+        kind.getExecutor().submit(r);
     }
 
+    private static Object execute(ITask task) throws ExecutionException, InterruptedException {
+        task.run();
+        return task.get();
+    }
 }
