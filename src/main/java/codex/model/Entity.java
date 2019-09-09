@@ -361,12 +361,12 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 (oldValue != null && newValue == null) ||
                 (oldValue != null && !oldValue.equals(newValue))
         ) {
-            Logger.getLogger().debug(
-                    "Property ''{0}@{1}'' has been changed: {2} -> {3}", 
-                    model.getQualifiedName(), name, 
+            EntityModel.OrmContext.debug(
+                    "Property ''{0}@{1}'' has been changed: {2} -> {3}",
+                    model.getQualifiedName(), name,
                     model.getProperty(name).getPropValue().getQualifiedValue(
                             oldValue instanceof IComplexType ? ((IComplexType) oldValue).getValue() : oldValue
-                    ), 
+                    ),
                     model.getProperty(name).getPropValue().getQualifiedValue(
                             newValue instanceof IComplexType ? ((IComplexType) newValue).getValue() : newValue
                     )
