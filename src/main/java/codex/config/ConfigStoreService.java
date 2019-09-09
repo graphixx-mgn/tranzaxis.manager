@@ -34,26 +34,32 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
 
     // Контексты
     @LoggingSource(debugOption = true)
-    @IContext.Definition(id = "CAS.Dmp", name = "Table structure dump", icon = "/images/dump.png", parent = ConfigStoreService.class)
+    @IContext.Definition(id = "CAS.Dmp", name = "Show tables information", icon = "/images/dump.png", parent = ConfigStoreService.class)
     private static class DumpContext implements IContext {
-        static void logEvent(Level level, String message) {
-            Logger.getLogger().log(level, message);
+        static void debug(String message, Object... params) {
+            Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
         }
-    }
-
-    @LoggingSource(debugOption = true)
-    @IContext.Definition(id = "CAS.Sql", name = "Preview SQL queries", icon = "/images/command.png", parent = ConfigStoreService.class)
-    private static class QueryContext implements IContext {
-        static void logEvent(Level level, String message) {
-            Logger.getLogger().log(level, message);
+        static boolean allowed() {
+            return LogManagementService.checkPermission(DumpContext.class, Level.Debug);
         }
     }
 
     @LoggingSource(debugOption = true)
     @IContext.Definition(id = "CAS.Ddl", name = "Table structure changes", icon = "/images/maintenance.png", parent = ConfigStoreService.class)
     private static class DdlContext implements IContext {
-        static void logEvent(Level level, String message) {
-            Logger.getLogger().log(level, message);
+        static void debug(String message, Object... params) {
+            Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
+        }
+        static void error(String message, Throwable exception) {
+            Logger.getLogger().error(message, exception);
+        }
+    }
+
+    @LoggingSource(debugOption = true)
+    @IContext.Definition(id = "CAS.Sql", name = "Preview SQL queries", icon = "/images/command.png", parent = ConfigStoreService.class)
+    private static class QueryContext implements IContext {
+        static void debug(String message, Object... params) {
+            Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
         }
     }
 
@@ -100,14 +106,11 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     @Override
     public void startService() {
         super.startService();
-        DumpContext.logEvent(
-                Level.Debug,
-                MessageFormat.format(
-                        "Table structure dump:\n{0}",
-                        tableRegistry.values().stream().map((tableInfo) -> {
-                            return MessageFormat.format("[{0}]\n", tableInfo.name).concat(tableInfo.toString());
-                        }).collect(Collectors.joining("\n\n"))
-                )
+        DumpContext.debug(
+                "Table structure dump:\n{0}",
+                tableRegistry.values().stream().map((tableInfo) -> {
+                    return MessageFormat.format("[{0}]\n", tableInfo.name).concat(tableInfo.toString());
+                }).collect(Collectors.joining("\n\n"))
         );
     }
 
@@ -144,15 +147,12 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         String triggerBI = generateTriggerCode(className, TriggerKind.Before_Insert);
         String triggerBU = generateTriggerCode(className, TriggerKind.Before_Update);
 
-        QueryContext.logEvent(
-                Level.Debug,
-                MessageFormat.format(
-                        "Create table queries:\n{0}",
-                        "[1] ".concat(createSQL)
-                              .concat("\n[2] ").concat(indexSQL)
-                              .concat("\n[3] ").concat(triggerBI)
-                              .concat("\n[4] ").concat(triggerBU)
-                )
+        QueryContext.debug(
+            "Create table queries:\n{0}",
+            "[1] ".concat(createSQL)
+                  .concat("\n[2] ").concat(indexSQL)
+                  .concat("\n[3] ").concat(triggerBI)
+                  .concat("\n[4] ").concat(triggerBU)
         );
         
         String registerSQL = "INSERT INTO CLASSDEF (TABLE_NAME, TABLE_CLASS) SELECT ?, ? WHERE NOT EXISTS(SELECT 1 FROM CLASSDEF WHERE TABLE_NAME = ?)";
@@ -177,25 +177,19 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             if (!tableRegistry.containsKey(className)) {
                 tableRegistry.put(className, new TableInfo(className));
             }
-            boolean showDump = LogManagementService.checkPermission(DumpContext.class, Level.Debug);
-            DdlContext.logEvent(
-                    Level.Debug,
-                    MessageFormat.format("Created class catalog {0} => {1}: {2}{3}",
-                            clazz.getCanonicalName(),
-                            className,
-                            tableRegistry.get(className).columnInfos.stream()
-                                    .map((columnInfo) -> columnInfo.name)
-                                    .collect(Collectors.joining(",")),
-                            showDump ? "\n".concat(tableRegistry.get(className).toString()) : ""
-                    )
+            DdlContext.debug(
+            "Created class catalog {0} => {1}: {2}{3}",
+                    clazz.getCanonicalName(),
+                    className,
+                    tableRegistry.get(className).columnInfos.stream()
+                            .map((columnInfo) -> columnInfo.name)
+                            .collect(Collectors.joining(",")),
+                    DumpContext.allowed() ? "\n".concat(tableRegistry.get(className).toString()) : ""
             );
             connection.releaseSavepoint(savepoint);
             connection.commit();
         } catch (SQLException e) {
-            DdlContext.logEvent(
-                    Level.Error,
-                    MessageFormat.format("Unable to create class catalog ''{0}'': {1}", className, e.getMessage())
-            );
+            DdlContext.error(MessageFormat.format("Unable to create class catalog ''{0}''", className), e);
             try {
                 Logger.getLogger().warn("Perform rollback");
                 connection.rollback(savepoint);
@@ -250,15 +244,12 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 "INSERT INTO {0} (SEQ, PID, OWN) VALUES ((SELECT IFNULL(MAX(SEQ), 0)+1 FROM {0}), ?, ?)", className
         );
 
-        QueryContext.logEvent(
-                Level.Debug,
-                MessageFormat.format(
-                        "Insert query: {0}",
-                        IDatabaseAccessService.prepareTraceSQL(
-                                MessageFormat.format("INSERT INTO {0} (PID, OWN) VALUES (?, ?)", className),
-                                PID,
-                                ownerId
-                        )
+        QueryContext.debug(
+                "Insert query: {0}",
+                IDatabaseAccessService.prepareTraceSQL(
+                        MessageFormat.format("INSERT INTO {0} (PID, OWN) VALUES (?, ?)", className),
+                        PID,
+                        ownerId
                 )
         );
         
@@ -319,12 +310,9 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             final String[] parts   = properties.keySet().toArray(new String[]{});
             
             final String updateSQL = "UPDATE "+className+" SET "+String.join(" = ?, ", parts)+" = ? WHERE ID = ?";
-            QueryContext.logEvent(
-                    Level.Debug,
-                    MessageFormat.format(
-                            "Update query: {0}",
-                            IDatabaseAccessService.prepareTraceSQL(updateSQL, properties.values().toArray(), ID)
-                    )
+            QueryContext.debug(
+                    "Update query: {0}",
+                    IDatabaseAccessService.prepareTraceSQL(updateSQL, properties.values().toArray(), ID)
             );
             
             Savepoint savepoint = connection.setSavepoint(className);
@@ -512,12 +500,9 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         String PID = readClassInstance(clazz, ID).get("PID");
         final String deleteSQL = MessageFormat.format("DELETE FROM {0} WHERE ID = ?", className);
 
-        QueryContext.logEvent(
-                Level.Debug,
-                MessageFormat.format(
-                        "Delete query: {0}",
-                        IDatabaseAccessService.prepareTraceSQL(deleteSQL, ID)
-                )
+        QueryContext.debug(
+                "Delete query: {0}",
+                IDatabaseAccessService.prepareTraceSQL(deleteSQL, ID)
         );
         
         Savepoint savepoint = connection.setSavepoint(className);
@@ -658,14 +643,11 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                     }).collect(Collectors.toList()));
         }
 
-        QueryContext.logEvent(
-                Level.Debug,
-                MessageFormat.format(
-                    "Alter table queries:\n{0}",
-                    queries.stream()
-                        .map((query) -> "[".concat(Integer.toString(queries.indexOf(query)+1).concat("] ").concat(query)))
-                        .collect(Collectors.joining("\n"))
-                )
+        QueryContext.debug(
+                "Alter table queries:\n{0}",
+                queries.stream()
+                    .map((query) -> "[".concat(Integer.toString(queries.indexOf(query)+1).concat("] ").concat(query)))
+                    .collect(Collectors.joining("\n"))
         );
         
         if (unusedProperties != null && !unusedProperties.isEmpty()) {
@@ -720,14 +702,11 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         }
 
         tableRegistry.put(className, new TableInfo(className));
-        boolean showDump = LogManagementService.checkPermission(DumpContext.class, Level.Debug);
-        DdlContext.logEvent(
-                Level.Debug,
-                MessageFormat.format("Catalog {0} maintenance complete:\n{1}{2}",
-                        className,
-                        joiner.toString(),
-                        showDump ? "\n".concat(tableRegistry.get(className).toString()) : ""
-                )
+        DdlContext.debug(
+        "Catalog {0} maintenance complete:\n{1}{2}",
+                className,
+                joiner.toString(),
+                DumpContext.allowed() ? "\n".concat(tableRegistry.get(className).toString()) : ""
         );
     }
 
@@ -808,10 +787,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             statement.execute(createSQL);
             connection.commit();
         } catch (SQLException e) {
-            DdlContext.logEvent(
-                    Level.Error,
-                    MessageFormat.format("Unable to create class definition table:\n{0}", e)
-            );
+            DdlContext.error("Unable to create class definition table", e);
         }
     } 
     
