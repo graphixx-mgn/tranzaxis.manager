@@ -1,7 +1,11 @@
 package codex.database;
 
+import codex.context.IContext;
+import codex.log.Level;
+import codex.log.LogManagementService;
 import codex.log.Logger;
 import java.sql.*;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -9,6 +13,7 @@ import javax.sql.DataSource;
 import javax.sql.RowSet;
 import javax.sql.RowSetEvent;
 import javax.sql.RowSetListener;
+import codex.log.LoggingSource;
 import codex.service.AbstractService;
 import oracle.jdbc.rowset.OracleJDBCRowSet;
 import oracle.ucp.jdbc.PoolDataSource;
@@ -18,7 +23,8 @@ import oracle.ucp.jdbc.PoolDataSourceFactory;
  * Реализация сервиса взаимодействия с базой данных Oracle с поддержкой пула 
  * соедиений.
  */
-public class OracleAccessService extends AbstractService<OracleAccessOptions> implements IDatabaseAccessService {
+@IContext.Definition(id = "DAS", name = "Database Access Service", icon = "/images/database.png")
+public class OracleAccessService extends AbstractService<OracleAccessOptions> implements IDatabaseAccessService, IContext {
     
     private final static OracleAccessService INSTANCE = new OracleAccessService();
     
@@ -27,7 +33,21 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
      */
     public static OracleAccessService getInstance() {
         return INSTANCE;
-    } 
+    }
+
+    @LoggingSource(debugOption = true)
+    @IContext.Definition(id = "DAS.Sql", name = "Preview SQL queries", icon = "/images/command.png", parent = OracleAccessService.class)
+    private static class QueryContext implements IContext {
+        static void debug(String message, Object... params) {
+            Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
+        }
+        static void info(String message, Object... params) {
+            Logger.getLogger().log(Level.Info, MessageFormat.format(message, params));
+        }
+        static boolean allowed() {
+            return LogManagementService.checkPermission(QueryContext.class, Level.Debug);
+        }
+    }
     
     private OracleAccessService() {}
     
@@ -54,7 +74,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
 
                     urlToIdMap.put(PID, SEQ.incrementAndGet());
                     idToPoolMap.put(SEQ.get(), pds);
-                    Logger.getLogger().debug("OAS: Registered new connection #{0}: URL={1}, User={2}", SEQ.get(), url, user);
+                    Logger.getLogger().debug("Registered new connection #{0}: URL={1}, User={2}", SEQ.get(), url, user);
                     return SEQ.get();
                 } catch (SQLException e) {
                     throw new SQLException(getCause(e).getMessage().trim());
@@ -69,12 +89,10 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
     public ResultSet select(Integer connectionID, String query, Object... params) throws SQLException {
         try {
             final RowSet rowSet = prepareSet(connectionID);
-            if (getConfig().isShowSQL()) {
-                Logger.getLogger().debug(
-                        "OAS: Select query: {0} (connection #{1})", 
-                        IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
-                );
-            }
+            QueryContext.debug(
+                    "Select query: {0} (connection #{1})",
+                    IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
+            );
             rowSet.setCommand(query);
             if (params != null) {
                 int paramIdx = 0;
@@ -86,24 +104,21 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
             rowSet.execute();
             return rowSet;
         } catch (SQLException e) {
-            if (!getConfig().isShowSQL()) {
-                Logger.getLogger().debug(
-                        "OAS: Select query: {0} (connection #{1})",
-                        IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
-                );
-            }
+            Logger.getLogger().error(
+                    "Unable to execute query: {0}{1}",
+                    e.getMessage(),
+                    IDatabaseAccessService.prepareTraceSQL(query, params)
+            );
             throw new SQLException(getCause(e).getMessage().trim());
         }
     }
 
     @Override
     public synchronized void update(Integer connectionID, String query, Object... params) throws SQLException {
-        if (getConfig().isShowSQL()) {
-            Logger.getLogger().debug(
-                    "OAS: Update query: {0} (connection #{1})",
-                    IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
-            );
-        }
+        QueryContext.debug(
+                "Update query: {0} (connection #{1})",
+                IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
+        );
         Connection connection = idToPoolMap.get(connectionID).getConnection();
         connection.setAutoCommit(false);
         Savepoint savepoint = connection.setSavepoint();
@@ -121,13 +136,16 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
             update.executeUpdate();
             connection.commit();
         } catch (SQLException e) {
-            e.printStackTrace();
-            Logger.getLogger().error("OAS: Unable to execute update query: {0}", e.getMessage());
+            Logger.getLogger().error(
+                    "Unable to execute update query: {0}{1}",
+                    e.getMessage(),
+                    IDatabaseAccessService.prepareTraceSQL(query, params)
+            );
             try {
-                Logger.getLogger().warn("OAS: Perform rollback");
+                Logger.getLogger().warn("Perform rollback");
                 connection.rollback(savepoint);
             } catch (SQLException e1) {
-                Logger.getLogger().error("OAS: Unable to rollback database", e1);
+                Logger.getLogger().error("Unable to rollback database", e1);
             }
             throw new SQLException(getCause(e).getMessage().trim());
         } finally {
@@ -161,7 +179,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
             throwable = throwable.getCause();
         }
         return throwable;
-    };
+    }
     
     private abstract class RowSetAdapter implements RowSetListener {
 

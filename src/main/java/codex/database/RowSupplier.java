@@ -40,7 +40,7 @@ public class RowSupplier implements IDataSupplier<Map<String, String>> {
     @Override
     public List<Map<String, String>> getNext() throws LoadDataException {
         List<Map<String, String>> result = new LinkedList<>();
-        IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
+        IDatabaseAccessService DAS = ServiceRegistry.getInstance().lookupService(IDatabaseAccessService.class);
 
         try (ResultSet resultSet = DAS.select(connection.get(), prepareQuery(query), parameters.get())) {
             ResultSetMetaData meta = resultSet.getMetaData();
