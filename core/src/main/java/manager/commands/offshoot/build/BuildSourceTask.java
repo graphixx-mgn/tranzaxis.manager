@@ -155,8 +155,8 @@ public class BuildSourceTask extends AbstractTask<Error> {
         Process process = builder.start();
         addListener(new ITaskListener() {
             @Override
-            public void statusChanged(ITask task, Status status) {
-                if (status.equals(Status.CANCELLED)) {
+            public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
+                if (nextStatus.equals(Status.CANCELLED)) {
                     process.destroy();
                 }
             }
@@ -355,9 +355,9 @@ public class BuildSourceTask extends AbstractTask<Error> {
         }
 
         @Override
-        public void statusChanged(ITask task, Status taskStatus) {
-            super.statusChanged(task, taskStatus);
-            if (taskStatus.equals(Status.FAILED) && eventsList.stream().anyMatch(event -> event.getSeverity() == RadixProblem.ESeverity.ERROR)) {
+        public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
+            super.statusChanged(task, prevStatus, nextStatus);
+            if (nextStatus.equals(Status.FAILED) && eventsList.stream().anyMatch(event -> event.getSeverity() == RadixProblem.ESeverity.ERROR)) {
                 showWarnings.setSelected(false);
             }
         }

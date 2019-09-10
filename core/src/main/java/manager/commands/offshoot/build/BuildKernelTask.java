@@ -149,8 +149,8 @@ public class BuildKernelTask extends AbstractTask<Void> {
         Process process = builder.start();
         addListener(new ITaskListener() {
             @Override
-            public void statusChanged(ITask task, Status status) {
-                if (status.equals(Status.CANCELLED)) {
+            public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
+                if (nextStatus.equals(Status.CANCELLED)) {
                     process.destroy();
                 }
             }

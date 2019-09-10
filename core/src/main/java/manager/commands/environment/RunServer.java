@@ -15,7 +15,7 @@ import java.util.Map;
 
 public class RunServer extends EntityCommand<Environment> {
     
-    private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
+    private static final ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
 
     public RunServer() {
         super(
@@ -75,8 +75,8 @@ public class RunServer extends EntityCommand<Environment> {
 
             addListener(new ITaskListener() {
                 @Override
-                public void statusChanged(ITask task, Status status) {
-                    if (status.equals(Status.CANCELLED)) {
+                public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
+                    if (nextStatus.equals(Status.CANCELLED)) {
                         process.destroy();
                     }
                 }
