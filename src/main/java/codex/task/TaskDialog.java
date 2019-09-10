@@ -95,7 +95,7 @@ class TaskDialog extends Dialog implements ITaskMonitor {
     }
 
     @Override
-    public void statusChanged(ITask task, Status status) {
+    public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
         Collection<ITask> tasks = new HashSet<>(taskViews.keySet());
         long running  = tasks.stream().filter(queued -> !queued.getStatus().isFinal()).count();
         long stopped  = tasks.stream().filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED).count();
@@ -112,7 +112,7 @@ class TaskDialog extends Dialog implements ITaskMonitor {
             public void accept(ITask context) {
                 context.cancel(true);
                 unregisterTask(context);
-                statusChanged(context, context.getStatus());
+                statusChanged(context, context.getStatus(), context.getStatus());
             }
         }));
         taskViewList.add(taskViews.get(task));
@@ -143,7 +143,7 @@ class TaskDialog extends Dialog implements ITaskMonitor {
     @Override
     public void clearRegistry() {
         new HashSet<>(taskViews.keySet()).forEach(this::unregisterTask);
-        statusChanged(null, null);
+        statusChanged(null, null, null);
     }
 
     private ITaskMonitor taskRecipient;

@@ -85,8 +85,8 @@ final class GroupTaskView extends AbstractTaskView {
             });
             main.addListener(new ITaskListener() {
                 @Override
-                public void statusChanged(ITask task, Status status) {
-                    if (status.isFinal()) {
+                public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
+                    if (nextStatus.isFinal()) {
                         pause.setEnabled(false);
                     }
                 }
@@ -104,7 +104,7 @@ final class GroupTaskView extends AbstractTaskView {
             subTasks.add(view);
             views.put(subTask, view);
             subTask.addListener(this);
-            statusChanged(subTask, subTask.getStatus());
+            statusChanged(subTask, subTask.getStatus(), subTask.getStatus());
         });
         
         add(mainTitle, BorderLayout.CENTER);
@@ -114,7 +114,7 @@ final class GroupTaskView extends AbstractTaskView {
         main.addListener(new ITaskListener() {
             
             @Override
-            public void statusChanged(ITask task, Status status) {
+            public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
                 mainTitle.setIcon(mainTask.getStatus().getIcon());
                 mainProgress.setForeground(
                     task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
@@ -130,7 +130,7 @@ final class GroupTaskView extends AbstractTaskView {
     }
 
     @Override
-    public void statusChanged(ITask task, Status status) {
+    public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
         views.get(task).setBorder(new CompoundBorder(
                 new EmptyBorder(new Insets(2, 5, 0, 0)), 
                 new CompoundBorder(

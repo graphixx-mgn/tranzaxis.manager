@@ -67,8 +67,8 @@ public class TaskView extends AbstractTaskView {
             });
             task.addListener(new ITaskListener() {
                 @Override
-                public void statusChanged(ITask task, Status status) {
-                    if (status.isFinal()) {
+                public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
+                    if (nextStatus.isFinal()) {
                         pause.setEnabled(false);
                     }
                 }
@@ -86,11 +86,11 @@ public class TaskView extends AbstractTaskView {
             progress.setString(formatDuration(((AbstractTask) task).getDuration()));
         });
         updater.setInitialDelay(0);
-        statusChanged(task, task.getStatus());
+        statusChanged(task, task.getStatus(), task.getStatus());
     }
     
     @Override
-    public void statusChanged(ITask task, Status taskStatus) {
+    public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
         title.setIcon(task.getStatus().getIcon());
         status.setText(task.getDescription());
         status.setForeground(

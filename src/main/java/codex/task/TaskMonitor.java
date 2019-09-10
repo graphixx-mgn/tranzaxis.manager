@@ -82,7 +82,7 @@ final class TaskMonitor extends JPopupMenu implements ITaskMonitor {
     }
 
     @Override
-    public void statusChanged(ITask task, Status status) {
+    public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
         Collection<ITask> tasks = new HashSet<>(taskViews.keySet());
         long running  = tasks.stream().filter(queued -> !queued.getStatus().isFinal()).count();
         long stopped  = tasks.stream().filter(queued -> queued.getStatus() == Status.CANCELLED || queued.getStatus() == Status.FAILED).count();
@@ -116,12 +116,12 @@ final class TaskMonitor extends JPopupMenu implements ITaskMonitor {
                     context.cancel(true);
                 } else {
                     unregisterTask(context);
-                    statusChanged(context, context.getStatus());
+                    statusChanged(context, context.getStatus(), context.getStatus());
                 }
             }
         }));
         taskViewList.add(taskViews.get(task));
-        statusChanged(task, task.getStatus());
+        statusChanged(task, task.getStatus(), task.getStatus());
     }
 
     @Override
@@ -139,7 +139,7 @@ final class TaskMonitor extends JPopupMenu implements ITaskMonitor {
     @Override
     public void clearRegistry() {
         new HashSet<>(taskViews.keySet()).forEach(this::unregisterTask);
-        statusChanged(null, null);
+        statusChanged(null, null, null);
     }
 
     private int getTotalProgress(Collection<ITask> tasks) {
