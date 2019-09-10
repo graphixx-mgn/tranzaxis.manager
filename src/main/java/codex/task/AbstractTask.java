@@ -73,17 +73,12 @@ public abstract class AbstractTask<T> implements ITask<T> {
                 if (isCancelled() && status != Status.CANCELLED) {
                     setStatus(Status.CANCELLED);
                 }
-            } catch (ExecuteException e) {
-                setProgress(percent, MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
-                setStatus(Status.FAILED);
-                Logger.getLogger().error(e.getDescription());
-                throw e;
             } catch (InterruptedException e) {
                 //
             } catch (Throwable e) {
                 setProgress(percent, MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
                 setStatus(Status.FAILED);
-                Logger.getLogger().warn("Error on task execution", e);
+                Logger.getLogger().warn(MessageFormat.format("Error on task ''{0}'' execution", getTitle()), e);
                 throw e;
             } finally {
                 LoggerContext.leaveLoggerContext();
@@ -231,7 +226,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
     /**
      * Возвращает общее время исполнения задачи, учитывая приостановку.
      */
-    public final long getDuration() {
+    protected final long getDuration() {
         if (startTime == null) {
             return 0;
         } else {
@@ -259,26 +254,9 @@ public abstract class AbstractTask<T> implements ITask<T> {
         if (state.isFinal()) {
             stopTime = LocalDateTime.now();
         }
-        if (!this.status.equals(state)) {
-            Logger.getLogger().debug(
-                    "Task ''{0}'' state changed: {1} -> {2}{3}",
-                    getTitle(),
-                    this.status,
-                    state,
-                    state.isFinal() ? MessageFormat.format(" (duration: {0})", TaskView.formatDuration(getDuration())) : ""
-            );
-            if (this.status == Status.CANCELLED && state == Status.FINISHED) {
-                throw new IllegalStateException(
-                        MessageFormat.format(
-                                "Incorrect state change: {0} -> {1}",
-                        this.status, state        
-                ));
-            }
-        }
+        Status prevStatus = this.status;
         this.status = state;
-        new LinkedList<>(listeners).forEach((listener) -> {
-            listener.statusChanged(this, status);
-        });
+        new LinkedList<>(listeners).forEach((listener) -> listener.statusChanged(this, prevStatus, status));
     }
     
     @Override
@@ -364,19 +342,19 @@ public abstract class AbstractTask<T> implements ITask<T> {
 
             paneAppender.setThreshold(Priority.INFO);
             paneAppender.setLayout(new PatternLayout("%m%n"));
-            Logger.getLogger().addAppender(paneAppender);
-
-            Style style = infoPane.getStyle(Level.INFO.toString());
-            StyleConstants.setForeground(style, Color.GRAY);
-
-            task.addListener(new ITaskListener() {
-                @Override
-                public void statusChanged(ITask task, Status status) {
-                    if (status.isFinal()) {
-                        Logger.getLogger().removeAppender(paneAppender);
-                    }
-                }
-            });
+//            Logger.getLogger().addAppender(paneAppender);
+//
+//            Style style = infoPane.getStyle(Level.INFO.toString());
+//            StyleConstants.setForeground(style, Color.GRAY);
+//
+//            task.addListener(new ITaskListener() {
+//                @Override
+//                public void statusChanged(ITask task, Status status) {
+//                    if (status.isFinal()) {
+//                        Logger.getLogger().removeAppender(paneAppender);
+//                    }
+//                }
+//            });
         }
     }
 }

@@ -1,6 +1,7 @@
 package codex.task;
 
 import codex.context.IContext;
+import codex.log.Logger;
 import codex.notification.NotifySource;
 import codex.notification.INotificationService;
 import codex.notification.Message;
@@ -8,6 +9,7 @@ import codex.notification.TrayInformer;
 import codex.service.*;
 import codex.utils.Language;
 import java.awt.*;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -18,7 +20,7 @@ import java.util.concurrent.ExecutionException;
  */
 @NotifySource
 @IContext.Definition(id = "TES", name = "Task Executor Service", icon = "/images/tasks.png")
-public class TaskExecutorService extends AbstractService<TaskServiceOptions> implements ITaskExecutorService, IContext {
+public class TaskExecutorService extends AbstractService<TaskServiceOptions> implements ITaskExecutorService, IContext, ITaskListener {
 
     private final static INotificationService NSS = ServiceRegistry.getInstance().lookupService(INotificationService.class);
 
@@ -26,8 +28,8 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
     private final TaskDialog taskDialog = new TaskDialog(null);
     private final ITaskListener notifyListener = new ITaskListener() {
         @Override
-        public void statusChanged(ITask task, Status status) {
-            if (status == Status.FAILED || status == Status.FINISHED) {
+        public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
+            if (nextStatus == Status.FAILED || nextStatus == Status.FINISHED) {
                 NSS.sendMessage(TrayInformer.getInstance(), new Message(
                         task.getStatus() == Status.FINISHED ? TrayIcon.MessageType.INFO : TrayIcon.MessageType.ERROR,
                         Language.get(TaskMonitor.class,"notify@"+task.getStatus().name().toLowerCase()),
@@ -70,6 +72,22 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
         execute(ThreadPoolKind.Demand, task,true);
     }
 
+    @Override
+    public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
+        Logger.getLogger().debug(
+                "Task ''{0}'' state changed: {1} -> {2}{3}",
+                task.getTitle(),
+                prevStatus,
+                nextStatus,
+                nextStatus.isFinal() ?
+                        MessageFormat.format(" (duration: {0})", TaskView.formatDuration(((AbstractTask) task).getDuration())) :
+                        ""
+        );
+        if (nextStatus.isFinal()) {
+            task.removeListener(this);
+        }
+    }
+
     private void attachMonitor(ThreadPoolKind kind, ITaskMonitor monitor) {
         synchronized (monitors) {
             monitors.putIfAbsent(kind, monitor);
@@ -97,6 +115,7 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
                 task.addListener(notifyListener);
             }
         }
+        task.addListener(this);
         Callable<Object> r = () -> execute(task);
         kind.getExecutor().submit(r);
     }
