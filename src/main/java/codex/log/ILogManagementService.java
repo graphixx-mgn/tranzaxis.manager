@@ -7,14 +7,18 @@ import codex.service.IService;
  */
 public interface ILogManagementService extends IService {
     
-    /**
-     * Установить новые значения отображения событий.
-     */
-    default void setLevel(Level level) {};
-    
     @Override
     default String getTitle() {
         return "Logger Management Service";
-    };
+    }
+
+    void log(Level level, String message);
+
+    void debug(String message, Object... params);
+    void  info(String message, Object... params);
+    void  warn(String message, Object... params);
+    void  warn(String message, Throwable exception);
+    void error(String message, Object... params);
+    void error(String message, Throwable exception);
     
 }
