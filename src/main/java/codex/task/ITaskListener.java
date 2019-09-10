@@ -9,11 +9,12 @@ public interface ITaskListener {
      * Вызывается при смене статуса задачи.
      * @see Status
      * @param task Ссылка на задачу.
-     * @param status Новый статус.
+     * @param prevStatus Старый статус.
+     * @param nextStatus Новый статус.
      */
-    default public void statusChanged(ITask task, Status status) {
+    default void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
         // Do nothing
-    };
+    }
     /**
      * Вызывается при изменении прогресса исполнения.
      * @param task Ссылка на задачу.
@@ -21,23 +22,23 @@ public interface ITaskListener {
      * @param description Описание текущего состояния, может меняться при росте 
      * прогресса.
      */
-    default public void progressChanged(ITask task,  int percent, String description) {
+    default void progressChanged(ITask task,  int percent, String description) {
         // Do nothing
-    };
+    }
     
     /**
      * Вызывается перед исполнением метода {@link ITask#execute()}.
      * @param task Ссылка на задачу.
      */
-    default public void beforeExecute(ITask task) {
+    default void beforeExecute(ITask task) {
         // Do nothing
-    };
+    }
     
     /**
      * Вызывается после исполнения метода {@link ITask#execute()}.
      * @param task Ссылка на задачу.
      */
-    default public void afterExecute(ITask task) {
+    default void afterExecute(ITask task) {
         // Do nothing
-    };
+    }
 }
