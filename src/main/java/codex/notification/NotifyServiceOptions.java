@@ -6,7 +6,6 @@ import codex.context.ContextView;
 import codex.context.ContextType;
 import codex.context.IContext;
 import codex.service.LocalServiceOptions;
-import codex.type.EntityRef;
 import codex.type.Enum;
 import codex.utils.ImageUtils;
 import org.atteo.classindex.ClassIndex;
@@ -18,8 +17,8 @@ public class NotifyServiceOptions extends LocalServiceOptions<NotificationServic
     
     private final static String PROP_CONDITIONS = "conditions";
     
-    public NotifyServiceOptions(EntityRef owner, String title) {
-        super(owner, title);
+    public NotifyServiceOptions(NotificationService service) {
+        super(service);
         setIcon(ImageUtils.getByPath("/images/notify.png"));
 
         Map<ContextView, NotifyCondition> sources = StreamSupport.stream(ClassIndex.getSubclasses(IContext.class).spliterator(), false)

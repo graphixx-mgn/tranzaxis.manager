@@ -12,14 +12,17 @@ import codex.presentation.EditorPage;
 import codex.presentation.SelectorTreeTable;
 import codex.service.LocalServiceOptions;
 import codex.type.Bool;
-import codex.type.EntityRef;
 import codex.type.Enum;
+import codex.type.Str;
+import codex.utils.FileUtils;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import org.atteo.classindex.ClassIndex;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,12 +34,14 @@ public final class LoggerServiceOptions extends LocalServiceOptions<LogManagemen
     @Bootstrap.BootProperty
     final static String PROP_LOG_LEVELS = "contextLevels";
     final static String PROP_CTX_LEVEL  = "level";
+    final static String PROP_DB_FILE    = "dbFile";
+    final static String PROP_DB_SIZE    = "dbSize";
 
     private final ContextView   root = new ContextView(RootContext.class);
     private final NodeTreeModel treeModel = new NodeTreeModel(root);
     
-    public LoggerServiceOptions(EntityRef owner, String title) {
-        super(owner, title);
+    public LoggerServiceOptions(LogManagementService service) {
+        super(service);
         setIcon(ImageUtils.getByPath("/images/lamp.png"));
         List<Class<? extends IContext>> contexts = getContexts();
 
@@ -60,6 +65,14 @@ public final class LoggerServiceOptions extends LocalServiceOptions<LogManagemen
         );
         ((MapEditor) model.getEditor(PROP_LOG_LEVELS)).setMode(MapEditor.EditMode.ModifyPermitted);
         model.getEditor(PROP_LOG_LEVELS).setVisible(false);
+
+        model.addDynamicProp(PROP_DB_FILE, new Str(null), Access.Select, () -> {
+            return Paths.get(System.getProperty("user.home"), LoggerServiceOptions.this.getService().getOption("file")).toString();
+        });
+        model.addDynamicProp(PROP_DB_SIZE, new Str(null), Access.Select, () -> {
+            Path path = Paths.get(System.getProperty("user.home"), LoggerServiceOptions.this.getService().getOption("file"));
+            return FileUtils.formatFileSize(path.toFile().length());
+        });
 
         // Build context tree
         fillContext(contexts);

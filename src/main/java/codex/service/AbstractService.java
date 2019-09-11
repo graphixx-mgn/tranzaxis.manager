@@ -1,7 +1,8 @@
 package codex.service;
 
 import codex.log.LoggingSource;
-import codex.model.Entity;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ResourceBundle;
 
 /**
@@ -21,9 +22,7 @@ public abstract class AbstractService<T extends LocalServiceOptions> implements 
         synchronized (this) {
             if (!serviceStarted) {
                 serviceStarted = true;
-                LocalServiceOptions control = getConfig();
-                control.setService(this);
-                ServiceRegistry.getInstance().getCatalog().insert(control);
+                ServiceRegistry.getInstance().getCatalog().insert(getConfig());
             }
         }
     }
@@ -38,11 +37,17 @@ public abstract class AbstractService<T extends LocalServiceOptions> implements 
      */
     public final T getConfig() {
         if (serviceConfig == null) {
-            serviceConfig = Entity.newInstance(ServiceCatalog.getServiceConfigClass(
+            Class<? extends LocalServiceOptions> configClass = ServiceCatalog.getServiceConfigClass(
                     LocalServiceOptions.class,
                     AbstractService.class,
                     getClass()
-            ), null, getClass().getCanonicalName());
+            );
+            try {
+                Constructor<? extends LocalServiceOptions> ctor = configClass.getConstructor(getClass());
+                serviceConfig = (T) ctor.newInstance(this);
+            } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
         }
         return serviceConfig;
     }

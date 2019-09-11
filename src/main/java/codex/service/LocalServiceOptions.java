@@ -21,9 +21,12 @@ public class LocalServiceOptions<S extends IService> extends Catalog {
     private final static ImageIcon ICON_STOPPED = ImageUtils.getByPath("/images/stop.png");
     
     private S service;
-    
-    public LocalServiceOptions(EntityRef owner, String title) {
-        super(owner, ImageUtils.getByPath("/images/services.png"), title, null);
+
+    public LocalServiceOptions(S service) {
+        super(null, ImageUtils.getByPath("/images/services.png"), service.getTitle(), null);
+        this.service = service;
+
+        // Properties
         model.addDynamicProp(PROP_CLASS, new AnyType(), Access.Edit, () -> new Iconified() {
             @Override
             public ImageIcon getIcon() {
@@ -54,11 +57,6 @@ public class LocalServiceOptions<S extends IService> extends Catalog {
     @Override
     public Class<? extends Entity> getChildClass() {
         return null;
-    }
-    
-    void setService(S service) {
-        this.service = service;
-        setTitle(service.getTitle());
     }
     
     protected S getService() {
