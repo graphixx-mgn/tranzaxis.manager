@@ -3,6 +3,7 @@ package codex.log;
 import codex.context.IContext;
 import codex.context.RootContext;
 import org.apache.log4j.spi.LoggingEvent;
+import org.apache.log4j.spi.ThrowableInformation;
 import java.text.MessageFormat;
 
 public class ConsoleAppender extends org.apache.log4j.ConsoleAppender {
@@ -10,18 +11,24 @@ public class ConsoleAppender extends org.apache.log4j.ConsoleAppender {
     @Override
     public synchronized void doAppend(LoggingEvent event) {
         if (event.getLevel().isGreaterOrEqual(getThreshold())) {
-            Class<? extends IContext> lastContext = Logger.getLastContext();
+            Class<? extends IContext> lastContext = Logger.getMessageLastContext();
+            ThrowableInformation throwableInfo = event.getThrowableInformation();
+            String stacktrace = throwableInfo == null ? null : Logger.stackTraceToString(throwableInfo.getThrowable());
             super.doAppend(new LoggingEvent(
                     event.getFQNOfLoggerClass(),
                     event.getLogger(),
                     event.getTimeStamp(),
                     event.getLevel(),
-                    offset(event.getMessage().toString()),
+                    offset(MessageFormat.format(
+                            throwableInfo == null ? "{0}" : "{0}\n{1}",
+                            event.getMessage(),
+                            stacktrace
+                    )),
                     event.getThreadName(),
-                    event.getThrowableInformation(),
+                    null,
                     lastContext.equals(RootContext.class) ? "" : MessageFormat.format(
                             "({0})",
-                            lastContext.getAnnotation(IContext.Definition.class).id()
+                            Logger.getContextId(lastContext)
                     ),
                     event.getLocationInformation(),
                     null
