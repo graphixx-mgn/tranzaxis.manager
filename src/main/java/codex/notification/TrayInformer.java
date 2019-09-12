@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.AWTEventListener;
 import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
 
 public class TrayInformer implements IMessageChannel {
 
@@ -21,19 +22,21 @@ public class TrayInformer implements IMessageChannel {
             JFrame frame = (JFrame) event.getSource();
             if (event.getID() == WindowEvent.WINDOW_OPENED && frame.getTitle() != null && frame.getIconImage() != null && !frame.isUndecorated()) {
                 Toolkit.getDefaultToolkit().removeAWTEventListener(this.windowListener);
-                trayIcon = new TrayIcon(frame.getIconImage(), frame.getTitle());
-                trayIcon.setImageAutoSize(true);
-                try {
-                    SystemTray.getSystemTray().add(trayIcon);
-                } catch (AWTException e) {
-                    e.printStackTrace();
-                }
+                trayIcon.setImage(frame.getIconImage());
+                trayIcon.setToolTip(frame.getTitle());
             }
         }
     };
 
-    TrayInformer() {
+    private TrayInformer() {
         if (SystemTray.isSupported()) {
+            trayIcon = new TrayIcon(new BufferedImage(32,32, BufferedImage.TYPE_INT_ARGB));
+            trayIcon.setImageAutoSize(true);
+            try {
+                SystemTray.getSystemTray().add(trayIcon);
+            } catch (AWTException e) {
+                e.printStackTrace();
+            }
             Toolkit.getDefaultToolkit().addAWTEventListener(windowListener, AWTEvent.WINDOW_EVENT_MASK);
         } else {
             Logger.getLogger().warn("NSS: System notification not supported by operating system");
