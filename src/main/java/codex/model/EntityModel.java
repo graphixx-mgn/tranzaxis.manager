@@ -109,6 +109,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         setPropUnique(EntityModel.PID);
     }
 
+    public void addBootProp(String propName) {
+        bootProps.add(propName);
+    }
+
     private List<String> getBootProps() {
         return Arrays.stream(entityClass.getDeclaredFields())
                 .filter(field -> field.getAnnotation(Bootstrap.BootProperty.class) != null)
