@@ -90,7 +90,7 @@ public class Str implements ISerializableType<String, IMask<String>> {
 
     @Override
     public String getQualifiedValue(String val) {
-        return val == null ? "<NULL>" : MessageFormat.format("\"{0}\"", val);
+        return val == null ? "<NULL>" : MessageFormat.format("''{0}''", val);
     }
     
 }
