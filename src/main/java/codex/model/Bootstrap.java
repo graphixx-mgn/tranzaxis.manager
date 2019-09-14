@@ -25,7 +25,7 @@ public final class Bootstrap {
     }
 
     public static String getProperty(Class<? extends Entity> entityClass, String PID, String propName) {
-        return getPreferences(entityClass, PID).get(propName, "");
+        return getPreferences(entityClass, PID).get(propName, null);
     }
 
     public static Preferences getCatalog(Class<? extends Entity> entityClass, String PID) {

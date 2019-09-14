@@ -2,7 +2,6 @@ package codex.database;
 
 import codex.context.IContext;
 import codex.log.Level;
-import codex.log.LogManagementService;
 import codex.log.Logger;
 import java.sql.*;
 import java.text.MessageFormat;
@@ -40,12 +39,6 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
     private static class QueryContext implements IContext {
         static void debug(String message, Object... params) {
             Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
-        }
-        static void info(String message, Object... params) {
-            Logger.getLogger().log(Level.Info, MessageFormat.format(message, params));
-        }
-        static boolean allowed() {
-            return LogManagementService.checkPermission(QueryContext.class, Level.Debug);
         }
     }
     
