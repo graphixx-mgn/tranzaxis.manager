@@ -19,6 +19,8 @@ import codex.type.*;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.*;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -317,6 +319,20 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     public final EditorPage getEditorPage() {
         if (editorPage == null) {
             editorPage = new EditorPage(model);
+            editorPage.addAncestorListener(new AncestorListener() {
+                @Override
+                public void ancestorAdded(AncestorEvent event) {
+                    if (event.getAncestorParent() instanceof JTabbedPane || event.getAncestor() instanceof Dialog) {
+                        onOpenPageView();
+                    }
+                }
+
+                @Override
+                public void ancestorRemoved(AncestorEvent event) {}
+
+                @Override
+                public void ancestorMoved(AncestorEvent event) {}
+            });
         }
         return editorPage;
     }
@@ -438,6 +454,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         ref.setValue(this);
         return ref;
     }
+
+    protected void onOpenPageView() {}
 
     public static <E extends Entity> EntityDefinition getDefinition(Class<E> entityClass) {
         return entityClass.getAnnotation(EntityDefinition.class);
