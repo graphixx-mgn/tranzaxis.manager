@@ -37,7 +37,6 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     
     private static final Boolean      DEV_MODE  = "1".equals(java.lang.System.getProperty("showSysProps"));
     public  final static List<String> SYSPROPS  = Arrays.asList(ID, OWN, SEQ, PID, OVR);
-    private final static IExplorerAccessService EAS = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class);
     
     private final Class<? extends Entity>       entityClass;
     private final List<String>                  bootProps;
@@ -490,7 +489,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     getQualifiedName(),
                     links.stream()
                         .map(link -> {
-                            Entity referenced = EAS.getEntity(link.entryClass, link.entryID);
+                            Entity referenced = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class).getEntity(link.entryClass, link.entryID);
                             return MessageFormat.format(
                                     "* {0}: {1}",
                                     link.isIncoming ? "incoming" : "outgoing",
@@ -503,7 +502,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     MessageFormat.format(Language.get("error@notdeleted"), getPID(false)).concat(
                             links.stream()
                                     .map(link -> {
-                                        Entity referenced = EAS.getEntity(link.entryClass, link.entryID);
+                                        Entity referenced = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class).getEntity(link.entryClass, link.entryID);
                                         return MessageFormat.format(
                                                 "{0}{1}",
                                                 link.isIncoming ? Language.get("link@incoming") : Language.get("link@outgoing"),
