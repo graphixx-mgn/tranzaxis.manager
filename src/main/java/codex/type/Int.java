@@ -10,7 +10,7 @@ import java.util.Objects;
  */
 public class Int implements ISerializableType<Integer, IMask<Integer>> {
     
-    private final static IEditorFactory EDITOR_FACTORY = IntEditor::new;
+    private final static IEditorFactory<Int, Integer> EDITOR_FACTORY = IntEditor::new;
     
     private Integer value;
 
@@ -37,7 +37,7 @@ public class Int implements ISerializableType<Integer, IMask<Integer>> {
     }
 
     @Override
-    public IEditorFactory editorFactory() {
+    public IEditorFactory<? extends IComplexType<Integer, IMask<Integer>>, Integer> editorFactory() {
         return EDITOR_FACTORY;
     }
     
