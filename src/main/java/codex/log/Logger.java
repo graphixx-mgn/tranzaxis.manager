@@ -26,14 +26,20 @@ public class Logger extends org.apache.log4j.Logger {
     private static final LoggerFactory FACTORY = new LoggerFactory();
     private static final LogManagementService LMS = new LogManagementService();
 
+    private static final long sessionStartTimestamp = System.currentTimeMillis();
     private static final List<Class<? extends IContext>> contextList =
             StreamSupport.stream(ClassIndex.getSubclasses(IContext.class).spliterator(), false)
                 .filter(aClass -> aClass != LogManagementService.class)
                 .collect(Collectors.toList());
-    private static final Map<Class<? extends IContext>, String> contextIds = contextList.parallelStream()
+    private static final Map<Class<? extends IContext>, String> contextIds = contextList.stream()
             .collect(Collectors.toMap(
                     ctxClass -> ctxClass,
                     ctxClass -> ctxClass.getAnnotation(IContext.Definition.class).id()
+            ));
+    private static final Map<Class<? extends IContext>, ImageIcon> contextIcons = contextList.stream()
+            .collect(Collectors.toMap(
+                    ctxClass -> ctxClass,
+                    ctxClass -> ImageUtils.getByPath(ctxClass.getAnnotation(IContext.Definition.class).icon())
             ));
     private static final Map<Class<? extends IContext>, Level> contextLevels = contextList.stream()
                 .collect(Collectors.toMap(
@@ -78,14 +84,6 @@ public class Logger extends org.apache.log4j.Logger {
         return sw.toString().trim();
     }
 
-    public synchronized static Level getContextLevel(Class<? extends IContext> contextClass) {
-        return contextLevels.get(contextClass);
-    }
-
-    static synchronized void setContextLevel(Class<? extends IContext> contextClass, Level level) {
-        contextLevels.replace(contextClass, level);
-    }
-
     public static boolean contextAllowed(Class<? extends IContext> contextClass, Level level) {
         boolean ctxAllow = level.getSysLevel().isGreaterOrEqual(contextLevels.get(contextClass).getSysLevel());
         if (ctxAllow && isOption(contextClass)) {
@@ -93,6 +91,10 @@ public class Logger extends org.apache.log4j.Logger {
         } else {
             return ctxAllow;
         }
+    }
+
+    static long getSessionStartTimestamp() {
+        return sessionStartTimestamp;
     }
 
     static List<Class<? extends IContext>> getContexts() {
@@ -114,11 +116,23 @@ public class Logger extends org.apache.log4j.Logger {
         return contextIds.get(contextClass);
     }
 
+    static ImageIcon getContextIcon(Class<? extends IContext> contextClass) {
+        return contextIcons.get(contextClass);
+    }
+
+    public synchronized static Level getContextLevel(Class<? extends IContext> contextClass) {
+        return contextLevels.get(contextClass);
+    }
+
     static boolean isOption(Class<? extends IContext> contextClass) {
         return contextClass.getAnnotation(LoggingSource.class).debugOption();
     }
 
     private static Class<? extends IContext> getParentContext(Class<? extends IContext> contextClass) {
         return contextClass.getAnnotation(IContext.Definition.class).parent();
+    }
+
+    static synchronized void setContextLevel(Class<? extends IContext> contextClass, Level level) {
+        contextLevels.replace(contextClass, level);
     }
 }

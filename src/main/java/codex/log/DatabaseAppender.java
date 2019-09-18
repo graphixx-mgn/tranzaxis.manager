@@ -63,7 +63,7 @@ public class DatabaseAppender extends JDBCAppender {
                     event.getLogger(),
                     event.getTimeStamp(),
                     event.getLevel(),
-                    event.getMessage().toString(),
+                    event.getMessage().toString().replaceAll("\"", "'"),
                     event.getThreadName(),
                     event.getThrowableInformation(),
                     contexts,
