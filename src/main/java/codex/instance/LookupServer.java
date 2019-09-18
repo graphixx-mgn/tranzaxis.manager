@@ -1,6 +1,10 @@
 package codex.instance;
 
+import codex.config.ConfigStoreService;
+import codex.context.IContext;
+import codex.log.Level;
 import codex.log.Logger;
+import codex.log.LoggingSource;
 import codex.service.ServiceRegistry;
 import codex.xml.EchoDocument;
 import com.sun.javafx.PlatformUtil;
@@ -16,10 +20,10 @@ import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.xmlbeans.XmlException;
-
 
 /**
  * Сервер поиска и подключения инстанций. Реализует сетевой обмен пакета между инстанциями
@@ -36,8 +40,15 @@ class LookupServer {
     private final MulticastSocket mcastReceiverSocket;
     private final ServerSocket    serverSocket;
     private final int             rpcPort;
-    
-    private InstanceCommunicationService ICS;
+
+    // Контексты
+    @LoggingSource(debugOption = true)
+    @IContext.Definition(id = "ICS.Net", name = "Network server events", icon = "/images/network.png", parent = InstanceCommunicationService.class)
+    private static class NetContext implements IContext {
+        static void debug(String message, Object... params) {
+            Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
+        }
+    }
 
     /**
      * Конструктор сервера.
@@ -64,8 +75,7 @@ class LookupServer {
     /**
      * Запуск сервера.
      */
-    final void start() {   
-        ICS = (InstanceCommunicationService) ServiceRegistry.getInstance().lookupService(InstanceCommunicationService.class);
+    final void start() {
         new Thread(new RequestHandler(mcastReceiverSocket)).start();
         new Thread(() -> {
             try {
@@ -96,9 +106,6 @@ class LookupServer {
      */
     protected void linkInstance(Instance instance) {
         instances.add(instance);
-        if (ICS.getConfig().isShowNetOps()) {
-            Logger.getLogger().debug("ICS: Link remote instance {0}", instance);
-        }
     }
     
     /**
@@ -106,9 +113,6 @@ class LookupServer {
      */
     protected void unlinkInstance(Instance instance) {
         instances.remove(instance);
-        if (ICS.getConfig().isShowNetOps()) {
-            Logger.getLogger().debug("ICS: Unlink remote instance {0}", instance);
-        }
     }
     
     /**
@@ -120,9 +124,7 @@ class LookupServer {
         datagramPacket.getAddress().getHostName();
         try {
             for (InetAddress address : InstanceCommunicationService.IFACE_ADDRS.values()) {
-                if (ICS.getConfig().isShowNetOps()) {
-                    Logger.getLogger().debug("ICS: Send multicast request packet to interface: {0}", address.getHostAddress());
-                }
+                NetContext.debug("Send multicast request packet to interface: {0}", address.getHostAddress());
                 mcastSenderSocket.setInterface(address);
                 mcastSenderSocket.send(datagramPacket);
             }
@@ -148,7 +150,9 @@ class LookupServer {
         echoRequest.addNewEcho();
         try {
             echoRequest.getEcho().setHost(InetAddress.getLocalHost().getCanonicalHostName());
-        } catch (IOException e) {}
+        } catch (IOException e) {
+            //
+        }
         echoRequest.getEcho().setUser(getUserName());
         echoRequest.getEcho().setRpcPort(rpcPort);
         echoRequest.getEcho().setKcaPort(serverSocket.getLocalPort());
@@ -184,13 +188,10 @@ class LookupServer {
      * отправителю.
      * @param instance Инстанция - содержит необходиные данные для подключения.
      * @param forward "Прямое" соединение, требуется отправка ответа.
-     * @return 
      */
     private boolean connect(Instance instance, boolean forward) {
         synchronized (instances) {
-            if (instances.stream().filter((registered) -> {
-                    return registered.equals(instance);
-            }).findFirst().orElse(null) == null) {
+            if (instances.stream().filter((registered) -> registered.equals(instance)).findFirst().orElse(null) == null) {
                 linkInstance(instance);
             } else {
                 return false;
@@ -199,21 +200,17 @@ class LookupServer {
         new Thread(() -> {
             try (Socket socket = new Socket()) {
                 socket.connect(new InetSocketAddress(instance.address, instance.kcaPort), 1000);
-                if (ICS.getConfig().isShowNetOps()) {
-                    Logger.getLogger().debug(
-                            "ICS: {2} connection established: {0}:{1}", 
-                            instance.address, 
-                            String.valueOf(instance.kcaPort),
-                            forward ? "Forward" : "Backward"
-                    );
-                }
+                NetContext.debug(
+                        "{0} connection established: {1}:{2}",
+                        forward ? "Forward" : "Backward",
+                        instance.address,
+                        String.valueOf(instance.kcaPort)
+                );
                 socket.setKeepAlive(true);
                 
                 if (forward) {
                     PrintWriter out = new PrintWriter(socket.getOutputStream());
-                    if (ICS.getConfig().isShowNetOps()) {
-                        Logger.getLogger().debug("ICS: Send response packet to instance: {0}", instance);
-                    }
+                    NetContext.debug("Send response packet to instance: {0}", instance);
                     out.println(new String(prepareEcho()));
                     out.flush();
                 }
@@ -250,13 +247,12 @@ class LookupServer {
                     if (input != null && !input.isEmpty()) {
                         try {
                             EchoDocument echoRqDoc = EchoDocument.Factory.parse(input);
-                            if (ICS.getConfig().isShowNetOps()) {
-                                Logger.getLogger().debug("ICS: Received response packet:\nFrom: {0} ({1})\nData: {2}", 
-                                        echoRqDoc.getEcho().getHost(),
-                                        clientSocket.getRemoteSocketAddress(),
-                                        input
-                                );
-                            }
+                            NetContext.debug(
+                                    "Received response packet from {0}\n({1})\nData: {2}",
+                                    echoRqDoc.getEcho().getHost(),
+                                    clientSocket.getRemoteSocketAddress(),
+                                    input
+                            );
                             Instance remoteInstance = new Instance(
                                     ((InetSocketAddress) clientSocket.getRemoteSocketAddress()).getAddress(),
                                     echoRqDoc.getEcho().getHost(),
@@ -264,10 +260,10 @@ class LookupServer {
                                     echoRqDoc.getEcho().getRpcPort(), 
                                     echoRqDoc.getEcho().getKcaPort()
                             );
-                            if (!connect(remoteInstance, false) && ICS.getConfig().isShowNetOps()) {
-                                Logger.getLogger().debug("ICS: Skip duplicate linkage of instance {0}", remoteInstance);
-                            }
-                        } catch (XmlException e) {}
+                            connect(remoteInstance, false);
+                        } catch (XmlException e) {
+                            //
+                        }
                     } else {
                         break;
                     }
@@ -277,7 +273,9 @@ class LookupServer {
             } finally {
                 try {
                     clientSocket.close();
-                } catch (IOException e) {}
+                } catch (IOException e) {
+                    //
+                }
             }
         }
     
@@ -308,21 +306,20 @@ class LookupServer {
                     continue;
                 }
                 try {
-                    boolean ownPacket = InstanceCommunicationService.IFACE_ADDRS.values().stream().anyMatch((localAddress) -> {
-                        return packet.getSocketAddress().equals(new InetSocketAddress(localAddress, mcastSenderSocket.getLocalPort()));
-                    });
-                    
+                    boolean ownPacket = InstanceCommunicationService.IFACE_ADDRS.values().stream()
+                            .anyMatch((localAddress) ->
+                                    packet.getSocketAddress().equals(new InetSocketAddress(localAddress, mcastSenderSocket.getLocalPort()))
+                            );
                     if (!ownPacket) {
                         EchoDocument echoRqDoc = EchoDocument.Factory.parse(
                             new ByteArrayInputStream(packet.getData(), 0, packet.getLength())
                         );
-                        if (ICS.getConfig().isShowNetOps()) {
-                            Logger.getLogger().debug("ICS: Received request packet:\nFrom: {0} ({1})\nData: {2}", 
-                                    echoRqDoc.getEcho().getHost(),
-                                    packet.getSocketAddress(),
-                                    new String(packet.getData(), 0, packet.getLength())
-                            );
-                        }
+                        NetContext.debug(
+                                "Received request packet from {0}\n({1})\nData: {2}",
+                                echoRqDoc.getEcho().getHost(),
+                                packet.getSocketAddress(),
+                                new String(packet.getData(), 0, packet.getLength())
+                        );
                         Instance remoteInstance = new Instance(
                                 packet.getAddress(),
                                 echoRqDoc.getEcho().getHost(),
@@ -330,9 +327,7 @@ class LookupServer {
                                 echoRqDoc.getEcho().getRpcPort(), 
                                 echoRqDoc.getEcho().getKcaPort()
                         );
-                        if (!connect(remoteInstance, true) && ICS.getConfig().isShowNetOps()) {
-                            Logger.getLogger().debug("ICS: Skip duplicate linkage of instance {0}", remoteInstance);
-                        }
+                        connect(remoteInstance, true);
                     }
                 } catch (XmlException | IOException e) {
                     e.printStackTrace();

@@ -87,6 +87,11 @@ public final class Instance implements IInstanceCommunicationService {
     }
 
     @Override
+    public Accessor getAccessor() {
+        return null;
+    }
+
+    @Override
     public boolean equals(Object obj) {
         Instance instance = (Instance) obj;
         return host.equals(instance.host) && 

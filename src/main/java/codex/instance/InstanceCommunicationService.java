@@ -1,5 +1,6 @@
 package codex.instance;
 
+import codex.context.IContext;
 import codex.service.*;
 import codex.log.Logger;
 import java.io.IOException;
@@ -16,7 +17,8 @@ import java.util.stream.Collectors;
 /**
  * Сервис взаимодействия инстанций.
  */
-public final class InstanceCommunicationService extends AbstractService<CommunicationServiceOptions> implements IInstanceCommunicationService {
+@IContext.Definition(id = "ICS", name = "Instance Communication Service", icon = "/images/localhost.png")
+public final class InstanceCommunicationService extends AbstractService<CommunicationServiceOptions> implements IInstanceCommunicationService, IContext {
     
     /**
      * Карта доступных сетевых интерфейсов и их IP адресов.
@@ -29,6 +31,7 @@ public final class InstanceCommunicationService extends AbstractService<Communic
         @Override
         protected void linkInstance(Instance instance) {
             super.linkInstance(instance);
+            Logger.getLogger().debug("Link remote instance {0}", instance);
             new LinkedList<>(listeners).forEach((listener) -> {
                 listener.instanceLinked(instance);
             });
@@ -36,6 +39,7 @@ public final class InstanceCommunicationService extends AbstractService<Communic
         @Override
         protected void unlinkInstance(Instance instance) {
             super.unlinkInstance(instance);
+            Logger.getLogger().debug("Unlink remote instance {0}", instance);
             new LinkedList<>(listeners).forEach((listener) -> {
                 listener.instanceUnlinked(instance);
             });
@@ -53,11 +57,11 @@ public final class InstanceCommunicationService extends AbstractService<Communic
                 .mapToInt((iface) -> iface.getDisplayName().length())
                 .max().getAsInt();
         
-        Logger.getLogger().debug("ICS: Started RMI service registry on port: {0}",
+        Logger.getLogger().debug("Started RMI service registry on port: {0}",
                 String.valueOf(rmiSocket.getLocalPort())
         );
         Logger.getLogger().debug(
-                "ICS: Bind RMI registry and lookup server to network interfaces:\n{0}",
+                "Bind RMI registry and lookup server to network interfaces:\n{0}",
                 IFACE_ADDRS.keySet().stream().map((iface) -> {
                     return String.format("* [%-"+length+"s] : %s", iface.getDisplayName(), InstanceCommunicationService.IFACE_ADDRS.get(iface).getHostAddress());
                 }).collect(Collectors.joining("\n"))
@@ -69,7 +73,7 @@ public final class InstanceCommunicationService extends AbstractService<Communic
         while (iterator.hasNext()) {
             try {
                 IRemoteService service = iterator.next();
-                Logger.getLogger().debug("ICS: register remote service: ''{0}''", service.getTitle());
+                Logger.getLogger().debug("Register remote service: ''{0}''", service.getTitle());
                 rmiRegistry.rebind(service.getClass().getCanonicalName(), service);
                 getConfig().insert(((AbstractRemoteService) service).getConfiguration());
 
@@ -78,25 +82,40 @@ public final class InstanceCommunicationService extends AbstractService<Communic
             } catch (ServiceConfigurationError e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof ServiceNotLoadedException) {
-                    Logger.getLogger().warn("ICS: {0}", cause.getMessage());
+                    Logger.getLogger().warn("{0}", cause.getMessage());
                 } else {
-                    Logger.getLogger().warn("ICS: remote service ''{0}'' registration error", cause);
+                    Logger.getLogger().warn("Remote service ''{0}'' registration error", cause);
                 }
             }
         }
     }
-    
-    /**
-     * Добавить слушателя события подключения инстанции.
-     */
-    public void addInstanceListener(IInstanceListener listener) {
+
+    @Override
+    public Accessor getAccessor() {
+        return new Accessor() {
+
+            @Override
+            List<Instance> getInstances() {
+                return InstanceCommunicationService.this.getInstances();
+            }
+
+            @Override
+            void addInstanceListener(IInstanceListener listener) {
+                InstanceCommunicationService.this.addInstanceListener(listener);
+            }
+
+            @Override
+            void removeInstanceListener(IInstanceListener listener) {
+                InstanceCommunicationService.this.removeInstanceListener(listener);
+            }
+        };
+    }
+
+    private void addInstanceListener(IInstanceListener listener) {
         listeners.add(listener);
     }
-    
-    /**
-     * Удалить слушателя события подключения инстанции.
-     */
-    public void removeInstanceListener(IInstanceListener listener) {
+
+    private void removeInstanceListener(IInstanceListener listener) {
         listeners.remove(listener);
     }
 
@@ -127,10 +146,7 @@ public final class InstanceCommunicationService extends AbstractService<Communic
         }
     }
 
-    /**
-     * Возвращяет список подключенных инстанций.
-     */
-    public List<Instance> getInstances() {
+    private List<Instance> getInstances() {
         return lookupServer.getInstances();
     }
 
