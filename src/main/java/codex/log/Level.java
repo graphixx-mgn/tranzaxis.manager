@@ -3,6 +3,7 @@ package codex.log;
 import codex.property.PropertyHolder;
 import codex.type.Iconified;
 import codex.utils.Language;
+import sun.plugin.dom.exception.InvalidStateException;
 import javax.swing.ImageIcon;
 
 public enum Level implements Iconified {
@@ -25,6 +26,15 @@ public enum Level implements Iconified {
     
     public org.apache.log4j.Level getSysLevel() {
         return log4jLevel;
+    }
+
+    static Level fromSysLevel(org.apache.log4j.Level sysLevel) {
+        for (Level level : Level.values()) {
+            if (level.getSysLevel() == sysLevel) {
+                return level;
+            }
+        }
+        throw new InvalidStateException("There is no suitable level for '"+sysLevel+"'");
     }
     
     @Override
