@@ -57,7 +57,13 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         entityClass = entity.getChildClass();
 
         EditEntity editEntity = new EditEntity();
-        systemCommands.add(editEntity);
+
+        boolean hasProps = entity.childrenList().stream()
+                .anyMatch(child -> !((Entity) child).model.getProperties(Access.Edit).isEmpty());
+        if (hasProps) {
+            systemCommands.add(editEntity);
+        }
+
         if (entity.allowModifyChild()) {
             systemCommands.add(new CreateEntity());
             systemCommands.add(new CloneEntity());
@@ -482,7 +488,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     });
 
                     boolean hasProps = !entities.get(0).model.getProperties(Access.Edit).isEmpty();
-                    return new CommandStatus(hasProps, allDisabled || entities.get(0).islocked() ? IMAGE_VIEW : IMAGE_EDIT);
+                    boolean hasChild = entities.get(0) instanceof Catalog && entities.get(0).getChildCount() > 0;
+                    return new CommandStatus(hasProps || hasChild, allDisabled || entities.get(0).islocked() ? IMAGE_VIEW : IMAGE_EDIT);
                 } else {
                     return new CommandStatus(false, entity.allowModifyChild() ? IMAGE_EDIT : IMAGE_VIEW);
                 }
