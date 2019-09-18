@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 @EntityCommand.Definition(parentCommand = EntityCommand.class)
 public abstract class EntityCommand<V extends Entity> implements ICommand<V, List<V>>, Iconified {
     
-    private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskExecutorService.class));
+    private static final ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
 
     @Inherited
     @Target(ElementType.TYPE)
