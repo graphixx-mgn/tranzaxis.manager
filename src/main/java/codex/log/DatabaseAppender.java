@@ -11,12 +11,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
 public class DatabaseAppender extends JDBCAppender {
 
     private static final String PROP_FILE = "META-INF/options/LogManagementService.properties";
+
+    private final List<IAppendListener> listeners = new LinkedList<>();
 
     public DatabaseAppender() {
         try (
@@ -34,6 +38,7 @@ public class DatabaseAppender extends JDBCAppender {
             setDriver(JDBC.class.getTypeName());
             setLayout(layout);
             setURL("jdbc:sqlite:"+ dbFilePath);
+            setName(getClass().getTypeName());
 
             init();
         } catch (IOException | SQLException e){
@@ -65,5 +70,18 @@ public class DatabaseAppender extends JDBCAppender {
                     event.getLocationInformation(),
                     null
             ));
+            listeners.forEach(listener -> listener.eventAppended(event));
     }
+
+    void addAppendListener(IAppendListener listener){
+        listeners.add(listener);
+    }
+
+
+    @FunctionalInterface
+    interface IAppendListener {
+        void eventAppended(LoggingEvent event);
+    }
+
+
 }
