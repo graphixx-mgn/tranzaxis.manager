@@ -1,6 +1,5 @@
 package manager.nodes;
 
-import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
 import codex.model.Access;
@@ -117,7 +116,7 @@ public class Offshoot extends BinarySource {
         if (getParent() != null) {
             return ((Development) getParent()).getJvmDesigner();
         } else {
-            IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+            IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
             Development dev = CAS.findReferencedEntries(Repository.class, getRepository().getID()).stream()
                     .filter(link -> link.entryClass.equals(Development.class.getCanonicalName()))
                     .map(link -> EntityRef.build(Development.class, link.entryID).getValue())

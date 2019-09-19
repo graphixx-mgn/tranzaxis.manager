@@ -77,8 +77,8 @@ public class Environment extends Entity implements INodeListener {
     private final Supplier<String> versionSupplier = () -> {
         Database database = getDataBase(true);
         String   layerUri = getLayerUri(true);
-        if (IComplexType.notNull(database, layerUri) && ServiceRegistry.getInstance().isServiceRegistered(OracleAccessService.class)) {
-            IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
+        if (IComplexType.notNull(database, layerUri)) {
+            IDatabaseAccessService DAS = ServiceRegistry.getInstance().lookupService(IDatabaseAccessService.class);
             try (ResultSet rs = DAS.select(database.getConnectionID(false), "SELECT VERSION FROM RDX_DDSVERSION WHERE LAYERURI = ?", layerUri)) {
                 if (rs.next()) {
                     return rs.getString(1);

@@ -2,7 +2,6 @@ package manager.nodes;
 
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
-import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
 import codex.mask.RegexMask;
@@ -48,7 +47,7 @@ public class Repository extends Entity {
 
     private final static String REPO_CONFIG_FILE = "config/repository.xml";
     private final static Map<String, Class<? extends RepositoryBranch>> BRANCHES = new HashMap<>();
-    private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private final static IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
 
     static {
         ClassIndex.getSubclasses(RepositoryBranch.class).forEach(branchClass ->

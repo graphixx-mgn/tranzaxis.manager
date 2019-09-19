@@ -101,7 +101,6 @@ public class Database extends Entity {
         if (parent != null) {
             CheckDatabase check = getCommand(CheckDatabase.class);
             check.setContext(this);
-            check.activate();
         }
     }
     

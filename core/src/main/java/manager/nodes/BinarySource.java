@@ -1,6 +1,5 @@
 package manager.nodes;
 
-import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
 import codex.model.Catalog;
 import codex.model.Entity;
@@ -18,7 +17,7 @@ import java.util.StringJoiner;
 
 public abstract class BinarySource extends Catalog {
 
-    private final static IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+    private final static IExplorerAccessService EAS = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class);
     
     static final Comparator<String> VERSION_SORTER = new Comparator<String>() {
         @Override
