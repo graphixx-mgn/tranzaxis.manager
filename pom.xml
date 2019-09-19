@@ -46,6 +46,12 @@
                         </execution>
                     </executions>
                     <configuration>
+                        <transformers>
+                            <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                <resource>META-INF/annotations/codex.log.LoggingSource</resource>
+                                <resource>META-INF/services/codex.context.IContext</resource>
+                            </transformer>
+                        </transformers>
                         <createDependencyReducedPom>false</createDependencyReducedPom>
                         <filters>
                             <filter>
