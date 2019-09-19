@@ -29,7 +29,16 @@ public class Logger extends org.apache.log4j.Logger {
     private static final long sessionStartTimestamp = System.currentTimeMillis();
     private static final List<Class<? extends IContext>> contextList =
             StreamSupport.stream(ClassIndex.getSubclasses(IContext.class).spliterator(), false)
-                .filter(aClass -> aClass != LogManagementService.class)
+                .parallel()
+                .filter(ctxClass -> ctxClass != LogManagementService.class)
+                .map(ctxClass -> {
+                    if (ctxClass.isAnonymousClass() && IContext.class.isAssignableFrom(ctxClass.getSuperclass())) {
+                        Class<? extends IContext> superClass = ctxClass.getSuperclass().asSubclass(IContext.class);
+                        return superClass;
+                    } else {
+                        return ctxClass;
+                    }
+                })
                 .collect(Collectors.toList());
     private static final Map<Class<? extends IContext>, String> contextIds = contextList.stream()
             .collect(Collectors.toMap(
@@ -104,6 +113,15 @@ public class Logger extends org.apache.log4j.Logger {
     static java.util.List<Class<? extends IContext>> getMessageContexts() {
         return ServiceCallContext.getContextStack().stream()
                 .filter(aClass -> !ILogManagementService.class.isAssignableFrom(aClass))
+                .map(ctxClass -> {
+                    if (ctxClass.isAnonymousClass() && IContext.class.isAssignableFrom(ctxClass.getSuperclass())) {
+                        Class<? extends IContext> superClass = ctxClass.getSuperclass().asSubclass(IContext.class);
+                        return superClass;
+                    } else {
+                        return ctxClass;
+                    }
+                })
+                .distinct()
                 .collect(Collectors.toList());
     }
 
