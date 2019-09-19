@@ -1,7 +1,6 @@
 package plugin;
 
 import codex.database.IDatabaseAccessService;
-import codex.database.OracleAccessService;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.utils.ImageUtils;
@@ -18,7 +17,7 @@ import java.util.Locale;
 @Unit(serviceUri = "")
 public class AbstractInstanceUnit extends AccessPoint {
 
-    private final static IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
+    private final static IDatabaseAccessService DAS = ServiceRegistry.getInstance().lookupService(IDatabaseAccessService.class);
 
     public AbstractInstanceUnit(EntityRef owner, String title) {
         super(owner, ImageUtils.getByPath("/images/unit.png"), title);

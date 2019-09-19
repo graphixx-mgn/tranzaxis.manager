@@ -1,7 +1,6 @@
 package plugin;
 
 import codex.database.IDatabaseAccessService;
-import codex.database.OracleAccessService;
 import codex.explorer.tree.NodeTreeModel;
 import codex.model.Catalog;
 import codex.model.Entity;
@@ -21,7 +20,7 @@ import java.util.stream.StreamSupport;
 
 public class InstanceView extends Catalog {
 
-    private final static IDatabaseAccessService DAS = (IDatabaseAccessService) ServiceRegistry.getInstance().lookupService(OracleAccessService.class);
+    private final static IDatabaseAccessService DAS = ServiceRegistry.getInstance().lookupService(IDatabaseAccessService.class);
     private final static Map<String, Class<? extends AbstractInstanceUnit>>  UNITS = StreamSupport.stream(
             ClassIndex.getSubclasses(AbstractInstanceUnit.class, AbstractInstanceUnit.class.getClassLoader()).spliterator(),
             false
