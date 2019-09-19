@@ -11,18 +11,15 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.prefs.Preferences;
 import javax.swing.SwingUtilities;
-import manager.Manager;
 import manager.commands.common.DiskUsageReport;
 import manager.type.Locale;
 
 public final class Common extends Catalog {
     
-    private final Preferences   PREFERENCES    = Preferences.userRoot().node(Manager.class.getSimpleName());
-    
-    private final static String PROP_WORK_DIR  = "workDir";
-    private final static String PROP_GUI_LANG  = "guiLang";
+    private final static String PROP_WORK_DIR = "workDir";
+    @Bootstrap.BootProperty
+    private final static String PROP_GUI_LANG = "guiLang";
 
     static {
         CommandRegistry.getInstance().registerCommand(DiskUsageReport.class);
@@ -32,7 +29,7 @@ public final class Common extends Catalog {
         super(null, ImageUtils.getByPath("/images/settings.png"), null, Language.get("desc"));
         // Properties
         model.addUserProp(PROP_WORK_DIR,  new FilePath(null).setMask(new DirMask()), true, Access.Select);
-        model.addUserProp(PROP_GUI_LANG,  new Enum(Locale.valueOf(Language.getLocale())), false, Access.Select);
+        model.addUserProp(PROP_GUI_LANG,  new Enum<>(Locale.valueOf(Language.getLocale())), false, Access.Select);
 
         // Handlers
         model.addModelListener(new IModelListener() {
@@ -47,7 +44,6 @@ public final class Common extends Catalog {
                             break;
                         
                         case PROP_GUI_LANG:
-                            PREFERENCES.put(propName, ((Locale) model.getValue(propName)).name());
                             SwingUtilities.invokeLater(() -> {
                                 MessageBox.show(MessageType.INFORMATION, Language.get(Common.class, "guiLang.notify"));
                             });
