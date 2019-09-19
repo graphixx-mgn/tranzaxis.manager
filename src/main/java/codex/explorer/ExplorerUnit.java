@@ -9,9 +9,12 @@ import codex.explorer.tree.NodeTreeModel;
 import codex.log.Logger;
 import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
+import codex.utils.Caller;
+import codex.utils.Language;
 import org.apache.log4j.lf5.viewer.categoryexplorer.TreeModelAdapter;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.util.Locale;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -26,8 +29,11 @@ import javax.swing.tree.TreePath;
  */
 public final class ExplorerUnit extends AbstractUnit {
     
-    private final static ExplorerUnit INSTANCE = new ExplorerUnit();
-    public  final static ExplorerUnit getInstance() {
+    private static ExplorerUnit INSTANCE;
+    public  static ExplorerUnit getInstance() {
+        if (INSTANCE == null) {
+            INSTANCE = new ExplorerUnit();
+        }
         return INSTANCE;
     }
 
@@ -42,7 +48,11 @@ public final class ExplorerUnit extends AbstractUnit {
     }
     
     private ExplorerUnit(BrowseMode mode) {
-        Logger.getLogger().debug("Initialize unit: Explorer");
+        Class parentUnitClass = Caller.getInstance().getClassStack().stream()
+            .skip(1)
+            .filter(AbstractUnit.class::isAssignableFrom)
+            .findFirst().get();
+        Logger.getLogger().debug("Initialize unit: Explorer ({0})", Language.get(parentUnitClass, "unit.title", Locale.US));
         this.browser   = new Browser(mode);
         this.navigator = new Navigator();
         this.navigator.addNavigateListener((TreePath path) -> {
