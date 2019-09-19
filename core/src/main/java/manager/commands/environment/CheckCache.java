@@ -36,7 +36,7 @@ class CheckCache extends AbstractTask<Void> {
 
     private static final String INDEX_FILE = ".layer.index";
     private final static ExecutorService EXECUTOR = Executors.newFixedThreadPool(5);
-    private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
+    private static final ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
 
     private final Environment environment;
     private final ITask[] planningTasks;

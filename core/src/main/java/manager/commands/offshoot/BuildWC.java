@@ -74,7 +74,7 @@ public class BuildWC extends EntityCommand<Offshoot> {
         executeTask(
                 offshoot,
                 new GroupTask<>(
-                        Language.get("title") + ": \""+(offshoot).getLocalPath()+"\"",
+                        Language.get("title") + ": '"+(offshoot).getLocalPath()+"'",
                         new BuildKernelTask(offshoot),
                         new BuildSourceTask(offshoot, map.get(PARAM_CLEAN).getValue() == Boolean.TRUE)
                 ),

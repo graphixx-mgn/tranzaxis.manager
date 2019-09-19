@@ -3,7 +3,6 @@ package manager.commands.environment;
 import codex.command.EntityCommand;
 import codex.service.ServiceRegistry;
 import codex.task.ITaskExecutorService;
-import codex.task.TaskManager;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -14,7 +13,7 @@ import manager.nodes.Release;
 
 public class RunAll extends EntityCommand<Environment> {
     
-    private static final ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
+    private static final ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
 
     public RunAll() {
         super(
