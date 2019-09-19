@@ -25,7 +25,7 @@ public final class ServiceRegistry {
         Iterator<IService> iterator = services.iterator();
         while (iterator.hasNext()) {
             try {
-                INSTANCE.registerService(iterator.next(), false);
+                INSTANCE.registerService(iterator.next(), true);
             } catch (ServiceConfigurationError e) {
                 Logger.getLogger().warn("Service Registry: unable to initialize service", e.getCause());
             }
@@ -39,7 +39,6 @@ public final class ServiceRegistry {
     }
     
     private Constructor<MethodHandles.Lookup> lookup;
-    private final ExecutorService executor = Executors.newCachedThreadPool();
     private final Map<Class<? extends IService>, IService> registry = new ConcurrentHashMap<>();
     private final Map<Class<? extends IService>, List<IRegistryListener>> listeners = new ConcurrentHashMap<>();
     
