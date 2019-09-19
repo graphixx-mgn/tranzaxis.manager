@@ -45,10 +45,9 @@ public class InstanceUnit extends AbstractUnit {
             //
         }
 
-        ServiceRegistry.getInstance().addRegistryListener(IInstanceCommunicationService.class, service -> {
-            IInstanceCommunicationService.Accessor accessor = ((IInstanceCommunicationService) service).getAccessor();
-
-            accessor.getInstances().forEach((instance) -> {
+        ServiceRegistry.getInstance().addRegistryListener(IInstanceDispatcher.class, service -> {
+            IInstanceDispatcher dispatcher = (IInstanceDispatcher) service;
+            dispatcher.getInstances().forEach((instance) -> {
                 INode root = (INode) instancesTree.getRoot();
                 root.insert(new RemoteHost(instance));
                 if (root.getChildCount() > 0) {
@@ -57,7 +56,7 @@ public class InstanceUnit extends AbstractUnit {
                 }
             });
 
-            accessor.addInstanceListener(new IInstanceListener() {
+            dispatcher.addInstanceListener(new IInstanceListener() {
                 @Override
                 public void instanceLinked(Instance instance) {
                     INode root = (INode) instancesTree.getRoot();

@@ -1,17 +1,20 @@
 package codex.instance;
 
 import codex.service.IRemoteService;
+import codex.service.ServiceRegistry;
+
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.RemoteServer;
+import java.rmi.server.ServerNotActiveException;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
 
 /**
  * Класс-контейнер для хранения информации об удаленной инстанции и 
@@ -24,6 +27,18 @@ public final class Instance implements IInstanceCommunicationService {
     final InetAddress  address;
     final int rpcPort, kcaPort;
     final Registry     registry;
+
+    public static Instance getRemoteInstance() {
+        try {
+            String clientIP = RemoteServer.getClientHost();
+            return ServiceRegistry.getInstance().lookupService(IInstanceDispatcher.class).getInstances().stream()
+                    .filter(instance -> instance.getRemoteAddress().getAddress().getHostAddress().equals(clientIP))
+                    .findFirst().orElse(null);
+        } catch (ServerNotActiveException e) {
+            //
+        }
+        return null;
+    }
     
     /**
      * Конструктор инстанции.
@@ -84,11 +99,6 @@ public final class Instance implements IInstanceCommunicationService {
     @Override
     public IRemoteService getService(String className) throws RemoteException, NotBoundException {
         return (IRemoteService) registry.lookup(className);
-    }
-
-    @Override
-    public Accessor getAccessor() {
-        return null;
     }
 
     @Override

@@ -9,16 +9,14 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.rmi.server.RemoteServer;
-import java.rmi.server.ServerNotActiveException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * Сервис взаимодействия инстанций.
  */
-@IContext.Definition(id = "ICS", name = "Instance Communication Service", icon = "/images/localhost.png")
-public final class InstanceCommunicationService extends AbstractService<CommunicationServiceOptions> implements IInstanceCommunicationService, IContext {
+@IContext.Definition(id = "ICS", name = "Instance Dispatcher", icon = "/images/localhost.png")
+public final class InstanceCommunicationService extends AbstractService<CommunicationServiceOptions> implements IInstanceDispatcher, IContext {
     
     /**
      * Карта доступных сетевых интерфейсов и их IP адресов.
@@ -91,31 +89,12 @@ public final class InstanceCommunicationService extends AbstractService<Communic
     }
 
     @Override
-    public Accessor getAccessor() {
-        return new Accessor() {
-
-            @Override
-            List<Instance> getInstances() {
-                return InstanceCommunicationService.this.getInstances();
-            }
-
-            @Override
-            void addInstanceListener(IInstanceListener listener) {
-                InstanceCommunicationService.this.addInstanceListener(listener);
-            }
-
-            @Override
-            void removeInstanceListener(IInstanceListener listener) {
-                InstanceCommunicationService.this.removeInstanceListener(listener);
-            }
-        };
-    }
-
-    private void addInstanceListener(IInstanceListener listener) {
+    public void addInstanceListener(IInstanceListener listener) {
         listeners.add(listener);
     }
 
-    private void removeInstanceListener(IInstanceListener listener) {
+    @Override
+    public void removeInstanceListener(IInstanceListener listener) {
         listeners.remove(listener);
     }
 
@@ -146,20 +125,9 @@ public final class InstanceCommunicationService extends AbstractService<Communic
         }
     }
 
-    private List<Instance> getInstances() {
+    @Override
+    public List<Instance> getInstances() {
         return lookupServer.getInstances();
-    }
-
-    public Instance getClientInstance() {
-        try {
-            String clientIP = RemoteServer.getClientHost();
-            return getInstances().stream()
-                    .filter(instance -> instance.getRemoteAddress().getAddress().getHostAddress().equals(clientIP))
-                    .findFirst().orElse(null);
-        } catch (ServerNotActiveException e) {
-            //
-        }
-        return null;
     }
     
     private static Map<NetworkInterface, InetAddress> loadInterfaces() {
