@@ -5,9 +5,9 @@ import codex.command.EntityCommand;
 import codex.component.dialog.Dialog;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.NodeTreeModel;
+import codex.instance.IInstanceDispatcher;
 import codex.instance.IInstanceListener;
 import codex.instance.Instance;
-import codex.instance.InstanceCommunicationService;
 import codex.log.Logger;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
@@ -24,8 +24,7 @@ import javax.swing.event.TreeModelEvent;
 import java.awt.*;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.rmi.server.RemoteServer;
-import java.rmi.server.ServerNotActiveException;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,7 +32,7 @@ import java.util.stream.StreamSupport;
 
 final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements IInstanceListener, IPluginLoaderService.IPublicationListener {
 
-    private final static InstanceCommunicationService ICS = (InstanceCommunicationService) ServiceRegistry.getInstance().lookupService(InstanceCommunicationService.class);
+    private final static IInstanceDispatcher ICS = ServiceRegistry.getInstance().lookupService(IInstanceDispatcher.class);
     private final static ImageIcon CMD_ICON = ImageUtils.getByPath("/images/update.png");
 
     private static final Comparator<String> VER_COMPARATOR = (ver1, ver2) -> {
@@ -72,8 +71,8 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
         try {
             final PluginLoaderService ownPluginLoader = (PluginLoaderService) ICS.getService(PluginLoaderService.class);
             ownPluginLoader.addPublicationListener(this);
-        } catch (NotBoundException e) {
-            //
+        } catch (NotBoundException | RemoteException e) {
+            Logger.getLogger().warn("Unable to find plugin loader service", e);
         }
 
         activator = pluginCatalogs -> {
@@ -185,7 +184,7 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
                 //TODO: Временная заглушка до перехода на 2.2.2
                 //Теперь передается наименования класса редактора, не кастектс в класс (а класс не мог быть сериализован)
             } catch (RemoteException e) {
-                Logger.getLogger().warn("Failed remote service ''{0}'' call to instance ''{1}''", PluginLoaderService.class, instance);
+                Logger.getLogger().warn(MessageFormat.format("Failed remote service ''{0}'' call to instance ''{1}''", PluginLoaderService.class, instance), e);
             }
         });
     }
@@ -199,19 +198,13 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
 
     @Override
     public void publicationEvent(IPluginLoaderService.RemotePackage remotePackage, boolean published) {
-        try {
-            String remoteIP = RemoteServer.getClientHost();
-            ICS.getInstances().forEach(instance -> {
-                if (instance.getRemoteAddress().getAddress().getHostAddress().equals(remoteIP)) {
-                    if (published) {
-                        registerPackages(instance, Collections.singletonList(remotePackage));
-                    } else {
-                        unregisterPackages(instance, Collections.singletonList(remotePackage));
-                    }
-                }
-            });
-        } catch (ServerNotActiveException e) {
-            e.printStackTrace();
+        Instance remoteInstance = Instance.getRemoteInstance();
+        if (remoteInstance != null) {
+            if (published) {
+                registerPackages(remoteInstance, Collections.singletonList(remotePackage));
+            } else {
+                unregisterPackages(remoteInstance, Collections.singletonList(remotePackage));
+            }
         }
     }
 
