@@ -1,19 +1,23 @@
 package plugin;
 
-import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
+import codex.context.IContext;
 import codex.log.Logger;
+import codex.log.LoggingSource;
 import codex.service.ServiceRegistry;
 import javax.swing.*;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
-class PluginLoader {
+@LoggingSource
+@IContext.Definition(id = "PXE", name = "Plugin loader", icon = "/images/plugins.png")
+class PluginLoader implements IContext, PluginHandler.IHandlerListener {
 
     private final static FileFilter FILE_FILTER = file -> file.isFile() && file.getName().endsWith(".jar");
     private final Map<PluginPackage, List<PluginHandler>> plugins = new HashMap<>();
@@ -47,13 +51,6 @@ class PluginLoader {
     private void registerPluginPackages(PluginPackage... newPackages) {
         if (newPackages != null && newPackages.length > 0) {
             for (PluginPackage newPackage : newPackages) {
-//                try {
-//                    APIChecker.analyzeFile(newPackage.jarFilePath.toFile());
-//                    continue;
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-
                 if (!plugins.containsKey(newPackage)) {
                     addPluginPackage(newPackage);
                 } else {
@@ -84,7 +81,7 @@ class PluginLoader {
     void addPluginPackage(PluginPackage pluginPackage) {
         plugins.put(pluginPackage, pluginPackage.getPlugins());
         Logger.getLogger().debug(
-                "PXE: Registered plugin package:\nName:   {0}\nAuthor: {1}\nPlugins:\n{2}",
+                "Registered plugin package ''{0}'':\nAuthor: {1}\nPlugins:\n{2}",
                 pluginPackage,
                 pluginPackage.getAuthor(),
                 plugins.get(pluginPackage).stream()
@@ -93,12 +90,13 @@ class PluginLoader {
         );
 
         plugins.get(pluginPackage).forEach(pluginHandler -> {
+            pluginHandler.addHandlerListener(this);
             SwingUtilities.invokeLater(() -> {
                 if (pluginHandler.getView().isEnabled()) {
                     try {
                         pluginHandler.loadPlugin();
                     } catch (PluginException e) {
-                        Logger.getLogger().warn("Unable to load plugin ''{0}''\n{1}", Plugin.getId(pluginHandler), Logger.stackTraceToString(e));
+                        Logger.getLogger().warn(MessageFormat.format("Unable to load plugin ''{0}''", Plugin.getId(pluginHandler)), e);
                         pluginHandler.getView().setEnabled(false, false);
                     }
                 }
@@ -107,21 +105,21 @@ class PluginLoader {
     }
 
     void removePluginPackage(PluginPackage pluginPackage, boolean removeFile) throws PluginException, IOException {
-        Logger.getLogger().debug("PXE: Start plugin package ''{0}'' removal", pluginPackage);
+        Logger.getLogger().debug("Start plugin package ''{0}'' removal", pluginPackage);
         for (PluginHandler pluginHandler : plugins.get(pluginPackage)) {
             try {
                 if (pluginHandler.getView().isEnabled()) {
                     pluginHandler.unloadPlugin();
                 }
             } catch (PluginException e) {
-                Logger.getLogger().warn("Unable to unload plugin ''{0}''\n{1}", Plugin.getId(pluginHandler), Logger.stackTraceToString(e));
+                Logger.getLogger().warn(MessageFormat.format("Unable to unload plugin ''{0}''", Plugin.getId(pluginHandler)), e);
                 throw e;
             }
         }
         plugins.remove(pluginPackage);
         if (removeFile) {
             pluginPackage.close();
-            Logger.getLogger().debug("PXE: Remove plugin file ''{0}''", pluginPackage.jarFilePath);
+            Logger.getLogger().debug("Remove plugin file ''{0}''", pluginPackage.jarFilePath);
             Files.delete(pluginPackage.jarFilePath);
         }
     }
@@ -132,15 +130,15 @@ class PluginLoader {
                 .map(Plugin::getId)
                 .collect(Collectors.toList());
 
-        IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+        IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
         CAS.readCatalogEntries(null, Plugin.class).entrySet().stream()
                 .filter(entry -> !pluginIDs.contains(entry.getValue()))
                 .forEach(entry -> {
                     try {
-                        Logger.getLogger().debug("PXE: Remove unused plugin ''{0}'' from database", entry.getValue());
+                        Logger.getLogger().debug("Remove unused plugin ''{0}'' from database", entry.getValue());
                         CAS.removeClassInstance(Plugin.class, entry.getKey());
                     } catch (Exception e) {
-                        Logger.getLogger().warn("Unable to remove unused plugin ''{0}'' from database", entry.getValue());
+                        Logger.getLogger().warn(MessageFormat.format("Unable to remove unused plugin ''{0}'' from database", entry.getValue()), e);
                     }
                 });
     }
@@ -151,5 +149,15 @@ class PluginLoader {
 
     PluginPackage getPackageById(String id) {
         return plugins.keySet().stream().filter(pluginPackage -> pluginPackage.getId().equals(id)).findFirst().orElse(null);
+    }
+
+    @Override
+    public void pluginLoaded(PluginHandler handler) {
+        Logger.getLogger().debug("Enabled plugin: {0}", handler.getDescription());
+    }
+
+    @Override
+    public void pluginUnloaded(PluginHandler handler) {
+        Logger.getLogger().debug("Disabled plugin: {0}", handler.getDescription());
     }
 }

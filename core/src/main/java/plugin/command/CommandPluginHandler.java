@@ -1,12 +1,10 @@
 package plugin.command;
 
 import codex.command.EntityCommand;
-import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.editor.IEditorFactory;
 import codex.editor.TextView;
 import codex.launcher.Shortcut;
-import codex.log.Logger;
 import codex.model.Access;
 import codex.model.CommandRegistry;
 import codex.model.Entity;
@@ -83,7 +81,7 @@ final class CommandPluginHandler<V extends Entity> extends PluginHandler<Command
         EntityCommand<? extends Entity> command = CommandRegistry.getInstance().registerCommand(entityClass, pluginClass);
         launcherSupplier.get().activate();
         updateShortcuts(entityClass, command.getName());
-        Logger.getLogger().debug("PXE: Enabled plugin: {0}", getDescription());
+        super.loadPlugin();
     }
 
     @Override
@@ -95,18 +93,17 @@ final class CommandPluginHandler<V extends Entity> extends PluginHandler<Command
                     CommandRegistry.getInstance().unregisterCommand(entityClass, pluginClass);
                     launcherSupplier.get().activate();
                     updateShortcuts(entityClass, command.getName());
-                    Logger.getLogger().debug("PXE: Disabled plugin: {0}", getDescription());
                 });
-
+        super.unloadPlugin();
     }
 
     private static <V extends Entity> void updateShortcuts(Class<V> entityClass, String commandName) {
-        IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+        IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
         CAS.readCatalogEntries(null, Shortcut.class).keySet().stream()
                 .map(id -> CAS.readClassInstance(Shortcut.class, id))
                 .filter(properties -> properties.get(Shortcut.PROP_COMMAND).equals(commandName))
                 .forEach(properties -> {
-                    ((Shortcut) EntityRef.build(Shortcut.class, properties.get(EntityModel.ID)).getValue()).update();
+                    (EntityRef.build(Shortcut.class, properties.get(EntityModel.ID)).getValue()).update();
                 });
     }
 
@@ -123,7 +120,7 @@ final class CommandPluginHandler<V extends Entity> extends PluginHandler<Command
     @Override
     protected final String getDescription() {
         return MessageFormat.format(
-                "Type: {0} [{1}] / Command: {2}",
+                "{0} [{1}] / Command: {2}",
                 CommandPlugin.class.getSimpleName(),
                 entityClass.getSimpleName(),
                 getTitle()
