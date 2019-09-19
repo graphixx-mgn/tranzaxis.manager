@@ -7,7 +7,6 @@ import codex.presentation.EditorPage;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.task.ITaskExecutorService;
-import codex.task.TaskManager;
 import codex.type.AnyType;
 import codex.type.IComplexType;
 import codex.type.Iconified;
@@ -29,7 +28,7 @@ import java.util.Map;
 
 public class ShowVersionInfo extends CommandPlugin<Offshoot> {
 
-    private final static ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
+    private final static ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
 
     private static String PROP_LAST_RELEASE  = "lastRelease";
     private static String PROP_LAST_OFFSHOOT = "lastOffshoot";
