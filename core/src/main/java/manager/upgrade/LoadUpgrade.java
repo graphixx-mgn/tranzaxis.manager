@@ -3,26 +3,20 @@ package manager.upgrade;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.instance.Instance;
+import codex.log.Level;
 import codex.log.Logger;
-import codex.log.TextPaneAppender;
 import codex.task.*;
+import codex.utils.FileUtils;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.upgrade.stream.RemoteInputStream;
 import manager.xml.Version;
 import manager.xml.VersionsDocument;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.log4j.Level;
-import org.apache.log4j.PatternLayout;
-import org.apache.log4j.Priority;
-import org.apache.log4j.spi.LoggingEvent;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
-import javax.swing.text.DefaultCaret;
-import javax.swing.text.Style;
-import javax.swing.text.StyleConstants;
 import javax.xml.bind.DatatypeConverter;
 import java.awt.*;
 import java.io.File;
@@ -34,7 +28,6 @@ import java.nio.channels.FileChannel;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.security.MessageDigest;
-import java.text.DecimalFormat;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -76,7 +69,7 @@ class LoadUpgrade extends AbstractTask<Void> {
                             new EmptyBorder(5, 5, 5, 5)
                     ));
                     add(taskView, BorderLayout.NORTH);
-                    add(LoadUpgrade.this.createLogPane(), BorderLayout.CENTER);
+                    add(TaskOutput.createOutput(LoadUpgrade.this), BorderLayout.CENTER);
                 }},
                 (e) -> {
                     if (e.getID() == Dialog.OK) {
@@ -90,9 +83,7 @@ class LoadUpgrade extends AbstractTask<Void> {
 
     @Override
     public Void execute() throws Exception {
-        SwingUtilities.invokeLater(() -> {
-            dialog.setVisible(true);
-        });
+        SwingUtilities.invokeLater(() -> dialog.setVisible(true));
         Thread.sleep(500);
 
         InetSocketAddress rmiAddress = instance.getRemoteAddress();
@@ -101,14 +92,15 @@ class LoadUpgrade extends AbstractTask<Void> {
 
         Registry rmiRegistry = LocateRegistry.getRegistry(host, port);
         IUpgradeService remoteUpService = (IUpgradeService) rmiRegistry.lookup(UpgradeService.class.getCanonicalName());
-        Logger.getLogger().info(Language.get(UpgradeUnit.class, "process@connect"), host, String.valueOf(port));
+        TaskOutput.put(Level.Debug, Language.get(UpgradeUnit.class, "process@connect"), host, String.valueOf(port));
 
         Version localVersion  = UpgradeService.getVersion();
         Version remoteVersion = remoteUpService.getCurrentVersion();
         VersionsDocument diff = remoteUpService.getDiffVersions(localVersion, remoteVersion);
         List<Version> chain = new LinkedList<>(Arrays.asList(diff.getVersions().getVersionArray()));
         chain.add(0, localVersion);
-        Logger.getLogger().info(
+        TaskOutput.put(
+                Level.Debug,
                 Language.get(UpgradeUnit.class, "process@sequence"),
                 chain.stream()
                         .map(Version::getNumber)
@@ -123,9 +115,10 @@ class LoadUpgrade extends AbstractTask<Void> {
             RemoteInputStream inStream = remoteUpService.getUpgradeFileStream();
 
             long fileSize = inStream.available();
-            Logger.getLogger().info(
+            TaskOutput.put(
+                    Level.Debug,
                     Language.get(UpgradeUnit.class, "process@file"),
-                    "\n", formatFileSize(fileSize), remoteChecksum
+                    "\n", FileUtils.formatFileSize(fileSize), remoteChecksum
             );
             byte[] data = new byte[1024];
             long totalRead = 0;
@@ -137,7 +130,7 @@ class LoadUpgrade extends AbstractTask<Void> {
                 setProgress((int) (100 * totalRead / fileSize), getDescription());
                 bytesRead = inStream.read(data);
             }
-            Logger.getLogger().info(Language.get(UpgradeUnit.class, "process@loaded"));
+            TaskOutput.put(Level.Debug, Language.get(UpgradeUnit.class, "process@loaded"));
             try {
                 inStream.close();
             } catch (IOException e) {
@@ -147,10 +140,10 @@ class LoadUpgrade extends AbstractTask<Void> {
             e.printStackTrace();
             closeBtn.setEnabled(true);
             upgradedFile.delete();
-            Logger.getLogger().warn(Language.get(UpgradeUnit.class, "process@transmission.error"));
+            TaskOutput.put(Level.Warn, Language.get(UpgradeUnit.class, "process@transmission.error"));
         } finally {
             if (DatatypeConverter.printHexBinary(localChecksum.digest()).equals(remoteChecksum)) {
-                Logger.getLogger().info(Language.get(UpgradeUnit.class, "process@result.success"));
+                TaskOutput.put(Level.Debug, Language.get(UpgradeUnit.class, "process@result.success"));
             } else {
                 closeBtn.setEnabled(true);
                 throw new ExecuteException(
@@ -188,28 +181,4 @@ class LoadUpgrade extends AbstractTask<Void> {
         System.exit(0);
     }
 
-    private static String formatFileSize(long size) {
-        String hrSize;
-
-        double bytes     = size;
-        double kilobytes = size/1024.0;
-        double megabytes = ((size/1024.0)/1024.0);
-        double gigabytes = (((size/1024.0)/1024.0)/1024.0);
-        double terabytes = ((((size/1024.0)/1024.0)/1024.0)/1024.0);
-
-        DecimalFormat dec = new DecimalFormat("0.00");
-
-        if (terabytes > 1) {
-            hrSize = dec.format(terabytes).concat(" TB");
-        } else if (gigabytes > 1) {
-            hrSize = dec.format(gigabytes).concat(" GB");
-        } else if (megabytes > 1) {
-            hrSize = dec.format(megabytes).concat(" MB");
-        } else if (kilobytes > 1) {
-            hrSize = dec.format(kilobytes).concat(" KB");
-        } else {
-            hrSize = dec.format(bytes).concat(" B");
-        }
-        return hrSize;
-    }
 }

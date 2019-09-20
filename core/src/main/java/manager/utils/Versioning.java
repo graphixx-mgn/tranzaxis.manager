@@ -44,7 +44,7 @@ public class Versioning {
                         entry.getValue().size(),
                         Language.get(UpgradeUnit.class, "html@scope."+change.getScope()),
                         change.getType(),
-                        change.getDescription(),
+                        change.getDescription().replaceAll("\\n", "<br>"),
                         Versioning.class.getResource(Language.get(UpgradeUnit.class, "html@type."+change.getType().toString()))
                 ))
                 .collect(Collectors.joining());
