@@ -8,7 +8,7 @@ import codex.component.messagebox.MessageType;
 import codex.editor.AnyTypeView;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
-import codex.instance.InstanceCommunicationService;
+import codex.instance.IInstanceDispatcher;
 import codex.log.Logger;
 import codex.model.*;
 import codex.property.PropertyHolder;
@@ -17,7 +17,6 @@ import codex.type.*;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.xml.VersionsDocument;
-
 import javax.swing.*;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -32,7 +31,7 @@ import java.util.stream.Collectors;
 public class PackageView extends Catalog {
 
     private final static ImageIcon ICON_INFO = ImageUtils.getByPath("/images/info.png");
-    private final static InstanceCommunicationService ICS = (InstanceCommunicationService) ServiceRegistry.getInstance().lookupService(InstanceCommunicationService.class);
+    private final static IInstanceDispatcher ICS = ServiceRegistry.getInstance().lookupService(IInstanceDispatcher.class);
 
     final static ImageIcon PACKAGE   = ImageUtils.getByPath("/images/repository.png");
     final static ImageIcon DISABLED  = ImageUtils.getByPath("/images/unavailable.png");

@@ -4,7 +4,7 @@ import codex.command.EntityGroupCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.instance.Instance;
-import codex.log.Logger;
+import codex.log.Level;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.task.*;
@@ -57,7 +57,7 @@ class DownloadPackages extends EntityGroupCommand<RemotePackageView> {
 
     @Override
     public void execute(List<RemotePackageView> context, Map<String, IComplexType> params) {
-        ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class)).quietTask(
+        ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).quietTask(
                 new TaskLoadUpdates(context.stream().map(packageView -> packageView.remotePackage).collect(Collectors.toList()))
         );
     }
@@ -89,7 +89,7 @@ class DownloadPackages extends EntityGroupCommand<RemotePackageView> {
                     null,
                     ICON_LOAD,
                     Language.get(DownloadPackages.class, "dialog@title"),
-                    new JPanel(new BorderLayout()) {{
+                    new JPanel(new BorderLayout(0, 5)) {{
                         setBorder(new EmptyBorder(5, 5, 5, 5));
                         AbstractTaskView taskView = TaskLoadUpdates.this.createView(null);
                         taskView.setBorder(new CompoundBorder(
@@ -97,7 +97,7 @@ class DownloadPackages extends EntityGroupCommand<RemotePackageView> {
                                 new EmptyBorder(5, 5, 5, 5)
                         ));
                         add(taskView, BorderLayout.NORTH);
-                        add(TaskLoadUpdates.this.createLogPane(), BorderLayout.CENTER);
+                        add(TaskOutput.createOutput(TaskLoadUpdates.this), BorderLayout.CENTER);
                     }},
                     e -> {
                         if (e.getID() == Dialog.EXIT) {
@@ -117,7 +117,8 @@ class DownloadPackages extends EntityGroupCommand<RemotePackageView> {
                         MessageFormat.format(Language.get(DownloadPackages.class, "task@progress"), remotePackage.toString())
                 );
                 if (remotePackage.isAvailable()) {
-                    Logger.getLogger().info(
+                    TaskOutput.put(
+                            Level.Debug,
                             Language.get(DownloadPackages.class, "task@package.start"),
                             remotePackage.getId(),
                             remotePackage.getVersion(),
@@ -125,11 +126,14 @@ class DownloadPackages extends EntityGroupCommand<RemotePackageView> {
                     );
                     for (Instance provider : remotePackage.getInstances()) {
                         try {
-                            Logger.getLogger().info(fillStepResult(
-                                    Language.get(DownloadPackages.class, "task@package.provider"),
-                                    provider.getUser() + provider.getRemoteAddress(),
-                                    null
-                            ));
+                            TaskOutput.put(
+                                    Level.Debug,
+                                    fillStepResult(
+                                            Language.get(DownloadPackages.class, "task@package.provider"),
+                                            provider.getUser() + provider.getRemoteAddress(),
+                                            null
+                                    )
+                            );
                             loadPackageFile(
                                     (IPluginLoaderService) provider.getService(PluginLoaderService.class),
                                     remotePackage
@@ -140,7 +144,8 @@ class DownloadPackages extends EntityGroupCommand<RemotePackageView> {
                         }
                     }
                 } else {
-                    Logger.getLogger().info(
+                    TaskOutput.put(
+                            Level.Debug,
                             Language.get(DownloadPackages.class, "task@package.skip"),
                             remotePackage.getId(),
                             remotePackage.getVersion()
@@ -179,7 +184,10 @@ class DownloadPackages extends EntityGroupCommand<RemotePackageView> {
                     // Do nothing
                 }
                 if (DatatypeConverter.printHexBinary(localChecksum.digest()).equals(remoteChecksum)) {
-                    Logger.getLogger().info(fillStepResult(STEP_DOWNLOAD, STEP_SUCCESS, null));
+                    TaskOutput.put(
+                            Level.Debug,
+                            fillStepResult(STEP_DOWNLOAD, STEP_SUCCESS, null)
+                    );
                     try {
                         installPackageFile(upgradeFile);
                     } catch (Exception e) {
@@ -191,18 +199,24 @@ class DownloadPackages extends EntityGroupCommand<RemotePackageView> {
                     throw new Exception(Language.get(DownloadPackages.class, "error@checksum"));
                 }
             } catch (Exception e) {
-                Logger.getLogger().warn(fillStepResult(STEP_DOWNLOAD, STEP_FAILED, e));
+                TaskOutput.put(
+                        Level.Warn,
+                        fillStepResult(STEP_DOWNLOAD, STEP_FAILED, e)
+                );
                 Files.delete(upgradeFile.toPath());
                 throw e;
             }
         }
 
         private void installPackageFile(File jarFile) throws Exception {
-            PluginPackage newPackage = null;
+            PluginPackage newPackage;
             try {
                 newPackage = new PluginPackage(jarFile);
             } catch (IOException e) {
-                Logger.getLogger().info(fillStepResult(STEP_INSTALL, STEP_FAILED, new Error(Language.get(DownloadPackages.class, "error@metainfo"))));
+                TaskOutput.put(
+                        Level.Debug,
+                        fillStepResult(STEP_INSTALL, STEP_FAILED, new Error(Language.get(DownloadPackages.class, "error@metainfo")))
+                );
                 throw e;
             }
             PluginPackage oldPackage = PluginManager.getInstance().getPluginLoader().getPackageById(newPackage.getId());
@@ -215,12 +229,21 @@ class DownloadPackages extends EntityGroupCommand<RemotePackageView> {
                     oldView.getParent().delete(oldView);
                 }
                 PluginManager.getInstance().getPluginLoader().addPluginPackage(newPackage);
-                Logger.getLogger().info(fillStepResult(STEP_INSTALL, STEP_SUCCESS, null));
+                TaskOutput.put(
+                        Level.Debug,
+                        fillStepResult(STEP_INSTALL, STEP_SUCCESS, null)
+                );
             } catch (PluginException | IOException e) {
                 if (e instanceof FileSystemException) {
-                    Logger.getLogger().warn(fillStepResult(STEP_INSTALL, STEP_FAILED, new Error(((FileSystemException) e).getReason())));
+                    TaskOutput.put(
+                            Level.Warn,
+                            fillStepResult(STEP_INSTALL, STEP_FAILED, new Error(((FileSystemException) e).getReason()))
+                    );
                 } else {
-                    Logger.getLogger().warn(fillStepResult(STEP_INSTALL, STEP_FAILED, e));
+                    TaskOutput.put(
+                            Level.Warn,
+                            fillStepResult(STEP_INSTALL, STEP_FAILED, e)
+                    );
                 }
                 newPackage.close();
                 throw e;
@@ -230,9 +253,15 @@ class DownloadPackages extends EntityGroupCommand<RemotePackageView> {
                 PackageView packageView = new PackageView(newPackage);
                 try {
                     packageView.setPublished(true);
-                    Logger.getLogger().info(fillStepResult(STEP_PUBLISH, STEP_SUCCESS, null));
+                    TaskOutput.put(
+                            Level.Debug,
+                            fillStepResult(STEP_PUBLISH, STEP_SUCCESS, null)
+                    );
                 } catch (Exception e) {
-                    Logger.getLogger().info(fillStepResult(STEP_PUBLISH, STEP_FAILED, e));
+                    TaskOutput.put(
+                            Level.Debug,
+                            fillStepResult(STEP_PUBLISH, STEP_FAILED, e)
+                    );
                 }
             }
         }
