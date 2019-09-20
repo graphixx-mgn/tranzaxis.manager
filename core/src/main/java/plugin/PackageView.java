@@ -357,7 +357,22 @@ public class PackageView extends Catalog {
         @Override
         public void execute(PackageView context, Map<String, IComplexType> params) {
             try {
+                if (context.isPublished()) {
+                    ICS.getInstances().forEach(instance -> {
+                        try {
+                            final IPluginLoaderService pluginLoader = (IPluginLoaderService) instance.getService(PluginLoaderService.class);
+                            pluginLoader.packagePublicationChanged(
+                                    new IPluginLoaderService.RemotePackage(context.packageSupplier.get()),
+                                    isPublished()
+                            );
+                        } catch (RemoteException | NotBoundException e) {
+                            //
+                        }
+                    });
+                }
+
                 PluginManager.getInstance().getPluginLoader().removePluginPackage(context.packageSupplier.get(), true);
+                context.model.remove();
                 context.getParent().delete(context);
                 for (PluginHandler pluginHandler : context.pluginsSupplier.get()) {
                     context.delete(pluginHandler.getView());
