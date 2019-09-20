@@ -1,20 +1,6 @@
 package codex.task;
 
 import codex.log.Logger;
-import codex.log.LoggerContext;
-import codex.log.TextPaneAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.PatternLayout;
-import org.apache.log4j.Priority;
-import org.apache.log4j.spi.LoggingEvent;
-import javax.swing.*;
-import javax.swing.border.CompoundBorder;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
-import javax.swing.text.*;
-import javax.swing.text.html.HTMLDocument;
-import java.awt.*;
-import java.io.IOException;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -59,7 +45,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
     public AbstractTask(final String title) {
         future = new FutureTask<T>(() -> {
             try {
-                LoggerContext.enterLoggerContext(this);
+                TaskOutput.defineContext(this);
                 new LinkedList<>(listeners).forEach((listener) -> listener.beforeExecute(this));
                 T result;
                 setStatus(Status.STARTED);
@@ -81,7 +67,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
                 Logger.getLogger().error(MessageFormat.format("Error on task ''{0}'' execution", getTitle()), e);
                 throw e;
             } finally {
-                LoggerContext.leaveLoggerContext();
+                TaskOutput.clearContext();
                 System.gc();
             }
             return null;
@@ -287,74 +273,4 @@ public abstract class AbstractTask<T> implements ITask<T> {
         listeners.remove(listener);
     }
 
-    public JPanel createLogPane() {
-        return new LogPane(this);
-    }
-
-    private class LogPane extends JPanel {
-        private LogPane (AbstractTask task) {
-            super(new BorderLayout());
-
-            JTextPane infoPane = new JTextPane();
-            infoPane.setEditable(false);
-            infoPane.setPreferredSize(new Dimension(450, 150));
-            infoPane.setContentType("text/html");
-            infoPane.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-            infoPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
-            ((DefaultCaret) infoPane.getCaret()).setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
-
-            JScrollPane scrollPane = new JScrollPane();
-            scrollPane.setLayout(new ScrollPaneLayout());
-            scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-            scrollPane.getViewport().add(infoPane);
-            scrollPane.setBorder(new CompoundBorder(
-                    new EmptyBorder(5, 0, 0, 0),
-                    new LineBorder(Color.LIGHT_GRAY, 1)
-            ));
-            add(scrollPane, BorderLayout.CENTER);
-
-            final TextPaneAppender paneAppender = new TextPaneAppender(infoPane) {
-                @Override
-                protected void append(LoggingEvent event) {
-                    Style style = infoPane.getStyle(event.getLevel().toString());
-                    Color color = StyleConstants.getForeground(style);
-                    String hex = "#"+Integer.toHexString(color.getRGB()).substring(2);
-                    String message = MessageFormat.format(
-                            "<span><font color=\"{0}\">{1}</font></span>",
-                            hex,
-                            getLayout().format(event)
-                                    .replaceAll("\n {21}", "<br>")
-                                    .replaceAll(" ", "&nbsp;")
-                                    .replace("\r\n", "<br>")
-                    );
-
-                    if (LoggerContext.objectInContext(task)) {
-                        HTMLDocument doc = (HTMLDocument) infoPane.getStyledDocument();
-                        try {
-                            doc.insertAfterEnd(doc.getCharacterElement(doc.getLength()), message);
-                        } catch (BadLocationException | IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            };
-
-            paneAppender.setThreshold(Priority.INFO);
-            paneAppender.setLayout(new PatternLayout("%m%n"));
-//            Logger.getLogger().addAppender(paneAppender);
-//
-//            Style style = infoPane.getStyle(Level.INFO.toString());
-//            StyleConstants.setForeground(style, Color.GRAY);
-//
-//            task.addListener(new ITaskListener() {
-//                @Override
-//                public void statusChanged(ITask task, Status status) {
-//                    if (status.isFinal()) {
-//                        Logger.getLogger().removeAppender(paneAppender);
-//                    }
-//                }
-//            });
-        }
-    }
 }
