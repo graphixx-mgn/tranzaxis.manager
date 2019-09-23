@@ -4,7 +4,8 @@ import codex.context.IContext;
 import codex.context.ServiceCallContext;
 import codex.model.Bootstrap;
 import codex.utils.ImageUtils;
-import org.apache.log4j.jdbc.JDBCAppender;
+import org.apache.log4j.AsyncAppender;
+import org.apache.log4j.spi.LoggingEvent;
 import org.atteo.classindex.ClassIndex;
 import javax.swing.*;
 import java.io.PrintWriter;
@@ -72,15 +73,48 @@ public class Logger extends org.apache.log4j.Logger {
         Thread.setDefaultUncaughtExceptionHandler(LMS);
         LMS.startService();
     }
+
+    private final DatabaseAppender dbAppender = new DatabaseAppender() {
+        @Override
+        public void append(LoggingEvent event) {
+            super.append(event);
+            listeners.forEach(listener -> listener.eventAppended(event));
+        }
+    };
+    private final List<IAppendListener> listeners = new LinkedList<>();
     
     Logger(String name) {
         super(name);
-        JDBCAppender dbAppender = new DatabaseAppender();
-        Logger.getRootLogger().addAppender(dbAppender);
+        AsyncAppender asyncAppender = new AsyncAppender() {
+            @Override
+            public synchronized void doAppend(LoggingEvent event) {
+                String contexts = Logger.getMessageContexts().stream()
+                        .map(Logger::getContextId)
+                        .collect(Collectors.joining(","));
+                super.doAppend(new LoggingEvent(
+                        event.getFQNOfLoggerClass(),
+                        event.getLogger(),
+                        event.getTimeStamp(),
+                        event.getLevel(),
+                        event.getMessage().toString().replaceAll("\"", "'"),
+                        event.getThreadName(),
+                        event.getThrowableInformation(),
+                        contexts,
+                        event.getLocationInformation(),
+                        null
+                ));
+            }
+        };
+        asyncAppender.addAppender(dbAppender);
+        Logger.getRootLogger().addAppender(asyncAppender);
     }
 
     public static ILogManagementService getLogger() {
         return LMS;
+    }
+
+    void addAppendListener(IAppendListener listener){
+        listeners.add(listener);
     }
 
     static Logger getSysLogger() {
@@ -152,5 +186,11 @@ public class Logger extends org.apache.log4j.Logger {
 
     static synchronized void setContextLevel(Class<? extends IContext> contextClass, Level level) {
         contextLevels.replace(contextClass, level);
+    }
+
+
+    @FunctionalInterface
+    interface IAppendListener {
+        void eventAppended(LoggingEvent event);
     }
 }

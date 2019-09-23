@@ -3,7 +3,6 @@ package codex.log;
 import codex.utils.Language;
 import org.apache.log4j.EnhancedPatternLayout;
 import org.apache.log4j.jdbc.JDBCAppender;
-import org.apache.log4j.spi.LoggingEvent;
 import org.sqlite.JDBC;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,16 +10,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 public class DatabaseAppender extends JDBCAppender {
 
     private static final String PROP_FILE = "META-INF/options/LogManagementService.properties";
-
-    private final List<IAppendListener> listeners = new LinkedList<>();
 
     public DatabaseAppender() {
         try (
@@ -52,36 +46,4 @@ public class DatabaseAppender extends JDBCAppender {
             statement.execute(createSQL);
         }
     }
-
-    @Override
-    public synchronized void doAppend(LoggingEvent event) {
-            String contexts = Logger.getMessageContexts().stream()
-                    .map(Logger::getContextId)
-                    .collect(Collectors.joining(","));
-            super.doAppend(new LoggingEvent(
-                    event.getFQNOfLoggerClass(),
-                    event.getLogger(),
-                    event.getTimeStamp(),
-                    event.getLevel(),
-                    event.getMessage().toString().replaceAll("\"", "'"),
-                    event.getThreadName(),
-                    event.getThrowableInformation(),
-                    contexts,
-                    event.getLocationInformation(),
-                    null
-            ));
-            listeners.forEach(listener -> listener.eventAppended(event));
-    }
-
-    void addAppendListener(IAppendListener listener){
-        listeners.add(listener);
-    }
-
-
-    @FunctionalInterface
-    interface IAppendListener {
-        void eventAppended(LoggingEvent event);
-    }
-
-
 }
