@@ -2,6 +2,8 @@ package codex.log;
 
 import codex.supplier.IDataSupplier;
 import codex.utils.Language;
+import java.io.Closeable;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -9,7 +11,7 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.*;
 
-class EventLogSupplier implements IDataSupplier<Map<String, String>> {
+class EventLogSupplier implements IDataSupplier<Map<String, String>>, Closeable {
 
     private final static String PAGINATION = Language.get(EventLogSupplier.class, "pagination", Locale.US);
 
@@ -69,7 +71,16 @@ class EventLogSupplier implements IDataSupplier<Map<String, String>> {
         offset = 0L;
     }
 
-    private String prepareQuery(String query) {
+    protected String prepareQuery(String query) {
         return MessageFormat.format(PAGINATION, query, IDataSupplier.DEFAULT_LIMIT, String.valueOf(offset));
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            this.connection.close();
+        } catch (SQLException e) {
+            throw new IOException(e);
+        }
     }
 }
