@@ -62,7 +62,7 @@ class HTMLExporter {
         new Dialog(
                 null,
                 ImageUtils.getByPath("/images/export.png"),
-                "<Test>",
+                Language.get("dialog@title"),
                 new EditorPage(paramModel),
                 event -> {
                     if (event.getID() == Dialog.OK) {
@@ -84,9 +84,6 @@ class HTMLExporter {
     }
 
     private static void writeFile(Path path, List<Map<String, String>> data) throws IOException {
-        System.out.println("HTMLExporter.writeFile: "+path);
-        System.err.println("data: "+data.size());
-
         if (!Files.exists(path)) {
             Files.createDirectories(path.getParent());
         }
