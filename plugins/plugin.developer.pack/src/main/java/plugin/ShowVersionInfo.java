@@ -41,7 +41,7 @@ public class ShowVersionInfo extends CommandPlugin<Offshoot> {
     @Override
     public void execute(Offshoot offshoot, Map<String, IComplexType> params) {
         if (!offshoot.getRepository().isRepositoryOnline(true)) return;
-        TES.executeTask(new CollectVersionData());
+        TES.executeTask(new CollectVersionData(offshoot));
     }
 
     @Override
@@ -49,23 +49,24 @@ public class ShowVersionInfo extends CommandPlugin<Offshoot> {
         return false;
     }
 
-    private Offshoot getOffshoot() {
-        return getContext().get(0);
+    @Override
+    public Kind getKind() {
+        return Kind.Info;
     }
-
 
     class CollectVersionData extends AbstractTask<ParamModel> {
 
-        CollectVersionData() {
+        private final Offshoot offshoot;
+        CollectVersionData(Offshoot offshoot) {
             super(Language.get("title"));
+            this.offshoot = offshoot;
         }
 
         @Override
         public ParamModel execute() throws Exception {
             ParamModel paramModel = new ParamModel();
             try {
-                BranchDocument branch = getBranch(getOffshoot());
-                System.err.println(branch.getBranch().getBaseDistUri());
+                BranchDocument branch = getBranch(offshoot);
                 BinarySource lastRelease = getLastRelease(branch);
 
                 if (lastRelease instanceof Release) {
@@ -124,7 +125,7 @@ public class ShowVersionInfo extends CommandPlugin<Offshoot> {
                 release = Entity.newPrototype(Offshoot.class);
                 release.setTitle(branch.getBranch().getLastRelease());
             } else {
-                release = Entity.newInstance(Release.class, getOffshoot().getRepository().toRef(), branch.getBranch().getLastRelease());
+                release = Entity.newInstance(Release.class, offshoot.getRepository().toRef(), branch.getBranch().getLastRelease());
             }
             return release;
         }
