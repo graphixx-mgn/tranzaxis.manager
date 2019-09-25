@@ -6,6 +6,7 @@ import codex.instance.InstanceUnit;
 import codex.launcher.LauncherUnit;
 import codex.log.LogUnit;
 import codex.log.Logger;
+import codex.model.Bootstrap;
 import codex.service.ServiceUnit;
 import codex.task.TaskManager;
 import codex.utils.ImageUtils;
@@ -23,12 +24,10 @@ import manager.upgrade.UpgradeUnit;
 import plugin.PluginManager;
 import sun.util.logging.PlatformLogger;
 import javax.swing.*;
-import java.util.prefs.Preferences;
 
 public class Manager {
     
     static {
-        UIManager.put("Tree.drawDashedFocusIndicator", false);
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (UnsupportedLookAndFeelException | ClassNotFoundException | InstantiationException | IllegalAccessException e) {
@@ -44,6 +43,7 @@ public class Manager {
     public Manager() {
 //        new NotifyMessage("Test", "TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST", 0, null).setVisible(true);
         SplashScreen splash = new SplashScreen();
+        splash.setProgress(0, "Load system services");
         loadSystemProps();
         Window window = new Window("TranzAxis Manager", ImageUtils.getByPath("/images/project.png"));
         String uniqueAppId = Manager.class.getCanonicalName();
@@ -59,8 +59,7 @@ public class Manager {
             JUnique.sendMessage(uniqueAppId, "OPEN");
             System.exit(0);
         }
-
-        splash.setProgress(10, "Initialize logging system");
+        splash.setProgress(10, "Initialize logging unit");
         LogUnit logViewer = LogUnit.getInstance();
 
         splash.setProgress(20, "Load plugin manager");
@@ -107,14 +106,19 @@ public class Manager {
     }
     
     private void loadSystemProps() {
-        Preferences prefs = Preferences.userRoot().node(Manager.class.getSimpleName());
-        
-        if (prefs.get("guiLang", null) != null) {
-            Locale localeEnum = Locale.valueOf(prefs.get("guiLang", null));
-            java.lang.System.setProperty("user.language", localeEnum.getLocale().getLanguage());
-            java.lang.System.setProperty("user.country",  localeEnum.getLocale().getCountry());
-            Logger.getLogger().debug("Set interface locale: {0}", Language.getLocale());
+        String PID  = Language.get(Common.class, "title", new java.util.Locale("en", "US"));
+        String lang = Bootstrap.getProperty(Common.class, PID, "guiLang");
+        if (lang != null) {
+            java.util.Locale locale = Locale.valueOf(lang).getLocale();
+            java.lang.System.setProperty("user.language", locale.getLanguage());
+            java.lang.System.setProperty("user.country",  locale.getCountry());
         }
+        java.util.Locale guiLocale = Language.getLocale();
+        Logger.getLogger().debug("" +
+                "GUI locale:\n * Language: {0} \n * Country:  {1}",
+                guiLocale.getDisplayLanguage(),
+                guiLocale.getDisplayCountry()
+        );
     }
 
 }
