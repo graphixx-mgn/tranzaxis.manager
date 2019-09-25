@@ -613,7 +613,9 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            context.getParent().delete(context);
+            if (context.model.remove()) {
+                context.getParent().delete(context);
+            }
         }
 
         @Override
