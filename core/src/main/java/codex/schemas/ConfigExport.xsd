@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<xs:schema version="1.0"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="codex/schemas/ConfigExport.xsd"
+           elementFormDefault="qualified"
+           targetNamespace="codex/schemas/ConfigExport.xsd">
+
+    <xs:element name="configuration" type="Configuration" />
+
+    <xs:complexType name="Configuration">
+        <xs:sequence>
+            <xs:element name="catalog" type="Catalog" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="Catalog">
+        <xs:sequence>
+            <xs:element name="entity" type="Entity" maxOccurs="unbounded" />
+        </xs:sequence>
+        <xs:attribute name="className" use="required" type="xs:string" />
+    </xs:complexType>
+
+    <xs:complexType name="Entity">
+        <xs:sequence>
+            <xs:element name="parent" type="Ref" />
+            <xs:element name="owner"  type="Ref" />
+            <xs:element name="properties">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="property" type="Property" maxOccurs="unbounded" />
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="pid" use="required" type="xs:string" />
+    </xs:complexType>
+
+    <xs:complexType name="Ref">
+        <xs:attribute name="pid" use="required" type="xs:string" />
+        <xs:attribute name="className" use="required" type="xs:string" />
+    </xs:complexType>
+
+    <xs:complexType name="Property">
+        <xs:sequence>
+            <xs:element name="owner" type="Ref" />
+        </xs:sequence>
+        <xs:attribute name="name"  use="required" type="xs:string" />
+        <xs:attribute name="value" type="xs:string" />
+    </xs:complexType>
+</xs:schema>
