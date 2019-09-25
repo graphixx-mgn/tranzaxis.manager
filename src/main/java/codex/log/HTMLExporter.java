@@ -6,9 +6,11 @@ import codex.mask.FileMask;
 import codex.model.ParamModel;
 import codex.presentation.EditorPage;
 import codex.supplier.IDataSupplier;
+import codex.type.Bool;
 import codex.type.FilePath;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import org.apache.commons.io.FilenameUtils;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -30,9 +32,11 @@ import java.util.stream.Collectors;
 class HTMLExporter {
 
     private final static String PARAM_PATH = "path";
+    private final static String PARAM_TIME = "time";
     private final static String USER_HOME  = javax.swing.filechooser.FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
     private final static String DEF_FILE   = "eventlog.htm";
     private final static SimpleDateFormat DATE_FORMAT  = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");
+    private final static SimpleDateFormat FILE_FORMAT  = new SimpleDateFormat("yyyy.MM.dd_HHmm");
     private static final Map<String, String> CTX_ICONS = Logger.getContexts().stream()
             .collect(Collectors.toMap(
                     Logger::getContextId,
@@ -45,6 +49,7 @@ class HTMLExporter {
             ));
 
     private final static ThreadLocal<List<Map<String, String>>> DATA = new ThreadLocal<>();
+    private final static ThreadLocal<Date>                      DATE = new ThreadLocal<>();
 
     static void export(EventLogSupplier supplier) throws IDataSupplier.LoadDataException {
         List<Map<String, String>> data = supplier.getNext();
@@ -58,6 +63,7 @@ class HTMLExporter {
                 )),
                 true
         );
+        paramModel.addProperty(PARAM_TIME, new Bool(false), false);
 
         new Dialog(
                 null,
@@ -66,8 +72,19 @@ class HTMLExporter {
                 new EditorPage(paramModel),
                 event -> {
                     if (event.getID() == Dialog.OK) {
+                        DATA.set(data);
+                        DATE.set(new Date());
                         try {
-                            writeFile(((FilePath) paramModel.getParameters().get(PARAM_PATH)).getValue(), data);
+                            Path filePath = ((FilePath) paramModel.getParameters().get(PARAM_PATH)).getValue();
+                            if (filePath != null && paramModel.getParameters().get(PARAM_TIME).getValue() == Boolean.TRUE) {
+                                String fileName = FilenameUtils.getBaseName(filePath.toString());
+                                String fileExt  = FilenameUtils.getExtension(filePath.toString());
+                                filePath = filePath.resolveSibling(MessageFormat.format(
+                                        "{0}_{1}.{2}",
+                                        fileName, FILE_FORMAT.format(DATE.get()), fileExt
+                                ));
+                            }
+                            writeFile(filePath);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -83,14 +100,13 @@ class HTMLExporter {
         }.setVisible(true);
     }
 
-    private static void writeFile(Path path, List<Map<String, String>> data) throws IOException {
+    private static void writeFile(Path path) throws IOException {
         if (!Files.exists(path)) {
             Files.createDirectories(path.getParent());
         }
-
-        DATA.set(data);
-        FileOutputStream fileStream = new FileOutputStream(path.toFile());
-        fileStream.write(prepareHtml().getBytes());
+        try (FileOutputStream fileStream = new FileOutputStream(path.toFile())) {
+            fileStream.write(prepareHtml().getBytes());
+        }
     }
 
     private static String prepareHtml() {
@@ -158,7 +174,7 @@ class HTMLExporter {
     private static String prepareHeader() {
         return MessageFormat.format(
                Language.get("header"),
-               DATE_FORMAT.format(new Date()),
+               DATE_FORMAT.format(DATE.get()),
                System.getProperty("user.name")
         );
     }
