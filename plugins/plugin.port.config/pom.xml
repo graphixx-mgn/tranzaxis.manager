@@ -21,7 +21,7 @@
     <dependencies>
         <dependency>
             <groupId>com.compassplus</groupId>
-            <artifactId>manager.core</artifactId>
+            <artifactId>application</artifactId>
         </dependency>
     </dependencies>
 

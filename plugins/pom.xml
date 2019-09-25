@@ -37,7 +37,7 @@
         <dependencies>
             <dependency>
                 <groupId>com.compassplus</groupId>
-                <artifactId>manager.core</artifactId>
+                <artifactId>application</artifactId>
                 <scope>provided</scope>
                 <version>[2.0.0,)</version>
             </dependency>

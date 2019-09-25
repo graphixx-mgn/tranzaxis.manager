@@ -3,6 +3,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <artifactId>application</artifactId>
     <version>2.2.2</version>
 	
@@ -34,7 +35,7 @@
         </dependency>
         <dependency>
             <groupId>com.compassplus</groupId>
-            <artifactId>codex</artifactId>
+            <artifactId>core</artifactId>
             <version>2.0.0</version>
         </dependency>
         <dependency>
@@ -54,6 +55,10 @@
                     <artifactId>platform</artifactId>
                     <groupId>net.java.dev.jna</groupId>
                 </exclusion>
+                <exclusion>
+                    <artifactId>trilead-ssh2</artifactId>
+                    <groupId>com.trilead</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -65,11 +70,6 @@
             <groupId>org.apache.ant</groupId>
             <artifactId>ant</artifactId>
             <version>1.10.5</version>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.6</version>
         </dependency>
         <dependency>
             <groupId>it.sauronsoftware</groupId>
@@ -86,12 +86,15 @@
                     <groupId>xml-apis</groupId>
                     <artifactId>xml-apis</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>commons-io</groupId>
+                    <artifactId>commons-io</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
             <groupId>org.atteo.classindex</groupId>
             <artifactId>classindex</artifactId>
-            <version>3.4</version>
         </dependency>
     </dependencies>
 
