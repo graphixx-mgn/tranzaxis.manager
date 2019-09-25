@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<versions current="2.2.2" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="2.2.2" date="2019-07-01">
+        <changelog>
+            <change scope="API" type="Change">
+                <description>Доработан тип данных Map и его редактор.</description>
+            </change>
+            <change scope="API" type="Change">
+                <description>Доработан интерфейс поставщика данных и стандартный селектор RowSelector. Теперь данные читаются порционно в двух направлениях.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлено удаление записи БД о рабочей копии при потере связи с сущностью 'Environment'.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлен пустой список релизов в сущности 'Environment'.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлено зависание приложение при старте вследствие deadlock-а.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Исправлена проблема обновления зависимых сущностей в команде утилите рабочего каталога.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>В сущность 'Repository' добавлен флаг необходимости загружать архивные версии исходников и релизы (по умолчанию выключен).</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Добавлена команда обновления рабочей копии  до определенной ревизии SVN.</description>
+            </change>
+        </changelog>
+    </version>
+    <version number="2.2.1" date="2019-06-17">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлены команды создания и клонирования сущностей.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправление двойного вызова диалога параметров команды.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Исправление подсчета компилируемых модулей при сборке версии.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Отключение возможности публикации плагина, находящегося в разработке.</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Добавлена команда запуска RW Designer с профилем отладки.</description>
+            </change>
+        </changelog>
+    </version>
+    <version number="2.2.0" date="2019-06-10">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена активная кнопка редактирования сущности в селекторе, до выделения любой сущности.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена смена цвета текста у значений свойств в заблокированном редакторе (или у динамического свойства).</description>
+            </change>
+            <change scope="CORE" type="Change">
+                <description>Реализация групповой команды сущностей (запускается для группы выбранных сущностей, а не для каждой из них).</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Реализовано копирование значения свойства родительской сушности в дочернюю при перекрытии.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Редактор расширенных настроек при подтверждении/отмене соответственно сохраняет/откатывает только сделанные в нем изменения не влияя на основные настройки.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Команды сохранения и отката в редакторе сущности не активируются при изменении расширенных свойств в диалоге.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Иконки локальных (системных) сервисов в модуле управления сервисами.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>При загрузке сетевых сервисов их настройки добавляются во встроенный селектор редактора сервиса взаимодействаия инстанций.</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Реализован механизм расширения приложения при помощи подключаемых модулей (плагинов). Управление производится через модуль приложения Plugin Manager:
+                    включение, отключение и удаление плагинов без необходимости перезапуска.</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Реализован механизм обмена плагинами между инстанциями через сервис взаимодействия инстанций.</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Новый тип плагина: "команда сущности". Поддержка плагина в модуле ярлыков.</description>
+            </change>
+        </changelog>
+    </version>
+    <version number="2.1.7" date="2019-04-30">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Синхронизация потоков при автоматическом создании/удалении связанных сущностей.</description>
+            </change>
+            <change scope="CORE" type="Change">
+                <description>Изменение поведения панели команд селектора сущностей. Панель всегда отображает системные команды (edit, create, clone, delete).
+Команды сущностей отображаются только при выборе одной или более сущностей в селекторе. При этом отображаются только те команды, которые имеются во всех выбранных сущностях.</description>
+            </change>
+            <change scope="CORE" type="Feature">
+                <description>Реализация расширенных настроек сущностей, вызывается командой в редакторе.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Исправлен ряд ошибок редакторе сущности типа 'Environment' (условия видимости редакторов свойств и доступности их команд).</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Исправлена ошибка автообновления релиза в сущностях типа 'Environment' при наличии двух и более таких сущностей с идентичным релизом перед обновлением.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Исправлено зависание приложения при компиляции рабочей копии, имеющей большое количество сообщений уровня Warning.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Поддержка архивных релизов.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Доработка виджета задачи компиляции: добавлен переключатель отображения предупреждений компиляции (по умолчанию не показываются).</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Доработка вывода сообщений об ошибках при взаимодействии с SVN.</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Презентация селектора и редактора в правой часть проводника размещены на вкладках ("Дочерние сущности" и "Настройки").</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Добавлены настройки в корневую сущность 'Environment' (Флаги RW Starter, Server и Explorer), наследуемые в дочерних объектах.
+Данные настройки дочерних объектов вынесены в список расширенных.</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Добавлено расширенное свойство в сущность типа Environment: поле отображения команд запуска RW Server и Explorer.
+Значение генерируется на основе заданных настроек и может быть скопировано.</description>
+            </change>
+        </changelog>
+    </version>
+    <version number="2.1.6" date="2019-02-02">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена ошибка в диалоге селектора значений из БД в результате которой в поле ввода не записывалось выбранное значение.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Переработан алгоритм загрузки и проверки кэша сборок продукта.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Запрет сворачивания корневого узда дерева проводника.</description>
+            </change>
+        </changelog>
+    </version>
+    <version number="2.1.5" date="2019-01-29">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена ошибка в окне отображения исполнения задач, связанного с обновлением виджета задачи из разных потоков (помимо Event Dispatch Thread).</description>
+            </change>
+            <change scope="CORE" type="Change">
+                <description>Удаление вкладки "Thread pool" из монитора задач.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Реализована очередь источников обновления. В процессе регистрации удаленных инстанций модуль обновления формирует очередь и открывает диалог.
+Если инстанция отключается - она удаляется из очереди. Если отключились все инстанции с новой версией приложения - диалог обновления закрывается.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Обработка сетевых ошибок при загрузке обновления на стороне клиента.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Перехват исключений RadixWare компилятора и прерывание задачи. Раньше задача в таком случае завершалась "успешно".</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Исправлена ошибка сборки ядра по причине отсутствия компилятора Java в CLASSPATH.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Блокировка закрытия процесса приложения пока другая инстанция скачивает обновление.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Доработка внешнего вида диалога обновления.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Проверка целостности кэша отражается визуально в виде задачи. Раньше этот процесс исполнялся в фоне, что выглядело как "зависание".</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Нажатие на номер версии приложения отображает историю изменений.</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Дополнение виджета задачи компиляции модулей информацией о найденных ошибках в процессе сборки.
+При наличии ошибок или предупреждений по нажатию на строку состояния компиляции разворачивается дерево со списком всех проблем, по аналогии с RadixWare Designer.</description>
+            </change>
+        </changelog>
+    </version>
+    <version number="2.1.4" date="2019-01-22">
+        <changelog>
+            <change scope="CORE" type="Change">
+                <description>Модели автоматически создаваемых сущностей не удаляются из БД при удалении узла из проводника.</description>
+            </change>
+            <change scope="CORE" type="Change">
+                <description>Добавлено каскадное удаление моделей дочерних сущностей из БД на которые нет других ссылок кроме владельца.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Отказ от обновления теперь выключает события уведомления об обновлении до перезапуска.</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>В каталог 'Sources' добавлена настройка параметров JVM для запуска Designer и встроенного компилятора. По умолчанию указано выделение 6 Гб HEAP.</description>
+            </change>
+        </changelog>
+    </version>
+    <version number="2.1.3" date="2019-01-17">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Потокобезопасное вычисление значения динамических свойств.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена периодическая ошибка инициализации ветки 'Environment'.</description>
+            </change>
+            <change scope="CORE" type="Change">
+                <description>Улучшен алгоритм отслеживания подключений инстанций и обрывов соединений.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Поддержка отображения и удаления посторонних файлов и каталогов в утилите очистки рабочей папки.</description>
+            </change>
+        </changelog>
+    </version>
+    <version number="2.1.2" date="2018-12-19">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена ошибка инициализации дерева проводника в ОС Linux.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Корректное закрытие ресурса БД (ResultSet) при чтении информации о версии слоя окружения.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Исправлено появление информационного окна обновления при наличии нескольких инстанций с более новой версией ПО.</description>
+            </change>
+        </changelog>
+    </version>
+    <version number="2.1.1" date="2018-12-14">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена ошибка при сохранении настроек модуля нотификации, воспроизводится при
+включеной опции "Отображать запросы базы данных" в модуле доступа к конфигурации.</description>
+            </change>
+        </changelog>
+    </version>
+    <version number="2.1.0" date="2018-12-10">
+        <changelog>
+            <change scope="CORE" type="Feature">
+                <description>Модуль конфигурации локальных сервисов</description>
+            </change>
+            <change scope="CORE" type="Change">
+                <description>Изменение в схеме запуска сервисов</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>NPE при создании секции ярлыков</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>NPE при назначении горячих клавих команд селектора</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Взаимодействие с процессами компиляции с использованием случайного порта TCP</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Реализация сервиса обновления</description>
+            </change>
+        </changelog>
+    </version>
+</versions>

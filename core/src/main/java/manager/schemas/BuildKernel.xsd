@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<xs:schema version="1.0"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified"
+           targetNamespace="antlib:org.apache.tools.ant"
+           xmlns:antlib="antlib:org.apache.tools.ant">
+<xs:element name="project">
+        <xs:complexType>
+                <xs:sequence>
+                        <xs:element ref="antlib:property"/>
+                        <xs:element ref="antlib:target" maxOccurs="unbounded"/>
+                </xs:sequence>
+                <xs:attribute name="name" use="required" type="xs:string"/>
+                <xs:attribute name="default" use="required">
+                        <xs:simpleType>
+                                <xs:restriction base="xs:string">
+                                        <xs:enumeration value="clean"/>
+                                        <xs:enumeration value="distributive"/>
+                                </xs:restriction>
+                        </xs:simpleType>
+                </xs:attribute>
+                <xs:attribute name="basedir" use="required" type="xs:string"/>
+        </xs:complexType>
+</xs:element>
+<xs:element name="property">
+        <xs:complexType>
+                <xs:attribute name="value" type="xs:string" use="required"/>
+                <xs:attribute name="name" type="xs:string" use="required"/>
+        </xs:complexType>
+</xs:element>
+<xs:element name="target">
+        <xs:complexType>
+                <xs:sequence minOccurs="0">
+                        <xs:element ref="antlib:subant"/>
+                </xs:sequence>
+                <xs:attribute name="name" use="required" type="xs:string"/>
+        </xs:complexType>
+</xs:element>
+<xs:element name="subant">
+        <xs:complexType>
+                <xs:sequence>
+                        <xs:element ref="antlib:filelist"/>
+                        <xs:element ref="antlib:target"/>
+                </xs:sequence>
+        </xs:complexType>
+</xs:element>
+<xs:element name="filelist">
+        <xs:complexType>
+                <xs:attribute name="files" use="required" type="xs:string"/>
+                <xs:attribute name="dir" use="required" type="xs:string"/>
+        </xs:complexType>
+</xs:element>
+</xs:schema>

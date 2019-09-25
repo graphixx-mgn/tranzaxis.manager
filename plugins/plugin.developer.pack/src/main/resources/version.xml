@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<versions current="1.0.0" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="1.0.0" date="2019-07-27">
+        <changelog>
+            <change scope="APP" type="Feature">
+                <description>Плагин "Информация о версии продукта": начальная версия.</description>
+            </change>
+        </changelog>
+    </version>
+</versions>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<versions current="1.0.2" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="1.0.2" date="2019-09-19">
+        <changelog>
+            <change scope="APP" type="Bugfix">
+                <description>В селекторе объектов вместо ID модулей отображались ID точек подключения.</description>
+            </change>
+            <change scope="API" type="Bugfix">
+                <description>Исправлена бинарная несовместимость с приложением в связи с рефакторингом класса ServiceRegistry.</description>
+            </change>
+        </changelog>
+    </version>
+    <version number="1.0.1" date="2019-07-01">
+        <changelog>
+            <change scope="API" type="Bugfix">
+                <description>Исправлена бинарная несовместимость с приложением в связи с рефакторингом редактора типа Enum.</description>
+            </change>
+        </changelog>
+    </version>
+    <version number="1.0.0" date="2019-06-10">
+        <changelog>
+            <change scope="APP" type="Feature">
+                <description>Плагин "Настройка портов инстанции": начальная версия.</description>
+            </change>
+        </changelog>
+    </version>
+</versions>
