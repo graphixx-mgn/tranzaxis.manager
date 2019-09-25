@@ -3,5 +3,5 @@
 .idea
 
 #Project build files
-/core/target
+/application/target/
 /plugins/*/target

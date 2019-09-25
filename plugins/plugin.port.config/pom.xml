@@ -7,7 +7,7 @@
     <version>1.0.2</version>
 
     <parent>
-        <artifactId>manager.plugins</artifactId>
+        <artifactId>plugins</artifactId>
         <groupId>com.compassplus</groupId>
         <version>1.0.0</version>
         <relativePath>../pom.xml</relativePath>

@@ -16,7 +16,7 @@
     </properties>
 
     <modules>
-        <module>core</module>
+        <module>application</module>
         <module>plugins</module>
     </modules>
 
