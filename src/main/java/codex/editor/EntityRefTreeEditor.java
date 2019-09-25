@@ -4,7 +4,6 @@ import codex.command.EditorCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.component.render.GeneralRenderer;
-import codex.explorer.ExplorerAccessService;
 import codex.explorer.IExplorerAccessService;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.NodeTreeModel;
@@ -164,7 +163,7 @@ public class EntityRefTreeEditor extends AbstractEditor<EntityRef<Entity>, Entit
     private List<Entity> getValues() {
         EntityRef<Entity> ref = propHolder.getPropValue();
         Class<? extends Entity> entityClass = ref.getEntityClass();
-        ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+        IExplorerAccessService EAS = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class);
 
         return entityClass != null ? EAS.getEntitiesByClass(entityClass)
                 .stream()
@@ -182,7 +181,7 @@ public class EntityRefTreeEditor extends AbstractEditor<EntityRef<Entity>, Entit
         @Override
         public void execute(PropertyHolder context) {
             JPanel content = new JPanel(new BorderLayout());
-            IExplorerAccessService EAS = (IExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+            IExplorerAccessService EAS = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class);
             Entity rootEAS = EAS.getRoot();
 
             NodeTreeModel treeModel = new NodeTreeModel(new EntityProxy(rootEAS));

@@ -2,7 +2,7 @@ package codex.editor;
 
 import codex.component.button.IButton;
 import codex.component.render.GeneralRenderer;
-import codex.explorer.ExplorerAccessService;
+import codex.explorer.IExplorerAccessService;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.mask.EntityFilter;
@@ -63,7 +63,7 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
     protected List<T> getValues() {
         EntityRef<T> ref = propHolder.getPropValue();
         Class<T> entityClass = ref.getEntityClass();
-        ExplorerAccessService EAS = (ExplorerAccessService) ServiceRegistry.getInstance().lookupService(ExplorerAccessService.class);
+        IExplorerAccessService EAS = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class);
 
         return entityClass != null ? EAS.getEntitiesByClass(entityClass)
                     .stream()
