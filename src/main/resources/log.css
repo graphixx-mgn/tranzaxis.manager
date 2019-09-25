@@ -144,9 +144,9 @@ table.log tbody tr td:last-child {
 
 /* Details buttons */
 a.details {
-    float: right;
     border: 1px solid gray;
     background-color: white;
+    margin: 0 5px 0 0;
     padding: 0 5px;
     color: gray;
     white-space: nowrap;
@@ -168,9 +168,9 @@ div.details {
 
 /* Stack buttons */
 a.stack {
-    float: right;
     border: 1px solid gray;
     background-color: white;
+    margin: 0 5px 0 0;
     padding: 0 5px;
     color: black;
     white-space: nowrap;

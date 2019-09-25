@@ -3,22 +3,32 @@ $(document).ready(function() {
     var contextFilter = $('#context');
 
     function showDetails() {
-        if (!$(this).next(".details").is(":visible")) {
-            $(this).next(".details").slideDown(100);
-            $(this).text("Hide details");
+        var button  = $(this);
+        var message = button.parent().find(".msg");
+        var details = button.parent().find("div.details");
+        if (!details.is(":visible")) {
+            message.hide();
+            details.slideDown(100);
+            button.text("Hide details");
         } else {
-            $(this).next(".details").slideUp(100);
-            $(this).text("Show details");
+            details.slideUp(100);
+            message.show();
+            button.text("Show details");
         }
     }
 
     function showStack() {
-        if (!$(this).next(".stack").is(":visible")) {
-            $(this).next(".stack").slideDown(100);
-            $(this).text("Hide stack");
+        var button  = $(this);
+        var message = button.parent().find(".msg");
+        var stack   = button.parent().find("div.stack");
+        if (!stack.is(":visible")) {
+            message.hide();
+            stack.slideDown(100);
+            button.text("Hide stack");
         } else {
-            $(this).next(".stack").slideUp(100);
-            $(this).text("Show stack");
+            stack.slideUp(100);
+            message.show();
+            button.text("Show stack");
         }
     }
 
