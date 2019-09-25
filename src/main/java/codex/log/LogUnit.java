@@ -376,38 +376,35 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
 
     @Override
     public JComponent createViewport() {
-        JButton button = new JButton(Language.get("title")) {
+        JLabel label = new JLabel(
+                Language.get("title"),
+                IMAGE_LOG_UNIT, SwingConstants.CENTER
+        ) {{
+            setBorder(new EmptyBorder(new Insets(2, 10, 2, 10)));
+        }};
+        label.addMouseListener(new MouseAdapter() {
             @Override
-            public Dimension getPreferredSize() {
-                return new Dimension(super.getPreferredSize().width, 21);
+            public void mouseClicked(MouseEvent event) {
+                frame.setVisible(!frame.isVisible());
             }
-        };
-        button.setIcon(IMAGE_LOG_UNIT);
-        button.setFocusPainted(false);
-        button.setOpaque(false);
-        button.setContentAreaFilled(false);
-        button.setRolloverEnabled(true);
-        button.setMargin(new Insets(0, 5, 0, 5));
-        button.addActionListener((ActionEvent event) -> frame.setVisible(!frame.isVisible()));
-
+        });
         ((Logger) org.apache.log4j.Logger.getLogger(Logger.class)).addAppendListener(event -> {
             if (!frame.isActive() && event.getLevel().toInt() > maxLevel.log4jLevel.toInt()) {
                 maxLevel = Level.fromSysLevel(event.getLevel());
                 notifyUnit();
             }
         });
-
-        return button;
+        return label;
     }
 
     private void notifyUnit() {
         JComponent view = getViewport();
         if (view != null) {
-            JButton button = (JButton) view;
+            JLabel label = (JLabel) view;
             if (maxLevel != Level.Debug) {
-                button.setIcon(ImageUtils.resize(maxLevel.getIcon(), 17, 17));
+                label.setIcon(ImageUtils.resize(maxLevel.getIcon(), 17, 17));
             } else {
-                button.setIcon(IMAGE_LOG_UNIT);
+                label.setIcon(IMAGE_LOG_UNIT);
             }
         }
     }
