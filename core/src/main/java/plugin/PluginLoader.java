@@ -16,8 +16,8 @@ import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
 @LoggingSource
-@IContext.Definition(id = "PXE", name = "Plugin loader", icon = "/images/plugins.png")
-class PluginLoader implements IContext, PluginHandler.IHandlerListener {
+@IContext.Definition(id = "PXE", name = "Pluggable Extensions Manager", icon = "/images/plugins.png")
+public class PluginLoader implements IContext, PluginHandler.IHandlerListener {
 
     private final static FileFilter FILE_FILTER = file -> file.isFile() && file.getName().endsWith(".jar");
     private final Map<PluginPackage, List<PluginHandler>> plugins = new HashMap<>();
