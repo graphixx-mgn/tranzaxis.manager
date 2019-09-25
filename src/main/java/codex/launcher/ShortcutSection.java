@@ -2,7 +2,6 @@ package codex.launcher;
 
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
-import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.editor.EntityRefEditor;
 import codex.editor.IEditor;
@@ -51,7 +50,7 @@ import javax.swing.event.DocumentListener;
  */
 public class ShortcutSection extends Entity implements IModelListener {
     
-    private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private final static IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
     final static String DEFAULT = Language.get(ShortcutSection.class, "default", Locale.US);
     
     private JPanel view;

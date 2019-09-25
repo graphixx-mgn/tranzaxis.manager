@@ -5,7 +5,6 @@ import codex.command.EditorCommand;
 import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
-import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.editor.*;
 import codex.mask.EntityFilter;
@@ -38,7 +37,7 @@ class CreateShortcut extends EntityCommand<Entity> {
     private static final String PARAM_COMMAND  = "command";
     private static final String PARAM_LINKNAME = "linkname";
         
-    private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private final static IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
     private final CreateSection proxyCommand;
     
     /**

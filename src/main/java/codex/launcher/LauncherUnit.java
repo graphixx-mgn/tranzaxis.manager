@@ -2,7 +2,6 @@ package codex.launcher;
 
 import codex.component.border.DashBorder;
 import codex.component.border.RoundedBorder;
-import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.log.Logger;
 import codex.model.Entity;
@@ -10,7 +9,6 @@ import codex.presentation.CommandPanel;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.task.ITaskExecutorService;
-import codex.task.TaskExecutorService;
 import codex.unit.AbstractUnit;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -35,8 +33,8 @@ import javax.swing.border.EmptyBorder;
  */
 public final class LauncherUnit extends AbstractUnit {
 
-    private final static IConfigStoreService  CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
-    private final static ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskExecutorService.class);
+    private final static IConfigStoreService  CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
+    private final static ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
     
     private final SectionContainer shortcutPanel = new SectionContainer();
     private final DragHandler      dragHandler = new DragHandler();
