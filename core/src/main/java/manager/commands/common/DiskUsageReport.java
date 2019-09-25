@@ -4,18 +4,15 @@ import codex.command.EntityCommand;
 import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
-import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
-import codex.task.AbstractTask;
-import codex.task.AbstractTaskView;
-import codex.task.ITaskExecutorService;
-import codex.task.TaskManager;
+import codex.task.*;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
+import codex.utils.FileUtils;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.commands.common.report.*;
@@ -36,7 +33,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
@@ -49,8 +45,8 @@ import java.util.stream.StreamSupport;
 
 public class DiskUsageReport extends EntityCommand<Common> {
 
-    private final static IConfigStoreService  CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
-    private final static ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
+    private final static IConfigStoreService  CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
+    private final static ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
 
     private static final String SIZE_FORMAT = Language.get(DiskUsageReport.class, "task@total");
     public  static final String TRASH       = "trash@title";
@@ -216,8 +212,8 @@ public class DiskUsageReport extends EntityCommand<Common> {
                 final JLabel sizeInfo = new JLabel(
                         MessageFormat.format(
                                 SIZE_FORMAT,
-                                formatFileSize(0),
-                                formatFileSize(0)
+                                FileUtils.formatFileSize(0),
+                                FileUtils.formatFileSize(0)
                         )
                 ) {{
                     setIcon(ImageUtils.getByPath("/images/info.png"));
@@ -232,8 +228,8 @@ public class DiskUsageReport extends EntityCommand<Common> {
                     }
                     sizeInfo.setText(MessageFormat.format(
                             SIZE_FORMAT,
-                            formatFileSize(totalSize.get()),
-                            formatFileSize(unusedSize.get())
+                            FileUtils.formatFileSize(totalSize.get()),
+                            FileUtils.formatFileSize(unusedSize.get())
                     ));
                 };
 
@@ -366,30 +362,5 @@ public class DiskUsageReport extends EntityCommand<Common> {
     @FunctionalInterface
     interface ICalcListener {
         void sizeChanged(Entry entry, long value);
-    }
-
-    public static String formatFileSize(long size) {
-        String hrSize;
-
-        double bytes     = size;
-        double kilobytes = size/1024.0;
-        double megabytes = ((size/1024.0)/1024.0);
-        double gigabytes = (((size/1024.0)/1024.0)/1024.0);
-        double terabytes = ((((size/1024.0)/1024.0)/1024.0)/1024.0);
-
-        DecimalFormat dec = new DecimalFormat("0.00");
-
-        if (terabytes > 1) {
-            hrSize = dec.format(terabytes).concat(" TB");
-        } else if (gigabytes > 1) {
-            hrSize = dec.format(gigabytes).concat(" GB");
-        } else if (megabytes > 1) {
-            hrSize = dec.format(megabytes).concat(" MB");
-        } else if (kilobytes > 1) {
-            hrSize = dec.format(kilobytes).concat(" KB");
-        } else {
-            hrSize = dec.format(bytes).concat(" B");
-        }
-        return hrSize;
     }
 }

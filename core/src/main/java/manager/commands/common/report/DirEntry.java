@@ -4,13 +4,11 @@ import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.task.ITask;
 import codex.task.ITaskExecutorService;
-import codex.task.TaskManager;
 import codex.type.EntityRef;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.commands.common.DiskUsageReport;
 import org.apache.commons.io.FileDeleteStrategy;
-
 import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
@@ -23,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @BranchLink(priority = 2)
 public class DirEntry extends Entry {
 
-    private final static ITaskExecutorService TES = ((ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class));
+    private final static ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
 
     public DirEntry(EntityRef owner, String filePath) {
         this(owner, ImageUtils.getByPath("/images/unknown_dir.png"), filePath);
@@ -33,7 +31,7 @@ public class DirEntry extends Entry {
         super(owner, icon, filePath);
     }
 
-    protected long getFilesCount() throws IOException {
+    private long getFilesCount() throws IOException {
         return Files.walk(new File(getPID()).toPath()).count();
     }
 
@@ -51,7 +49,7 @@ public class DirEntry extends Entry {
 
         private final DirEntry entry;
 
-        public DeleteDirectory(DirEntry entry) {
+        DeleteDirectory(DirEntry entry) {
             super(Language.get(DiskUsageReport.class, "delete@title") + ": " + entry.getPID());
             this.entry = entry;
         }

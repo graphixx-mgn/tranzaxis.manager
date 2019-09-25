@@ -1,9 +1,7 @@
 package manager.commands.common.report;
 
-import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
-import codex.explorer.tree.INodeListener;
 import codex.model.Catalog;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
@@ -17,11 +15,9 @@ import java.util.stream.Collectors;
 
 public class RepoView extends Catalog implements Comparable {
 
-    private final static IConfigStoreService CAS = (IConfigStoreService) ServiceRegistry.getInstance().lookupService(ConfigStoreService.class);
+    private final static IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
     private final static ImageIcon IMG_REPO  = ImageUtils.getByPath("/images/repository.png");
     private final static ImageIcon IMG_TRASH = ImageUtils.combine(ImageUtils.grayscale(IMG_REPO), ImageUtils.getByPath("/images/unavailable.png"));
-
-    //private final List<Entity> linkedEntities;
 
     public RepoView(EntityRef owner, String repoDirName) {
         super(
@@ -30,14 +26,6 @@ public class RepoView extends Catalog implements Comparable {
                 repoDirName,
                 null
         );
-//        if (getOwner() != null) {
-//            linkedEntities = CAS.findReferencedEntries(Repository.class, getOwner().getID()).stream()
-//                    .filter(foreignLink -> !foreignLink.isIncoming)
-//                    .map(foreignLink -> EntityRef.build(foreignLink.entryClass, foreignLink.entryID).getValue())
-//                    .collect(Collectors.toList());
-//        } else {
-//            linkedEntities = Collections.emptyList();
-//        }
     }
 
     @Override
