@@ -50,7 +50,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
 
     // Контексты
     @LoggingSource()
-    @IContext.Definition(id = "ORM", name = "Object-relational mapping", icon = "/images/modify.png")
+    @IContext.Definition(id = "ORM", name = "Object-relational mapping", icon = "/images/model.png")
     static class OrmContext implements IContext {
         static void debug(String message, Object... params) {
             Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
