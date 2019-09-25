@@ -35,7 +35,7 @@ public class UpgradeServiceControl extends RemoteServiceControl<IUpgradeService>
                     @Override
                     public String toString() {
                         return MessageFormat.format(
-                                Language.get(UpgradeUnit.class, "info@next"),
+                                Language.get(UpgradeUnit.class, "current"),
                                 version.getNumber(), version.getDate()
                         );
                     }

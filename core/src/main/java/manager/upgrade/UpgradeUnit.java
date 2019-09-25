@@ -1,13 +1,13 @@
 package manager.upgrade;
 
 import codex.component.dialog.Dialog;
+import codex.instance.IInstanceCommunicationService;
+import codex.instance.IInstanceDispatcher;
 import codex.instance.IInstanceListener;
 import codex.instance.Instance;
-import codex.instance.InstanceCommunicationService;
 import codex.log.Logger;
 import codex.service.ServiceRegistry;
 import codex.task.ITaskExecutorService;
-import codex.task.TaskManager;
 import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class UpgradeUnit extends AbstractUnit implements IInstanceListener {
     
     private final static ImageIcon ICON = ImageUtils.resize(ImageUtils.getByPath("/images/upgrade.png"), 17, 17);
-    private final static InstanceCommunicationService ICS = (InstanceCommunicationService) ServiceRegistry.getInstance().lookupService(InstanceCommunicationService.class);
+    private final static IInstanceDispatcher ICS = ServiceRegistry.getInstance().lookupService(IInstanceDispatcher.class);
     
     private final Version currentVersion;
     private final AtomicBoolean skip = new AtomicBoolean(false);
@@ -73,7 +73,7 @@ public final class UpgradeUnit extends AbstractUnit implements IInstanceListener
         synchronized (skip) {
             skip.set(true);
             if (event.getID() == Dialog.OK) {
-                ITaskExecutorService TES = (ITaskExecutorService) ServiceRegistry.getInstance().lookupService(TaskManager.TaskExecutorService.class);
+                ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
                 TES.quietTask(new LoadUpgrade(providers.peek().getKey()));
             } else {
                 Logger.getLogger().debug("Upgrade skipped by user");
