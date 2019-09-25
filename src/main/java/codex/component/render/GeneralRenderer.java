@@ -1,6 +1,5 @@
 package codex.component.render;
 
-import codex.component.button.IButton;
 import codex.editor.IEditor;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.NodeTreeModel;
@@ -68,7 +67,6 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
             setIconTextGap(6);
             setVerticalAlignment(CENTER);
             setFont(IEditor.FONT_VALUE);
-            setBackground(isSelected ? IButton.PRESS_COLOR : list.getBackground());
 
             if (Iconified.class.isAssignableFrom(value.getClass())) {
                 ImageIcon icon = ((Iconified) value).getIcon();
@@ -79,7 +77,13 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                 }
             }
             setBorder(new EmptyBorder(1, 4, 1, 2));
-            setForeground(NullValue.class.isAssignableFrom(value.getClass()) ? Color.GRAY : IEditor.COLOR_NORMAL);
+            setForeground(isSelected ? Color.WHITE : (
+                NullValue.class.isAssignableFrom(value.getClass()) ? IEditor.COLOR_DISABLED : IEditor.COLOR_NORMAL
+            ));
+            setBackground(isSelected ?
+                    UIManager.getDefaults().getColor("List.selectionBackground") :
+                    UIManager.getDefaults().getColor("List.background")
+            );
         }};
     }
 
@@ -107,7 +111,7 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
             return cellHead;
         } else {
             CellRenderer cellBox;
-            if (Bool.class.equals(columnClass)) {
+            if (Bool.class.equals(columnClass) || (value != null && value.getClass() == Boolean.class)) {
                 cellBox = BoolCellRenderer.newInstance();
             } else {
                 cellBox = ComplexCellRenderer.newInstance();
