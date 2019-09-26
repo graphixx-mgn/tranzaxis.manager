@@ -19,6 +19,7 @@ import javax.swing.border.*;
 import java.awt.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -44,7 +45,7 @@ public final class LoggerServiceOptions extends LocalServiceOptions<LogManagemen
         });
 
         // Build context tree
-        fillContext(Logger.getContexts());
+        fillContext(Logger.getContextRegistry().getContexts());
 
         // Embedded context tree selector
         SelectorTreeTable<ContextView> treeTable = new SelectorTreeTable<>((ContextView) treeModel.getRoot(), ContextView.class);
@@ -82,7 +83,7 @@ public final class LoggerServiceOptions extends LocalServiceOptions<LogManagemen
                 for (INode node : treeModel) {
                     final ContextView ctxView = (ContextView) node;
                     final Class<? extends IContext> contextClass = ctxView.getContextClass();
-                    final String contextId = Logger.getContextId(contextClass);
+                    final String contextId = Logger.getContextRegistry().getContext(contextClass).getId();
 
                     Level prevLevel = (Level) model.getValue(contextId.replace(".", "_"));
                     ctxView.model.setValue(
@@ -97,11 +98,11 @@ public final class LoggerServiceOptions extends LocalServiceOptions<LogManagemen
         for (INode node : treeModel) {
             final ContextView ctxView = (ContextView) node;
             final Class<? extends IContext> contextClass = ctxView.getContextClass();
-            final String propName  = Logger.getContextId(contextClass).replace(".", "_");
+            final String propName = Logger.getContextRegistry().getContext(contextClass).getId().replace(".", "_");
 
             model.addUserProp(
                     propName,
-                    new Enum<>(Logger.getContextLevel(contextClass)),
+                    new Enum<>(Logger.getContextRegistry().getContext(contextClass).getLevel()),
                     false,
                     Access.Select
             );
@@ -127,7 +128,7 @@ public final class LoggerServiceOptions extends LocalServiceOptions<LogManagemen
         model.updateDynamicProps(PROP_DB_SIZE);
     }
 
-    private void fillContext(List<Class<? extends IContext>> contexts) {
+    private void fillContext(Collection<Class<? extends IContext>> contexts) {
         for (Class<? extends IContext> context : contexts) {
             addContext(context);
         }

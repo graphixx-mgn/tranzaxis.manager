@@ -1,7 +1,6 @@
 package codex.log;
 
 import codex.component.dialog.Dialog;
-import codex.context.IContext;
 import codex.mask.FileMask;
 import codex.model.ParamModel;
 import codex.presentation.EditorPage;
@@ -37,17 +36,6 @@ class HTMLExporter {
     private final static String DEF_FILE   = "eventlog.htm";
     private final static SimpleDateFormat DATE_FORMAT  = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");
     private final static SimpleDateFormat FILE_FORMAT  = new SimpleDateFormat("yyyy.MM.dd_HHmm");
-    private static final Map<String, String> CTX_ICONS = Logger.getContexts().stream()
-            .collect(Collectors.toMap(
-                    Logger::getContextId,
-                    ctxClass -> toBase64(Logger.getContextIcon(ctxClass))
-            ));
-    private static final Map<String, String> CTX_NAMES = Logger.getContexts().stream()
-            .collect(Collectors.toMap(
-                    Logger::getContextId,
-                    ctxClass -> ctxClass.getAnnotation(IContext.Definition.class).name()
-            ));
-
     private final static ThreadLocal<List<Map<String, String>>> DATA = new ThreadLocal<>();
     private final static ThreadLocal<Date>                      DATE = new ThreadLocal<>();
 
@@ -140,7 +128,7 @@ class HTMLExporter {
                         .map(ctxID -> MessageFormat.format(
                                 Language.get("icon.ext"),
                                 ctxID.replace(".", "_"),
-                                CTX_ICONS.get(ctxID/*.replace(".", "_")*/)
+                                Logger.getContextRegistry().getContext(ctxID).getIcon()
                         )).collect(Collectors.joining("\n"))
 
         );
@@ -195,7 +183,7 @@ class HTMLExporter {
                         .map(ctxID -> MessageFormat.format(
                                Language.get("filter@context.control"),
                                ctxID.replace(".", "_"),
-                               CTX_NAMES.get(ctxID)
+                               Logger.getContextRegistry().getContext(ctxID).getName()
                         )).collect(Collectors.joining("\n"))
         );
     }

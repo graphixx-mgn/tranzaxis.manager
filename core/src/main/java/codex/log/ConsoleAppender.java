@@ -28,7 +28,7 @@ public class ConsoleAppender extends org.apache.log4j.ConsoleAppender {
                     null,
                     lastContext.equals(RootContext.class) ? "" : MessageFormat.format(
                             "({0})",
-                            Logger.getContextId(lastContext)
+                            Logger.getContextRegistry().getContext(lastContext).getId()
                     ),
                     event.getLocationInformation(),
                     null

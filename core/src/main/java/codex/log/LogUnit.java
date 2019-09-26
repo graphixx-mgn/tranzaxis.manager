@@ -133,22 +133,17 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                     label.setIcon(ImageUtils.resize(level.getIcon(), iconSize, iconSize));
                 }
                 if (column == 1) {
-                    String[] contexts = tableModel.getValueAt(row,2).toString().split(",", -1);
-                    String   lastContextId = contexts[contexts.length-1];
-                    Logger.getContexts().stream()
-                            .filter(ctxClass -> Logger.getContextId(ctxClass).equals(lastContextId))
-                            .map(Logger::getContextIcon)
-                            .findFirst()
-                            .ifPresent(ctxIcon -> {
-                                if (tableModel.getValueAt(row,4).toString().isEmpty()) {
-                                    label.setIcon(ImageUtils.resize(ctxIcon, iconSize, iconSize));
-                                } else {
-                                    label.setIcon(ImageUtils.resize(
-                                            ImageUtils.combine(ctxIcon, IMAGE_STACK, SwingConstants.SOUTH_EAST),
-                                            iconSize, iconSize
-                                    ));
-                                }
-                            });
+                    String[]  contexts = tableModel.getValueAt(row,2).toString().split(",", -1);
+                    String    lastContextId = contexts[contexts.length-1];
+                    ImageIcon ctxIcon = Logger.getContextRegistry().getContext(lastContextId).getIcon();
+                    if (tableModel.getValueAt(row,4).toString().isEmpty()) {
+                        label.setIcon(ImageUtils.resize(ctxIcon, iconSize, iconSize));
+                    } else {
+                        label.setIcon(ImageUtils.resize(
+                                ImageUtils.combine(ctxIcon, IMAGE_STACK, SwingConstants.SOUTH_EAST),
+                                iconSize, iconSize
+                        ));
+                    }
                 }
                 switch (level) {
                     case Debug:
@@ -291,27 +286,23 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                     int rowAtPoint = table.rowAtPoint(SwingUtilities.convertPoint(popupMenu, new Point(0, 0), table));
                     if (rowAtPoint > -1) {
                         table.setRowSelectionInterval(rowAtPoint, rowAtPoint);
-                        String[] contexts = tableModel.getValueAt(rowAtPoint, 2).toString().split(",", -1);
-                        String   context  = contexts[contexts.length-1];
+                        String[]  contexts = tableModel.getValueAt(rowAtPoint, 2).toString().split(",", -1);
+                        String    lastContextId = contexts[contexts.length-1];
+                        Logger.ContextInfo ctxInfo = Logger.getContextRegistry().getContext(lastContextId);
 
-                        Logger.getContexts().stream()
-                                .filter(ctxClass -> Logger.getContextId(ctxClass).equals(context))
-                                .findFirst()
-                                .ifPresent(ctxClass -> {
-                                    hideContext.setText(MessageFormat.format(
-                                            Language.get(LogUnit.class, "popup@hide"),
-                                            new ContextView(ctxClass).getTitle()
-                                    ));
-                                    hideContext.setIcon(ImageUtils.resize(
-                                            ImageUtils.combine(
-                                                    Logger.getContextIcon(ctxClass),
-                                                    IMAGE_HIDE
-                                            ),
-                                            0.7f
-                                    ));
-                                    hideContext.putClientProperty("context", ctxClass);
-                                    popupMenu.pack();
-                                });
+                        hideContext.setText(MessageFormat.format(
+                                Language.get(LogUnit.class, "popup@hide"),
+                                new ContextView(ctxInfo.getClazz()).getTitle()
+                        ));
+                        hideContext.setIcon(ImageUtils.resize(
+                                ImageUtils.combine(
+                                        ctxInfo.getIcon(),
+                                        IMAGE_HIDE
+                                ),
+                                0.7f
+                        ));
+                        hideContext.putClientProperty("context", ctxInfo.getClazz());
+                        popupMenu.pack();
                     }
                 });
             }
@@ -740,7 +731,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
 
     private class ContextFilter extends Filter {
 
-        private List<Class<? extends IContext>> systemContexts = Logger.getContexts();
+        private Collection<Class<? extends IContext>> systemContexts = Logger.getContextRegistry().getContexts();
         private List<Class<? extends IContext>> hiddenContexts = new LinkedList<>();
         private Container view = new JPanel() {{
             setLayout(new WrapLayout(FlowLayout.LEFT, 3, 3));
@@ -763,7 +754,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                                     .filter(ctxClass -> !hiddenContexts.contains(ctxClass))
                                     .map(ctxClass -> MessageFormat.format(
                                             "INSTR(CONTEXT, ''{0}'') = LENGTH(CONTEXT) - LENGTH(''{0}'') + 1",
-                                            Logger.getContextId(ctxClass)
+                                            Logger.getContextRegistry().getContext(ctxClass).getId()
                                     ))
                             .collect(Collectors.joining(" OR "))
             );
@@ -790,7 +781,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
             return new Box(BoxLayout.LINE_AXIS) {{
                 add(new JLabel(
                         new ContextView(contextClass).getTitle(),
-                        ImageUtils.resize(Logger.getContextIcon(contextClass), 0.5f),
+                        ImageUtils.resize(Logger.getContextRegistry().getContext(contextClass).getIcon(), 0.5f),
                         SwingConstants.LEFT
                 ) {{
                     setAlignmentY(Component.CENTER_ALIGNMENT);

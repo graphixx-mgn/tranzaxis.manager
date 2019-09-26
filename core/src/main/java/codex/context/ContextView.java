@@ -23,13 +23,10 @@ public class ContextView extends Catalog implements Iconified {
         setIcon(ImageUtils.getByPath(contextClass, contextClass.getAnnotation(IContext.Definition.class).icon()));
 
         boolean isOption = contextClass.getAnnotation(LoggingSource.class).debugOption();
+        Level   ctxLevel = Logger.getContextRegistry().getContext(contextClass).getLevel();
         model.addDynamicProp(
                 PROP_LEVEL,
-                isOption ? new Bool(
-                        Logger.getContextLevel(contextClass) == Level.Debug
-                ) : new Enum<>(
-                        Logger.getContextLevel(contextClass)
-                ),
+                isOption ? new Bool(ctxLevel == Level.Debug) : new Enum<>(ctxLevel),
                 null, null
         );
     }
