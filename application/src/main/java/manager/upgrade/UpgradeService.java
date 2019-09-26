@@ -30,7 +30,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
-@NotifySource
 @LoggingSource
 @IContext.Definition(id = "AUS", name = "Application Upgrade Service", icon = "/images/upgrade.png")
 public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions, UpgradeServiceControl> implements IUpgradeService, IContext {
