@@ -1,7 +1,6 @@
 package manager.upgrade;
 
 import codex.component.dialog.Dialog;
-import codex.instance.IInstanceCommunicationService;
 import codex.instance.IInstanceDispatcher;
 import codex.instance.IInstanceListener;
 import codex.instance.Instance;
@@ -76,7 +75,7 @@ public final class UpgradeUnit extends AbstractUnit implements IInstanceListener
                 ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
                 TES.quietTask(new LoadUpgrade(providers.peek().getKey()));
             } else {
-                Logger.getLogger().debug("Upgrade skipped by user");
+                UpgradeService.debug("Upgrade skipped by user");
                 providers.clear();
             }
         }
@@ -120,14 +119,12 @@ public final class UpgradeUnit extends AbstractUnit implements IInstanceListener
                     VersionsDocument diff = remoteUpService.getDiffVersions(currentVersion, availVersion);
                     Map.Entry<Instance, VersionsDocument> entry = new AbstractMap.SimpleImmutableEntry<>(instance, diff);
                     synchronized (providers) {
-                        Logger.getLogger().debug(
+                        UpgradeService.debug(
                                 "Add upgrade provider: {0} ({1} -> {2})",
                                 instance, currentVersion.getNumber(), availVersion.getNumber()
                         );
                         providers.add(entry);
                     }
-                } else if (availVersion != null) {
-                    Logger.getLogger().debug("Remote instance {0} version: {1}", instance, availVersion.getNumber());
                 }
             } catch (RemoteException | NotBoundException e) {
                 // Do nothing
@@ -144,7 +141,7 @@ public final class UpgradeUnit extends AbstractUnit implements IInstanceListener
             providers.stream()
                     .filter(entry -> entry.getKey().equals(instance))
                     .findFirst().ifPresent(entry -> {
-                        Logger.getLogger().debug("Remove upgrade provider: {0}", instance);
+                        UpgradeService.debug("Remove upgrade provider: {0}", instance);
                         providers.remove(entry);
                     }
             );

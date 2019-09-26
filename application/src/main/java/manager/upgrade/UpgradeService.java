@@ -1,7 +1,11 @@
 package manager.upgrade;
 
+import codex.context.IContext;
 import codex.instance.ServiceNotLoadedException;
+import codex.log.Level;
 import codex.log.Logger;
+import codex.log.LoggingSource;
+import codex.notification.NotifySource;
 import codex.service.AbstractRemoteService;
 import manager.commands.offshoot.BuildWC;
 import manager.upgrade.stream.RemoteInputStream;
@@ -20,15 +24,18 @@ import java.nio.file.Files;
 import java.rmi.RemoteException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
-
-public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions, UpgradeServiceControl> implements IUpgradeService {
+@NotifySource
+@LoggingSource
+@IContext.Definition(id = "AUS", name = "Application Upgrade Service", icon = "/images/upgrade.png")
+public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions, UpgradeServiceControl> implements IUpgradeService, IContext {
     
-    public final static String VERSION_RESOURCE = "/version.xml";
+    private final static String VERSION_RESOURCE = "/version.xml";
     
     public static final  Comparator<Version> VER_COMPARATOR = (v1, v2) -> {
         String[] vals1 = v1.getNumber().split("\\.");
@@ -48,6 +55,10 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
     
     private final VersionsDocument versionsDocument;
     private final Semaphore lock = new Semaphore(1, true);
+
+    static void debug(String message, Object... params) {
+        Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
+    }
 
     public UpgradeService() throws Exception {
         super();
@@ -78,7 +89,9 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
                     return version;
                 }
             }
-        } catch (IOException | XmlException e) {}
+        } catch (IOException | XmlException e) {
+            //
+        }
         return null;
     }
 
@@ -119,7 +132,9 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
                 {
                     try {
                         lock.acquire();
-                    } catch (InterruptedException e) {}
+                    } catch (InterruptedException e) {
+                        //
+                    }
                 }
                 @Override
                 public void close() throws IOException {
@@ -166,7 +181,9 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
             byte[] b = Files.readAllBytes(getCurrentJar().toPath());
             byte[] hash = MessageDigest.getInstance("MD5").digest(b);
             return DatatypeConverter.printHexBinary(hash);
-        } catch (IOException | NoSuchAlgorithmException e) {}
+        } catch (IOException | NoSuchAlgorithmException e) {
+            //
+        }
         return null;
     }
     
