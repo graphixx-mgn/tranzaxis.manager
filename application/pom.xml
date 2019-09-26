@@ -56,8 +56,8 @@
                     <groupId>net.java.dev.jna</groupId>
                 </exclusion>
                 <exclusion>
-                    <artifactId>trilead-ssh2</artifactId>
-                    <groupId>com.trilead</groupId>
+                    <artifactId>jsch.agentproxy.svnkit-trilead-ssh2</artifactId>
+                    <groupId>com.jcraft</groupId>
                 </exclusion>
             </exclusions>
         </dependency>
