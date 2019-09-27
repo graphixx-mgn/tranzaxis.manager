@@ -25,12 +25,12 @@ public final class NodeTreeModel extends DefaultTreeModel implements Iterable<IN
 
     @Override
     public void childInserted(INode parentNode, INode childNode) {
-        childNode.addNodeListener(this);
-        ((Entity) childNode).model.addModelListener(this);
         nodesWereInserted(
                 parentNode,
                 new int[] {parentNode.getIndex(childNode)}
         );
+        childNode.addNodeListener(this);
+        ((Entity) childNode).model.addModelListener(this);
     }
 
     @Override
