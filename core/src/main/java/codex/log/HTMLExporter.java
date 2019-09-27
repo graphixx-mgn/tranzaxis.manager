@@ -128,7 +128,7 @@ class HTMLExporter {
                         .map(ctxID -> MessageFormat.format(
                                 Language.get("icon.ext"),
                                 ctxID.replace(".", "_"),
-                                Logger.getContextRegistry().getContext(ctxID).getIcon()
+                                toBase64(Logger.getContextRegistry().getContext(ctxID).getIcon())
                         )).collect(Collectors.joining("\n"))
 
         );
