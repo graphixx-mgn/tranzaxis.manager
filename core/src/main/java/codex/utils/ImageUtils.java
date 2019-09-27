@@ -8,6 +8,7 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.net.URL;
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.*;
@@ -23,7 +24,8 @@ public class ImageUtils {
         if (resource != null) {
             return new ImageIcon(resource);
         } else {
-            Logger.getLogger().error("Image ''{0}'' not found", path);
+            Error err = new Error(MessageFormat.format("Image ''{0}'' not found", path));
+            Logger.getLogger().warn(err.getMessage(), err);
         }
         return new ImageIcon();
     }
