@@ -6,8 +6,12 @@ import codex.service.ServiceRegistry;
 import codex.task.*;
 import codex.type.EntityRef;
 import codex.utils.Language;
+import org.atteo.classindex.ClassIndex;
+import java.lang.reflect.Modifier;
 import java.text.MessageFormat;
-import java.util.Collection;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import javax.swing.ImageIcon;
 
 /**
@@ -34,7 +38,7 @@ public abstract class Catalog extends Entity {
     public abstract Class<? extends Entity> getChildClass();
 
     public void loadChildren() {
-        Collection<String> childrenPIDs = getChildrenPIDs();
+        Map<Class<? extends Entity>, Collection<String>> childrenPIDs = getChildrenPIDs();
         if (!childrenPIDs.isEmpty()) {
             TES.quietTask(new LoadChildren(childrenPIDs) {
                 private int mode = getMode();
@@ -63,22 +67,44 @@ public abstract class Catalog extends Entity {
             });
         }
     }
-    
-    protected Collection<String> getChildrenPIDs() {
-        Entity owner = this.getOwner();
-        Integer ownerId = owner == null ? null : owner.getID();
-        final IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
-        return CAS.readCatalogEntries(ownerId, getChildClass()).values();
+
+    /**
+     * Возвращает список классов, разрешенных для создания и загрузки в данном каталоге.
+     * Каждый из этих классов наследуется от одного класса {@link ClassCatalog}.
+     */
+    public final List<Class<? extends Entity>> getClassCatalog() {
+        Class<? extends Entity> childClass = getChildClass();
+        if (childClass.isAnnotationPresent(ClassCatalog.Definition.class)) {
+            return StreamSupport.stream(ClassIndex.getSubclasses(codex.model.ClassCatalog.class).spliterator(), false)
+                    .filter(aClass -> childClass.isAssignableFrom(aClass) && !Modifier.isAbstract(aClass.getModifiers()))
+                    .collect(Collectors.toList());
+        } else {
+            return Collections.singletonList(childClass);
+        }
+    }
+
+    protected Map<Class<? extends Entity>, Collection<String>> getChildrenPIDs() {
+        return getClassCatalog().stream()
+                .collect(Collectors.toMap(
+                        catalogClass -> catalogClass,
+                        catalogClass -> {
+                            Entity owner = this.getOwner();
+                            Integer ownerId = owner == null ? null : owner.getID();
+                            final IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
+                            return CAS.readCatalogEntries(ownerId, catalogClass).values();
+                        }
+                ));
+
     }
     
     private class LoadChildren extends AbstractTask<Void> {
         
-        private final Collection<String> childrenPIDs;
+        private final Map<Class<? extends Entity>, Collection<String>> childrenPIDs;
 
-        public LoadChildren(Collection<String> childrenPIDs) {
+        LoadChildren(Map<Class<? extends Entity>, Collection<String>> childrenPIDs) {
             super(MessageFormat.format(
                     Language.get(Catalog.class, "task@load"),
-                    Catalog.this.getPathString()
+                    getParent() != null ? Catalog.this.getPathString() : Catalog.this.getPID()
             ));
             this.childrenPIDs = childrenPIDs;
         }
@@ -86,12 +112,12 @@ public abstract class Catalog extends Entity {
         @Override
         public Void execute() throws Exception {
             EntityRef ownerRef = Entity.findOwner(Catalog.this);
-            childrenPIDs.forEach((PID) -> {
-                Entity instance = Entity.newInstance(getChildClass(), ownerRef, PID);
+            childrenPIDs.forEach((catalogClass, PIDs) -> PIDs.forEach(PID -> {
+                Entity instance = Entity.newInstance(catalogClass, ownerRef, PID);
                 if (!childrenList().contains(instance)) {
                     insert(instance);
                 }
-            });
+            }));
             return null;
         }
 
