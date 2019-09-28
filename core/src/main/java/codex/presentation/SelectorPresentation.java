@@ -4,6 +4,8 @@ import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
 import codex.explorer.browser.BrowseMode;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
@@ -23,6 +25,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -78,7 +81,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         commandPanel = new CommandPanel(systemCommands);
         add(commandPanel, BorderLayout.NORTH);
         
-        tableModel = new SelectorTableModel(entity/*, prototype*/);
+        tableModel = new SelectorTableModel(entity);
         table = new SelectorTable(tableModel);
         table.getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         
@@ -145,10 +148,12 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 tableModel.addEntity(newEntity);
                 newEntity.model.addModelListener(tableModel);
                 newEntity.model.addChangeListener((name, oldValue, newValue) -> {
-                    List<String> selectorProps = newEntity.model.getProperties(Access.Select);
-                    if (newEntity.model.isPropertyDynamic(name) && selectorProps.contains(name)) {
+                    OptionalInt propShown = IntStream.range(1, tableModel.getColumnCount())
+                            .filter(col -> tableModel.getPropertyForColumn(col).equals(name))
+                            .findFirst();
+                    if (newEntity.model.isPropertyDynamic(name) && propShown.isPresent()) {
                         final int entityIdx = entity.getIndex(newEntity);
-                        tableModel.setValueAt(newValue, entityIdx, selectorProps.indexOf(name));
+                        tableModel.setValueAt(newValue, entityIdx, propShown.getAsInt());
                     }
                 });
                 newEntity.addNodeListener(new INodeListener() {
@@ -174,10 +179,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     public final void refresh() {
         updateCommands();
         activateCommands();
-    }
-
-    public Class getEntityClass() {
-        return entityClass;
     }
 
     private List<EntityCommand> getContextCommands(List<Entity> context) {
@@ -224,6 +225,27 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             refresh();
         }
     }
+
+    private List<String> getOverrideProps(EntityModel parentModel, EntityModel childModel) {
+        return parentModel.getProperties(Access.Edit).stream()
+                .filter(
+                        propName ->
+                                childModel.hasProperty(propName) &&
+                                        !childModel.isPropertyDynamic(propName) &&
+                                        !EntityModel.SYSPROPS.contains(propName) &&
+                                        parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
+                ).collect(Collectors.toList());
+    }
+
+    private void addOverrideCommand(EntityModel parentModel, EntityModel childModel, List<String> props) {
+        if (!props.isEmpty()) {
+            props.forEach((propName) -> {
+                if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> command instanceof OverrideProperty)) {
+                    childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
+                }
+            });
+        }
+    }
     
     @Override
     public void childChanged(INode node) {
@@ -249,32 +271,28 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            Entity newEntity = Entity.newInstance(entityClass, Entity.findOwner(context), null);
+            List<Class<? extends Entity>> classCatalog = ((Catalog) entity).getClassCatalog();
+
+            Class<? extends Entity> createEntityClass;
+            if (classCatalog.size() == 0) {
+                MessageBox.show(MessageType.WARNING, Language.get(ClassSelector.class, "empty"));
+                return;
+            } else if (classCatalog.size() == 1) {
+                createEntityClass = classCatalog.get(0);
+            } else {
+                createEntityClass = new ClassSelector(classCatalog).select();
+                if (createEntityClass == null) {
+                    return;
+                }
+            }
+
+            Entity newEntity = Entity.newInstance(createEntityClass, Entity.findOwner(context), null);
                     
             EntityModel parentModel = context.model;
             EntityModel childModel  = newEntity.model;
             
-            List<String> overrideProps = parentModel.getProperties(Access.Edit)
-                    .stream()
-                    .filter(
-                            propName -> 
-                                    childModel.hasProperty(propName) && 
-                                    !childModel.isPropertyDynamic(propName) &&
-                                    !EntityModel.SYSPROPS.contains(propName) &&
-                                    parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
-                    ).collect(Collectors.toList());
-            if (!overrideProps.isEmpty()) {
-                overrideProps.forEach((propName) -> {
-                    if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
-                        return command instanceof OverrideProperty;
-                    })) {
-                        childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
-                    }
-                });
-            }
- 
-            DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
-            DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
+            List<String> overridableProps = getOverrideProps(parentModel, childModel);
+            addOverrideCommand(parentModel, childModel, overridableProps);
             
             Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
@@ -306,7 +324,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                             }
                         }
                     },
-                    confirmBtn, declineBtn
+                    Dialog.Default.BTN_OK, Dialog.Default.BTN_CANCEL
             ) {
                 {
                     // Перекрытие обработчика кнопок
@@ -365,17 +383,9 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             
             EntityModel parentModel = ((Entity) context.getParent()).model;
             EntityModel childModel  = newEntity.model;
-            
-            List<String> overridableProps = parentModel.getProperties(Access.Edit)
-                    .stream()
-                    .filter(
-                            propName -> 
-                                    childModel.hasProperty(propName) && 
-                                    !childModel.isPropertyDynamic(propName) &&
-                                    !EntityModel.SYSPROPS.contains(propName) &&
-                                    parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
-                    ).collect(Collectors.toList());
-            List<String> overriddenProps = context.getOverride();
+
+            List<String> overridableProps = getOverrideProps(parentModel, childModel);
+            List<String> overriddenProps  = context.getOverride();
 
             context.model.getProperties(Access.Edit).forEach((propName) -> {
                 if ("PID".equals(propName)) {

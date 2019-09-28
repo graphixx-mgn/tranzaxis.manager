@@ -2,17 +2,13 @@ package codex.presentation;
 
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
-import codex.model.Access;
-import codex.model.Entity;
-import codex.model.EntityModel;
-import codex.model.IModelListener;
+import codex.model.*;
 import codex.type.Bool;
 import codex.type.IComplexType;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 
@@ -56,7 +52,8 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
     @Override
     public void addEntity(Entity entity) {
         if (getColumnCount() == 0) {
-            columnModel.addAll(entity.model.getProperties(Access.Select).stream()
+            List<String> visibleProps = getVisibleProperties(entity);
+            columnModel.addAll(visibleProps.stream()
                     .map(propName -> new ColumnInfo(
                         entity.model.getPropertyType(propName),
                         propName,
@@ -66,7 +63,7 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
             );
             columnModel.forEach(columnInfo -> addColumn(columnInfo.title));
         }
-        addRow(entity.model.getProperties(Access.Select).stream().map(entity.model::getValue).toArray());
+        addRow(columnModel.stream().map(columnInfo -> entity.model.getValue(columnInfo.name)).toArray());
     }
 
     @Override
@@ -82,6 +79,19 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
     @Override
     public Class<?> getColumnClass(int column) {
         return columnModel.get(column).type == Bool.class ? Bool.class : IComplexType.class;
+    }
+
+    private List<String> getVisibleProperties(Entity entity) {
+        List<String> accessibleProps = entity.model.getProperties(Access.Select);
+        return rootEntity.getChildClass().isAnnotationPresent(ClassCatalog.Definition.class) ?
+                Stream.concat(
+                    Stream.concat(
+                            Stream.of(EntityModel.THIS),
+                            EntityModel.SYSPROPS.stream()
+                    ).filter(accessibleProps::contains),
+                    Arrays.stream(rootEntity.getChildClass().getAnnotation(ClassCatalog.Definition.class).selectorProps())
+                ).collect(Collectors.toList()) :
+                accessibleProps;
     }
 
     @Override
