@@ -121,10 +121,11 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
             Arrays.stream(value.replaceAll("^\\{(.*)\\}$", "$1").split(", ", -1))
                     .map(pair -> pair.split("="))
                     .forEachOrdered(pair -> {
+                        if (pair.length < 2) return;
                         try {
                             if (dbKey != null) dbKey.valueOf(pair[0]);
                             if (dbVal != null) dbVal.valueOf(pair[1]);
-                            if (dbKey != null && this.value.containsKey(dbKey.getValue())) {
+                            if (dbKey != null) {
                                 this.value.put(dbKey.getValue(), dbVal == null ? null : dbVal.getValue());
                             }
                         } catch (Exception e) {
