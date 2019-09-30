@@ -8,15 +8,12 @@ import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.model.Catalog;
 import codex.task.AbstractTask;
-import codex.task.ITask;
-import codex.task.ITaskListener;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.nodes.Repository;
 import manager.svn.SVN;
 import org.tmatesoft.svn.core.SVNErrorCode;
-import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import javax.swing.*;
@@ -24,7 +21,6 @@ import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Map;
-import static manager.nodes.Repository.*;
 
 public class LoadWC extends EntityCommand<Repository> {
     

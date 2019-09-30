@@ -79,7 +79,7 @@ public class Offshoot extends BinarySource {
     
     public final WCStatus getWCStatus() {
         WCStatus wcStatus = (WCStatus) model.getValue(PROP_WC_STATUS);
-        SwingUtilities.invokeLater(() -> setMode(wcStatus.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED));
+        setMode(wcStatus.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED);
         return wcStatus;
     }
     
