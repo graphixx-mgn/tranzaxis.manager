@@ -6,6 +6,7 @@ import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.model.Access;
 import codex.model.Entity;
+import codex.model.PolyMorph;
 import javax.swing.*;
 import java.awt.*;
 import java.util.LinkedList;
@@ -24,8 +25,8 @@ public final class EditorPresentation extends JPanel {
     private final Class        entityClass;
     private final CommandPanel commandPanel;
     private final Supplier<? extends Entity> context;
-    private final List<EntityCommand> systemCommands  = new LinkedList<>();
-    private final List<EntityCommand> contextCommands = new LinkedList<>();
+    private final List<EntityCommand<Entity>> systemCommands  = new LinkedList<>();
+    private final List<EntityCommand<Entity>> contextCommands = new LinkedList<>();
     
     /**
      * Конструктор презентации. 
@@ -90,7 +91,7 @@ public final class EditorPresentation extends JPanel {
         return entityClass;
     }
 
-    private List<EntityCommand> getContextCommands() {
+    private List<EntityCommand<Entity>> getContextCommands() {
         return new LinkedList<>(contextCommands);
     }
 
@@ -102,10 +103,16 @@ public final class EditorPresentation extends JPanel {
      * Актуализация состояния доступности команд.
      */
     private void activateCommands() {
-        Stream.concat(
-                systemCommands.stream(),
-                getContextCommands().stream()
-        ).forEach(command -> ((EntityCommand<Entity>) command).setContext(context.get()));
+        Entity ctxEntity = context.get();
+
+        systemCommands.forEach(sysCommand -> sysCommand.setContext(ctxEntity));
+        getContextCommands().forEach(command -> {
+            if (PolyMorph.class.isAssignableFrom(entityClass)) {
+                command.setContext(((PolyMorph) ctxEntity).getImplementation());
+            } else {
+                command.setContext(ctxEntity);
+            }
+        });
     }
     
 }

@@ -4,6 +4,7 @@ import codex.command.CommandButton;
 import codex.command.EntityCommand;
 import codex.command.ICommandListener;
 import codex.command.IGroupCommandButton;
+import codex.model.Entity;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -25,7 +26,7 @@ public final class CommandPanel extends Box {
     /**
      * Конструктор панели.
      */
-    public CommandPanel(List<EntityCommand> systemCommands) {
+    public CommandPanel(List<EntityCommand<Entity>> systemCommands) {
         super(BoxLayout.LINE_AXIS);
         setBorder(new CompoundBorder(
                 new EmptyBorder(2, 5, 2, 5),
@@ -45,12 +46,13 @@ public final class CommandPanel extends Box {
         setCommands(systemCommandsPanel, systemCommands);
     }
 
-    void setContextCommands(List<EntityCommand> commands) {
+    void setContextCommands(List<EntityCommand<Entity>> commands) {
         setCommands(contextCommandsPanel, commands);
         separator.setVisible(systemCommandsPanel.getComponentCount() > 0 && !commands.isEmpty());
     }
 
-    private void setCommands(Box commandPanel, List<EntityCommand> commands) {
+    @SuppressWarnings("unchecked")
+    private void setCommands(Box commandPanel, List<EntityCommand<Entity>> commands) {
         while (commandPanel.getComponentCount() > 0) {
             Component comp = commandPanel.getComponent(0);
             commandPanel.remove(comp);

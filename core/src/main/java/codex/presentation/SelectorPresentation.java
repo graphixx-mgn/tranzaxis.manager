@@ -10,6 +10,7 @@ import codex.explorer.browser.BrowseMode;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.model.*;
+import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -19,6 +20,8 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.*;
@@ -26,7 +29,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * Презентация селектора сущности. Реализует как функциональность отображения и 
@@ -48,8 +50,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     private final CommandPanel            commandPanel;
 
     private final Supplier<List<Entity>>  context;
-    private final List<EntityCommand> systemCommands  = new LinkedList<>();
-    private final List<EntityCommand> contextCommands = new LinkedList<>();
+    private final List<EntityCommand<Entity>> systemCommands  = new LinkedList<>();
+    private final List<EntityCommand<Entity>> contextCommands = new LinkedList<>();
     
     /**
      * Конструктор презентации. 
@@ -59,24 +61,23 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         this.entity = entity;
         entityClass = entity.getChildClass();
 
+//        EditEntity editEntity = new EditEntity();
+//        boolean hasProps = entity.childrenList().stream()
+//                .anyMatch(child -> !((Entity) child).model.getProperties(Access.Edit).isEmpty());
+//        if (hasProps) {
+//            systemCommands.add(editEntity);
+//        }
+
         EditEntity editEntity = new EditEntity();
-
-        boolean hasProps = entity.childrenList().stream()
-                .anyMatch(child -> !((Entity) child).model.getProperties(Access.Edit).isEmpty());
-        if (hasProps) {
-            systemCommands.add(editEntity);
-        }
-
+        systemCommands.add(editEntity);
         if (entity.allowModifyChild()) {
             systemCommands.add(new CreateEntity());
             systemCommands.add(new CloneEntity());
             systemCommands.add(new DeleteEntity());
         }
         entity.getCommands().stream()
-                .filter(command -> command.getKind() == EntityCommand.Kind.System).forEach(command -> {
-                    command.setContext(entity);
-                    systemCommands.add(command);
-                });
+                .filter(command -> command.getKind() == EntityCommand.Kind.System)
+                .forEach(systemCommands::add);
 
         commandPanel = new CommandPanel(systemCommands);
         add(commandPanel, BorderLayout.NORTH);
@@ -170,7 +171,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 });
             }
         });
-        refresh();
+        SwingUtilities.invokeLater(this::refresh);
     }
 
     /**
@@ -181,8 +182,9 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         activateCommands();
     }
 
-    private List<EntityCommand> getContextCommands(List<Entity> context) {
-        final List<EntityCommand> commands = new LinkedList<>();
+    private List<EntityCommand<Entity>> getContextCommands(List<Entity> context) {
+        //TODO: Переписать логику рассчета пересечения коллекций
+        final List<EntityCommand<Entity>> commands = new LinkedList<>();
         if (context.size() == 1) {
             commands.addAll(context.get(0).getCommands());
         } else if (!context.isEmpty()) {
@@ -207,15 +209,26 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
     private void activateCommands() {
         List<Entity> context = this.context.get();
-        Stream.concat(
-                systemCommands.stream(),
-                contextCommands.stream()
-        ).forEach(command -> {
-            if (command.getKind() != EntityCommand.Kind.System) {
-                ((EntityCommand<Entity>) command).setContext(context);
+        systemCommands.forEach(sysCommand -> {
+            if (sysCommand.getKind() == EntityCommand.Kind.System) {
+                sysCommand.setContext(entity);
             } else {
-                ((EntityCommand<Entity>) command).setContext(entity);
+                context.forEach((contextItem) -> contextItem.removeNodeListener(this));
+                sysCommand.setContext(context);
+                context.forEach((contextItem) -> contextItem.addNodeListener(this));
             }
+        });
+        contextCommands.forEach(ctxCommand -> {
+            context.forEach((contextItem) -> contextItem.removeNodeListener(this));
+            if (PolyMorph.class.isAssignableFrom(entityClass)) {
+                ctxCommand.setContext(context.stream()
+                        .map(ctxEntity -> ((PolyMorph) ctxEntity).getImplementation())
+                        .collect(Collectors.toList())
+                );
+            } else {
+                ctxCommand.setContext(context);
+            }
+            context.forEach((contextItem) -> contextItem.addNodeListener(this));
         });
     }
 
@@ -271,29 +284,34 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            List<Class<? extends Entity>> classCatalog = ((Catalog) entity).getClassCatalog();
+            List<Class<? extends Entity>> classCatalog = ((Catalog) entity).getClassCatalog().stream()
+                    .filter(aClass -> !aClass.getSuperclass().equals(PolyMorph.class))
+                    .collect(Collectors.toList());
 
             Class<? extends Entity> createEntityClass;
             if (classCatalog.size() == 0) {
                 MessageBox.show(MessageType.WARNING, Language.get(ClassSelector.class, "empty"));
                 return;
-            } else if (classCatalog.size() == 1) {
-                createEntityClass = classCatalog.get(0);
-            } else {
+            } else if (classCatalog.size() > 1 || context.getChildClass().isAnnotationPresent(ClassCatalog.Definition.class)) {
                 createEntityClass = new ClassSelector(classCatalog).select();
                 if (createEntityClass == null) {
                     return;
                 }
+            } else {
+                createEntityClass = classCatalog.get(0);
             }
 
-            Entity newEntity = Entity.newInstance(createEntityClass, Entity.findOwner(context), null);
-                    
+            Entity newEntity = SelectorPresentation.newEntity(createEntityClass, Entity.findOwner(context), null);
+            if (newEntity == null) {
+                return;
+            }
+
             EntityModel parentModel = context.model;
-            EntityModel childModel  = newEntity.model;
-            
+            EntityModel childModel = newEntity.model;
+
             List<String> overridableProps = getOverrideProps(parentModel, childModel);
             addOverrideCommand(parentModel, childModel, overridableProps);
-            
+
             Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
                     ImageUtils.getByPath("/images/plus.png"),
@@ -316,7 +334,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                                 context.insert(newEntity);
 
                                 table.getSelectionModel().setSelectionInterval(
-                                        tableModel.getRowCount() - 1, 
+                                        tableModel.getRowCount() - 1,
                                         tableModel.getRowCount() - 1
                                 );
                             } catch (Exception e) {
@@ -334,16 +352,16 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                             if (event.getID() != Dialog.OK || newEntity.getInvalidProperties().isEmpty()) {
                                 defaultHandler.apply(button).actionPerformed(event);
                             }
-                        }; 
+                        };
                     };
                 }
-                
+
                 @Override
                 public Dimension getPreferredSize() {
                     return new Dimension(700, super.getPreferredSize().height);
                 }
             };
-            
+
             newEntity.model.getProperties(Access.Edit).stream()
                     .map(newEntity.model::getEditor)
                     .forEach((propEditor) -> propEditor.getEditor().addComponentListener(new ComponentAdapter() {
@@ -357,7 +375,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                             editor.pack();
                         }
                     }));
-            
+
             editor.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
             editor.setResizable(false);
             editor.setVisible(true);
@@ -379,7 +397,11 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            Entity newEntity = Entity.newInstance(context.getParent().getChildClass(), Entity.findOwner(context.getParent()), null);
+            Class<? extends Entity> createEntityClass = context.getClass();
+            Entity newEntity = SelectorPresentation.cloneEntity(createEntityClass, context.toRef(), null);
+            if (newEntity == null) {
+                return;
+            }
             
             EntityModel parentModel = ((Entity) context.getParent()).model;
             EntityModel childModel  = newEntity.model;
@@ -635,4 +657,38 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
     }
 
+
+    @SuppressWarnings("unchecked")
+    private static <E extends Entity> E newEntity(Class<E> entityClass, EntityRef owner, String PID) {
+        Class<? super E> creator = entityClass;
+        while (true) {
+            try {
+                Method method = creator.getDeclaredMethod("newInstance", Class.class, EntityRef.class, String.class);
+                return (E) method.invoke(null, entityClass, owner, PID);
+            } catch (NoSuchMethodException e) {
+                creator = creator.getSuperclass();
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <E extends Entity> E cloneEntity(Class<E> entityClass, EntityRef source, String PID) {
+        Class<? super E> creator = entityClass;
+        while (true) {
+            try {
+                Method method = creator.getDeclaredMethod("newInstance", Class.class, EntityRef.class, String.class);
+                if (creator.equals(PolyMorph.class)) {
+                    return (E) method.invoke(null, entityClass, source, PID);
+                } else {
+                    return (E) method.invoke(null, entityClass, Entity.findOwner(source.getValue().getParent()), PID);
+                }
+            } catch (NoSuchMethodException e) {
+                creator = creator.getSuperclass();
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
