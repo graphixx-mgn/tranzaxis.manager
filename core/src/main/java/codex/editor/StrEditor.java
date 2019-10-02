@@ -57,7 +57,7 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
         
         signInvalid = new JLabel(ImageUtils.resize(
                 ImageUtils.getByPath("/images/warn.png"), 
-                textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
+                textField.getPreferredSize().height, textField.getPreferredSize().height
         ));        
         signDelete = new JLabel(ImageUtils.resize(
                 ImageUtils.getByPath("/images/clearval.png"), 
