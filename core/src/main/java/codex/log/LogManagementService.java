@@ -64,6 +64,14 @@ public class LogManagementService extends AbstractService<LoggerServiceOptions> 
 
     @Override
     public void uncaughtException(Thread thread, Throwable exception) {
-        error(MessageFormat.format("Unhandled exception in thread ({0})", thread.getName()), exception);
+        exception.printStackTrace();
+        Logger.getSysLogger().log(
+                org.apache.log4j.Level.ERROR,
+                MessageFormat.format(
+                        "Unhandled exception in thread ({0})",
+                        thread.getName()
+                ),
+                exception
+        );
     }
 }

@@ -22,7 +22,7 @@ public class Logger extends org.apache.log4j.Logger {
     final static ImageIcon ERROR = ImageUtils.getByPath("/images/stop.png");
     final static ImageIcon OFF   = ImageUtils.getByPath("/images/unavailable.png");
 
-    private static final LoggerFactory FACTORY = new LoggerFactory();
+    static final LoggerFactory FACTORY = new LoggerFactory();
     private static final LogManagementService LMS = new LogManagementService();
 
     private static final long sessionStartTimestamp = System.currentTimeMillis();
@@ -66,6 +66,10 @@ public class Logger extends org.apache.log4j.Logger {
         };
         asyncAppender.addAppender(dbAppender);
         Logger.getRootLogger().addAppender(asyncAppender);
+    }
+
+    public static org.apache.log4j.Logger getLogger(String name) {
+        return org.apache.log4j.Logger.getLogger(name, FACTORY);
     }
 
     public static ILogManagementService getLogger() {

@@ -325,8 +325,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
             getVerticalScrollBar().addAdjustmentListener(LogUnit.this);
 
             final BoundedRangeModel brm = getVerticalScrollBar().getModel();
-
-            ((Logger) org.apache.log4j.Logger.getLogger(Logger.class)).addAppendListener(event -> {
+            ((Logger) Logger.getLogger(Logger.class.getTypeName())).addAppendListener(event -> {
                     int extent  = brm.getExtent();
                     int maximum = brm.getMaximum();
                     int current = brm.getValue();
