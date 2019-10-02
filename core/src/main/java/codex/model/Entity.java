@@ -297,8 +297,17 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     /**
      * Получение списка имеющихся команд сущности.
      */
-    public final List<EntityCommand> getCommands() {
-        return new LinkedList<>(COMMAND_REGISTRY.getRegisteredCommands(getClass()));
+    public final List<EntityCommand<Entity>> getCommands() {
+        return getCommands(this);
+    }
+
+    @SuppressWarnings("unchecked")
+    protected List<EntityCommand<Entity>> getCommands(Entity entity) {
+        LinkedList<EntityCommand<Entity>> commands = new LinkedList<>();
+        new LinkedList<>(COMMAND_REGISTRY.getRegisteredCommands(entity.getClass())).forEach(entityCommand -> {
+            commands.add((EntityCommand<Entity>) entityCommand);
+        });
+        return commands;
     }
 
     /**

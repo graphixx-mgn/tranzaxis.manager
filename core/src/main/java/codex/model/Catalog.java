@@ -1,5 +1,6 @@
 package codex.model;
 
+import codex.command.EntityCommand;
 import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
 import codex.service.ServiceRegistry;
@@ -36,6 +37,11 @@ public abstract class Catalog extends Entity {
     
     @Override
     public abstract Class<? extends Entity> getChildClass();
+
+    @Override
+    protected final List<EntityCommand<Entity>> getCommands(Entity entity) {
+        return super.getCommands(entity);
+    }
 
     public void loadChildren() {
         Map<Class<? extends Entity>, Collection<String>> childrenPIDs = getChildrenPIDs();
