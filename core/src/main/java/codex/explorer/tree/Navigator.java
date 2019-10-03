@@ -29,32 +29,30 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
     public Navigator() {
         super();
         setRowHeight(IEditor.FONT_VALUE.getSize()*2-2);
-        setBorder(new EmptyBorder(5, 10, 5, 30));
-        addTreeSelectionListener((TreeSelectionEvent event) -> {
-            SwingUtilities.invokeLater(() -> {
-                final INode node = (INode) getLastSelectedPathComponent();
-                if (node == null) return;
+        setBorder(new EmptyBorder(5, 10, 5, 5));
+        addTreeSelectionListener((TreeSelectionEvent event) -> SwingUtilities.invokeLater(() -> {
+            final INode node = (INode) getLastSelectedPathComponent();
+            if (node == null) return;
 
-                if ((node.getMode() & INode.MODE_SELECTABLE) != INode.MODE_SELECTABLE) {
+            if ((node.getMode() & INode.MODE_SELECTABLE) != INode.MODE_SELECTABLE) {
+                clearSelection();
+                getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
+                return;
+            }
+            if (event.getOldLeadSelectionPath() != null) {
+                Entity previous = (Entity) event.getOldLeadSelectionPath().getLastPathComponent();
+                if (!previous.close()) {
                     clearSelection();
                     getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
                     return;
                 }
-                if (event.getOldLeadSelectionPath() != null) {
-                    Entity previous = (Entity) event.getOldLeadSelectionPath().getLastPathComponent();
-                    if (!previous.close()) {
-                        clearSelection();
-                        getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
-                        return;
-                    }
-                }
-                if (path != getSelectionModel().getSelectionPath()) {
-                    path = getSelectionModel().getSelectionPath();
-                    Logger.getLogger().debug("Selected path: {0}", node.getPathString());
-                    new LinkedList<>(listeners).stream().forEach((listener) -> SwingUtilities.invokeLater(() -> listener.nodeChanged(path)));
-                }
-            });
-        });
+            }
+            if (path != getSelectionModel().getSelectionPath()) {
+                path = getSelectionModel().getSelectionPath();
+                Logger.getLogger().debug("Selected path: {0}", node.getPathString());
+                new LinkedList<>(listeners).stream().forEach((listener) -> SwingUtilities.invokeLater(() -> listener.nodeChanged(path)));
+            }
+        }));
         getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         setCellRenderer(new GeneralRenderer());
     }

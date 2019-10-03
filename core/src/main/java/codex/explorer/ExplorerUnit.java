@@ -99,6 +99,11 @@ public final class ExplorerUnit extends AbstractUnit {
             public void treeNodesInserted(TreeModelEvent e) {
                 resizeNavigationPane();
             }
+
+            @Override
+            public void treeNodesChanged(TreeModelEvent e) {
+                resizeNavigationPane();
+            }
         });
 
         return splitPanel;
@@ -106,7 +111,7 @@ public final class ExplorerUnit extends AbstractUnit {
 
     private void resizeNavigationPane() {
         int dividerPos = splitPanel.getDividerLocation();
-        int navWidth   = navigator.getPreferredScrollableViewportSize().width;
+        int navWidth   = navigator.getPreferredScrollableViewportSize().width + 20;
         if (navWidth > dividerPos) {
             splitPanel.setDividerLocation(navWidth);
         }
