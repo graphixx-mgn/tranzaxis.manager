@@ -10,6 +10,7 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import java.awt.*;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -46,13 +47,16 @@ public final class CommandPanel extends Box {
         setCommands(systemCommandsPanel, systemCommands);
     }
 
-    void setContextCommands(List<EntityCommand<Entity>> commands) {
+    void setSystemCommands(Collection<EntityCommand<Entity>> commands) {
+        setCommands(systemCommandsPanel, commands);
+    }
+
+    void setContextCommands(Collection<EntityCommand<Entity>> commands) {
         setCommands(contextCommandsPanel, commands);
-        separator.setVisible(systemCommandsPanel.getComponentCount() > 0 && !commands.isEmpty());
     }
 
     @SuppressWarnings("unchecked")
-    private void setCommands(Box commandPanel, List<EntityCommand<Entity>> commands) {
+    private void setCommands(Box commandPanel, Collection<EntityCommand<Entity>> commands) {
         while (commandPanel.getComponentCount() > 0) {
             Component comp = commandPanel.getComponent(0);
             commandPanel.remove(comp);
@@ -77,6 +81,7 @@ public final class CommandPanel extends Box {
                 commandPanel.add(Box.createRigidArea(new Dimension(5, 0)));
             });
         }
+        separator.setVisible(systemCommandsPanel.getComponentCount() > 0 && contextCommandsPanel.getComponentCount() > 0);
         commandPanel.revalidate();
         commandPanel.repaint();
     }

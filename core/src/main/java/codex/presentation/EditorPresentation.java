@@ -9,11 +9,10 @@ import codex.model.Entity;
 import codex.model.PolyMorph;
 import javax.swing.*;
 import java.awt.*;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Презентация редактора сущности. Реализует как функциональность редактирования
@@ -37,24 +36,7 @@ public final class EditorPresentation extends JPanel {
         entityClass = entity.getClass();
         context = () -> entity;
 
-        boolean editable = entity.model.getProperties(Access.Edit).stream()
-                .anyMatch(propName -> !entity.model.isPropertyDynamic(propName));
-
-        if (editable) {
-            systemCommands.add(new CommitEntity());
-            systemCommands.add(new RollbackEntity());
-        }
-        if (entity.model.hasExtraProps()) {
-            systemCommands.add(new ShowExtraProps());
-        }
-
-        contextCommands.addAll(
-                entity.getCommands().stream()
-                        .filter(command -> command.getKind() != EntityCommand.Kind.System)
-                        .collect(Collectors.toList())
-        );
-
-        commandPanel = new CommandPanel(systemCommands);
+        commandPanel = new CommandPanel(Collections.emptyList());
         add(commandPanel, BorderLayout.NORTH);
 
         entity.addNodeListener(new INodeListener() {
@@ -74,45 +56,70 @@ public final class EditorPresentation extends JPanel {
      */
     public final void refresh() {
         add(context.get().getEditorPage(), BorderLayout.CENTER);
-
-        boolean hasCommands   = Stream.concat(systemCommands.stream(), getContextCommands().stream()).findAny().isPresent();
-        boolean hasProperties = !context.get().model.getProperties(Access.Edit).isEmpty();
-
-        commandPanel.setVisible(hasCommands);
-        setVisible(hasCommands || hasProperties);
-
-        if (hasCommands) {
-            updateCommands();
-            activateCommands();
-        }
+        updateCommands();
+        activateCommands();
     }
 
     public Class getEntityClass() {
         return entityClass;
     }
 
-    private List<EntityCommand<Entity>> getContextCommands() {
-        return new LinkedList<>(contextCommands);
-    }
-
     private void updateCommands() {
-        commandPanel.setContextCommands(getContextCommands());
+        systemCommands.clear();
+        systemCommands.addAll(getSystemCommands());
+        commandPanel.setSystemCommands(systemCommands);
+
+        contextCommands.clear();
+        contextCommands.addAll(getContextCommands().stream()
+                .filter(command -> command.getKind() != EntityCommand.Kind.System)
+                .collect(Collectors.toList())
+        );
+        commandPanel.setContextCommands(contextCommands);
     }
     
     /**
      * Актуализация состояния доступности команд.
      */
     private void activateCommands() {
-        Entity ctxEntity = context.get();
-
-        systemCommands.forEach(sysCommand -> sysCommand.setContext(ctxEntity));
-        getContextCommands().forEach(command -> {
+        systemCommands.forEach(sysCommand -> sysCommand.setContext(context.get()));
+        contextCommands.forEach(command -> {
             if (PolyMorph.class.isAssignableFrom(entityClass)) {
-                command.setContext(((PolyMorph) ctxEntity).getImplementation());
+                command.setContext(((PolyMorph) context.get()).getImplementation());
             } else {
-                command.setContext(ctxEntity);
+                command.setContext(context.get());
             }
         });
     }
-    
+
+    private List<EntityCommand<Entity>> getSystemCommands() {
+        final List<EntityCommand<Entity>> commands = new LinkedList<>();
+        if (isEditable()) {
+            final EntityCommand<Entity> commitCmd = findCommand(systemCommands, CommitEntity.class, new CommitEntity());
+            commands.add(commitCmd);
+
+            final EntityCommand<Entity> rollbackCmd = findCommand(systemCommands, RollbackEntity.class, new RollbackEntity());
+            commands.add(rollbackCmd);
+        }
+        getContextCommands().stream()
+                .filter(command -> command.getKind() == EntityCommand.Kind.System)
+                .forEach(commands::add);
+        return commands;
+    }
+
+    private List<EntityCommand<Entity>> getContextCommands() {
+        return context.get().getCommands();
+    }
+
+    private EntityCommand<Entity> findCommand(
+            Collection<EntityCommand<Entity>> commands,
+            Class<? extends EntityCommand<Entity>> commandClass,
+            EntityCommand<Entity> defCommand
+    ) {
+        return commands.stream().filter(command -> command.getClass().equals(commandClass)).findFirst().orElse(defCommand);
+    }
+
+    private boolean isEditable() {
+        return context.get().model.getProperties(Access.Edit).stream()
+               .anyMatch(propName -> !context.get().model.isPropertyDynamic(propName));
+    }
 }

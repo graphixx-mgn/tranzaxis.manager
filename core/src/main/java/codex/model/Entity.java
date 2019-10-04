@@ -557,6 +557,10 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             return (E) found;
         }
     }
+
+    protected static <E extends Entity> void deleteInstance(E entity) {
+        System.out.println("Entity.deleteInstance");
+    }
     
     public static EntityRef findOwner(INode from) {
         INode next = from;

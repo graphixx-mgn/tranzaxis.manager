@@ -9,6 +9,7 @@ import codex.component.messagebox.MessageType;
 import codex.explorer.browser.BrowseMode;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
+import codex.log.Logger;
 import codex.model.*;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
@@ -50,8 +51,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     private final CommandPanel            commandPanel;
 
     private final Supplier<List<Entity>>  context;
-    private final List<EntityCommand<Entity>> systemCommands  = new LinkedList<>();
-    private final List<EntityCommand<Entity>> contextCommands = new LinkedList<>();
+    private final Map<EntityCommand<Entity>,  CommandContextKind> systemCommands  = new LinkedHashMap<>();
+    private final Map<EntityCommand<Entity>,  CommandContextKind> contextCommands = new LinkedHashMap<>();
     
     /**
      * Конструктор презентации. 
@@ -61,25 +62,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         this.entity = entity;
         entityClass = entity.getChildClass();
 
-//        EditEntity editEntity = new EditEntity();
-//        boolean hasProps = entity.childrenList().stream()
-//                .anyMatch(child -> !((Entity) child).model.getProperties(Access.Edit).isEmpty());
-//        if (hasProps) {
-//            systemCommands.add(editEntity);
-//        }
-
-        EditEntity editEntity = new EditEntity();
-        systemCommands.add(editEntity);
-        if (entity.allowModifyChild()) {
-            systemCommands.add(new CreateEntity());
-            systemCommands.add(new CloneEntity());
-            systemCommands.add(new DeleteEntity());
-        }
-        entity.getCommands().stream()
-                .filter(command -> command.getKind() == EntityCommand.Kind.System)
-                .forEach(systemCommands::add);
-
-        commandPanel = new CommandPanel(systemCommands);
+        commandPanel = new CommandPanel(Collections.emptyList());
         add(commandPanel, BorderLayout.NORTH);
         
         tableModel = new SelectorTableModel(entity);
@@ -108,14 +91,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         add(scrollPane, BorderLayout.CENTER);
 
         table.getSelectionModel().addListSelectionListener(this);
-        table.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent event) {
-                if (event.getClickCount() == 2 && editEntity.isActive()) {
-                    editEntity.execute(tableModel.getEntityForRow(table.getSelectedRow()), null);
-                }
-            }
-        });
         table.addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
@@ -182,54 +157,119 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         activateCommands();
     }
 
-    private List<EntityCommand<Entity>> getContextCommands(List<Entity> context) {
-        //TODO: Переписать логику рассчета пересечения коллекций
-        final List<EntityCommand<Entity>> commands = new LinkedList<>();
-        if (context.size() == 1) {
-            commands.addAll(context.get(0).getCommands());
-        } else if (!context.isEmpty()) {
-            final List<String> commandIds = context.get(0).getCommands().stream().map(EntityCommand::getName).collect(Collectors.toList());
-            context.forEach(entity -> commandIds.retainAll(
-                    entity.getCommands().stream().map(EntityCommand::getName).collect(Collectors.toList())
-            ));
-            commands.addAll(
-                context.get(0).getCommands().stream()
-                    .filter(command -> commandIds.contains(command.getName()))
-                    .collect(Collectors.toList())
-            );
-        }
-        return commands;
-    }
-
     private void updateCommands() {
+        Map<EntityCommand<Entity>, CommandContextKind> sysCommands = getSystemCommands();
+        boolean updateRequired = !(
+                sysCommands.keySet().containsAll(systemCommands.keySet()) &&
+                        systemCommands.keySet().containsAll(sysCommands.keySet())
+        );
+        if (updateRequired) {
+            systemCommands.clear();
+            systemCommands.putAll(sysCommands);
+            commandPanel.setSystemCommands(systemCommands.keySet());
+        }
+
         contextCommands.clear();
-        contextCommands.addAll(getContextCommands(this.context.get()));
-        commandPanel.setContextCommands(contextCommands);
+        getContextCommands().entrySet().stream()
+                .filter(commandEntry -> commandEntry.getKey().getKind() != EntityCommand.Kind.System)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (u, v) -> {
+                            throw new IllegalStateException(String.format("Duplicate key %s", u));
+                        },
+                        LinkedHashMap::new
+                )).forEach(contextCommands::put);
+        commandPanel.setContextCommands(contextCommands.keySet());
     }
 
     private void activateCommands() {
-        List<Entity> context = this.context.get();
-        systemCommands.forEach(sysCommand -> {
-            if (sysCommand.getKind() == EntityCommand.Kind.System) {
-                sysCommand.setContext(entity);
-            } else {
-                context.forEach((contextItem) -> contextItem.removeNodeListener(this));
-                sysCommand.setContext(context);
-                context.forEach((contextItem) -> contextItem.addNodeListener(this));
+        final List<Entity> context = this.context.get();
+        systemCommands.forEach((command, ctxKind) -> {
+            switch (ctxKind) {
+                case Parent:
+                    command.setContext(entity); break;
+                default:
+                    context.forEach((contextItem) -> contextItem.removeNodeListener(this));
+                    command.setContext(context);
+                    context.forEach((contextItem) -> contextItem.addNodeListener(this));
             }
         });
-        contextCommands.forEach(ctxCommand -> {
-            context.forEach((contextItem) -> contextItem.removeNodeListener(this));
+
+        context.forEach(ctxEntity -> ctxEntity.removeNodeListener(this));
+        contextCommands.forEach((command, ctxKind) -> {
             if (PolyMorph.class.isAssignableFrom(entityClass)) {
-                ctxCommand.setContext(context.stream()
+                command.setContext(context.stream()
                         .map(ctxEntity -> ((PolyMorph) ctxEntity).getImplementation())
                         .collect(Collectors.toList())
                 );
             } else {
-                ctxCommand.setContext(context);
+                command.setContext(context);
             }
-            context.forEach((contextItem) -> contextItem.addNodeListener(this));
         });
+        context.forEach(ctxEntity -> ctxEntity.addNodeListener(this));
+    }
+
+    private Map<EntityCommand<Entity>, CommandContextKind> getSystemCommands() {
+        final Map<EntityCommand<Entity>, CommandContextKind> commands = new LinkedHashMap<>();
+
+        if (true) {
+            final EntityCommand<Entity> editCmd   = findCommand(systemCommands.keySet(), EditEntity.class, new EditEntity());
+            commands.put(editCmd, CommandContextKind.Child);
+        }
+        if (canCreateEntities()) {
+            final EntityCommand<Entity> createCmd = findCommand(systemCommands.keySet(), CreateEntity.class, new CreateEntity());
+            commands.put(createCmd, CommandContextKind.Parent);
+        }
+        if (canCreateEntities()) {
+            final EntityCommand<Entity> cloneCmd  = findCommand(systemCommands.keySet(), CloneEntity.class, new CloneEntity());
+            commands.put(cloneCmd, CommandContextKind.Child);
+        }
+        if (canDeleteEntities()) {
+            final EntityCommand<Entity> deleteCmd = findCommand(systemCommands.keySet(), DeleteEntity.class, new DeleteEntity());
+            commands.put(deleteCmd, CommandContextKind.Child);
+        }
+        getContextCommands().keySet().stream()
+                .filter(command -> command.getKind() == EntityCommand.Kind.System)
+                .forEach(command -> commands.put(command, CommandContextKind.Child));
+        return commands;
+    }
+
+    private Map<EntityCommand<Entity>, CommandContextKind> getContextCommands() {
+        final List<Entity> context    = this.context.get();
+        return context.stream()
+                .map(Entity::getCommands)
+                .flatMap(Collection::stream)
+                .collect(Collectors.groupingBy(
+                        EntityCommand::getName,
+                        LinkedHashMap::new,
+                        Collectors.toList())
+                )
+                .entrySet().stream().filter(cmdGroup -> cmdGroup.getValue().size() == context.size())
+                .collect(Collectors.toMap(
+                        cmdGroup -> cmdGroup.getValue().get(0),
+                        cmdGroup -> CommandContextKind.Child,
+                        (u, v) -> {
+                            throw new IllegalStateException(String.format("Duplicate key %s", u));
+                        },
+                        LinkedHashMap::new
+                ));
+    }
+
+    private EntityCommand<Entity> findCommand(
+            Collection<EntityCommand<Entity>> commands,
+            Class<? extends EntityCommand<Entity>> commandClass,
+            EntityCommand<Entity> defCommand
+    ) {
+        return commands.stream().filter(command -> command.getClass().equals(commandClass)).findFirst().orElse(defCommand);
+    }
+
+    private boolean canCreateEntities() {
+        return entity.allowModifyChild();
+    }
+
+    private boolean canDeleteEntities() {
+        return entity.allowModifyChild() || !getCleanerMethod(entity.getClass()).getDeclaringClass().equals(Entity.class);
     }
 
     @Override
@@ -250,10 +290,11 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 ).collect(Collectors.toList());
     }
 
+    @SuppressWarnings("unchecked")
     private void addOverrideCommand(EntityModel parentModel, EntityModel childModel, List<String> props) {
         if (!props.isEmpty()) {
             props.forEach((propName) -> {
-                if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> command instanceof OverrideProperty)) {
+                if (childModel.getEditor(propName).getCommands().stream().noneMatch((command) -> command instanceof OverrideProperty)) {
                     childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
                 }
             });
@@ -284,7 +325,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            List<Class<? extends Entity>> classCatalog = ((Catalog) entity).getClassCatalog().stream()
+            final List<Class<? extends Entity>> classCatalog = ((Catalog) entity).getClassCatalog().stream()
                     .filter(aClass -> !aClass.getSuperclass().equals(PolyMorph.class))
                     .collect(Collectors.toList());
 
@@ -301,18 +342,18 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 createEntityClass = classCatalog.get(0);
             }
 
-            Entity newEntity = SelectorPresentation.newEntity(createEntityClass, Entity.findOwner(context), null);
+            final Entity newEntity = SelectorPresentation.newEntity(createEntityClass, Entity.findOwner(context));
             if (newEntity == null) {
                 return;
             }
 
-            EntityModel parentModel = context.model;
-            EntityModel childModel = newEntity.model;
+            final EntityModel parentModel = context.model;
+            final EntityModel childModel = newEntity.model;
 
-            List<String> overridableProps = getOverrideProps(parentModel, childModel);
+            final List<String> overridableProps = getOverrideProps(parentModel, childModel);
             addOverrideCommand(parentModel, childModel, overridableProps);
 
-            Dialog editor = new Dialog(
+            final Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
                     ImageUtils.getByPath("/images/plus.png"),
                     Language.get(SelectorPresentation.class, "creator@title"),
@@ -397,17 +438,17 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            Class<? extends Entity> createEntityClass = context.getClass();
-            Entity newEntity = SelectorPresentation.cloneEntity(createEntityClass, context.toRef(), null);
+            final Class<? extends Entity> createEntityClass = context.getClass();
+            final Entity newEntity = SelectorPresentation.cloneEntity(createEntityClass, context.toRef());
             if (newEntity == null) {
                 return;
             }
-            
-            EntityModel parentModel = ((Entity) context.getParent()).model;
-            EntityModel childModel  = newEntity.model;
 
-            List<String> overridableProps = getOverrideProps(parentModel, childModel);
-            List<String> overriddenProps  = context.getOverride();
+            final EntityModel parentModel = ((Entity) context.getParent()).model;
+            final EntityModel childModel  = newEntity.model;
+
+            final List<String> overridableProps = getOverrideProps(parentModel, childModel);
+            final List<String> overriddenProps  = context.getOverride();
 
             context.model.getProperties(Access.Edit).forEach((propName) -> {
                 if ("PID".equals(propName)) {
@@ -431,11 +472,11 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     }
                 });
             }
-            
-            DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
-            DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
-            
-            Dialog editor = new Dialog(
+
+            final DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
+            final DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
+
+            final Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
                     ImageUtils.getByPath("/images/clone.png"),
                     Language.get(SelectorPresentation.class, "copier@title"),
@@ -526,6 +567,14 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     return new CommandStatus(false, entity.allowModifyChild() ? IMAGE_EDIT : IMAGE_VIEW);
                 }
             };
+            table.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent event) {
+                    if (event.getClickCount() == 2 && isActive()) {
+                        execute(tableModel.getEntityForRow(table.getSelectedRow()), null);
+                    }
+                }
+            });
             activate();
         }
 
@@ -533,8 +582,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
             boolean allDisabled = context.model.getProperties(Access.Edit).stream().noneMatch((name) -> context.model.getEditor(name).isEditable());
-            
-            Dialog editor = new Dialog(
+
+            final Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
                     allDisabled ? IMAGE_VIEW : IMAGE_EDIT,
                     Language.get(SelectorPresentation.class, allDisabled ? "viewer@title" : "editor@title"),
@@ -645,9 +694,10 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            if (context.model.remove()) {
-                context.getParent().delete(context);
-            }
+            deleteInstance(entity);
+//            if (context.model.remove()) {
+//                context.getParent().delete(context);
+//            }
         }
 
         @Override
@@ -659,36 +709,63 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
 
     @SuppressWarnings("unchecked")
-    private static <E extends Entity> E newEntity(Class<E> entityClass, EntityRef owner, String PID) {
-        Class<? super E> creator = entityClass;
-        while (true) {
-            try {
-                Method method = creator.getDeclaredMethod("newInstance", Class.class, EntityRef.class, String.class);
-                return (E) method.invoke(null, entityClass, owner, PID);
-            } catch (NoSuchMethodException e) {
-                creator = creator.getSuperclass();
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
-            }
+    private static <E extends Entity> E newEntity(Class<E> entityClass, EntityRef owner) {
+        try {
+            return (E) getCreatorMethod(entityClass).invoke(null, entityClass, owner, null);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            Logger.getLogger().warn("Unable to create new entity", e);
+            return null;
         }
     }
 
     @SuppressWarnings("unchecked")
-    private static <E extends Entity> E cloneEntity(Class<E> entityClass, EntityRef source, String PID) {
+    private static <E extends Entity> E cloneEntity(Class<E> entityClass, EntityRef source) {
+        try {
+            Method method = getCreatorMethod(entityClass);
+            if (method.getDeclaringClass().equals(PolyMorph.class)) {
+                return (E) method.invoke(null, entityClass, source, null);
+            } else {
+                return (E) method.invoke(null, entityClass, Entity.findOwner(source.getValue().getParent()), null);
+            }
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            Logger.getLogger().warn("Unable to clone entity", e);
+            return null;
+        }
+    }
+
+    private static <E extends Entity> void deleteInstance(E entity) {
+        try {
+            Method method = getCleanerMethod(entity.getClass());
+            method.setAccessible(true);
+            method.invoke(null, entity);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            Logger.getLogger().warn("Unable to delete entity", e);
+        }
+    }
+
+    private static <E extends Entity> Method getCreatorMethod(Class<E> entityClass) {
         Class<? super E> creator = entityClass;
         while (true) {
             try {
-                Method method = creator.getDeclaredMethod("newInstance", Class.class, EntityRef.class, String.class);
-                if (creator.equals(PolyMorph.class)) {
-                    return (E) method.invoke(null, entityClass, source, PID);
-                } else {
-                    return (E) method.invoke(null, entityClass, Entity.findOwner(source.getValue().getParent()), PID);
-                }
+                return creator.getDeclaredMethod("newInstance", Class.class, EntityRef.class, String.class);
             } catch (NoSuchMethodException e) {
                 creator = creator.getSuperclass();
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
             }
         }
+    }
+
+    private static <E extends Entity> Method getCleanerMethod(Class<E> entityClass) {
+        Class<? super E> creator = entityClass;
+        while (true) {
+            try {
+                return creator.getDeclaredMethod("deleteInstance", Entity.class);
+            } catch (NoSuchMethodException e) {
+                creator = creator.getSuperclass();
+            }
+        }
+    }
+
+    private enum CommandContextKind {
+        Parent, Child
     }
 }
