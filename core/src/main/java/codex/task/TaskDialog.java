@@ -33,9 +33,9 @@ class TaskDialog extends Dialog implements ITaskMonitor {
      * Конструктор окна.
      * //@param closeAction Слушатель события закрытия окна.
      */
-    TaskDialog(Window parent) {
+    TaskDialog() {
         super(
-                parent,
+                null,
                 ImageUtils.getByPath("/images/progress.png"),
                 Language.get("title"),
                 new JPanel(),
@@ -156,5 +156,19 @@ class TaskDialog extends Dialog implements ITaskMonitor {
             buttonPanel.remove(buttonEnqueue);
         }
     }
-    
+
+    private Window owner;
+
+    @Override
+    public void setVisible(boolean visible) {
+        if (visible) {
+            owner = Dialog.findNearestWindow();
+        }
+        super.setVisible(visible);
+    }
+
+    @Override
+    public Window getOwner() {
+        return owner;
+    }
 }

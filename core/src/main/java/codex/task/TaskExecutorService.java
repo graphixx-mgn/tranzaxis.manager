@@ -25,7 +25,7 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
     private final static INotificationService NSS = ServiceRegistry.getInstance().lookupService(INotificationService.class);
 
     private final Map<ThreadPoolKind, ITaskMonitor> monitors = new HashMap<>();
-    private final TaskDialog taskDialog = new TaskDialog(null);
+    private final TaskDialog taskDialog = new TaskDialog();
     private final ITaskListener notifyListener = new ITaskListener() {
         @Override
         public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {

@@ -1,12 +1,10 @@
 package codex.component.dialog;
 
 import codex.component.button.DialogButton;
-import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.*;
 import javax.swing.FocusManager;
-import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Arrays;
@@ -112,6 +110,14 @@ public class Dialog extends JDialog {
         }
     }
 
+    public static Window findNearestWindow() {
+        Window nextWnd = FocusManager.getCurrentManager().getActiveWindow();
+        while (nextWnd != null && !nextWnd.isShowing()) {
+            nextWnd = nextWnd.getOwner();
+        }
+        return nextWnd;
+    }
+
     final DialogButton[] buttons;
     private final JPanel contentPanel;
     protected Function<DialogButton, ActionListener> handler;
@@ -215,10 +221,10 @@ public class Dialog extends JDialog {
 
     @Override
     public void setLocationRelativeTo(Component c) {
-        Window owner = IComplexType.coalesce(getOwner(), FocusManager.getCurrentManager().getActiveWindow());
+        Window owner = Dialog.findNearestWindow();
         super.setLocationRelativeTo(owner != null ? owner : c);
     }
-    
+
     /**
      * Отображение или скрытие окна диалога.
      * @param visible TRUE - если требуется показать окно, FALSE - если нужно скрыть.

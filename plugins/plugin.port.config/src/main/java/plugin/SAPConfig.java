@@ -68,7 +68,7 @@ public class SAPConfig extends CommandPlugin<Environment> {
         });
 
         Dialog dialog = new Dialog(
-                FocusManager.getCurrentManager().getActiveWindow(),
+                Dialog.findNearestWindow(),
                 getIcon(),
                 toString(),
                 createView(instanceView),

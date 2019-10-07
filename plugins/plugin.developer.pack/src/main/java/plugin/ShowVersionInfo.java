@@ -92,7 +92,7 @@ public class ShowVersionInfo extends CommandPlugin<Offshoot> {
         public void finished(ParamModel paramModel) {
             SwingUtilities.invokeLater(() -> {
                 new Dialog(
-                        null,
+                        Dialog.findNearestWindow(),
                         ImageUtils.getByPath(Language.get(ShowVersionInfo.class, "icon")),
                         Language.get(ShowVersionInfo.class, "title"),
                         new EditorPage(paramModel),

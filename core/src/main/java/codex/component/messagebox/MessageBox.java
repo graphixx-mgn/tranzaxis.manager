@@ -101,7 +101,7 @@ public final class MessageBox extends Dialog {
      */
     private MessageBox(MessageType type, String title, String text, ActionListener close) {
         super(
-                FocusManager.getCurrentManager().getActiveWindow(),
+                Dialog.findNearestWindow(),
                 type.getIcon(), 
                 title != null ? title : type.toString(), 
                 new MessagePanel(type.getIcon(), text),
