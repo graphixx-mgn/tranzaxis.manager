@@ -100,6 +100,10 @@ public final class EditorPresentation extends JPanel {
             final EntityCommand<Entity> rollbackCmd = findCommand(systemCommands, RollbackEntity.class, new RollbackEntity());
             commands.add(rollbackCmd);
         }
+        if (context.get().model.hasExtraProps()) {
+            final EntityCommand<Entity> showExtraCmd = findCommand(systemCommands, ShowExtraProps.class, new ShowExtraProps());
+            commands.add(showExtraCmd);
+        }
         getContextCommands().stream()
                 .filter(command -> command.getKind() == EntityCommand.Kind.System)
                 .forEach(commands::add);
