@@ -128,7 +128,7 @@ class HTMLExporter {
                         .map(ctxID -> MessageFormat.format(
                                 Language.get("icon.ext"),
                                 ctxID.replace(".", "_"),
-                                toBase64(Logger.getContextRegistry().getContext(ctxID).getIcon())
+                                ImageUtils.toBase64(Logger.getContextRegistry().getContext(ctxID).getIcon())
                         )).collect(Collectors.joining("\n"))
 
         );
@@ -243,25 +243,5 @@ class HTMLExporter {
             }
         }
         return out.toString();
-    }
-
-    private static String toBase64(ImageIcon imageIcon) {
-        BufferedImage image = new BufferedImage(
-                imageIcon.getIconWidth(),
-                imageIcon.getIconHeight(),
-                BufferedImage.TYPE_INT_ARGB
-        );
-        Graphics g = image.createGraphics();
-        imageIcon.paintIcon(null, g, 0, 0);
-        g.dispose();
-
-        ByteArrayOutputStream b = new ByteArrayOutputStream();
-        try {
-            ImageIO.write(image, "png", b);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        byte[] imageInByte = b.toByteArray();
-        return new String(Base64.getEncoder().encode(imageInByte));
     }
 }

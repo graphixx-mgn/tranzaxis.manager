@@ -7,10 +7,13 @@ import java.awt.geom.Arc2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
+import java.io.ByteArrayOutputStream;
 import java.net.URL;
 import java.text.MessageFormat;
+import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.imageio.ImageIO;
 import javax.swing.*;
 
 public class ImageUtils {
@@ -180,6 +183,26 @@ public class ImageUtils {
         g.setFont(font);
         g.drawString(text, textHeight/2, fm.getAscent());
         return new ImageIcon(bufferedImage);
+    }
+
+    public static String toBase64(ImageIcon imageIcon) {
+        BufferedImage image = new BufferedImage(
+                imageIcon.getIconWidth(),
+                imageIcon.getIconHeight(),
+                BufferedImage.TYPE_INT_ARGB
+        );
+        Graphics g = image.createGraphics();
+        imageIcon.paintIcon(null, g, 0, 0);
+        g.dispose();
+
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        try {
+            ImageIO.write(image, "png", b);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        byte[] imageInByte = b.toByteArray();
+        return new String(Base64.getEncoder().encode(imageInByte));
     }
     
 }
