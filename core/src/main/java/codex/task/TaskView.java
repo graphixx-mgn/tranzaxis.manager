@@ -51,9 +51,7 @@ public class TaskView extends AbstractTaskView {
         
         if (cancelAction != null) {
             CancelButton cancel = new CancelButton();
-            cancel.addActionListener((event) -> {
-                cancelAction.accept(task);
-            });
+            cancel.addActionListener((event) -> cancelAction.accept(task));
             controls.add(cancel, BorderLayout.EAST);
         }
         if (task.isPauseable() && cancelAction != null) {
@@ -70,6 +68,7 @@ public class TaskView extends AbstractTaskView {
                 public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
                     if (nextStatus.isFinal()) {
                         pause.setEnabled(false);
+                        task.removeListener(this);
                     }
                 }
             });
@@ -82,9 +81,7 @@ public class TaskView extends AbstractTaskView {
         
         task.addListener(this);
         
-        updater = new Timer(1000, (ActionEvent event) -> {
-            progress.setString(formatDuration(((AbstractTask) task).getDuration()));
-        });
+        updater = new Timer(1000, (ActionEvent event) -> progress.setString(formatDuration(((AbstractTask) task).getDuration())));
         updater.setInitialDelay(0);
         statusChanged(task, task.getStatus(), task.getStatus());
     }
@@ -99,6 +96,9 @@ public class TaskView extends AbstractTaskView {
                                 Color.GRAY
         );
         progressChanged(task, task.getProgress(), task.getDescription());
+        if (nextStatus.isFinal()) {
+            task.removeListener(this);
+        }
     }
     
     @Override
