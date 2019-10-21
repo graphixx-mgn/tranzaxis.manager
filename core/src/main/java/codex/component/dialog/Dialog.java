@@ -119,6 +119,7 @@ public class Dialog extends JDialog {
     }
 
     final DialogButton[] buttons;
+    transient Window     parent;
     private final JPanel contentPanel;
     protected Function<DialogButton, ActionListener> handler;
     
@@ -149,7 +150,12 @@ public class Dialog extends JDialog {
      * @param buttons Список кнопок произвольной длины.
      */
     public Dialog(Window parent, ImageIcon icon, String title, JPanel content, ActionListener close, DialogButton... buttons) {
-        super(parent, title, ModalityType.APPLICATION_MODAL);
+        super(null, title, ModalityType.APPLICATION_MODAL);
+
+        this.parent = parent;
+        // Owner == NULL чтобы не привязываться к окну, которое может закрыться (н-р, TaskDialog)
+        // Теперь getOwner() всегда вернет NULL и не работает findNearestWindow
+        // Сделал свой "parent"
         
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -217,6 +223,11 @@ public class Dialog extends JDialog {
                 handler.apply(null).actionPerformed(new ActionEvent(this, EXIT, null));
             }
         });
+    }
+
+    @Override
+    public Window getOwner() {
+        return parent;
     }
 
     @Override
