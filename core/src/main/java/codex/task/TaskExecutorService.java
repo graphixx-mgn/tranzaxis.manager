@@ -25,7 +25,7 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
     private final static INotificationService NSS = ServiceRegistry.getInstance().lookupService(INotificationService.class);
 
     private final Map<ThreadPoolKind, ITaskMonitor> monitors = new HashMap<>();
-    private final TaskDialog taskDialog = new TaskDialog();
+    private final ITaskMonitor defMonitor = new DefaultMonitor();
     private final ITaskListener notifyListener = new ITaskListener() {
         @Override
         public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
@@ -43,8 +43,8 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
     @Override
     public void startService() {
         super.startService();
-        attachMonitor(null, taskDialog); //Default monitor
-        attachMonitor(ThreadPoolKind.Demand, taskDialog);
+        attachMonitor(null, defMonitor); //Default monitor
+        attachMonitor(ThreadPoolKind.Demand, defMonitor);
     }
 
     @Override
@@ -93,7 +93,7 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
             monitors.putIfAbsent(kind, monitor);
         }
         if (kind == ThreadPoolKind.Queued) {
-            taskDialog.setTaskRecipient(monitor);
+            defMonitor.setTaskRecipient(monitor);
         }
     }
 
@@ -110,13 +110,14 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
     private void execute(ThreadPoolKind kind, ITask task, boolean quiet) {
         if (!quiet) {
             ITaskMonitor monitor = getMonitor(kind);
-            task.addListener(monitor);
-            if (kind == ThreadPoolKind.Queued && monitor != taskDialog) {
+            monitor.registerTask(task);
+            if (kind == ThreadPoolKind.Queued && monitor != defMonitor) {
                 task.addListener(notifyListener);
             }
         }
         task.addListener(this);
         Callable<Object> r = () -> execute(task);
+
         kind.getExecutor().submit(r);
     }
 

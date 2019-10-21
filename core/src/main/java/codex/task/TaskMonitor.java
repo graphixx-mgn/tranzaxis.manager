@@ -77,11 +77,6 @@ final class TaskMonitor extends JPopupMenu implements ITaskMonitor {
     }
 
     @Override
-    public void beforeExecute(ITask task) {
-        registerTask(task);
-    }
-
-    @Override
     public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
         Collection<ITask> tasks = new HashSet<>(taskViews.keySet());
         long running  = tasks.stream().filter(queued -> !queued.getStatus().isFinal()).count();
@@ -109,6 +104,7 @@ final class TaskMonitor extends JPopupMenu implements ITaskMonitor {
 
     @Override
     public void registerTask(ITask task) {
+        task.addListener(this);
         taskViews.put(task, task.createView(new Consumer<ITask>() {
             @Override
             public void accept(ITask context) {
@@ -126,6 +122,7 @@ final class TaskMonitor extends JPopupMenu implements ITaskMonitor {
 
     @Override
     public void unregisterTask(ITask task) {
+        task.removeListener(this);
         if (taskViews.containsKey(task)) {
             taskViewList.remove(taskViews.remove(task));
             task.removeListener(this);
