@@ -15,13 +15,9 @@ class DefaultMonitor implements ITaskMonitor {
 
     @Override
     public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
-        System.out.println("DefaultMonitor.statusChanged: "+nextStatus);
-
         synchronized (taskList) {
             long running = taskList.stream().filter(queued -> !queued.getStatus().isFinal()).count();
             long stopped = taskList.stream().filter(queued ->  queued.getStatus() == Status.FAILED).count();
-            System.out.println("Running: " + running);
-            System.out.println("Stopped: " + stopped);
 
             if (running == 0) {
                 if (stopped == 0) {
@@ -47,16 +43,17 @@ class DefaultMonitor implements ITaskMonitor {
                         if (ID == Dialog.CANCEL || ID == Dialog.EXIT) {
                             clearRegistry();
                         }
-//                        if (ID == Dialog.OK) {
-//                            synchronized (taskList) {
-//                                new LinkedList<>(taskList).forEach(ctxTask -> {
-//                                    if (!ctxTask.getStatus().isFinal()) {
-//                                        taskRecipient.registerTask(ctxTask);
-//                                    }
-//                                    unregisterTask(ctxTask);
-//                                });
-//                            }
-//                        }
+                        if (ID == Dialog.OK) {
+                            synchronized (taskList) {
+                                new LinkedList<>(taskList).forEach(ctxTask -> {
+                                    if (!ctxTask.getStatus().isFinal()) {
+                                        taskRecipient.registerTask(ctxTask);
+                                    }
+                                    unregisterTask(ctxTask);
+                                });
+                                SwingUtilities.invokeLater(() -> taskDialog.setVisible(false));
+                            }
+                        }
                     });
         }
 
@@ -72,7 +69,6 @@ class DefaultMonitor implements ITaskMonitor {
 
                 synchronized (taskList) {
                     if (!taskList.isEmpty()) {
-                        System.out.println("Pack");
                         SwingUtilities.invokeLater(() -> taskDialog.pack());
                     }
                 }
@@ -82,16 +78,13 @@ class DefaultMonitor implements ITaskMonitor {
             if (!taskDialog.isVisible()) {
                 taskDialog.setVisible(true);
                 taskDialog = null;
-                System.out.println("Dialog disposed");
             }
         });
     }
 
     @Override
     public synchronized void unregisterTask(ITask task) {
-        System.out.println("DefaultMonitor.unregisterTask: "+task.getTitle());
         task.removeListener(this);
-
         synchronized (taskList) {
             if (taskList.remove(task)) {
                 SwingUtilities.invokeLater(() -> taskDialog.removeTask(task));
@@ -101,7 +94,6 @@ class DefaultMonitor implements ITaskMonitor {
 
     @Override
     public synchronized void clearRegistry() {
-        System.out.println("DefaultMonitor.clearRegistry");
         final List<ITask> tasks;
         synchronized (taskList) {
             tasks = new LinkedList<>(taskList);
