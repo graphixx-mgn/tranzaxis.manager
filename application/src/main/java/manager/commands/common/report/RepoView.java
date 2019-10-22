@@ -76,24 +76,4 @@ public class RepoView extends Catalog implements Comparable {
         }
     }
 
-    public void lockEntries() {
-        childrenList().parallelStream().forEach((node) -> {
-            final Entry entry = (Entry) node;
-            if (entry.isLocked()) {
-                try {
-                    entry.getLock().acquire();
-                } catch (InterruptedException e) {/**/}
-            }
-        });
-    }
-
-    public void unlockEntries() {
-        childrenList().parallelStream().forEach((node) -> {
-            final Entry entry = (Entry) node;
-            if (entry.islocked()) {
-                entry.getLock().release();
-            }
-        });
-    }
-
 }

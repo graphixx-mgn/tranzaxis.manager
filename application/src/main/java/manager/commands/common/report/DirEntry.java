@@ -111,8 +111,11 @@ public class DirEntry extends Entry {
         @Override
         public void finished(Void result) {
             if (isCancelled() || new File(getPID()).exists()) {
-                fireChangeEvent();
-                entry.setSize(entry.getActualSize());
+                try {
+                    entry.setSize(entry.getActualSize());
+                } catch (IOException ignore) {
+                    //
+                }
             } else {
                 entry.getParent().delete(entry);
             }

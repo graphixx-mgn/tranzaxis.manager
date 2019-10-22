@@ -41,6 +41,7 @@ public class Entry extends Catalog {
     private final static String PROP_SIZE = "size";
 
     private Long size = 0L;
+    private ISizeListener listener;
 
     static {
         CommandRegistry.getInstance().registerCommand(DeleteEntry.class);
@@ -95,10 +96,19 @@ public class Entry extends Catalog {
 
     public final void setSize(Long size) {
         model.setValue(PROP_SIZE, FileUtils.formatFileSize(size));
+        listener.sizeChanged(this, this.size, size);
         this.size = size;
     }
 
-    public long getOriginalSize() {
+    public void setSizeListener(ISizeListener listener) {
+        this.listener = listener;
+    }
+
+    public void clearSizeListener() {
+        this.listener = null;
+    }
+
+    public long getSize() {
         return size;
     }
 
@@ -106,7 +116,7 @@ public class Entry extends Catalog {
         return false;
     }
 
-    public long getActualSize() {
+    public long getActualSize() throws IOException {
         File file = new File(getPID());
         if (!file.exists()) {
             return 0;
@@ -114,26 +124,21 @@ public class Entry extends Catalog {
             return file.length();
         } else {
             AtomicLong size = new AtomicLong(0);
-            try {
-                Files.walkFileTree(file.toPath(), new SimpleFileVisitor<Path>() {
-                    @Override
-                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                        size.addAndGet(attrs.size());
-                        return FileVisitResult.CONTINUE;
-                    }
+            Files.walkFileTree(file.toPath(), new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    size.addAndGet(attrs.size());
+                    return FileVisitResult.CONTINUE;
+                }
 
-                    @Override
-                    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                        if (skipDirectory(dir)) {
-                            return FileVisitResult.SKIP_SUBTREE;
-                        }
-                        return FileVisitResult.CONTINUE;
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                    if (skipDirectory(dir)) {
+                        return FileVisitResult.SKIP_SUBTREE;
                     }
-                });
-            } catch (IOException e) {
-                e.printStackTrace();
-                // Do nothing
-            }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
             return size.get();
         }
     }
@@ -160,6 +165,7 @@ public class Entry extends Catalog {
         throw new UnsupportedOperationException("Not supported yet");
     }
 
+
     private class DeleteEntry extends EntityCommand<Entry> {
 
         DeleteEntry() {
@@ -181,5 +187,11 @@ public class Entry extends Catalog {
         public void execute(Entry context, Map<String, IComplexType> params) {
             context.deleteEntry();
         }
+    }
+
+
+    @FunctionalInterface
+    public interface ISizeListener {
+        void sizeChanged(Entry entry, long oldSize, long newSize);
     }
 }

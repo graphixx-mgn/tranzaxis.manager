@@ -28,16 +28,11 @@ import javax.swing.border.MatteBorder;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.text.MessageFormat;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -63,7 +58,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
 
     @Override
     public void execute(Common common, Map<String, IComplexType> map) {
-        TES.executeTask(new BuildStructure());
+        TES.quietTask(new BuildStructure());
     }
 
     class BuildStructure extends AbstractTask<List<RepoView>> {
@@ -81,7 +76,6 @@ public class DiskUsageReport extends EntityCommand<Common> {
                     .flatMap(Collection::stream)
                     .collect(Collectors.toList());
             return entries.stream()
-                    .peek(entry -> entry.model.updateDynamicProps())
                     .collect(Collectors.groupingBy(
                             entry -> {
                                 if (entry.getOwner() == null) {
@@ -118,7 +112,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
                                 final Repository repository = REPO_INDEX.get(repoDir.getName());
                                 final RepositoryBranch branch = Entity.newInstance(branchClass, repository.toRef(), null);
 
-                                Collection<String> PIDs = branch.getChildrenPIDs();
+                                Collection<String> PIDs = branch.getChildrenPIDs().get(branch.getChildClass());
 
                                 return Stream.of(IComplexType.coalesce(repoDir.listFiles(), new File[]{}))
                                         .map(repoBoundFile -> {
@@ -202,7 +196,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
         @Override
         public void finished(List<RepoView> result) {
             if (isCancelled() || isFailed()) {
-                // Return
+                // Do nothing
             } else if (result.isEmpty()) {
                 MessageBox.show(MessageType.INFORMATION, Language.get(DiskUsageReport.class, "task@empty"));
             } else {
@@ -221,19 +215,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
                     setBorder(new EmptyBorder(5, 10, 0, 0));
                 }};
 
-                ICalcListener listener = (entry, value) -> {
-                    totalSize.addAndGet(value);
-                    if (!entry.isUsed()) {
-                        unusedSize.addAndGet(value);
-                    }
-                    sizeInfo.setText(MessageFormat.format(
-                            SIZE_FORMAT,
-                            FileUtils.formatFileSize(totalSize.get()),
-                            FileUtils.formatFileSize(unusedSize.get())
-                    ));
-                };
-
-                CalculateDirsSize calcTask = new CalculateDirsSize(result, listener);
+                CalculateDirsSize calcTask = new CalculateDirsSize(result/*, listener*/);
                 AbstractTaskView taskView = calcTask.createView(null);
                 taskView.setBorder(new CompoundBorder(
                         new EmptyBorder(5, 5, 0, 5),
@@ -243,22 +225,32 @@ public class DiskUsageReport extends EntityCommand<Common> {
                         )
                 ));
 
+                Entry.ISizeListener listener = (entry, oldSize, newSize) -> {
+                    totalSize.addAndGet(-1*oldSize+newSize);
+                    if (!entry.isUsed()) {
+                        unusedSize.addAndGet(-1*oldSize+newSize);
+                    }
+                    sizeInfo.setText(MessageFormat.format(
+                            SIZE_FORMAT,
+                            FileUtils.formatFileSize(totalSize.get()),
+                            FileUtils.formatFileSize(unusedSize.get())
+                    ));
+                };
+
                 result.parallelStream().forEach((repoEntity) -> {
-                    repoEntity.lockEntries();
+
                     repoEntity.addNodeListener(new INodeListener() {
                         @Override
                         public void childDeleted(INode parentNode, INode childNode, int index) {
                             Entry entry = (Entry) childNode;
-                            listener.sizeChanged(entry, -1*entry.getOriginalSize());
+                            listener.sizeChanged(entry, entry.getSize(), 0);
+                            entry.clearSizeListener();
                         }
                     });
-                    repoEntity.childrenList().parallelStream().forEach((node) -> node.addNodeListener(new INodeListener() {
-                        @Override
-                        public void childChanged(INode node) {
-                            final Entry entry = (Entry) node;
-                            listener.sizeChanged(entry, -1*(entry.getOriginalSize() - entry.getActualSize()));
-                        }
-                    }));
+                    repoEntity.childrenList().parallelStream().forEach((node) -> {
+                        Entry entry = (Entry) node;
+                        entry.setSizeListener(listener);
+                    });
                 });
 
                 JPanel view = createView(result);
@@ -271,23 +263,30 @@ public class DiskUsageReport extends EntityCommand<Common> {
                         BorderLayout.NORTH
                 );
 
-                Dialog dialog = new Dialog(
-                        null,
-                        getIcon(),
-                        Language.get(DiskUsageReport.class, "title"),
-                        view,
-                        (event) -> {
-                            calcTask.cancel(true);
-                            result.forEach(repoView -> repoView.model.remove());
-                            result.forEach(RepoView::unlockEntries);
-                        },
-                        Dialog.Default.BTN_CLOSE
-                );
-                TES.quietTask(calcTask);
                 SwingUtilities.invokeLater(() -> {
-                    dialog.setPreferredSize(new Dimension(800, 600));
-                    dialog.setResizable(false);
-                    dialog.setVisible(true);
+                    TES.quietTask(calcTask);
+                    new Dialog(
+                            Dialog.findNearestWindow(),
+                            getIcon(),
+                            Language.get(DiskUsageReport.class, "title"),
+                            view,
+                            (event) -> {
+                                calcTask.cancel(false);
+                                result.forEach(repoView -> {
+                                    repoView.childrenList().forEach(iNode -> ((Entry) iNode).model.remove());
+                                    repoView.model.remove();
+                                });
+                            },
+                            Dialog.Default.BTN_CLOSE.newInstance()
+                    ) {
+                        {
+                            setResizable(false);
+                        }
+                        @Override
+                        public Dimension getPreferredSize() {
+                            return new Dimension(800, 600);
+                        }
+                    }.setVisible(true);
                 });
             }
         }
@@ -295,72 +294,45 @@ public class DiskUsageReport extends EntityCommand<Common> {
 
     class CalculateDirsSize extends AbstractTask<Void> {
 
-        private final List<RepoView>  repoEntities;
-        private final ICalcListener listener;
+        private final List<RepoView> repoEntities;
 
-        CalculateDirsSize(List<RepoView> repoEntities, ICalcListener listener) {
+        CalculateDirsSize(List<RepoView> repoEntities) {
             super(Language.get(DiskUsageReport.class, "task@title"));
             this.repoEntities = repoEntities;
-            this.listener = listener;
         }
 
         @Override
         public Void execute() {
-            repoEntities.parallelStream().forEach((repoEntity) -> {
-                repoEntity.childrenList().parallelStream().forEach((node) -> {
-                    Entry entry = (Entry) node;
-                    AtomicLong entrySize = new AtomicLong(0);
-                    try {
-                        Files.walkFileTree(new File(entry.getPID()).toPath(), new SimpleFileVisitor<Path>() {
-
-                            @Override
-                            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                                if (isCancelled()) {
-                                    return FileVisitResult.TERMINATE;
-                                }
-                                entrySize.addAndGet(attrs.size());
-                                return FileVisitResult.CONTINUE;
+            try {
+                Executors.newCachedThreadPool().invokeAll(
+                    repoEntities.stream()
+                        .map(repoView -> repoView.childrenList().stream())
+                        .flatMap(x -> x)
+                        .map(node -> (Callable<Void>) () -> {
+                            Entry entry = (Entry) node;
+                            try {
+                                entry.getLock().acquire();
+                                long entrySize = entry.getActualSize();
+                                //listener.sizeChanged(entry, entrySize);
+                                entry.setSize(entrySize);
+                            } catch (IOException e) {
+                                throw new Error(e.getMessage());
+                            } catch (InterruptedException ignore) {
+                                //
+                            } finally {
+                                entry.getLock().release();
                             }
-
-                            @Override
-                            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                                if (isCancelled()) {
-                                    return FileVisitResult.TERMINATE;
-                                }
-                                if (entry.skipDirectory(dir)) {
-                                    return FileVisitResult.SKIP_SUBTREE;
-                                }
-                                return FileVisitResult.CONTINUE;
-                            }
-
-                            @Override
-                            public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
-                                if (isCancelled()) {
-                                    return FileVisitResult.TERMINATE;
-                                }
-                                return FileVisitResult.CONTINUE;
-                            }
-                        });
-                        if (!isCancelled()) {
-                            listener.sizeChanged(entry, entrySize.get());
-                            entry.setSize(entrySize.get());
-                        }
-                    } catch (IOException e) {
-                        throw new Error(e.getMessage());
-                    }
-                });
-            });
+                            return null;
+                        })
+                        .collect(Collectors.toList())
+                );
+            } catch (InterruptedException ignore) {
+                //
+            }
             return null;
         }
 
         @Override
-        public void finished(Void result) {
-
-        }
-    }
-
-    @FunctionalInterface
-    interface ICalcListener {
-        void sizeChanged(Entry entry, long value);
+        public void finished(Void result) {}
     }
 }

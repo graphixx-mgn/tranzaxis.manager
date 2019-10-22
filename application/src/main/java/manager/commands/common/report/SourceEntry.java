@@ -3,13 +3,14 @@ package manager.commands.common.report;
 import codex.explorer.tree.INode;
 import codex.model.Entity;
 import codex.task.ITask;
+import codex.task.ITaskListener;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
-import manager.commands.offshoot.DeleteWC;
 import manager.nodes.Development;
 import manager.nodes.Offshoot;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.StringJoiner;
 import java.util.stream.Stream;
@@ -54,17 +55,21 @@ public class SourceEntry extends DirEntry {
     @Override
     protected ITask createDeleteTask() {
         Offshoot offshoot = (Offshoot) findEntity();
-        return ((DeleteWC) offshoot.getCommand("clean")).new DeleteTask(offshoot) {
+        ITask task = offshoot.new DeleteOffshoot();
+        task.addListener(new ITaskListener() {
             @Override
-            public void finished(Void result) {
-                super.finished(result);
-                if (isCancelled() || new File(getPID()).exists()) {
-                    fireChangeEvent();
-                    setSize(getActualSize());
+            public void afterExecute(ITask task) {
+                if (task.isCancelled() || new File(getPID()).exists()) {
+                    try {
+                        setSize(getActualSize());
+                    } catch (IOException ignore) {
+                        //
+                    }
                 } else {
                     getParent().delete(SourceEntry.this);
                 }
             }
-        };
+        });
+        return task;
     }
 }
