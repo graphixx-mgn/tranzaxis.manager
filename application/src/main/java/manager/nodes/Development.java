@@ -1,7 +1,10 @@
 package manager.nodes;
 
+import codex.explorer.tree.INode;
 import codex.model.Access;
 import codex.model.Entity;
+import codex.service.ServiceRegistry;
+import codex.task.ITaskExecutorService;
 import codex.type.ArrStr;
 import codex.type.EntityRef;
 import codex.utils.ImageUtils;
@@ -20,6 +23,11 @@ public class Development extends RepositoryBranch {
     public Development(EntityRef owner, String PID) {
         super(owner, ImageUtils.getByPath("/images/development.png"), PID, null);
         model.addUserProp(PROP_JVM_DESIGNER, new ArrStr("-Xmx6G"), false, Access.Select);
+    }
+
+    @Override
+    public void delete(INode child) {
+        // Do not delete from tree
     }
 
     @Override
@@ -46,6 +54,11 @@ public class Development extends RepositoryBranch {
     @SuppressWarnings("unchecked")
     public final List<String> getJvmDesigner() {
         return (List<String>) model.getValue(PROP_JVM_DESIGNER);
+    }
+
+
+    protected static <E extends Entity> void deleteInstance(E entity, boolean cascade, boolean confirmation) {
+        ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).executeTask(((Offshoot) entity).new DeleteOffshoot());
     }
 
 }

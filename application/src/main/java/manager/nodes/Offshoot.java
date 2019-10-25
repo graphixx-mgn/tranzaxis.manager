@@ -7,19 +7,30 @@ import codex.model.CommandRegistry;
 import codex.model.Entity;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
+import codex.task.AbstractTask;
+import codex.task.ITask;
+import codex.task.ITaskListener;
 import codex.type.Bool;
 import codex.type.EntityRef;
 import codex.type.Enum;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import codex.utils.Language;
 import manager.commands.offshoot.*;
 import manager.svn.SVN;
 import manager.type.BuildStatus;
 import manager.type.WCStatus;
+import org.apache.commons.io.FileDeleteStrategy;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.wc.*;
 import javax.swing.*;
@@ -34,7 +45,6 @@ public class Offshoot extends BinarySource {
     public final static String PROP_WC_LOADED   = "loaded";
 
     static {
-        CommandRegistry.getInstance().registerCommand(DeleteWC.class);
         CommandRegistry.getInstance().registerCommand(RefreshWC.class);
         CommandRegistry.getInstance().registerCommand(UpdateWC.class);
         CommandRegistry.getInstance().registerCommand(UpdateToRevision.class);
@@ -186,6 +196,106 @@ public class Offshoot extends BinarySource {
         ISVNAuthenticationManager authMgr = getRepository().getAuthManager();
         SVNInfo info = SVN.info(wcPath, remote, authMgr);
         return info == null ? null : info.getCommittedDate();
+    }
+
+
+    public class DeleteOffshoot extends AbstractTask<Void> {
+
+        public DeleteOffshoot() {
+            super(Language.get(Offshoot.class, "delete@task.title") + ": "+Offshoot.this.getLocalPath());
+            addListener(new ITaskListener() {
+                @Override
+                public void beforeExecute(ITask task) {
+                    if (!Offshoot.this.islocked()) {
+                        try {
+                            Offshoot.this.getLock().acquire();
+                        } catch (InterruptedException e) {
+                            //
+                        }
+                    }
+                }
+
+                @Override
+                public void afterExecute(ITask task) {
+                    Offshoot.this.getLock().release();
+                }
+            });
+        }
+
+        @Override
+        public boolean isPauseable() {
+            return true;
+        }
+
+        @Override
+        public Void execute() throws Exception {
+            String wcPath = Offshoot.this.getLocalPath();
+            Offshoot.this.setWCLoaded(false);
+            Offshoot.this.model.commit(false);
+
+            setProgress(0, Language.get(Offshoot.class, "delete@task.calc"));
+            long totalFiles = Files.walk(Paths.get(wcPath)).count();
+
+            AtomicInteger processed = new AtomicInteger(0);
+            Files.walkFileTree(Paths.get(wcPath), new SimpleFileVisitor<Path>() {
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    return processPath(file);
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+                    return processPath(dir);
+                }
+
+                private FileVisitResult processPath(Path path) {
+                    checkPaused();
+                    if (isCancelled()) {
+                        return FileVisitResult.TERMINATE;
+                    }
+
+                    try {
+                        FileDeleteStrategy.NORMAL.delete(path.toFile());
+                        processed.addAndGet(1);
+                        String fileName = path.toString().replace(wcPath + File.separator, "");
+                        setProgress(
+                                (int) (processed.get() * 100 / totalFiles),
+                                MessageFormat.format(
+                                        Language.get(Offshoot.class, "delete@task.progress"),
+                                        fileName
+                                )
+                        );
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+
+            try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(wcPath).getParent())) {
+                if (!dirStream.iterator().hasNext()) {
+                    FileDeleteStrategy.NORMAL.delete(new File(wcPath).getParentFile());
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public void finished(Void result) {
+            SwingUtilities.invokeLater(() -> {
+                if (!isCancelled() && Offshoot.this.getWorkingCopyStatus() == WCStatus.Absent) {
+                    Entity.deleteInstance(Offshoot.this, false, false);
+                } else {
+                    Offshoot.this.model.read();
+                }
+            });
+        }
     }
     
 }
