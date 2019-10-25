@@ -77,7 +77,8 @@ final class CommandSelector {
 
         command  = list::getSelectedValue;
         selector = new Dialog(
-                null, CommandPlugin.COMMAND_ICON,
+                Dialog.findNearestWindow(),
+                CommandPlugin.COMMAND_ICON,
                 Language.get(CommandPlugin.class, "launcher@selector"),
                 content,
                 event -> {
