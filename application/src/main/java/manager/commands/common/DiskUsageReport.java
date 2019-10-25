@@ -58,7 +58,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
 
     @Override
     public void execute(Common common, Map<String, IComplexType> map) {
-        TES.quietTask(new BuildStructure());
+        TES.executeTask(new BuildStructure());
     }
 
     class BuildStructure extends AbstractTask<List<RepoView>> {
