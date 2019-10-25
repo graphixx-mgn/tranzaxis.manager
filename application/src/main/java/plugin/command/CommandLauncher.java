@@ -33,7 +33,7 @@ public final class CommandLauncher extends EntityGroupCommand<Entity> {
 
     @Override
     public Kind getKind() {
-        return Kind.Admin;
+        return Kind.System;
     }
 
     @Override
