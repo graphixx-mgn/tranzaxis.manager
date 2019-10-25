@@ -32,7 +32,7 @@ import java.util.stream.StreamSupport;
 
 final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements IInstanceListener, IPluginLoaderService.IPublicationListener {
 
-    private final static IInstanceDispatcher ICS = ServiceRegistry.getInstance().lookupService(IInstanceDispatcher.class);
+    //private final static IInstanceDispatcher ICS = ServiceRegistry.getInstance().lookupService(IInstanceDispatcher.class);
     private final static ImageIcon CMD_ICON = ImageUtils.getByPath("/images/update.png");
 
     private static final Comparator<String> VER_COMPARATOR = (ver1, ver2) -> {
@@ -67,13 +67,16 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
                 Language.get("title"),
                 null
         );
-        ICS.addInstanceListener(this);
-        try {
-            final PluginLoaderService ownPluginLoader = (PluginLoaderService) ICS.getService(PluginLoaderService.class);
-            ownPluginLoader.addPublicationListener(this);
-        } catch (NotBoundException | RemoteException e) {
-            Logger.getLogger().warn("Unable to find plugin loader service", e);
-        }
+        ServiceRegistry.getInstance().addRegistryListener(IInstanceDispatcher.class, service -> {
+            IInstanceDispatcher ICS = (IInstanceDispatcher) service;
+            ICS.addInstanceListener(this);
+            try {
+                final PluginLoaderService ownPluginLoader = (PluginLoaderService) ICS.getService(PluginLoaderService.class);
+                ownPluginLoader.addPublicationListener(this);
+            } catch (NotBoundException | RemoteException e) {
+                Logger.getLogger().warn("Unable to find plugin loader service", e);
+            }
+        });
 
         activator = pluginCatalogs -> {
             synchronized (remotePackages) {
