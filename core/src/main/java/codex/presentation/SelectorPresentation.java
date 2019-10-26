@@ -229,6 +229,10 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             final EntityCommand<Entity> deleteCmd = findCommand(systemCommands.keySet(), DeleteEntity.class, new DeleteEntity());
             commands.put(deleteCmd, CommandContextKind.Child);
         }
+        entity.getCommands().stream()
+                .filter(command -> command.getKind() == EntityCommand.Kind.System)
+                .forEach(command -> commands.put(command, CommandContextKind.Parent));
+
         getContextCommands().keySet().stream()
                 .filter(command -> command.getKind() == EntityCommand.Kind.System)
                 .forEach(command -> commands.put(command, CommandContextKind.Child));
@@ -694,10 +698,9 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            deleteInstance(entity);
-//            if (context.model.remove()) {
-//                context.getParent().delete(context);
-//            }
+            if (context.checkRemoval()) {
+                deleteInstance(entity, context);
+            }
         }
 
         @Override
@@ -733,11 +736,11 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         }
     }
 
-    private static <E extends Entity> void deleteInstance(E entity) {
+    private static <E extends Entity> void deleteInstance(E parentEntity, E entity) {
         try {
-            Method method = getCleanerMethod(entity.getClass());
+            Method method = getCleanerMethod(parentEntity.getClass());
             method.setAccessible(true);
-            method.invoke(null, entity);
+            method.invoke(null, entity, false, false);
         } catch (IllegalAccessException | InvocationTargetException e) {
             Logger.getLogger().warn("Unable to delete entity", e);
         }
@@ -758,7 +761,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         Class<? super E> creator = entityClass;
         while (true) {
             try {
-                return creator.getDeclaredMethod("deleteInstance", Entity.class);
+                return creator.getDeclaredMethod("deleteInstance", Entity.class, boolean.class, boolean.class);
             } catch (NoSuchMethodException e) {
                 creator = creator.getSuperclass();
             }
