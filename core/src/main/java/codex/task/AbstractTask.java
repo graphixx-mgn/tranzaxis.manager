@@ -54,6 +54,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
                 } finally {
                     new LinkedList<>(listeners).forEach((listener) -> listener.afterExecute(this));
                 }
+                setStatus(Status.FINISHED);
                 finished(result);
             } catch (CancelException e) {
                 if (isCancelled() && status != Status.CANCELLED) {

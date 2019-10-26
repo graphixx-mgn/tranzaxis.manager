@@ -97,9 +97,9 @@ public final class ServiceRegistry {
         }
     }
 
-//    public boolean isServiceRegistered(Class<? extends IService> serviceClass) {
-//        return registry.containsKey(serviceClass);
-//    }
+    public boolean isServiceRegistered(Class<? extends IService> serviceClass) {
+        return registry.containsKey(serviceClass);
+    }
 
     /**
      * Поиск сервиса в реестре. Если сервис не был ранее зарегистрирован, возвращаеется
