@@ -115,10 +115,12 @@ public abstract class AbstractNode implements INode {
 
     @Override
     public void delete(INode child) {
-        int index = children.indexOf(child);
-        children.remove(child);
-        child.setParent(null);
-        new LinkedList<>(nodeListeners).forEach((listener) -> listener.childDeleted(this, child, index));
+        if (childrenList().contains(child)) {
+            int index = children.indexOf(child);
+            children.remove(child);
+            child.setParent(null);
+            new LinkedList<>(nodeListeners).forEach((listener) -> listener.childDeleted(this, child, index));
+        }
     }
     
     private Semaphore lock;
