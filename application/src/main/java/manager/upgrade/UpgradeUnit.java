@@ -29,8 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class UpgradeUnit extends AbstractUnit implements IInstanceListener {
     
     private final static ImageIcon ICON = ImageUtils.resize(ImageUtils.getByPath("/images/upgrade.png"), 17, 17);
-    private final static IInstanceDispatcher ICS = ServiceRegistry.getInstance().lookupService(IInstanceDispatcher.class);
-    
+
     private final Version currentVersion;
     private final AtomicBoolean skip = new AtomicBoolean(false);
 
@@ -83,7 +82,9 @@ public final class UpgradeUnit extends AbstractUnit implements IInstanceListener
     
     public UpgradeUnit() {
         Logger.getLogger().debug("Initialize unit: Upgrade Manager");
-        ICS.addInstanceListener(this);
+        ServiceRegistry.getInstance().addRegistryListener(IInstanceDispatcher.class, service -> {
+            ((IInstanceDispatcher) service).addInstanceListener(this);
+        });
         currentVersion = UpgradeService.getVersion();
     }
 
