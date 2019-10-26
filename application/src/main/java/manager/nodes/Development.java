@@ -57,7 +57,7 @@ public class Development extends RepositoryBranch {
     }
 
 
-    protected static <E extends Entity> void deleteInstance(E entity, boolean cascade, boolean confirmation) {
+    public static <E extends Entity> void deleteInstance(E entity, boolean cascade, boolean confirmation) {
         ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).executeTask(((Offshoot) entity).new DeleteOffshoot());
     }
 
