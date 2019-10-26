@@ -226,7 +226,7 @@ class DownloadPackages extends EntityGroupCommand<RemotePackageView> {
                 if (oldPackage != null) {
                     PackageView oldView = Entity.newInstance(PackageView.class, null, oldPackage.getTitle());
                     PluginManager.getInstance().getPluginLoader().removePluginPackage(oldPackage, true);
-                    oldView.getParent().delete(oldView);
+                    Entity.deleteInstance(oldView, false, false);
                 }
                 PluginManager.getInstance().getPluginLoader().addPluginPackage(newPackage);
                 TaskOutput.put(
