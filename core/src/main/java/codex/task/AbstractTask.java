@@ -266,7 +266,11 @@ public abstract class AbstractTask<T> implements ITask<T> {
 
     @Override
     public final void addListener(ITaskListener listener) {
-        listeners.add(listener);
+        if (ITaskExecutorService.class.isAssignableFrom(listener.getClass())) {
+            listeners.add(0, listener);
+        } else {
+            listeners.add(listener);
+        }
     }
 
     @Override
