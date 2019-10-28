@@ -2,6 +2,7 @@ package codex.editor;
 
 import codex.component.button.IButton;
 import codex.component.render.GeneralRenderer;
+import codex.mask.IMask;
 import codex.property.PropertyHolder;
 import codex.type.Enum;
 import codex.type.Iconified;
@@ -97,6 +98,14 @@ public class EnumEditor<T extends java.lang.Enum> extends AbstractEditor<Enum<T>
         if (!comboBox.getSelectedItem().equals(propHolder.getPropValue().getValue())) {
             propHolder.setValue(comboBox.getItemAt(comboBox.getSelectedIndex()));
         }
+    }
+
+    @Override
+    public boolean stopEditing() {
+        IMask<T> mask = propHolder.getPropValue().getMask();
+        boolean inputOk = mask == null || mask.verify(propHolder.getPropValue().getValue());
+        setBorder(!inputOk ? BORDER_ERROR : comboBox.isFocusOwner() ? BORDER_ACTIVE : BORDER_NORMAL);
+        return inputOk;
     }
 
     @Override

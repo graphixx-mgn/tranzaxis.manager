@@ -25,13 +25,27 @@ public class Enum<T extends java.lang.Enum> implements ISerializableType<T, IMas
     }
 
     private T value;
+    private IMask<T> mask;
 
     protected Enum(Class<T> enumClass) {
         this(Arrays.stream(enumClass.getEnumConstants()).filter(val -> val.ordinal()==0).findFirst().get());
     }
 
     public Enum(T value) {
+        this(value, true);
+    }
+
+    public Enum(T value, boolean allowUndefined) {
         setValue(value);
+
+        if (!allowUndefined) {
+            for (java.lang.Enum e : value.getClass().getEnumConstants()) {
+                if (isUndefined(e)) {
+                    setMask(new CheckUndefined());
+                    break;
+                }
+            }
+        }
     }
 
     @Override
@@ -52,6 +66,23 @@ public class Enum<T extends java.lang.Enum> implements ISerializableType<T, IMas
     @Override
     public IEditorFactory<? extends IComplexType<T, IMask<T>>, T> editorFactory() {
         return (IEditorFactory<Enum<T>, T>) EnumEditor::new;
+    }
+
+    /**
+     * Установить маску значения.
+     */
+    @Override
+    public Enum<T> setMask(IMask<T> mask) {
+        this.mask = mask;
+        return this;
+    }
+
+    /**
+     * Возвращает маску значения.
+     */
+    @Override
+    public IMask<T> getMask() {
+        return mask;
     }
 
     @Override
@@ -81,5 +112,13 @@ public class Enum<T extends java.lang.Enum> implements ISerializableType<T, IMas
     @Override
     public String getQualifiedValue(java.lang.Enum val) {
         return val.name();
+    }
+
+    private class CheckUndefined implements IMask<T> {
+
+        @Override
+        public boolean verify(T value) {
+            return !isUndefined(value);
+        }
     }
 }
