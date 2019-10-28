@@ -778,18 +778,9 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
 
         private JComponent createContextLabel(Class<? extends IContext> contextClass) {
             return new Box(BoxLayout.LINE_AXIS) {{
-                add(new JLabel(
-                        new ContextView(contextClass).getTitle(),
-                        ImageUtils.resize(Logger.getContextRegistry().getContext(contextClass).getIcon(), 0.5f),
-                        SwingConstants.LEFT
-                ) {{
-                    setAlignmentY(Component.CENTER_ALIGNMENT);
-                    setBorder(new EmptyBorder(5,5,5,5));
-                }});
-
                 add(new CloseButton() {{
                     setAlignmentY(Component.CENTER_ALIGNMENT);
-                    setBorder(new EmptyBorder(5, 0, 5, 2));
+                    setBorder(new EmptyBorder(5, 5, 5, 0));
                     addActionListener(new AbstractAction() {
                         @Override
                         public void actionPerformed(ActionEvent e) {
@@ -798,6 +789,15 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                         }
                     });
                 }}, BorderLayout.NORTH);
+
+                add(new JLabel(
+                        new ContextView(contextClass).getTitle(),
+                        ImageUtils.resize(Logger.getContextRegistry().getContext(contextClass).getIcon(), 0.5f),
+                        SwingConstants.LEFT
+                ) {{
+                    setAlignmentY(Component.CENTER_ALIGNMENT);
+                    setBorder(new EmptyBorder(5,5,5,5));
+                }});
 
                 setOpaque(false);
                 setBackground(IButton.PRESS_COLOR);
