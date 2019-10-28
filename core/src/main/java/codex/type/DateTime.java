@@ -54,7 +54,7 @@ public class DateTime implements ISerializableType<Date, IMask<Date>> {
      * @param value Внутреннее хранимое значение.
      */
     public DateTime(Time value) {
-        this.value = value;
+        setValue(value);
     }
 
     @Override
@@ -64,7 +64,12 @@ public class DateTime implements ISerializableType<Date, IMask<Date>> {
 
     @Override
     public void setValue(Date value) {
-        this.value = value;
+        this.value = value == null ? null : new Date(value.getTime()) {
+            @Override
+            public String toString() {
+                return DATE_FORMATTER.format(this);
+            }
+        };
     }
 
     @Override
