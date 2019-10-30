@@ -112,6 +112,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                     return MessageFormat.format("[{0}]\n", tableInfo.name).concat(tableInfo.toString());
                 }).collect(Collectors.joining("\n\n"))
         );
+        maintainClassDef();
     }
 
     private synchronized void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {
@@ -789,7 +790,67 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         } catch (SQLException e) {
             DdlContext.error("Unable to create class definition table", e);
         }
-    } 
+    }
+
+    private void maintainClassDef() {
+        List<String> queries = new LinkedList<>();
+        List<String> classNotExists = new LinkedList<>();
+        List<String> tableNotExists = new LinkedList<>();
+
+        String selectTables = "SELECT TABLE_NAME, TABLE_CLASS FROM CLASSDEF";
+        try (final PreparedStatement select = connection.prepareStatement(selectTables)) {
+            try (ResultSet selectRS = select.executeQuery()) {
+                while (selectRS.next()) {
+                    String objectTable = selectRS.getString("TABLE_NAME");
+                    String objectClass = selectRS.getString("TABLE_CLASS");
+                    try {
+                        Class.forName(objectClass);
+                        if (!tableRegistry.containsKey(objectTable)) {
+                            tableNotExists.add(objectTable);
+                            throw new ClassNotFoundException();
+                        }
+                    } catch (ClassNotFoundException e) {
+                        if (!tableNotExists.contains(objectTable)) {
+                            classNotExists.add(objectTable);
+                        }
+                        queries.add(MessageFormat.format(
+                                "DROP TABLE IF EXISTS {0}",
+                                objectTable
+                        ));
+                        queries.add(MessageFormat.format(
+                                "DELETE FROM CLASSDEF WHERE TABLE_NAME = ''{0}''",
+                                objectTable
+                        ));
+                    }
+                }
+            }
+            Savepoint savepoint = connection.setSavepoint("CLASSDEF");
+            try (final Statement delete = connection.createStatement()) {
+                for (String query : queries) {
+                    delete.execute(query);
+                }
+                connection.releaseSavepoint(savepoint);
+                connection.commit();
+
+                DdlContext.debug(
+                        "Class definition maintenance complete:\nObsolete classes: {0}\nObsolete tables:  {1}",
+                        classNotExists,
+                        tableNotExists
+                );
+            } catch (SQLException e) {
+                Logger.getLogger().error("Unable to maintain class definition table: {0}", e.getMessage());
+                try {
+                    Logger.getLogger().warn("Perform rollback");
+                    connection.rollback(savepoint);
+                } catch (SQLException e1) {
+                    Logger.getLogger().error("Unable to rollback database", e1);
+                }
+                throw e;
+            }
+        } catch (SQLException e) {
+            DdlContext.error("Unable to read class definitions", e);
+        }
+    }
     
     private Class<? extends Entity> getCatalogClass(String tableName) throws Exception {
         String selectSQL = "SELECT TABLE_CLASS FROM CLASSDEF WHERE TABLE_NAME = ?";
