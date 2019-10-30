@@ -128,11 +128,14 @@ public class LoadWC extends EntityCommand<Repository> {
                     if (getContext().isEmpty()) {
                         Logger.getLogger().warn("Repository ''{0}'' not loaded. Reason: {1}", repository, e.getMessage());
                     } else {
-                        MessageBox.show(MessageType.ERROR,
-                                MessageFormat.format(
-                                        Language.get(Repository.class, "error@message"),
-                                        repository.getPID(),
-                                        e.getMessage()
+                        Logger.getLogger().warn("Repository ''{0}'' not loaded. Reason: {1}", repository, e.getMessage());
+                        MessageBox.show(
+                                MessageType.WARNING,
+                                Repository.formatErrorMessage(
+                                        MessageFormat.format(
+                                                Language.get(Repository.class, "fail@connect"),
+                                                repository.getPID()
+                                        ), e
                                 )
                         );
                     }
