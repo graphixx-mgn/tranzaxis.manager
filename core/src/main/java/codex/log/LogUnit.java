@@ -326,18 +326,23 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
 
             final BoundedRangeModel brm = getVerticalScrollBar().getModel();
             ((Logger) Logger.getLogger(Logger.class.getTypeName())).addAppendListener(event -> {
+                SwingUtilities.invokeLater(() -> {
                     int extent  = brm.getExtent();
                     int maximum = brm.getMaximum();
                     int current = brm.getValue();
-
                     if (frame.isVisible() && extent + current == maximum) {
                         try {
                             readNextPage();
-                            SwingUtilities.invokeLater(() -> brm.setValue(Integer.MAX_VALUE));
+                            SwingUtilities.invokeLater(() -> {
+                                brm.setValueIsAdjusting(true);
+                                brm.setValue(Integer.MAX_VALUE);
+                                brm.setValueIsAdjusting(false);
+                            });
                         } catch (IDataSupplier.LoadDataException e) {
                             e.printStackTrace();
                         }
                     }
+                });
             });
         }}, BorderLayout.CENTER);
 
@@ -347,13 +352,6 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
             public void windowActivated(WindowEvent event) {
                 maxLevel = Level.Debug;
                 notifyUnit();
-                if (frameCreated.get()) {
-                    try {
-                        readNextPage();
-                    } catch (IDataSupplier.LoadDataException e) {
-                        //
-                    }
-                }
             }
 
             @Override
@@ -441,11 +439,15 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
     private void applyFilters() {
         tableModel.setRowCount(0);
         supplier.setQuery(getQuery());
-        try {
-            readNextPage();
-        } catch (IDataSupplier.LoadDataException e) {
-            e.printStackTrace();
-        }
+        SwingUtilities.invokeLater(() -> {
+            table.setCursor(new Cursor(Cursor.WAIT_CURSOR));
+            try {
+                readNextPage();
+            } catch (IDataSupplier.LoadDataException e) {
+                e.printStackTrace();
+            }
+            table.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+        });
     }
 
     @Override
@@ -454,21 +456,24 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
             JScrollBar scrollBar = (JScrollBar) event.getAdjustable();
             int extent = scrollBar.getModel().getExtent();
             int maximum = scrollBar.getModel().getMaximum();
+            int current = scrollBar.getModel().getValue();
 
-            if (extent + event.getValue() == maximum && supplier.available(IDataSupplier.ReadDirection.Forward)) {
-                try {
+            if (extent + current == maximum && supplier.available(IDataSupplier.ReadDirection.Forward)) {
+                SwingUtilities.invokeLater(() -> {
                     table.setCursor(new Cursor(Cursor.WAIT_CURSOR));
-                    readNextPage();
+                    try {
+                        readNextPage();
+                    } catch (IDataSupplier.LoadDataException e) {
+                        e.printStackTrace();
+                    }
                     table.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-                } catch (IDataSupplier.LoadDataException e) {
-                    e.printStackTrace();
-                }
+                });
             }
         }
     }
 
     private void readNextPage() throws IDataSupplier.LoadDataException {
-        List<Map<String, String>> data = supplier.getNext();
+        final List<Map<String, String>> data = supplier.getNext();
         if (!data.isEmpty()) {
             if (tableModel.getColumnCount() == 0) {
                 initColumnModel(data.get(0).keySet());
