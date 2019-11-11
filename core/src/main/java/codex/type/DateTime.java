@@ -39,6 +39,10 @@ public class DateTime implements ISerializableType<Date, IMask<Date>> {
         return false;
     }
 
+    public static String toString(Date date) {
+        return DATE_FORMATTER.format(date);
+    }
+
     public static String format(Date date) {
         return sameDay(new Date(), date) ? TIME_FORMATTER.format(date) : DATE_FORMATTER.format(date);
     }
@@ -67,7 +71,7 @@ public class DateTime implements ISerializableType<Date, IMask<Date>> {
         this.value = value == null ? null : new Date(value.getTime()) {
             @Override
             public String toString() {
-                return DATE_FORMATTER.format(this);
+                return DateTime.toString(this);
             }
         };
     }
