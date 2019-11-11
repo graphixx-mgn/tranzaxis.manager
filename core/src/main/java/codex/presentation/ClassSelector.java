@@ -17,7 +17,7 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.function.Supplier;
 
-public class ClassSelector {
+class ClassSelector {
 
     final static ImageIcon ICON_UNKNOWN = ImageUtils.getByPath("/images/question.png");
     final static ImageIcon ICON_CATALOG = ImageUtils.getByPath("/images/catalog.png");
@@ -26,13 +26,13 @@ public class ClassSelector {
     private final Dialog       selector;
     private Supplier<Class<? extends Entity>> classSupplier;
 
-    public ClassSelector(List<Class<? extends Entity>> classList) {
+    ClassSelector(List<Class<? extends Entity>> classList) {
         this(new DefaultListModel<Class<? extends Entity>>() {{
             classList.forEach(this::addElement);
         }});
     }
 
-    public ClassSelector(DefaultListModel<Class<? extends Entity>> classListModel) {
+    ClassSelector(DefaultListModel<Class<? extends Entity>> classListModel) {
         JList<Class<? extends Entity>> list = new JList<>(classListModel);
         list.setBorder(new EmptyBorder(5, 10, 5, 10));
 
@@ -101,7 +101,7 @@ public class ClassSelector {
         acceptBtn.setEnabled(!list.isSelectionEmpty());
     }
 
-    public final Class<? extends Entity> select() {
+    final Class<? extends Entity> select() {
         selector.setVisible(true);
         return classSupplier.get();
     }

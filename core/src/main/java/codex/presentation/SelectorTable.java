@@ -59,7 +59,4 @@ public final class SelectorTable extends JTable implements IEditableTable {
             return false;
         }
     }
-
-
-
 }
