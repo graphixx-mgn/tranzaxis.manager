@@ -136,7 +136,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                     String[]  contexts = tableModel.getValueAt(row,2).toString().split(",", -1);
                     String    lastContextId = contexts[contexts.length-1];
                     ImageIcon ctxIcon = Logger.getContextRegistry().getContext(lastContextId).getIcon();
-                    if (tableModel.getValueAt(row,4) == null) {
+                    if (tableModel.getValueAt(row,4) == null || tableModel.getValueAt(row,4).equals("")) {
                         label.setIcon(ImageUtils.resize(ctxIcon, iconSize, iconSize));
                     } else {
                         label.setIcon(ImageUtils.resize(
@@ -373,7 +373,13 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
         label.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent event) {
-                frame.setVisible(!frame.isVisible());
+                if (!frame.isVisible()) {
+                    frame.setVisible(true);
+                } else {
+                    frame.setState(Frame.NORMAL);
+                    frame.toFront();
+                    frame.requestFocus();
+                }
             }
         });
         ((Logger) org.apache.log4j.Logger.getLogger(Logger.class)).addAppendListener(event -> {
