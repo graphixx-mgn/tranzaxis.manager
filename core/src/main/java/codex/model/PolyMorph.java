@@ -1,7 +1,10 @@
 package codex.model;
 
 import codex.command.EntityCommand;
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
 import codex.editor.AbstractEditor;
+import codex.editor.IEditor;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.property.IPropertyChangeListener;
@@ -10,11 +13,11 @@ import codex.type.*;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.*;
-import java.awt.*;
-import java.util.*;
+import java.lang.reflect.Field;
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -22,15 +25,13 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
 
     private final static String PROP_IMPL_CLASS = "class";
     private final static String PROP_IMPL_VIEW  = "implementation";
-    private final static String PROP_IMPL_PROPS = "properties";
-    private final static List<String> PROP_FILTER = Stream.concat(
-            EntityModel.SYSPROPS.stream(),
-            Stream.of(
-                    PROP_IMPL_CLASS,
-                    PROP_IMPL_VIEW,
-                    PROP_IMPL_PROPS
-            )
-    ).collect(Collectors.toList());
+    @PropertyDefinition(condition = true)
+    public  final static String PROP_IMPL_PARAM = "parameters";
+    private final static List<String> SYSPROPS  = Arrays.asList(
+        PROP_IMPL_CLASS,
+        PROP_IMPL_VIEW,
+        PROP_IMPL_PARAM
+    );
 
     @SuppressWarnings("unchecked")
     public static <E extends Entity> E newInstance(Class<E> entityClass, EntityRef owner, String PID) {
@@ -41,7 +42,6 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
             // Clone (owner is a source object)
             newObject = Entity.newInstance(polyMorphClass, Entity.findOwner(owner.getValue().getParent()), PID);
             PolyMorph sourceObject = (PolyMorph) owner.getValue();
-            newObject.setProperties(new LinkedHashMap<>(sourceObject.getProperties(true)));
             newObject.setImplementedClass(sourceObject.getImplementedClass());
         } else {
             // New Object
@@ -73,32 +73,10 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
         return classes;
     }
 
-    private final IPropertyChangeListener labelUpdater = (propName, oldValue, newValue) -> {
-        final PolyMorph implInstance = getImplementation(getImplementedClass());
-        boolean paramChanged = !getProperties(true).get(propName).equals(getProperties(false).get(propName));
-        implInstance.model.getEditor(propName).getLabel().setText(
-                implInstance.model.getProperty(propName).getTitle() +
-                (paramChanged ? " *" : "")
-        );
-    };
-
     private final IPropertyChangeListener parametersUpdater = (propName, oldValue, newValue) -> {
-        Map<String, String> properties = getProperties(true);
-        String paramVal = getImplementation(getImplementedClass()).model.getProperty(propName).getPropValue().toString();
-        properties.put(propName, paramVal);
-        setProperties(properties);
-
-        labelUpdater.propertyChange(propName, null, null);
-    };
-
-    private Consumer<PolyMorph> initSEQ = polyMorph -> {
-        polyMorph.model.getProperty(EntityModel.SEQ).removeChangeListener(polyMorph.model);
-        polyMorph.model.setSEQ(0);
-    };
-
-    private Consumer<PolyMorph> initPID = polyMorph -> {
-        polyMorph.model.getProperty(EntityModel.PID).removeChangeListener(polyMorph.model);
-        polyMorph.model.setPID(getPID());
+        Map<String, String> parameters = getParameters(true);
+        parameters.replace(propName, getImplementation().model.getProperty(propName).getPropValue().toString());
+        setParameters(parameters);
     };
 
     private INodeListener lockHandler = new INodeListener() {
@@ -110,6 +88,7 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
         }
     };
 
+    private final boolean isInstance = !PolyMorph.this.getClass().equals(getPolymorphClass(PolyMorph.this.getClass()));
     private PolyMorph implementation = null;
 
     public PolyMorph(EntityRef owner, String title) {
@@ -120,7 +99,29 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
                 ""
         );
 
+        try {
+            Field model = Entity.class.getDeclaredField("model");
+            model.setAccessible(true);
+            model.set(this, new PolymorphModel(owner, getClass().asSubclass(Entity.class), getPID()));
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
         //Properties
+        model.addDynamicProp(EntityModel.THIS, new AnyType(),
+                Access.Edit,
+                () -> new Iconified() {
+                    @Override
+                    public ImageIcon getIcon() {
+                        return PolyMorph.this.getIcon();
+                    }
+
+                    @Override
+                    public String toString() {
+                        return PolyMorph.this.toString();
+                    }
+                }
+        );
         model.addUserProp(PROP_IMPL_CLASS, new Str(null), false, Access.Select);
         model.addDynamicProp(PROP_IMPL_VIEW, new AnyType(), Access.Select, () -> getImplementedClass() == null ? null : new Iconified() {
             private final Class<? extends PolyMorph> implClass = getImplementedClass();
@@ -140,66 +141,40 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
 
         // Child object's properties map
         PropertyHolder<codex.type.Map<String, String>, Map<String, String>> propertiesHolder = new PropertyHolder<codex.type.Map<String, String>, Map<String, String>>(
-                PROP_IMPL_PROPS,
+                PROP_IMPL_PARAM,
                 new codex.type.Map<>(Str.class, Str.class, new HashMap<>()),
                 false
-        ) {
-            @Override
-            public boolean isValid() {
-                if (getImplementedClass() != null) {
-                    PolyMorph implInstance = getImplementation();
-                    return getParameters(implInstance).stream().allMatch(paramName -> implInstance.model.getProperty(paramName).isValid());
-                }
-                return true;
-            }
-        };
+        );
         model.addUserProp(propertiesHolder, Access.Select);
 
         // Property settings
-        model.getEditor(PROP_IMPL_CLASS).setVisible(false);
-        model.getEditor(PROP_IMPL_PROPS).setVisible(false);
-
+        if (!isInstance) {
+            model.getEditor(PROP_IMPL_CLASS).setVisible(false);
+            model.getEditor(PROP_IMPL_PARAM).setVisible(false);
+        }
         // Load implemented class
         setImplementedClass(getImplementedClass());
-        model.addModelListener(this);
     }
 
     public PolyMorph getImplementation() {
         return getImplementation(getImplementedClass());
     }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    protected final List<EntityCommand<Entity>> getCommands(Entity entity) {
-        PolyMorph polyMorph = (PolyMorph) entity;
-        Class<? extends Entity>    thisClass = this.getClass();
-        Class<? extends PolyMorph> implClass = IComplexType.coalesce(polyMorph.getImplementedClass(), entity.getClass().asSubclass(PolyMorph.class));
-
-        return Stream.concat(
-                getClassHierarchy(implClass).stream().filter(thisClass::isAssignableFrom),
-                Stream.of(implClass)
-        ).map(aClass -> {
-            LinkedList<EntityCommand<Entity>> commands = new LinkedList<>();
-            new LinkedList<>(CommandRegistry.getInstance().getRegisteredCommands(aClass.asSubclass(Entity.class))).forEach(entityCommand -> {
-                commands.add((EntityCommand<Entity>) entityCommand);
-            });
-            return commands;
-        })
-        .flatMap(Collection::stream)
-        .collect(Collectors.toList());
-    }
-
-    private void activateCommands() {
-        getCommands(getImplementation()).forEach(EntityCommand::activate);
-    }
-
     private PolyMorph getImplementation(Class<? extends PolyMorph> implClass) {
         if (implClass != null && implementation == null) {
             implementation = Entity.newInstance(implClass, null, getPID());
             implementation.addNodeListener(lockHandler);
-            initSEQ.accept(implementation);
         }
         return implementation;
+    }
+
+    private PolyMorph getBaseObject() {
+        Entity owner = getOwner();
+        return Entity.newInstance(
+                getPolymorphClass(getClass()),
+                owner == null ? null : owner.toRef(),
+                getPID()
+        );
     }
 
     private void setLocked(boolean locked) {
@@ -212,19 +187,30 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
         } else {
             getLock().release();
         }
-        List<String> implParameters = getParameters(implementation);
-        implParameters.stream()
-                .filter((propName) -> !implementation.model.isPropertyDynamic(propName))
-                .forEach((propName) -> ((AbstractEditor) implementation.model.getEditor(propName)).setLocked(locked));
+        getForeignProperties().stream()
+                .filter(propName -> !implementation.model.isPropertyDynamic(propName))
+                .forEach(propName -> ((AbstractEditor) implementation.model.getEditor(propName)).setLocked(locked));
     }
 
-    private List<String> getParameters(PolyMorph implInstance) {
-        return implInstance.model.getProperties(Access.Edit).stream()
-                .filter(propName -> !PROP_FILTER.contains(propName))
+    private List<String> getForeignProperties() {
+        return getImplementation().model.getProperties(Access.Any).stream()
+                .filter(propName -> !PolyMorph.SYSPROPS.contains(propName))
+                .filter(propName -> !EntityModel.SYSPROPS.contains(propName))
+                .filter(propName -> !propName.equals(EntityModel.THIS))
                 .collect(Collectors.toList());
     }
 
+    private List<String> getOwnProperties() {
+        return new LinkedList<String>() {{
+            addAll(EntityModel.SYSPROPS);
+            addAll(PolyMorph.SYSPROPS);
+        }};
+    }
+
     private Class<? extends PolyMorph> getImplementedClass() {
+        if (!model.hasProperty(PROP_IMPL_CLASS)) {
+            return null;
+        }
         String implClassName = (String) model.getUnsavedValue(PROP_IMPL_CLASS);
         if (implClassName != null && !implClassName.isEmpty()) {
             try {
@@ -243,105 +229,229 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
                 setIcon(ImageUtils.getByPath(entityDef.icon()));
             }
             model.setValue(PROP_IMPL_CLASS, implClass.getTypeName());
-            linkImplementedParameters(getImplementation(getImplementedClass()));
+            implementation = getImplementation(implClass);
+
+            linkBaseParameters();
+            linkChildParameters();
         }
     }
 
+    private void linkBaseParameters() {
+        Stream.of(
+                EntityModel.ID,
+                EntityModel.SEQ,
+                EntityModel.PID
+        ).forEach(propName -> {
+            getImplementation().model.properties.replace(propName, model.getProperty(propName));
+            model.getProperty(propName).addChangeListener(this);
+        });
+    }
+
     @SuppressWarnings("unchecked")
-    private void linkImplementedParameters(PolyMorph implInstance) {
-        Map<String, String> properties = getProperties(true);
-        List<String> implParameters = getParameters(implInstance);
+    private void linkChildParameters() {
+        Map<String, String> parameters = getParameters(true);
+        List<String> foreignProps = getForeignProperties();
+        foreignProps.forEach(foreignPropName -> {
+            PropertyHolder propHolder = getImplementation().model.properties.get(foreignPropName);
 
-        implInstance.model.getProperties(Access.Any).forEach(paramName -> {
-            if (implParameters.contains(paramName)) {
-                if (properties.containsKey(paramName)) {
-                    updateParameter(implInstance, paramName, properties.get(paramName));
-                } else {
-                    properties.put(paramName, implInstance.model.getProperty(paramName).getPropValue().toString());
-                }
-                // Disable child model default handlers
-                implInstance.model.getProperty(paramName).removeChangeListener(implInstance.model);
+            // Inject foreign property
+            model.addProperty(propHolder, getImplementation().model.restrictions.get(foreignPropName));
+            // Show foreign properties changes
+            propHolder.addChangeListener(this);
 
-                // Update parameters map and labels
-                implInstance.model.getProperty(paramName).addChangeListener(parametersUpdater);
+            if (getImplementation().model.isPropertyDynamic(propHolder.getName())) {
+                model.dynamicProps.add(propHolder.getName());
             } else {
-                implInstance.model.getEditor(paramName).setVisible(false);
+                if (parameters.containsKey(foreignPropName)) {
+                    updateParameter(foreignPropName, parameters.get(foreignPropName));
+                } else {
+                    parameters.put(foreignPropName, model.getProperty(foreignPropName).getPropValue().toString());
+                }
+                // Parameters map updater
+                model.getProperty(foreignPropName).addChangeListener(parametersUpdater);
             }
         });
 
+        // Inject property groups
+        foreignProps.stream()
+                .filter(propName -> getImplementation().model.getPropertyGroup(propName) != null)
+                .collect(Collectors.groupingBy(propName -> getImplementation().model.getPropertyGroup(propName)))
+                .forEach((groupName, propNames) -> {
+                    model.addPropertyGroup(groupName, propNames.toArray(new String[] {}));
+                });
+
         if (getID() == null) {
-            setProperties(properties);
+            setParameters(parameters);
         } else {
-            // Remove obsolete properties
-            properties.entrySet().removeIf(entry -> !implParameters.contains(entry.getKey()));
-
+            if (parameters.entrySet().stream().anyMatch(entry -> !foreignProps.contains(entry.getKey()))) {
+                //TODO: Возожно очистку ненужных свойств лучше сделать при сохранении
+                parameters.entrySet().removeIf(entry -> !foreignProps.contains(entry.getKey()));
+                try {
+                    model.commit(false, PROP_IMPL_PARAM);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
             // Invisible update parameters
-            model.getProperty(PROP_IMPL_PROPS).getPropValue().setValue(properties);
+            model.getProperty(PROP_IMPL_PARAM).getPropValue().setValue(parameters);
         }
-
-        getEditorPage().add(
-                new JPanel() {{
-                    setLayout(new BorderLayout());
-                    add(implInstance.getEditorPage(), BorderLayout.CENTER);
-                }},
-                new GridBagConstraints() {{
-                    insets = new Insets(0, 0, 0, 0);
-                    fill = GridBagConstraints.HORIZONTAL;
-                    gridwidth = 2;
-                    gridx = 0;
-                    gridy = (getEditorPage().getComponentCount() - 2) / 2 + 1;
-                }}
-        );
     }
 
-    private void updateParameter(PolyMorph implInstance, String propName, String propVal) {
-        implInstance.model.getProperty(propName).getPropValue().valueOf(propVal);
-        ((AbstractEditor) implInstance.model.getEditor(propName)).updateUI();
+    private void updateParameter(String propName, String propVal) {
+        model.getProperty(propName).getPropValue().valueOf(propVal);
+        ((AbstractEditor) model.getEditor(propName)).updateUI();
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, String> getProperties(boolean unsaved) {
+    private Map<String, String> getParameters(boolean unsaved) {
         return (Map<String, String>) (unsaved ?
-                model.getUnsavedValue(PROP_IMPL_PROPS) :
-                model.getValue(PROP_IMPL_PROPS)
+                model.getUnsavedValue(PROP_IMPL_PARAM) :
+                model.getValue(PROP_IMPL_PARAM)
         );
     }
 
-    private void setProperties(Map<String, String> params) {
-        model.setValue(PROP_IMPL_PROPS, params);
-    }
-
-    @Override
-    public void modelSaved(EntityModel model, List<String> changes) {
-        if (changes.contains(EntityModel.PID)) {
-            initPID.accept(getImplementation());
-        }
-        if (changes.contains(PROP_IMPL_PROPS)) {
-            getProperties(true).forEach((propName, propVal) -> labelUpdater.propertyChange(propName, null, null));
-            activateCommands();
-        }
+    private void setParameters(Map<String, String> params) {
+        model.setValue(PROP_IMPL_PARAM, params);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public void modelRestored(EntityModel model, List<String> changes) {
-        if (changes.contains(PROP_IMPL_PROPS)) {
-            PolyMorph implInstance = getImplementation(getImplementedClass());
-            Map<String, String> properties = getProperties(true);
-            List<String> implParameters = getParameters(implInstance);
+    protected final List<EntityCommand<Entity>> getCommands(Entity entity) {
+        PolyMorph polyMorph = (PolyMorph) entity;
+        Class<? extends Entity>    thisClass = this.getClass();
+        Class<? extends PolyMorph> implClass = IComplexType.coalesce(polyMorph.getImplementedClass(), entity.getClass().asSubclass(PolyMorph.class));
 
-            implParameters.forEach(paramName -> {
-                Object currentVal = implInstance.model.getValue(paramName);
-                implInstance.model.getProperty(paramName).getPropValue().valueOf(properties.get(paramName));
-                Object restoredVal = implInstance.model.getValue(paramName);
-                implInstance.model.getProperty(paramName).getPropValue().setValue(currentVal);
+        return Stream.concat(
+                    getClassHierarchy(implClass).stream().filter(thisClass::isAssignableFrom),
+                    Stream.of(implClass)
+               ).map(aClass -> {
+                    LinkedList<EntityCommand<Entity>> commands = new LinkedList<>();
+                    new LinkedList<>(CommandRegistry.getInstance().getRegisteredCommands(aClass.asSubclass(Entity.class))).forEach(entityCommand -> {
+                        commands.add((EntityCommand<Entity>) entityCommand);
+                    });
+                    return commands;
+               })
+               .flatMap(Collection::stream)
+               .collect(Collectors.toList());
+    }
 
-                implInstance.model.getProperty(paramName).removeChangeListener(parametersUpdater);
-                implInstance.model.setValue(paramName, restoredVal);
-                implInstance.model.getProperty(paramName).addChangeListener(parametersUpdater);
 
-                labelUpdater.propertyChange(paramName, null, null);
-            });
+    private class PolymorphModel extends EntityModel {
+
+        PolymorphModel(EntityRef owner, Class<? extends Entity> entityClass, String PID) {
+            super(owner, entityClass, PID);
+        }
+
+        @Override
+        public String getQualifiedName() {
+            return MessageFormat.format(
+                    "[{0}/#{1}-''{2}'']",
+                    getPolymorphClass(entityClass).getSimpleName(),
+                    getID() == null ? "?" : getID(),
+                    IComplexType.coalesce(getPID(getID() != null), "<new>")
+            );
+        }
+
+        @Override
+        protected void addProperty(PropertyHolder propHolder, Access restriction) {
+            if (isInstance) {
+                if (!PolyMorph.SYSPROPS.contains(propHolder.getName())) {
+                    super.addProperty(propHolder, restriction);
+                }
+            } else {
+                if (hasProperty(propHolder.getName())) {
+                    if (getID() == null) {
+                        properties.replace(propHolder.getName(), propHolder);
+                        // If editor has been cached it is necessary to change it as well
+                        if (editors.containsKey(propHolder.getName())) {
+                            IEditor oldEditor = editors.get(propHolder.getName());
+                            @SuppressWarnings("unchecked")
+                            IEditor newEditor = propHolder.getPropValue().editorFactory().newInstance(propHolder);
+                            newEditor.setEditable(oldEditor.isEditable());
+                            newEditor.setVisible(oldEditor.isVisible());
+                            editors.replace(propHolder.getName(), newEditor);
+                        }
+                    }
+                    propHolder.addChangeListener(this);
+                } else {
+                    super.addProperty(propHolder, restriction);
+                }
+            }
+        }
+
+        @Override
+        void commit(boolean showError, List<String> propNames) throws Exception {
+            if (isInstance) {
+                PolyMorph baseObject = getBaseObject();
+                baseObject.model.commit(showError, new LinkedList<String>(){{
+                    addAll(propNames);
+                    add(PolyMorph.PROP_IMPL_PARAM);
+                }});
+            } else {
+                final List<String> foreignProps = getForeignProperties();
+                if (getID() == null) {
+                    OrmContext.debug("Insert model to database {0}", getQualifiedName());
+                    if (create(showError)) {
+                        update(showError, getChanges().stream()
+                                .filter(propName -> !foreignProps.contains(propName))
+                                .collect(Collectors.toList())
+                        );
+                    }
+                } else {
+                    OrmContext.debug("Update model in database {0}", getQualifiedName());
+                    update(showError, propNames.stream()
+                            .filter(propName -> !foreignProps.contains(propName))
+                            .collect(Collectors.toList())
+                    );
+                }
+                List<String> notCommitted = getChanges();
+                notCommitted.forEach(propName -> undoRegistry.put(
+                        propName,
+                        undoRegistry.previous(propName),
+                        undoRegistry.previous(propName))
+                );
+                // Fire event to activate commands
+                new LinkedList<>(modelListeners).forEach((listener) -> listener.modelSaved(this, notCommitted));
+                // Fire event to update linked dynamic properties
+                new LinkedList<>(getImplementation().model.modelListeners).forEach((listener) -> listener.modelSaved(this, notCommitted));
+            }
+        }
+
+        @Override
+        protected boolean create(boolean showError) throws Exception {
+            Integer ownerId = getOwner() == null ? null : getOwner().getID();
+            try {
+                synchronized (this) {
+                    getConfigService().initClassInstance(
+                            entityClass,
+                            (String) getProperty(PID).getPropValue().getValue(),
+                            getOwnProperties().stream()
+                                    .filter(propName -> !isPropertyDynamic(propName) || EntityModel.ID.equals(propName))
+                                    .collect(Collectors.toMap(
+                                            propName -> propName,
+                                            propName -> getProperty(propName).getPropValue(),
+                                            (u, v) -> {
+                                                throw new IllegalStateException(String.format("Duplicate key %s", u));
+                                            },
+                                            LinkedHashMap::new
+                                    )),
+                            ownerId
+                    ).forEach(this::setValue);
+                    return true;
+                }
+            } catch (Exception e) {
+                OrmContext.error("Unable initialize model in database", e);
+                if (showError) {
+                    MessageBox.show(
+                            MessageType.ERROR,
+                            MessageFormat.format(
+                                    Language.get("error@notsaved"),
+                                    e.getMessage()
+                            )
+                    );
+                }
+                throw e;
+            }
         }
     }
 }

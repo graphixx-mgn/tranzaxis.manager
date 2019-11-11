@@ -21,35 +21,36 @@ import java.util.*;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Реализация модели сущности.
  */
 public class EntityModel extends AbstractModel implements IPropertyChangeListener {
 
-    public final static String ID   = "ID";   // Primary unique identifier
-    public final static String OWN  = "OWN";  // Reference to owner entity
-    public final static String SEQ  = "SEQ";  // Order sequence number
-    public final static String PID  = "PID";  // Title or name
-    public final static String OVR  = "OVR";  // List of overridden values
-    public final static String THIS = "THIS"; // Reference to the entity object
+    public  final static String ID   = "ID";   // Primary unique identifier
+    public  final static String OWN  = "OWN";  // Reference to owner entity
+    public  final static String SEQ  = "SEQ";  // Order sequence number
+    public  final static String PID  = "PID";  // Title or name
+    public  final static String OVR  = "OVR";  // List of overridden values
+    public  final static String THIS = "THIS"; // Reference to the entity object
     
-    private static final Boolean      DEV_MODE  = "1".equals(java.lang.System.getProperty("showSysProps"));
+    private final static Boolean      DEV_MODE  = "1".equals(java.lang.System.getProperty("showSysProps"));
     public  final static List<String> SYSPROPS  = Arrays.asList(ID, OWN, SEQ, PID, OVR);
-    
-    private final Class<? extends Entity>       entityClass;
-    private final List<String>                  bootProps;
+
     private final DynamicResolver               dynamicResolver = new DynamicResolver();
-    private final List<String>                  dynamicProps    = new LinkedList<>();
-    private final UndoRegistry                  undoRegistry    = new UndoRegistry();
     private final Map<String, String>           databaseValues;
     private final Map<String, Object>           initialValues   = new HashMap<>();
     private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
-    private final List<IModelListener>          modelListeners  = new LinkedList<>();
+
+    protected final Class<? extends Entity>     entityClass;
+    protected final List<String>                dynamicProps    = new LinkedList<>();
+    protected final UndoRegistry                undoRegistry    = new UndoRegistry();
+    protected final List<IModelListener>        modelListeners  = new LinkedList<>();
 
     // Контексты
     @LoggingSource()
-    @IContext.Definition(id = "ORM", name = "Object-relational mapping", icon = "/images/model.png")
+    @IContext.Definition(id = "OEM", name = "Object entity model", icon = "/images/model.png")
     static class OrmContext implements IContext {
         static void debug(String message, Object... params) {
             Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
@@ -67,7 +68,6 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     
     EntityModel(EntityRef owner, Class<? extends Entity> entityClass, String PID) {
         this.entityClass = entityClass;
-        this.bootProps   = getBootProps();
 
         Integer ownerId = owner == null ? null : owner.getId();
         this.databaseValues = getConfigService().readClassInstance(entityClass, PID, ownerId);
@@ -107,26 +107,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         setPropUnique(EntityModel.PID);
     }
 
-    public void addBootProp(String propName) {
-        bootProps.add(propName);
-    }
-
-    private List<String> getBootProps() {
-        return Arrays.stream(entityClass.getDeclaredFields())
-                .filter(field -> field.getAnnotation(Bootstrap.BootProperty.class) != null)
-                .map(field -> {
-                    field.setAccessible(true);
-                    try {
-                        return (String) field.get(this);
-                    } catch (IllegalAccessException e) {
-                        e.printStackTrace();
-                        return null;
-                    }
-                })
-                .collect(Collectors.toList());
-    }
-
-    private IConfigStoreService getConfigService() {
+    protected IConfigStoreService getConfigService() {
         return ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
     }
 
@@ -200,14 +181,6 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
         super.addProperty(propHolder, restriction);
         propHolder.addChangeListener(this);
-        if (bootProps.contains(propHolder.getName())) {
-            Bootstrap.setProperty(
-                    entityClass,
-                    getPID(false),
-                    propHolder.getName(),
-                    propHolder.getOwnPropValue().toString()
-            );
-        }
     }
     
     /**
@@ -261,7 +234,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
 
     public final boolean isPropertyExtra(String propName) {
-        if (!properties.containsKey(propName)) {
+        if (!hasProperty(propName)) {
             throw new IllegalStateException(
                     MessageFormat.format("Model does not have property ''{0}''", propName)
             );
@@ -427,18 +400,45 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     /**
      * Получить наименование свойства.
      */
-    public final String getPropertyTitle(String name) {
-        return getProperty(name).getTitle();
+    public final String getPropertyTitle(String propName) {
+        return getProperty(propName).getTitle();
     }
     
     public final boolean isPropertyDynamic(String propName) {
-        if (!properties.containsKey(propName)) {
+        if (!hasProperty(propName)) {
             throw new IllegalStateException(
                     MessageFormat.format("Model already has property ''{0}''", propName)
             );
         }
         return dynamicProps.contains(propName);
     }
+
+    public final boolean isPropertyConditional(String propName) {
+        return getConditionProps().contains(propName);
+    }
+
+    private List<String> getConditionProps() {
+        List<String> props = new LinkedList<>();
+
+        Class<?> nextClass = entityClass;
+        while (Entity.class.isAssignableFrom(nextClass)) {
+            Stream.of(nextClass.getDeclaredFields())
+                    .filter(field -> field.isAnnotationPresent(PropertyDefinition.class))
+                    .filter(field -> field.getAnnotation(PropertyDefinition.class).condition())
+                    .forEach(field -> {
+                        try {
+                            field.setAccessible(true);
+                            props.add((String) field.get(this));
+                        } catch (IllegalAccessException e) {
+                            e.printStackTrace();
+                        }
+                    });
+            nextClass = nextClass.getSuperclass();
+        }
+        return props;
+    }
+
+
     
     /**
      * Возвращает признак отсуствия несохраненных изменений среди хранимых
@@ -462,34 +462,36 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * @param showError Отображать диалог об ошибке.
      * @param propNames Массив свойств для сохранения.
      */
-    public boolean commit(boolean showError, String... propNames) throws Exception {
+    public final void commit(boolean showError, String... propNames) throws Exception {
         if (propNames != null && propNames.length > 0) {
-            if (getID() == null) {
-                throw new IllegalStateException(MessageFormat.format("Update failed: model {0} does not exist in database", getQualifiedName()));
-            } else {
-                List<String> updateProps = Arrays.asList(propNames);
+            List<String> updateProps = Arrays.asList(propNames);
+            updateProps.removeIf(propName -> !hasProperty(propName));
+            if (!updateProps.isEmpty()) {
                 OrmContext.debug("Perform partial commit model {0} {1}", getQualifiedName(), updateProps);
-                return update(showError, updateProps);
+                commit(showError, updateProps);
             }
         }
-        return true;
     }
     
     /**
      * Сохранение изменений модели.
      */
     public final void commit(boolean showError) throws Exception {
-        List<String> changes = getChanges();
-        if (!changes.isEmpty()) {
+        OrmContext.debug("Perform full commit model {0} {1}", getQualifiedName(), getChanges());
+        commit(showError, getChanges());
+    }
+
+    void commit(boolean showError, List<String> propNames) throws Exception {
+        if (!propNames.isEmpty()) {
             if (getID() == null) {
-                OrmContext.debug("Perform commit (create) model {0}", getQualifiedName());
+                OrmContext.debug("Insert model to database {0}", getQualifiedName());
                 if (create(showError)) {
                     update(showError, getChanges() /* +SEQ */);
                 }
             } else {
                 if (maintenance(showError)) {
-                    OrmContext.debug("Perform commit (update) model {0}", getQualifiedName());
-                    update(showError, changes);
+                    OrmContext.debug("Update model in database {0}", getQualifiedName());
+                    update(showError, propNames);
                 }
             }
         }
@@ -537,14 +539,14 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         return propDefinitions;
     }
     
-    private boolean create(boolean showError) throws Exception {
+    protected boolean create(boolean showError) throws Exception {
         Integer ownerId = getOwner() == null ? null : getOwner().getID();
         try {
             synchronized (this) {
                 getConfigService().initClassInstance(
                         entityClass, 
                         (String) getProperty(PID).getPropValue().getValue(), 
-                        getPropDefinitions(this), 
+                        getPropDefinitions(this),
                         ownerId
                 ).forEach(this::setValue);
                 return true;
@@ -563,8 +565,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             throw e;
         }
     }
-    
-    private boolean update(boolean showError, List<String> changes) throws Exception {
+
+    protected boolean update(boolean showError, List<String> changes) throws Exception {
         Map<String, String> dbValues = getConfigService().readClassInstance(entityClass, getID());
         try {
             synchronized (this) {
@@ -583,14 +585,6 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 changes.forEach(propName -> {
                     if (undoRegistry.exists(propName)) {
                         undoRegistry.put(propName, undoRegistry.current(propName), undoRegistry.previous(propName));
-                    }
-                    if (bootProps.contains(propName)) {
-                        Bootstrap.setProperty(
-                                entityClass,
-                                getPID(false),
-                                propName,
-                                getProperty(propName).getOwnPropValue().toString()
-                        );
                     }
                 });
             }
