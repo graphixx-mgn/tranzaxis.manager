@@ -3,26 +3,44 @@ package codex.service;
 import codex.command.EntityCommand;
 import codex.model.*;
 import codex.type.*;
+import codex.utils.Caller;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.*;
 import java.lang.reflect.ParameterizedType;
+import java.util.List;
 import java.util.Map;
+import java.util.prefs.Preferences;
 
 /**
  * Класс для хранения обцих настроек сервисов
  */
-public class LocalServiceOptions<S extends IService> extends Catalog {
+public abstract class LocalServiceOptions<S extends IService> extends Catalog {
     
     private final static String PROP_CLASS   = "class";
     private final static String PROP_STARTED = "started";
     
     private final static ImageIcon ICON_STARTED = ImageUtils.getByPath("/images/start.png"); 
     private final static ImageIcon ICON_STOPPED = ImageUtils.getByPath("/images/stop.png");
+
+    private final static String APP_CATALOG = Caller.getInstance().getClassStack().stream().reduce((first, second) -> second).orElse(null).getSimpleName();
+    private final static String SRV_CATALOG = "Services";
+
+    private static <S extends IService> void setProperty(Class<S> serviceClass, String propName, String value) {
+        getPreferences(serviceClass).put(propName, value);
+    }
+
+    private static <S extends IService> Preferences getPreferences(Class<S> serviceClass) {
+        return Preferences.userRoot().node(APP_CATALOG).node(SRV_CATALOG).node(serviceClass.getTypeName());
+    }
+
+    public static <S extends IService> String getProperty(Class<S> serviceClass, String propName) {
+        return getPreferences(serviceClass).get(propName, null);
+    }
     
     private S service;
 
-    public LocalServiceOptions(S service) {
+    protected LocalServiceOptions(S service) {
         super(null, ImageUtils.getByPath("/images/services.png"), service.getTitle(), null);
         this.service = service;
 
@@ -52,6 +70,19 @@ public class LocalServiceOptions<S extends IService> extends Catalog {
             CommandRegistry.getInstance().registerCommand(getClass(), StartService.class);
             CommandRegistry.getInstance().registerCommand(getClass(), StopService.class);
         }
+
+        model.addModelListener(new IModelListener() {
+            @Override
+            public void modelSaved(EntityModel model, List<String> changes) {
+                changes.stream()
+                        .filter(propName -> !EntityModel.SYSPROPS.contains(propName))
+                        .forEach(propName -> setProperty(
+                            getService().getClass(),
+                            propName,
+                            model.getProperty(propName).getOwnPropValue().toString()
+                        ));
+            }
+        });
     }
     
     @Override
