@@ -37,7 +37,7 @@ public class Logger extends org.apache.log4j.Logger {
         @Override
         public void append(LoggingEvent event) {
             super.append(event);
-            listeners.forEach(listener -> listener.eventAppended(event));
+            new LinkedList<>(listeners).forEach(listener -> listener.eventAppended(event));
         }
     };
     private final List<IAppendListener> listeners = new LinkedList<>();
