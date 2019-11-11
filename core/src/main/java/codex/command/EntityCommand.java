@@ -275,7 +275,10 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
         } else {
             try {
                 final Map<String, IComplexType> params = getParameters();
-                Logger.getLogger().debug("Perform command [{0}]. Context: {1}", getName(), context);
+                Logger.getLogger().debug(
+                        "Perform command [{0}]. Context: {1}",
+                        getName(),
+                        context.stream().map(entity -> entity.model.getQualifiedName()).collect(Collectors.toList()));
                 context.forEach(entity -> execute(entity, params));
             } catch (ParametersDialog.Canceled e) {
                 // Do not call command

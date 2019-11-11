@@ -49,7 +49,7 @@ class CommitEntity extends EntityCommand<Entity> {
             try {
                 context.model.commit(true);
             } catch (Exception e) {
-                //
+                e.printStackTrace();
             }
         }
     }

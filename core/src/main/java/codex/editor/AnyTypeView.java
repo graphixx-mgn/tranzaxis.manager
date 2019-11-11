@@ -31,7 +31,7 @@ public class AnyTypeView extends AbstractEditor<AnyType, Object> {
         textField.setFont(FONT_VALUE);
         textField.setContentType("text/html");
         textField.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
-        textField.setBorder(new EmptyBorder(3, 3, 3, 3));
+        textField.setBorder(new EmptyBorder(2, 3, 3, 3));
         textField.setEditable(false);
         textField.setForeground(COLOR_DISABLED);
         textField.setOpaque(false);
