@@ -131,14 +131,14 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         }
         String nameFormat = "%-".concat(
                 Integer.toString(
-                        columns.keySet().stream().mapToInt(String::length).max().orElse(0)
+                        columns.keySet().stream().mapToInt(String::length).max().orElse(0)+2
                 ).concat("s ")
         );
         String createSQL = MessageFormat.format(
                     "CREATE TABLE IF NOT EXISTS {0} (\n\t{1}\n);",
                     className,
                     columns.entrySet().stream()
-                            .map((entry) -> String.format(nameFormat, entry.getKey()).concat(entry.getValue()))
+                            .map((entry) -> String.format(nameFormat, "["+entry.getKey()+"]").concat(entry.getValue()))
                             .collect(Collectors.joining(",\n\t"))
         );
         String indexSQL = MessageFormat.format(
@@ -242,13 +242,13 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         }
 
         final String insertSQL = MessageFormat.format(
-                "INSERT INTO {0} (SEQ, PID, OWN) VALUES ((SELECT IFNULL(MAX(SEQ), 0)+1 FROM {0}), ?, ?)", className
+                "INSERT INTO {0} ([SEQ], [PID], [OWN]) VALUES ((SELECT IFNULL(MAX([SEQ]), 0)+1 FROM {0}), ?, ?)", className
         );
 
         QueryContext.debug(
                 "Insert query: {0}",
                 IDatabaseAccessService.prepareTraceSQL(
-                        MessageFormat.format("INSERT INTO {0} (PID, OWN) VALUES (?, ?)", className),
+                        MessageFormat.format("INSERT INTO {0} ([PID], [OWN]) VALUES (?, ?)", className),
                         PID,
                         ownerId
                 )
@@ -308,9 +308,19 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     public synchronized void updateClassInstance(Class clazz, Integer ID, Map<String, IComplexType> properties) throws Exception {
         if (!properties.isEmpty()) {
             final String className = clazz.getSimpleName().toUpperCase();
-            final String[] parts   = properties.keySet().toArray(new String[]{});
-            
-            final String updateSQL = "UPDATE "+className+" SET "+String.join(" = ?, ", parts)+" = ? WHERE ID = ?";
+            String nameFormat = "%-".concat(
+                    Integer.toString(
+                            properties.keySet().stream().mapToInt(String::length).max().orElse(0)+2
+                    ).concat("s ")
+            );
+            String updateSQL = MessageFormat.format(
+                    "UPDATE {0} SET \n\t{1}\nWHERE [ID] = ?;",
+                    className,
+                    properties.keySet().stream()
+                            .map(propName -> String.format(nameFormat, "["+propName+"]").concat(" = ?"))
+                            .collect(Collectors.joining(",\n\t"))
+            );
+
             QueryContext.debug(
                     "Update query: {0}",
                     IDatabaseAccessService.prepareTraceSQL(updateSQL, properties.values().toArray(), ID)
@@ -364,7 +374,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         Map<String, String> rowData = new LinkedHashMap<>();
         final String className = clazz.getSimpleName().toUpperCase();
         if (tableRegistry.containsKey(className)) {
-            final String selectSQL = MessageFormat.format("SELECT * FROM {0} WHERE ID = ?", className);
+            final String selectSQL = MessageFormat.format("SELECT * FROM {0} WHERE [ID] = ?", className);
             try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
                 select.setInt(1, ID);
                 try (ResultSet selectRS = select.executeQuery()) {
@@ -391,9 +401,9 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         if (tableRegistry.containsKey(className)) {
             final String selectSQL;
             if (ownerId != null) {
-                selectSQL = MessageFormat.format("SELECT * FROM {0} WHERE PID = ? AND OWN = ?", className);
+                selectSQL = MessageFormat.format("SELECT * FROM {0} WHERE [PID] = ? AND [OWN] = ?", className);
             } else {
-                selectSQL = MessageFormat.format("SELECT * FROM {0} WHERE PID = ? AND OWN IS NULL", className);
+                selectSQL = MessageFormat.format("SELECT * FROM {0} WHERE [PID] = ? AND [OWN] IS NULL", className);
             }
             try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
                 select.setString(1, PID);
@@ -424,9 +434,9 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         if (tableRegistry.containsKey(className)) {
             final String selectSQL;
             if (ownerId != null) {
-                selectSQL = MessageFormat.format("SELECT ID, PID FROM {0} WHERE OWN = ? ORDER BY SEQ", className);
+                selectSQL = MessageFormat.format("SELECT [ID], [PID] FROM {0} WHERE [OWN] = ? ORDER BY [SEQ]", className);
             } else {
-                selectSQL = MessageFormat.format("SELECT ID, PID FROM {0} WHERE OWN IS NULL ORDER BY SEQ", className);
+                selectSQL = MessageFormat.format("SELECT [ID], [PID] FROM {0} WHERE [OWN] IS NULL ORDER BY [SEQ]", className);
             }
             try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
                 select.setFetchSize(10);
@@ -467,7 +477,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                             .get();
                     
                     String selectSQL = MessageFormat.format(
-                            "SELECT TABLE_CLASS, ID, PID FROM {0}, CLASSDEF WHERE {1} = ? AND TABLE_NAME = ?",
+                            "SELECT [TABLE_CLASS], [ID], [PID] FROM {0}, CLASSDEF WHERE [{1}] = ? AND [TABLE_NAME] = ?",
                             tableInfo.name, fkColumnName
                     );
                     try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
@@ -499,7 +509,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     public  synchronized void removeClassInstance(Class clazz, Integer ID) throws Exception {        
         final String className = clazz.getSimpleName().toUpperCase();
         String PID = readClassInstance(clazz, ID).get("PID");
-        final String deleteSQL = MessageFormat.format("DELETE FROM {0} WHERE ID = ?", className);
+        final String deleteSQL = MessageFormat.format("DELETE FROM {0} WHERE [ID] = ?", className);
 
         QueryContext.debug(
                 "Delete query: {0}",
@@ -592,7 +602,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 "CREATE TABLE IF NOT EXISTS {0} (\n\t{1}\n)",
                 className.concat("_NEW"),
                     columns.entrySet().stream()
-                        .map((entry) -> String.format(nameFormat, entry.getKey()).concat(entry.getValue()))
+                        .map((entry) -> String.format(nameFormat, "["+entry.getKey()+"]").concat(entry.getValue()))
                         .collect(Collectors.joining(",\n\t"))
             ));
             
@@ -601,7 +611,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 ResultSet rs = select.executeQuery();
             ) {
                 if (rs.next()) {
-                    queries.add(MessageFormat.format("INSERT INTO {0} ({1}) SELECT {1} FROM {2}",
+                    queries.add(MessageFormat.format("INSERT INTO {0} ([{1}]) SELECT [{1}] FROM {2}",
                         className.concat("_NEW"),
                             tableRegistry.get(className).columnInfos.stream()
                                 .filter((info) -> !unusedProperties.contains(info.name))
@@ -638,7 +648,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             queries.addAll(columns.entrySet().stream()
                     .map((entry) -> {
                         return MessageFormat.format(
-                            "ALTER TABLE {0} ADD COLUMN {1}",
+                            "ALTER TABLE {0} ADD COLUMN [{1}]",
                             className, entry.getKey().concat(" ").concat(entry.getValue())
                         );
                     }).collect(Collectors.toList()));
@@ -818,7 +828,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                                 objectTable
                         ));
                         queries.add(MessageFormat.format(
-                                "DELETE FROM CLASSDEF WHERE TABLE_NAME = ''{0}''",
+                                "DELETE FROM CLASSDEF WHERE [TABLE_NAME] = ''{0}''",
                                 objectTable
                         ));
                     }
@@ -853,7 +863,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     }
     
     private Class<? extends Entity> getCatalogClass(String tableName) throws Exception {
-        String selectSQL = "SELECT TABLE_CLASS FROM CLASSDEF WHERE TABLE_NAME = ?";
+        String selectSQL = "SELECT [TABLE_CLASS] FROM CLASSDEF WHERE [TABLE_NAME] = ?";
         try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
             select.setString(1, tableName.toUpperCase());
             try (ResultSet selectRS = select.executeQuery()) {
