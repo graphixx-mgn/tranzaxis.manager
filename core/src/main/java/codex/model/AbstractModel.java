@@ -32,7 +32,7 @@ public class AbstractModel {
             isValid = isValid & getProperty(propName).isValid();
         }
         return isValid;
-    };
+    }
     
     /**
      * Возвращает состояние свойства.
@@ -57,7 +57,7 @@ public class AbstractModel {
      * </pre>
      */
     protected void addProperty(PropertyHolder propHolder, Access restriction) {
-        if (properties.containsKey(propHolder.getName())) {
+        if (hasProperty(propHolder.getName())) {
             throw new IllegalStateException(
                     MessageFormat.format("Model already has property ''{0}''", propHolder.getName())
             );
@@ -77,7 +77,7 @@ public class AbstractModel {
      * Получить свойство по его имени.
      */
     public final PropertyHolder getProperty(String name) {
-        if (!properties.containsKey(name)) {
+        if (!hasProperty(name)) {
             throw new NoSuchFieldError(
                     MessageFormat.format("Model does not have property ''{0}''", name)
             );
@@ -87,7 +87,7 @@ public class AbstractModel {
     
     public final void addPropertyGroup(String groupTitle, String... propNames) {
         for (String propName : propNames) {
-            if (!properties.containsKey(propName)) {
+            if (!hasProperty(propName)) {
                 throw new NoSuchFieldError(
                         MessageFormat.format("Model does not have property ''{0}''", propName)
                 );

@@ -62,6 +62,7 @@ class EntityCache {
     }
     
     void remove(Entity entity) {
+        //TODO: Удаление слушателей сущности, модели и свойств
         if (registry.containsKey(entity.getClass())) {
             Entity owner = entity.getOwner();
             CacheKey key = new CacheKey(entity.getPID(), owner == null ? null : owner.getID());
@@ -116,6 +117,4 @@ class EntityCache {
         }
 
     }
-
-
 } 
