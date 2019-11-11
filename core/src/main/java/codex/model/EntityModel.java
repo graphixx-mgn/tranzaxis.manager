@@ -477,8 +477,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * Сохранение изменений модели.
      */
     public final void commit(boolean showError) throws Exception {
-        OrmContext.debug("Perform full commit model {0} {1}", getQualifiedName(), getChanges());
-        commit(showError, getChanges());
+        if (!getChanges().isEmpty()) {
+            OrmContext.debug("Perform full commit model {0} {1}", getQualifiedName(), getChanges());
+            commit(showError, getChanges());
+        }
     }
 
     void commit(boolean showError, List<String> propNames) throws Exception {
