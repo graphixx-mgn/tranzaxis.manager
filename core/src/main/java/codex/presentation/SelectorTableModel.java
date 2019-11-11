@@ -5,7 +5,6 @@ import codex.explorer.tree.INodeListener;
 import codex.model.*;
 import codex.type.Bool;
 import codex.type.IComplexType;
-
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -20,33 +19,7 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
     public SelectorTableModel(Entity rootEntity) {
         super();
         this.rootEntity = rootEntity;
-        rootEntity.childrenList().forEach((node) -> {
-            Entity      childEntity = (Entity) node;
-            EntityModel childModel  = childEntity.model;
-            
-            childEntity.addNodeListener(new INodeListener() {
-                @Override
-                public void childChanged(INode node) {
-                    int rowCount = getRowCount();
-                    for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-                        if (getEntityForRow(rowIdx).model.equals(childModel)) {
-                            fireTableRowsUpdated(rowIdx, rowIdx);
-                            break;
-                        }
-                    }
-                }
-            });
-            childModel.addModelListener(this);
-            childModel.addChangeListener((name, oldValue, newValue) -> {
-                if (childModel.isPropertyDynamic(name)) {
-                    final int entityIdx = rootEntity.getIndex(node);
-                    if (childModel.getProperties(Access.Select).contains(name)) {
-                        setValueAt(newValue, entityIdx, childModel.getProperties(Access.Select).indexOf(name));
-                    }
-                }
-            });
-            addEntity(childEntity);
-        });
+        rootEntity.childrenList().forEach((node) -> addEntity((Entity) node));
     }
 
     @Override
@@ -64,6 +37,27 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
             columnModel.forEach(columnInfo -> addColumn(columnInfo.title));
         }
         addRow(columnModel.stream().map(columnInfo -> entity.model.getValue(columnInfo.name)).toArray());
+
+        EntityModel childModel  = entity.model;
+        childModel.addModelListener(this);
+        childModel.addChangeListener((name, oldValue, newValue) -> {
+            if (childModel.isPropertyDynamic(name) && findColumn(name) > 0) {
+                setValueAt(newValue, rootEntity.getIndex(entity), findColumn(name));
+            }
+        });
+
+        entity.addNodeListener(new INodeListener() {
+            @Override
+            public void childChanged(INode node) {
+                int rowCount = getRowCount();
+                for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+                    if (getEntityForRow(rowIdx).model.equals(childModel)) {
+                        fireTableRowsUpdated(rowIdx, rowIdx);
+                        break;
+                    }
+                }
+            }
+        });
     }
 
     @Override
@@ -79,6 +73,16 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
     @Override
     public Class<?> getColumnClass(int column) {
         return columnModel.get(column).type == Bool.class ? Bool.class : IComplexType.class;
+    }
+
+    @Override
+    public int findColumn(String columnName) {
+        for (int i = 0; i < getColumnCount(); i++) {
+            if (getPropertyForColumn(i).equals(columnName)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private List<String> getVisibleProperties(Entity entity) {
@@ -131,14 +135,11 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
         for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
             if (getEntityForRow(rowIdx).model.equals(model)) {
                 final int entityIdx = rowIdx;
-                List<String> selectorProps = model.getProperties(Access.Select);
-                selectorProps.forEach((propName) -> {
-                    if (changes.contains(propName)) {
-                        int propIdx = selectorProps.indexOf(propName);
-                        setValueAt(model.getValue(propName), entityIdx, propIdx);
+                changes.forEach(propName -> {
+                    if (findColumn(propName) > 0) {
+                        setValueAt(model.getValue(propName), entityIdx, findColumn(propName));
                     }
                 });
-                fireTableRowsUpdated(rowIdx, rowIdx);
                 break;
             }
         }

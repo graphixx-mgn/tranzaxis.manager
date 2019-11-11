@@ -29,7 +29,6 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * Презентация селектора сущности. Реализует как функциональность отображения и 
@@ -122,28 +121,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             public void childInserted(INode parentNode, INode childNode) {
                 Entity newEntity = (Entity) childNode;
                 tableModel.addEntity(newEntity);
-                newEntity.model.addModelListener(tableModel);
-                newEntity.model.addChangeListener((name, oldValue, newValue) -> {
-                    OptionalInt propShown = IntStream.range(1, tableModel.getColumnCount())
-                            .filter(col -> tableModel.getPropertyForColumn(col).equals(name))
-                            .findFirst();
-                    if (newEntity.model.isPropertyDynamic(name) && propShown.isPresent()) {
-                        final int entityIdx = entity.getIndex(newEntity);
-                        tableModel.setValueAt(newValue, entityIdx, propShown.getAsInt());
-                    }
-                });
-                newEntity.addNodeListener(new INodeListener() {
-                    @Override
-                    public void childChanged(INode node) {
-                        int rowCount = tableModel.getRowCount();
-                        for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-                            if (tableModel.getEntityForRow(rowIdx).model.equals(newEntity.model)) {
-                                tableModel.fireTableRowsUpdated(rowIdx, rowIdx);
-                                break;
-                            }
-                        }
-                    }
-                });
             }
         });
         SwingUtilities.invokeLater(this::refresh);
@@ -329,7 +306,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            final List<Class<? extends Entity>> classCatalog = ((Catalog) entity).getClassCatalog().stream()
+            final List<Class<? extends Entity>> classCatalog = entity.getClassCatalog().stream()
                     .filter(aClass -> !aClass.getSuperclass().equals(PolyMorph.class))
                     .collect(Collectors.toList());
 
@@ -460,7 +437,9 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 } else {
                     if (!newEntity.model.isPropertyDynamic(propName)) {
                         if (!(overridableProps.contains(propName) && (overriddenProps == null || !overriddenProps.contains(propName)))) {
-                            newEntity.model.setValue(propName, context.model.getValue(propName));
+                            if (!newEntity.model.isPropertyConditional(propName)) {
+                                newEntity.model.setValue(propName, context.model.getValue(propName));
+                            }
                         }
                     }
                 }
