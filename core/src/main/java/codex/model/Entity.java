@@ -16,19 +16,26 @@ import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.property.IPropertyChangeListener;
 import codex.service.ServiceRegistry;
+import codex.task.AbstractTask;
+import codex.task.ITask;
+import codex.task.ITaskExecutorService;
+import codex.task.ITaskListener;
 import codex.type.*;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import org.atteo.classindex.ClassIndex;
 import javax.swing.*;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Абстракная сущность, базовый родитель прикладных сущностей приложения.
@@ -94,6 +101,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
 
             @Override
             boolean remove(boolean readAfter) {
+                // TODO: Перенести в Entity.remove (чтобы работало в PolyMorph)
                 if (getID() == null) {
                     System.out.println("Remove from cache (ID==null): "+Entity.this);
                     CACHE.remove(Entity.this);
@@ -232,6 +240,77 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     public final Entity setSEQ(Integer seq) {
         model.setSEQ(seq);
         return this;
+    }
+
+    /**
+     * Возвращает список классов, разрешенных для создания и загрузки в данном каталоге.
+     * Каждый из этих классов наследуется от одного класса {@link ClassCatalog}.
+     */
+    public final List<Class<? extends Entity>> getClassCatalog() {
+        Class<? extends Entity> childClass = getChildClass();
+        if (childClass.isAnnotationPresent(ClassCatalog.Definition.class)) {
+            return StreamSupport.stream(ClassIndex.getSubclasses(codex.model.ClassCatalog.class).spliterator(), false)
+                    .filter(aClass -> childClass.isAssignableFrom(aClass) && !Modifier.isAbstract(aClass.getModifiers()))
+                    .sorted(Comparator.comparing(Class::getTypeName))
+                    .collect(Collectors.toList());
+        } else {
+            return Collections.singletonList(childClass);
+        }
+    }
+
+    @Override
+    public void setParent(INode parent) {
+        super.setParent(parent);
+        if (parent != null && getChildClass() != null) {
+            loadChildren();
+        }
+    }
+
+    public void loadChildren() {
+        Map<Class<? extends Entity>, Collection<String>> childrenPIDs = getChildrenPIDs();
+        childrenPIDs.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+
+        if (!childrenPIDs.isEmpty()) {
+            ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).quietTask(new LoadChildren(childrenPIDs) {
+                private int mode = getMode();
+                {
+                    addListener(new ITaskListener() {
+                        @Override
+                        public void beforeExecute(ITask task) {
+                            try {
+                                if (!islocked()) {
+                                    mode = getMode();
+                                    setMode(MODE_NONE);
+                                    getLock().acquire();
+                                }
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                }
+
+                @Override
+                public void finished(Void result) {
+                    getLock().release();
+                    setMode(mode);
+                }
+            });
+        }
+    }
+
+    protected Map<Class<? extends Entity>, Collection<String>> getChildrenPIDs() {
+        Entity owner = Catalog.class.isAssignableFrom(this.getClass()) ? this.getOwner() : this;
+        return getClassCatalog().stream()
+                .collect(Collectors.toMap(
+                        catalogClass -> catalogClass,
+                        catalogClass -> {
+                            Integer ownerId = owner == null ? null : owner.getID();
+                            final IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
+                            return CAS.readCatalogEntries(ownerId, catalogClass).values();
+                        }
+                ));
+
     }
     
     public final void setOverride(List<String> value) {
@@ -649,6 +728,36 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 return found.toRef();
             }
         }
+    }
+
+
+    private class LoadChildren extends AbstractTask<Void> {
+
+        private final Map<Class<? extends Entity>, Collection<String>> childrenPIDs;
+
+        LoadChildren(Map<Class<? extends Entity>, Collection<String>> childrenPIDs) {
+            super(MessageFormat.format(
+                    Language.get(Catalog.class, "task@load"),
+                    getParent() != null ? Entity.this.getPathString() : Entity.this.getPID()
+            ));
+            this.childrenPIDs = childrenPIDs;
+        }
+
+        @Override
+        public Void execute() throws Exception {
+            EntityRef ownerRef = Entity.findOwner(Entity.this);
+            childrenPIDs.forEach((catalogClass, PIDs) -> PIDs.forEach(PID -> {
+                Entity instance = Entity.newInstance(catalogClass, ownerRef, PID);
+                if (!childrenList().contains(instance)) {
+                    insert(instance);
+                }
+            }));
+            return null;
+        }
+
+        @Override
+        public void finished(Void result) {}
+
     }
     
 }
