@@ -85,7 +85,7 @@ public final class LoggerServiceOptions extends LocalServiceOptions<LogManagemen
                     final Class<? extends IContext> contextClass = ctxView.getContextClass();
                     final String contextId = Logger.getContextRegistry().getContext(contextClass).getId();
 
-                    Level prevLevel = (Level) model.getValue(contextId.replace(".", "_"));
+                    Level prevLevel = (Level) model.getValue(contextId);
                     ctxView.model.setValue(
                             ContextView.PROP_LEVEL,
                             Logger.isOption(ctxView.getContextClass()) ? prevLevel == Level.Debug : prevLevel
@@ -98,7 +98,7 @@ public final class LoggerServiceOptions extends LocalServiceOptions<LogManagemen
         for (INode node : treeModel) {
             final ContextView ctxView = (ContextView) node;
             final Class<? extends IContext> contextClass = ctxView.getContextClass();
-            final String propName = Logger.getContextRegistry().getContext(contextClass).getId().replace(".", "_");
+            final String propName = Logger.getContextRegistry().getContext(contextClass).getId();
 
             model.addUserProp(
                     propName,
@@ -106,7 +106,6 @@ public final class LoggerServiceOptions extends LocalServiceOptions<LogManagemen
                     false,
                     Access.Select
             );
-            model.addBootProp(propName);
 
             ctxView.model.addChangeListener((name, oldValue, newValue) -> {
                 Level newLevel =
@@ -130,7 +129,9 @@ public final class LoggerServiceOptions extends LocalServiceOptions<LogManagemen
 
     private void fillContext(Collection<Class<? extends IContext>> contexts) {
         for (Class<? extends IContext> context : contexts) {
-            addContext(context);
+            if (!ILogManagementService.class.isAssignableFrom(context)) {
+                addContext(context);
+            }
         }
     }
 

@@ -127,7 +127,7 @@ class HTMLExporter {
                         .distinct()
                         .map(ctxID -> MessageFormat.format(
                                 Language.get("icon.ext"),
-                                ctxID.replace(".", "_"),
+                                ctxID,
                                 ImageUtils.toBase64(Logger.getContextRegistry().getContext(ctxID).getIcon())
                         )).collect(Collectors.joining("\n"))
 
@@ -182,7 +182,7 @@ class HTMLExporter {
                         .distinct()
                         .map(ctxID -> MessageFormat.format(
                                Language.get("filter@context.control"),
-                               ctxID.replace(".", "_"),
+                               ctxID,
                                Logger.getContextRegistry().getContext(ctxID).getName()
                         )).collect(Collectors.joining("\n"))
         );
@@ -204,7 +204,7 @@ class HTMLExporter {
                             Language.get("record"),
                             logRecord.get("LEVEL"),
                             logRecord.get("TIME"),
-                            contexts[contexts.length-1].replace(".", "_"),
+                            contexts[contexts.length-1],
                             prepareMessage(logRecord)
                     );
                 })

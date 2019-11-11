@@ -2,7 +2,7 @@ package codex.log;
 
 import codex.context.IContext;
 import codex.context.ServiceCallContext;
-import codex.model.Bootstrap;
+import codex.service.LocalServiceOptions;
 import codex.utils.ImageUtils;
 import org.apache.log4j.AsyncAppender;
 import org.apache.log4j.spi.LoggingEvent;
@@ -185,10 +185,9 @@ public class Logger extends org.apache.log4j.Logger {
         }
 
         private Level getContextLevel() {
-            String level = Bootstrap.getProperty(
-                    LoggerServiceOptions.class,
-                    LMS.getTitle(),
-                    id.replace(".", "_")
+            String level = LocalServiceOptions.getProperty(
+                    LogManagementService.class,
+                    id
             );
             if (level != null) {
                 return Level.valueOf(level);
@@ -202,15 +201,16 @@ public class Logger extends org.apache.log4j.Logger {
 
     public static class ContextRegistry {
         private final Map<String, ContextInfo> idMap = new HashMap<>();
-        private final Map<Class<? extends IContext>, ContextInfo> classMap = new HashMap<>();
+        private final Map<Class<? extends IContext>, ContextInfo> classMap = new LinkedHashMap<>();
 
         private ContextRegistry() {
-            StreamSupport.stream(ClassIndex.getSubclasses(IContext.class).spliterator(), false)
+            StreamSupport.stream(ClassIndex.getSubclasses(IContext.class).spliterator(),false)
                     .map(Logger::resolveContextClass)
                     .map(ContextInfo::new)
-                    .forEach(contextInfo -> {
-                        idMap.put(contextInfo.id, contextInfo);
-                        classMap.put(contextInfo.clazz, contextInfo);
+                    .sorted(Comparator.comparing(ctxInfo -> ctxInfo.clazz.getTypeName()))
+                    .forEach(ctxInfo -> {
+                        idMap.put(ctxInfo.id, ctxInfo);
+                        classMap.put(ctxInfo.clazz, ctxInfo);
                     });
         }
 
