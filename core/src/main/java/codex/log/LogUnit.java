@@ -136,7 +136,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                     String[]  contexts = tableModel.getValueAt(row,2).toString().split(",", -1);
                     String    lastContextId = contexts[contexts.length-1];
                     ImageIcon ctxIcon = Logger.getContextRegistry().getContext(lastContextId).getIcon();
-                    if (tableModel.getValueAt(row,4).toString().isEmpty()) {
+                    if (tableModel.getValueAt(row,4) == null) {
                         label.setIcon(ImageUtils.resize(ctxIcon, iconSize, iconSize));
                     } else {
                         label.setIcon(ImageUtils.resize(
@@ -543,9 +543,10 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                         }
                         @Override
                         public Dimension getPreferredScrollableViewportSize() {
+                            int dataHeight = super.getPreferredScrollableViewportSize().height;
                             return new Dimension(
-                                    stack.isEmpty() ? 500 : 700,
-                                    Math.min(super.getPreferredScrollableViewportSize().height, 200)
+                                    stack.isEmpty() ? 700 : 900,
+                                    dataHeight < 100 ? 100 : 400
                             );
                         }
                     };
