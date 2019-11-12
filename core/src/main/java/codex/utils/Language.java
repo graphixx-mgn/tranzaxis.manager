@@ -1,6 +1,11 @@
 package codex.utils;
 
 import codex.property.PropertyHolder;
+import com.github.plural4j.Plural;
+import org.apache.commons.io.IOUtils;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -93,6 +98,24 @@ public class Language {
 
     public static Locale getLocale() {
         return LocaleContextHolder.getLocale();
+    }
+
+    private final static Map<Locale, Plural.WordForms[]> PLURAL_FORMS = new HashMap<>();
+    public static Plural getPlural() {
+        if (!PLURAL_FORMS.containsKey(getLocale())) {
+            String resourceName = "/locale/Language_"+getLocale()+".properties";
+            try (InputStream stream = Language.class.getResourceAsStream(resourceName)) {
+                PLURAL_FORMS.put(getLocale(), Plural.parse(
+                        String.join("\r\n", IOUtils.readLines(stream, StandardCharsets.UTF_8))
+                ));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        switch (getLocale().getLanguage()) {
+            case "ru": return new Plural(Plural.RUSSIAN, PLURAL_FORMS.get(getLocale()));
+            default:   return new Plural(Plural.ENGLISH, PLURAL_FORMS.get(getLocale()));
+        }
     }
     
 }
