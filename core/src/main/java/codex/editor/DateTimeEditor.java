@@ -215,6 +215,7 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
                 }}, BorderLayout.SOUTH);
             }});
         }};
+
         private TimePicker() {
             super(ImageUtils.resize(PICK, 18, 18), null);
             now.addActionListener(new AbstractAction() {
@@ -248,9 +249,10 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
                     context.getPropValue().getValue(),
                     new Date()
             ));
-            if (context.getPropValue().getValue() != null) {
-                calendarPanel.setSelectedDate(convertDate(context.getPropValue().getValue()));
-            }
+            calendarPanel.setSelectedDate(convertDate(IComplexType.coalesce(
+                    context.getPropValue().getValue(),
+                    new Date()
+            )));
             popup.show(
                     invoker,
                     invoker.getWidth() - popup.getPreferredSize().width - 1,
