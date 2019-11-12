@@ -76,6 +76,13 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         try {
             DriverManager.registerDriver(new JDBC());
             connection = DriverManager.getConnection("jdbc:sqlite:"+ configFile.getPath());
+
+            // Use int order to do not save session changes
+            /*connection = DriverManager.getConnection("jdbc:sqlite:");
+            try(Statement stat = connection.createStatement()) {
+                stat.executeUpdate("restore from "+configFile.getPath());
+            }*/
+
             connection.createStatement().executeUpdate("PRAGMA foreign_keys = ON");
             if (connection != null) {
                 final DatabaseMetaData meta = connection.getMetaData();
@@ -142,7 +149,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                             .collect(Collectors.joining(",\n\t"))
         );
         String indexSQL = MessageFormat.format(
-                "CREATE UNIQUE INDEX IF NOT EXISTS IDX_{0}_PID_OWN ON {0} (PID, OWN)",
+                "CREATE UNIQUE INDEX IF NOT EXISTS IDX_{0}_PID_OWN ON {0} ([PID], [OWN])",
                 className
         );
         String triggerBI = generateTriggerCode(className, TriggerKind.Before_Insert);
@@ -611,11 +618,11 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 ResultSet rs = select.executeQuery();
             ) {
                 if (rs.next()) {
-                    queries.add(MessageFormat.format("INSERT INTO {0} ([{1}]) SELECT [{1}] FROM {2}",
+                    queries.add(MessageFormat.format("INSERT INTO {0} ({1}) SELECT {1} FROM {2}",
                         className.concat("_NEW"),
                             tableRegistry.get(className).columnInfos.stream()
                                 .filter((info) -> !unusedProperties.contains(info.name))
-                                .map((info) -> info.name)
+                                .map((info) -> "["+info.name+"]")
                                 .collect(Collectors.joining(", ")),
                         className
                     ));
