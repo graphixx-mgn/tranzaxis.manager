@@ -158,7 +158,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                     public String toString() {
                         return Entity.this.toString();
                     }
-                }
+                },
+                EntityModel.PID
         );
     }
     

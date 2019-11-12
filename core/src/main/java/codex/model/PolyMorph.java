@@ -120,7 +120,8 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
                     public String toString() {
                         return PolyMorph.this.toString();
                     }
-                }
+                },
+                EntityModel.PID
         );
         model.addUserProp(PROP_IMPL_CLASS, new Str(null), false, Access.Select);
         model.addDynamicProp(PROP_IMPL_VIEW, new AnyType(), Access.Select, () -> getImplementedClass() == null ? null : new Iconified() {
