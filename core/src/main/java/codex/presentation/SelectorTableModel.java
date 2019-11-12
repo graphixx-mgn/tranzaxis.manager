@@ -41,7 +41,7 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
         EntityModel childModel  = entity.model;
         childModel.addModelListener(this);
         childModel.addChangeListener((name, oldValue, newValue) -> {
-            if (childModel.isPropertyDynamic(name) && findColumn(name) > 0) {
+            if (childModel.isPropertyDynamic(name) && findColumn(name) >= 0) {
                 setValueAt(newValue, rootEntity.getIndex(entity), findColumn(name));
             }
         });
@@ -136,7 +136,7 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
             if (getEntityForRow(rowIdx).model.equals(model)) {
                 final int entityIdx = rowIdx;
                 changes.forEach(propName -> {
-                    if (findColumn(propName) > 0) {
+                    if (findColumn(propName) >= 0) {
                         setValueAt(model.getValue(propName), entityIdx, findColumn(propName));
                     }
                 });
