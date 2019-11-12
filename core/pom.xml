@@ -90,6 +90,11 @@
             <artifactId>commons-io</artifactId>
             <version>2.6</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.plural4j</groupId>
+            <artifactId>plural4j</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
 
     <build>
