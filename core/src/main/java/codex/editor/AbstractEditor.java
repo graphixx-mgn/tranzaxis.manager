@@ -194,7 +194,15 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
         commands.add(command);
         editor.add(button);
         command.setContext(propHolder);
-        //updateUI();
+        addListener(new IEditorListener() {
+            @Override
+            public void setEditable(boolean editable) {
+                button.setVisible(isEditable() || !command.disableWithContext());
+            }
+
+            @Override
+            public void setLocked(boolean locked) {}
+        });
     }
     
     @Override
