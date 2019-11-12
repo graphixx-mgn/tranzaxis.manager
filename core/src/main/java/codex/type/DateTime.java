@@ -2,52 +2,26 @@ package codex.type;
 
 import codex.editor.DateTimeEditor;
 import codex.editor.IEditorFactory;
-import codex.mask.IMask;
-import codex.utils.Language;
+import codex.mask.DateFormat;
+import codex.mask.IDateMask;
 import java.sql.Time;
-import java.text.DateFormat;
 import java.text.MessageFormat;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
-public class DateTime implements ISerializableType<Date, IMask<Date>> {
+public class DateTime implements ISerializableType<Date, IDateMask> {
 
     private static final IEditorFactory<DateTime, Date> EDITOR_FACTORY = DateTimeEditor::new;
-    private static final String DATETIME_FORMAT = MessageFormat.format(
-            "{0} {1}",
-            ((SimpleDateFormat) DateFormat.getDateInstance(DateFormat.LONG, Language.getLocale())).toPattern(),
-            "HH:mm:ss"
-    );
-    private static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat(DATETIME_FORMAT, Language.getLocale());
-    private static final SimpleDateFormat TIME_FORMATTER = new SimpleDateFormat("HH:mm:ss");
 
-    public static boolean sameDay(Date date1, Date date2) {
-        if (date1 != null && date2 != null) {
-            ZoneId zoneId = ZoneId.systemDefault();
-
-            ZonedDateTime zdt1 = ZonedDateTime.ofInstant(date1.toInstant(), zoneId);
-            LocalDate ld1 = LocalDate.from(zdt1);
-
-            ZonedDateTime zdt2 = ZonedDateTime.ofInstant(date2.toInstant(), zoneId);
-            LocalDate ld2 = LocalDate.from(zdt2);
-
-            return ld1.isEqual(ld2);
-        }
-        return false;
-    }
-
-    public static String toString(Date date) {
-        return DATE_FORMATTER.format(date);
-    }
-
-    public static String format(Date date) {
-        return sameDay(new Date(), date) ? TIME_FORMATTER.format(date) : DATE_FORMATTER.format(date);
+    public static Date trunc(Date date) {
+        Instant instant = date.toInstant();
+        instant = instant.truncatedTo(ChronoUnit.DAYS);
+        return Date.from(instant);
     }
 
     private Date value;
+    private IDateMask mask;
 
     public DateTime() {
         this(null);
@@ -59,6 +33,7 @@ public class DateTime implements ISerializableType<Date, IMask<Date>> {
      */
     public DateTime(Time value) {
         setValue(value);
+        setMask(DateFormat.Full.newInstance());
     }
 
     @Override
@@ -71,14 +46,31 @@ public class DateTime implements ISerializableType<Date, IMask<Date>> {
         this.value = value == null ? null : new Date(value.getTime()) {
             @Override
             public String toString() {
-                return DateTime.toString(this);
+                return getMask().getFormat().format(this);
             }
         };
     }
 
     @Override
-    public IEditorFactory<? extends IComplexType<Date, IMask<Date>>, Date> editorFactory() {
+    public IEditorFactory<? extends IComplexType<Date, IDateMask>, Date> editorFactory() {
         return EDITOR_FACTORY;
+    }
+
+    /**
+     * Установить маску значения.
+     */
+    @Override
+    public ISerializableType<Date, IDateMask> setMask(IDateMask mask) {
+        this.mask = mask;
+        return this;
+    }
+
+    /**
+     * Возвращает маску значения.
+     */
+    @Override
+    public IDateMask getMask() {
+        return mask;
     }
 
     @Override
@@ -88,11 +80,11 @@ public class DateTime implements ISerializableType<Date, IMask<Date>> {
 
     @Override
     public void valueOf(String value) {
-        setValue(value == null || value.isEmpty() ? null : new Date(Long.valueOf(value)));
+        setValue(value == null || value.isEmpty() ? null : new Date(Long.parseLong(value)));
     }
 
     @Override
     public String getQualifiedValue(Date val) {
-        return val == null ? "<NULL>" : format(val);
+        return val == null ? "<NULL>" : MessageFormat.format("''{0}''", getMask().getFormat().format(val));
     }
 }

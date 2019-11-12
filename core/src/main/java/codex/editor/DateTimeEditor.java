@@ -2,6 +2,7 @@ package codex.editor;
 
 import codex.command.EditorCommand;
 import codex.component.button.DialogButton;
+import codex.component.button.IButton;
 import codex.component.button.PushButton;
 import codex.component.dialog.Dialog;
 import codex.property.PropertyHolder;
@@ -193,6 +194,7 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
         private final DialogButton now   = Dialog.Default.BTN_OK.newInstance(CURR, "");
         private final Component invoker  = DateTimeEditor.this.textField.getParent();
         private final JPopupMenu popup   = new JPopupMenu() {{
+            setBorder(IButton.PRESS_BORDER);
             add(new JPanel(new BorderLayout()) {{
                 JSpinner spinner = new JSpinner(timeSpinner);
                 spinner.setFont(IEditor.FONT_VALUE.deriveFont(IEditor.FONT_VALUE.getSize()));
