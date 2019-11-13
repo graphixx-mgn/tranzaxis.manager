@@ -37,6 +37,10 @@ public final class SelectorTable extends JTable implements IEditableTable {
 
         setDefaultEditor(Bool.class, new GeneralEditor());
         setDefaultEditor(IComplexType.class, new GeneralEditor());
+
+        TableColumnAdjuster adjuster = new TableColumnAdjuster(this, 12);
+        adjuster.setDynamicAdjustment(true);
+        adjuster.adjustColumns();
     }
 
     @Override
