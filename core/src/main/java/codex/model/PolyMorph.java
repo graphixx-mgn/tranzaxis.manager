@@ -155,6 +155,22 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
         setImplementedClass(getImplementedClass());
     }
 
+    @Override
+    public Class<? extends Entity> getChildClass() {
+        if (!isInstance && getImplementation() != null) {
+            return getImplementation().getChildClass();
+        }
+        return super.getChildClass();
+    }
+
+    @Override
+    public boolean allowModifyChild() {
+        if (!isInstance && getImplementation() != null) {
+            return getImplementation().allowModifyChild();
+        }
+        return super.allowModifyChild();
+    }
+
     public PolyMorph getImplementation() {
         return getImplementation(getImplementedClass());
     }
@@ -167,7 +183,7 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
         return implementation;
     }
 
-    private PolyMorph getBaseObject() {
+    public PolyMorph getBaseObject() {
         Entity owner = getOwner();
         return Entity.newInstance(
                 getPolymorphClass(getClass()),
