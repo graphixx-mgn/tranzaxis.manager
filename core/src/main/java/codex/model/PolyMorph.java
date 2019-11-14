@@ -92,12 +92,7 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
     private PolyMorph implementation = null;
 
     public PolyMorph(EntityRef owner, String title) {
-        super(
-                owner,
-                null,
-                title,
-                ""
-        );
+        super(owner, null, title, "");
 
         try {
             Field model = Entity.class.getDeclaredField("model");
@@ -123,22 +118,30 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
                 },
                 EntityModel.PID
         );
-        model.addUserProp(PROP_IMPL_CLASS, new Str(null), false, Access.Select);
-        model.addDynamicProp(PROP_IMPL_VIEW, new AnyType(), Access.Select, () -> getImplementedClass() == null ? null : new Iconified() {
-            private final Class<? extends PolyMorph> implClass = getImplementedClass();
-            private final EntityDefinition entityDef = Entity.getDefinition(implClass);
+        model.addUserProp(PROP_IMPL_CLASS, new Str(null), false, Access.Any);
+        model.addDynamicProp(
+                PROP_IMPL_VIEW,
+                new AnyType(),
+                !isInstance && ICatalog.class.isAssignableFrom(getClass()) ? Access.Any : Access.Select,
+                () -> getImplementedClass() == null ?
+                        null :
+                        new Iconified() {
+                            private final Class<? extends PolyMorph> implClass = getImplementedClass();
+                            private final EntityDefinition entityDef = Entity.getDefinition(implClass);
 
-            @Override
-            public ImageIcon getIcon() {
-                return ImageUtils.getByPath(entityDef.icon());
-            }
+                            @Override
+                            public ImageIcon getIcon() {
+                                return ImageUtils.getByPath(entityDef.icon());
+                            }
 
-            @Override
-            public String toString() {
-                String className = Language.get(implClass, entityDef.title());
-                return className.equals(Language.NOT_FOUND) ? implClass.getTypeName() : className;
-            }
-        }, PROP_IMPL_CLASS);
+                            @Override
+                            public String toString() {
+                                String className = Language.get(implClass, entityDef.title());
+                                return className.equals(Language.NOT_FOUND) ? implClass.getTypeName() : className;
+                            }
+                        },
+                PROP_IMPL_CLASS
+        );
 
         // Child object's properties map
         PropertyHolder<codex.type.Map<String, String>, Map<String, String>> propertiesHolder = new PropertyHolder<codex.type.Map<String, String>, Map<String, String>>(
@@ -146,13 +149,8 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
                 new codex.type.Map<>(Str.class, Str.class, new HashMap<>()),
                 false
         );
-        model.addUserProp(propertiesHolder, Access.Select);
+        model.addUserProp(propertiesHolder, Access.Any);
 
-        // Property settings
-        if (!isInstance) {
-            model.getEditor(PROP_IMPL_CLASS).setVisible(false);
-            model.getEditor(PROP_IMPL_PARAM).setVisible(false);
-        }
         // Load implemented class
         setImplementedClass(getImplementedClass());
     }
@@ -446,7 +444,7 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
                     MessageBox.show(
                             MessageType.ERROR,
                             MessageFormat.format(
-                                    Language.get("error@notsaved"),
+                                    Language.get(EntityModel.class, "error@notsaved"),
                                     e.getMessage()
                             )
                     );
