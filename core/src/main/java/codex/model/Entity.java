@@ -301,7 +301,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     }
 
     protected Map<Class<? extends Entity>, Collection<String>> getChildrenPIDs() {
-        Entity owner = Catalog.class.isAssignableFrom(this.getClass()) ? this.getOwner() : this;
+        Entity owner = ICatalog.class.isAssignableFrom(this.getClass()) ? this.getOwner() : this;
         return getClassCatalog().stream()
                 .collect(Collectors.toMap(
                         catalogClass -> catalogClass,
@@ -715,7 +715,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     
     public static EntityRef findOwner(INode from) {
         INode next = from;
-        while (next != null && Catalog.class.isAssignableFrom(next.getClass())) {
+        while (next != null && ICatalog.class.isAssignableFrom(next.getClass())) {
             next = (INode) next.getParent();
         }
         if (next == null) {

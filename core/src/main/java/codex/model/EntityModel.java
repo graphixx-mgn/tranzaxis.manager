@@ -85,12 +85,12 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         );
         addUserProp(SEQ, 
                 new Int(databaseValues.get(SEQ) != null ? Integer.valueOf(databaseValues.get(SEQ)) : null), 
-                !Catalog.class.isAssignableFrom(entityClass), 
+                !ICatalog.class.isAssignableFrom(entityClass),
                 DEV_MODE ? Access.Select : Access.Any
         );
         addUserProp(EntityModel.PID, new Str(PID),  
                 true,
-                Catalog.class.isAssignableFrom(entityClass) ? Access.Any : Access.Select
+                ICatalog.class.isAssignableFrom(entityClass) ? Access.Any : Access.Select
         );
         addUserProp(EntityModel.OWN, owner != null ? owner : new EntityRef<>(null),
                 false, 
@@ -407,7 +407,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public final boolean isPropertyDynamic(String propName) {
         if (!hasProperty(propName)) {
             throw new IllegalStateException(
-                    MessageFormat.format("Model already has property ''{0}''", propName)
+                    MessageFormat.format("Model does not have property ''{0}''", propName)
             );
         }
         return dynamicProps.contains(propName);
@@ -795,7 +795,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         if (DEV_MODE) {
             switch (name) {
                 case EntityModel.PID:
-                    editor.setEditable(!Catalog.class.isAssignableFrom(entityClass));
+                    editor.setEditable(!ICatalog.class.isAssignableFrom(entityClass));
                     break;
                 case EntityModel.SEQ:
                 case EntityModel.OWN:
