@@ -51,6 +51,10 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
         return (E) newObject;
     }
 
+    public static <E extends Entity> boolean isInstance(Class<E> entityClass) {
+        return !entityClass.equals(getPolymorphClass(entityClass));
+    }
+
     private static <E extends Entity> Class<? extends PolyMorph> getPolymorphClass(Class<E> entityClass) {
         Class<? super E> nextClass = entityClass;
         while (!nextClass.getSuperclass().equals(PolyMorph.class)) {
@@ -398,7 +402,7 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
         void commit(boolean showError, List<String> propNames) throws Exception {
             if (isInstance) {
                 PolyMorph baseObject = getBaseObject();
-                baseObject.model.commit(showError, new LinkedList<String>(){{
+                baseObject.model.commit(showError, new LinkedList<String>() {{
                     addAll(propNames);
                     add(PolyMorph.PROP_IMPL_PARAM);
                 }});
@@ -420,11 +424,10 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
                     );
                 }
                 List<String> notCommitted = getChanges();
-                notCommitted.forEach(propName -> undoRegistry.put(
-                        propName,
-                        undoRegistry.previous(propName),
-                        undoRegistry.previous(propName))
-                );
+                notCommitted.forEach(propName -> {
+                    undoRegistry.delete(propName);
+                    getImplementation().model.undoRegistry.delete(propName);
+                });
                 // Fire event to activate commands
                 new LinkedList<>(modelListeners).forEach((listener) -> listener.modelSaved(this, notCommitted));
                 // Fire event to update linked dynamic properties

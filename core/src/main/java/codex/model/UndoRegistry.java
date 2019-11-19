@@ -78,14 +78,14 @@ final class UndoRegistry {
     /**
      * Удалить запись о свойстве.
      */
-    private void delete(String key) {
+    void delete(String key) {
         registry.remove(key);
     }
     
     /**
      * Очистка реестра.
      */
-    public void clear() {
+    void clear() {
         registry.clear();
     }
     
