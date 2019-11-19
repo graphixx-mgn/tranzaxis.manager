@@ -544,7 +544,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     });
 
                     boolean hasProps = !entities.get(0).model.getProperties(Access.Edit).isEmpty();
-                    boolean hasChild = entities.get(0) instanceof Catalog && entities.get(0).getChildCount() > 0;
+                    boolean hasChild = ICatalog.class.isAssignableFrom(entities.get(0).getClass()) && entities.get(0).getChildCount() > 0;
                     return new CommandStatus(hasProps || hasChild, allDisabled || entities.get(0).islocked() ? IMAGE_VIEW : IMAGE_EDIT);
                 } else {
                     return new CommandStatus(false, entity.allowModifyChild() ? IMAGE_EDIT : IMAGE_VIEW);
@@ -573,7 +573,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     new JPanel(new BorderLayout()) {{
                         add(context.getEditorPage(), BorderLayout.NORTH);
 
-                        if (context instanceof Catalog && context.getChildCount() > 0) {
+                        if (ICatalog.class.isAssignableFrom(context.getClass()) && context.getChildCount() > 0) {
                             SelectorPresentation embedded = context.getSelectorPresentation();
                             if (embedded != null) {
                                 add(context.getSelectorPresentation(), BorderLayout.CENTER);
