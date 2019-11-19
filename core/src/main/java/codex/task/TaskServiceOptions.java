@@ -1,12 +1,12 @@
 package codex.task;
 
-import codex.service.LocalServiceOptions;
-import codex.utils.ImageUtils;
+import codex.model.EntityDefinition;
+import codex.service.Service;
+import codex.type.EntityRef;
 
-public class TaskServiceOptions extends LocalServiceOptions<TaskExecutorService> {
-
-    public TaskServiceOptions(TaskExecutorService service) {
-        super(service);
-        setIcon(ImageUtils.getByPath("/images/tasks.png"));
+@EntityDefinition(icon = "/images/tasks.png")
+public class TaskServiceOptions extends Service<TaskExecutorService> {
+    public TaskServiceOptions(EntityRef owner, String title) {
+        super(owner, title);
     }
 }
