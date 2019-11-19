@@ -155,15 +155,13 @@ public final class ServiceRegistry {
      * @param serviceInterface Класс интерфейса сервиса.
      */
     private boolean isEnabled(Class<? extends IService> serviceInterface) {
-        Stream<LocalServiceOptions> stream =
-                serviceCatalog == null ? Stream.empty() :
-                        serviceCatalog.childrenList().stream()
-                                .map((node) -> (LocalServiceOptions) node);
-        Optional<LocalServiceOptions> serviceControl = stream
+        Stream<Service> stream = serviceCatalog == null ?
+                Stream.empty() :
+                serviceCatalog.childrenList().stream().map((node) -> (Service) node);
+        Optional<Service> serviceControl = stream
                 .filter((control) -> serviceInterface.isAssignableFrom(control.getService().getClass()))
                 .findFirst();
-
-        return !serviceControl.isPresent() || serviceControl.get().isStarted();
+        return !serviceControl.isPresent() || serviceControl.get().isEnabled();
     }
 
     @SuppressWarnings("unchecked")

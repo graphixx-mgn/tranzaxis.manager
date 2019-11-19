@@ -1,8 +1,6 @@
 package codex.service;
 
 import codex.log.LoggingSource;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ResourceBundle;
 
 /**
@@ -12,17 +10,18 @@ import java.util.ResourceBundle;
  */
 @LoggingSource
 @IService.Definition
-public abstract class AbstractService<T extends LocalServiceOptions> implements IService {
+public abstract class AbstractService<T extends Service> implements IService {
 
-    private T serviceConfig;
-    private boolean serviceStarted = false;
+    private T settings;
+    private volatile boolean serviceStarted = false;
     
     @Override
     public void startService() {
         synchronized (this) {
-            if (!serviceStarted) {
+            if (!isStarted()) {
                 serviceStarted = true;
-                ServiceRegistry.getInstance().getCatalog().insert(getConfig());
+                getSettings();
+                ServiceRegistry.getInstance().getCatalog().insert(settings);
             }
         }
     }
@@ -35,21 +34,26 @@ public abstract class AbstractService<T extends LocalServiceOptions> implements 
     /**
      * Получение сущности с настройками сервиса.
      */
-    public final T getConfig() {
-        if (serviceConfig == null) {
-            Class<? extends LocalServiceOptions> configClass = ServiceCatalog.getServiceConfigClass(
-                    LocalServiceOptions.class,
-                    AbstractService.class,
-                    getClass()
-            );
-            try {
-                Constructor<? extends LocalServiceOptions> ctor = configClass.getConstructor(getClass());
-                serviceConfig = (T) ctor.newInstance(this);
-            } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
+    @SuppressWarnings("unchecked")
+    public final T getSettings() {
+        synchronized (this) {
+            if (settings == null) {
+                Class<? extends Service> configClass = Service.getServiceConfigClass(
+                        Service.class,
+                        AbstractService.class,
+                        getClass()
+                );
+                settings = (T) Service.newInstance(configClass, null, getTitle());
+                settings.setService(this);
+                ((T) settings.getImplementation()).setService(this);
+                try {
+                    settings.model.commit(false);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
+            return (T) settings.getImplementation();
         }
-        return serviceConfig;
     }
     
     /**
