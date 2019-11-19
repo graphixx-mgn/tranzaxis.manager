@@ -7,9 +7,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.text.MessageFormat;
-import java.util.AbstractMap;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<java.util.Map<K, V>>> {
@@ -118,36 +116,31 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
     @Override
     public void valueOf(String value) {
         if (value != null && !value.isEmpty()) {
-            Arrays.stream(value.replaceAll("^\\{(.*)\\}$", "$1").split(", ", -1))
-                    .map(pair -> pair.split("="))
-                    .forEachOrdered(pair -> {
-                        if (pair.length < 2) return;
-                        try {
-                            if (dbKey != null) dbKey.valueOf(pair[0]);
-                            if (dbVal != null) dbVal.valueOf(pair[1]);
-                            if (dbKey != null) {
-                                this.value.put(dbKey.getValue(), dbVal == null ? null : dbVal.getValue());
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    });
-
+            List<String> list = ArrStr.parse(value);
+            for (int keyIdx = 0; keyIdx < list.size(); keyIdx = keyIdx+2) {
+                if (dbKey != null) dbKey.valueOf(list.get(keyIdx));
+                if (dbVal != null) dbVal.valueOf(list.get(keyIdx+1));
+                if (dbKey != null) {
+                    this.value.put(dbKey.getValue(), dbVal == null ? null : dbVal.getValue());
+                }
+            }
         }
     }
 
     @Override
     public String toString() {
-        return value == null ? "" : value.entrySet().stream().collect(Collectors.toMap(
-                entry -> {
-                    dbKey.setValue(entry.getKey());
-                    return dbKey.toString();
-                },
-                entry -> {
-                    dbVal.setValue(entry.getValue());
-                    return dbVal.toString();
-                }
-        )).toString();
+        if (value == null || value.isEmpty()) {
+            return "";
+        } else {
+            List<String> list = new LinkedList<>();
+            value.forEach((k, v) -> {
+                dbKey.setValue(k);
+                dbVal.setValue(v);
+                list.add(dbKey.toString());
+                list.add(dbVal.toString());
+            });
+            return ArrStr.merge(list);
+        }
     }
 
     @Override
