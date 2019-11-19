@@ -1,12 +1,13 @@
 package codex.database;
 
-import codex.service.LocalServiceOptions;
-import codex.utils.ImageUtils;
+import codex.model.EntityDefinition;
+import codex.service.Service;
+import codex.type.EntityRef;
 
-public class OracleAccessOptions extends LocalServiceOptions<OracleAccessService> {
+@EntityDefinition(icon = "/images/database.png")
+public class OracleAccessOptions extends Service<OracleAccessService> {
 
-    public OracleAccessOptions(OracleAccessService service) {
-        super(service);
-        setIcon(ImageUtils.getByPath("/images/database.png"));
+    public OracleAccessOptions(EntityRef owner, String title) {
+        super(owner, title);
     }
 }
