@@ -5,21 +5,22 @@ import codex.model.Access;
 import codex.context.ContextView;
 import codex.context.ContextType;
 import codex.context.IContext;
-import codex.service.LocalServiceOptions;
+import codex.model.EntityDefinition;
+import codex.service.Service;
+import codex.type.EntityRef;
 import codex.type.Enum;
-import codex.utils.ImageUtils;
 import org.atteo.classindex.ClassIndex;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class NotifyServiceOptions extends LocalServiceOptions<NotificationService> {
+@EntityDefinition(icon = "/images/notify.png")
+public class NotifyServiceOptions extends Service<NotificationService> {
     
     private final static String PROP_CONDITIONS = "conditions";
-    
-    public NotifyServiceOptions(NotificationService service) {
-        super(service);
-        setIcon(ImageUtils.getByPath("/images/notify.png"));
+
+    public NotifyServiceOptions(EntityRef owner, String title) {
+        super(owner, title);
 
         Map<ContextView, NotifyCondition> sources = StreamSupport.stream(ClassIndex.getSubclasses(IContext.class).spliterator(), false)
                 .filter(aClass -> aClass.isAnnotationPresent(NotifySource.class))
@@ -27,7 +28,6 @@ public class NotifyServiceOptions extends LocalServiceOptions<NotificationServic
                         ContextView::new,
                         ctxClass -> ctxClass.getAnnotation(NotifySource.class).condition()
                 ));
-        
         model.addUserProp(PROP_CONDITIONS,
                 new codex.type.Map<>(
                         ContextType.class,

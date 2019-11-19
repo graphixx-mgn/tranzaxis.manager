@@ -27,7 +27,7 @@ public class NotificationService extends AbstractService<NotifyServiceOptions> i
         return new Accessor() {
             @Override
             boolean contextAllowed(Class<? extends IContext> contextClass) {
-                NotifyCondition condition = getConfig().getSources().get(new ContextView(contextClass));
+                NotifyCondition condition = getSettings().getSources().get(new ContextView(contextClass));
                 return condition != null && condition.getCondition().get();
             }
         };
