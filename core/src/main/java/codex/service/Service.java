@@ -48,8 +48,8 @@ public class Service<S extends IService> extends PolyMorph implements ICatalog {
         model.addDynamicProp(PROP_VIEW, new AnyType(), Access.Edit, () -> new Iconified() {
             @Override
             public ImageIcon getIcon() {
-                return isEnabled() ? Service.this.getBaseObject().getIcon() : ImageUtils.combine(
-                        ImageUtils.grayscale(Service.this.getBaseObject().getIcon()),
+                return isEnabled() ? Service.this.getIcon() : ImageUtils.combine(
+                        ImageUtils.grayscale(Service.this.getIcon()),
                         ImageUtils.resize(ICON_STOPPED, 20, 20),
                         SwingConstants.SOUTH_EAST
                 );
@@ -64,12 +64,10 @@ public class Service<S extends IService> extends PolyMorph implements ICatalog {
         // Property settings
         setPropertyRestriction(EntityModel.THIS, Access.Any);
 
-        if (PolyMorph.isInstance(getClass())) {
-            IService.Definition definition = getServiceDefinition();
-            if (definition != null && definition.optional()) {
-                CommandRegistry.getInstance().registerCommand(getClass(), StartService.class);
-                CommandRegistry.getInstance().registerCommand(getClass(), StopService.class);
-            }
+        IService.Definition definition = getServiceDefinition();
+        if (definition != null && definition.optional()) {
+            CommandRegistry.getInstance().registerCommand(getClass(), StartService.class);
+            CommandRegistry.getInstance().registerCommand(getClass(), StopService.class);
         }
 
         model.addModelListener(new IModelListener() {
@@ -86,7 +84,7 @@ public class Service<S extends IService> extends PolyMorph implements ICatalog {
         });
     }
 
-    void setService(S service) {
+    protected void setService(S service) {
         this.service = service;
     }
 

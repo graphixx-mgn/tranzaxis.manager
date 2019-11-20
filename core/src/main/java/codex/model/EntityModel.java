@@ -19,6 +19,7 @@ import codex.utils.Language;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -43,10 +44,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     private final Map<String, Object>           initialValues   = new HashMap<>();
     private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
 
-    protected final Class<? extends Entity>     entityClass;
-    protected final List<String>                dynamicProps    = new LinkedList<>();
-    protected final UndoRegistry                undoRegistry    = new UndoRegistry();
-    protected final List<IModelListener>        modelListeners  = new LinkedList<>();
+    private final Class<? extends Entity>       entityClass, tableClass;
+    private final List<String>                  dynamicProps    = new LinkedList<>();
+    private final UndoRegistry                  undoRegistry    = new UndoRegistry();
+    private final List<IModelListener>          modelListeners  = new LinkedList<>();
 
     // Контексты
     @LoggingSource()
@@ -68,9 +69,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     
     EntityModel(EntityRef owner, Class<? extends Entity> entityClass, String PID) {
         this.entityClass = entityClass;
+        this.tableClass  = PolyMorph.class.isAssignableFrom(entityClass) ? PolyMorph.getPolymorphClass(entityClass) : entityClass;
 
         Integer ownerId = owner == null ? null : owner.getId();
-        this.databaseValues = getConfigService().readClassInstance(entityClass, PID, ownerId);
+        this.databaseValues = getConfigService().readClassInstance(tableClass, PID, ownerId);
+        if (PolyMorph.class.isAssignableFrom(entityClass)) {
+            databaseValues.putAll(PolyMorph.parseParameters(databaseValues.get(PolyMorph.PROP_IMPL_PARAM)));
+        }
         
         initialValues.put(EntityModel.ID,  null);
         initialValues.put(EntityModel.SEQ, null);
@@ -107,7 +112,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         setPropUnique(EntityModel.PID);
     }
 
-    protected IConfigStoreService getConfigService() {
+    IConfigStoreService getConfigService() {
         return ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
     }
 
@@ -127,6 +132,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         return (Entity) getValue(OWN);
     }
     
+    @SuppressWarnings("unchecked")
     final List<String> getOverride() {
         return (List<String>) getValue(OVR);
     }
@@ -288,15 +294,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * Значение свойства должно быть уникальным среди сушностей у одного родителя
      * @param name Идентификатор свойства.
      */
+    @SuppressWarnings("unchecked")
     public final void setPropUnique(String name) {
         //TODO: У поля уже может быть назначена маска
+        //Можно подумать над автогенерацией маски для ключевых полей (новое поле в PropertyDefinition)
         getProperty(name).getPropValue().setMask(new UniqueMask(name));
-    }
-
-    public final boolean isPropUnique(String name) {
-        return
-                getProperty(name).getPropValue().getMask() != null &&
-                UniqueMask.class.isAssignableFrom(getProperty(name).getPropValue().getMask().getClass());
     }
     
     /**
@@ -370,9 +372,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * если свойству назначена маска и согласно её значение некорректно - будет
      * возвращено сохнаненное значение.
      * @param name Имя свойства модели.
-     * @deprecated
      */
-    @Deprecated
+    @SuppressWarnings("unchecked")
     public final Object getUnsavedValue(String name) {
         if (undoRegistry.exists(name)) {
             Object value = undoRegistry.current(name);
@@ -393,6 +394,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     /**
      * Получить тип свойства по его имени.
      */
+    @SuppressWarnings("unchecked")
     public Class<? extends IComplexType> getPropertyType(String name) {
         return getProperty(name).getType();
     }
@@ -458,6 +460,16 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
 
     /**
+     * Сохранение изменений модели.
+     */
+    public final void commit(boolean showError) throws Exception {
+        if (!getChanges().isEmpty()) {
+            OrmContext.debug("Perform full commit model {0} {1}", getQualifiedName(), getChanges());
+            commit(showError, getChanges());
+        }
+    }
+
+    /**
      * Сохранение ряда полей модели.
      * @param showError Отображать диалог об ошибке.
      * @param propNames Массив свойств для сохранения.
@@ -472,18 +484,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             }
         }
     }
-    
-    /**
-     * Сохранение изменений модели.
-     */
-    public final void commit(boolean showError) throws Exception {
-        if (!getChanges().isEmpty()) {
-            OrmContext.debug("Perform full commit model {0} {1}", getQualifiedName(), getChanges());
-            commit(showError, getChanges());
-        }
-    }
 
-    void commit(boolean showError, List<String> propNames) throws Exception {
+    private void commit(boolean showError, List<String> propNames) throws Exception {
         if (!propNames.isEmpty()) {
             if (getID() == null) {
                 OrmContext.debug("Insert model to database {0}", getQualifiedName());
@@ -502,6 +504,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     /**
      * Откат изменений модели.
      */
+    @SuppressWarnings("unchecked")
     public final void rollback() {
         List<String> changes = getChanges();
         if (!changes.isEmpty()) {
@@ -519,6 +522,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * Частичный откат изменений модели.
      * @param propNames Список свойств для отката.
      */
+    @SuppressWarnings("unchecked")
     public final void rollback(String... propNames) {
         if (propNames != null && propNames.length > 0) {
             List<String> changes = getChanges().stream()
@@ -533,10 +537,16 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
     
     private static Map<String, IComplexType> getPropDefinitions(EntityModel model) {
-        Map<String, IComplexType> propDefinitions = new LinkedHashMap<>();                
+        Map<String, IComplexType> propDefinitions = new LinkedHashMap<>();
+        Predicate<String> modelFilter = (propName) -> !model.dynamicProps.contains(propName) || EntityModel.ID.equals(propName);
+        Predicate<String> morphFilter = PolyMorph.class.isAssignableFrom(model.entityClass) ?
+                (propName) -> !PolyMorph.getExternalProperties(model).contains(propName) :
+                (propName) -> true;
+
         model.getProperties(Access.Any)
             .stream()
-            .filter((propName) -> !model.dynamicProps.contains(propName) || EntityModel.ID.equals(propName))
+            .filter(modelFilter)
+            .filter(morphFilter)
             .forEach((propName) -> propDefinitions.put(propName, model.getProperty(propName).getPropValue()));
         return propDefinitions;
     }
@@ -546,7 +556,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         try {
             synchronized (this) {
                 getConfigService().initClassInstance(
-                        entityClass, 
+                        tableClass,
                         (String) getProperty(PID).getPropValue().getValue(), 
                         getPropDefinitions(this),
                         ownerId
@@ -568,16 +578,24 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
     }
 
+    @SuppressWarnings("unchecked")
     protected boolean update(boolean showError, List<String> changes) throws Exception {
-        Map<String, String> dbValues = getConfigService().readClassInstance(entityClass, getID());
+        final Map<String, String> dbValues = getConfigService().readClassInstance(tableClass, getID());
         try {
             synchronized (this) {
                 processAutoReferences(true, null);
+
+                Predicate<String> equalFilter = (propName) -> !getProperty(propName).getOwnPropValue().toString().equals(dbValues.get(propName));
+                Predicate<String> morphFilter = PolyMorph.class.isAssignableFrom(entityClass) ?
+                        (propName) -> !PolyMorph.getExternalProperties(this).contains(propName) :
+                        (propName) -> true;
+
                 getConfigService().updateClassInstance(
-                        entityClass, 
+                        tableClass,
                         getID(),
                         changes.stream()
-                            .filter((propName) -> !getProperty(propName).getOwnPropValue().toString().equals(dbValues.get(propName)))
+                            .filter(equalFilter)
+                            .filter(morphFilter)
                             .collect(Collectors.toMap(
                                     propName -> propName, 
                                     propName -> getProperty(propName).getOwnPropValue()
@@ -590,13 +608,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     }
                 });
             }
-            new LinkedList<>(modelListeners).forEach((listener) -> {
-                listener.modelSaved(this, new LinkedList<>(changes));
-            });
+            new LinkedList<>(modelListeners).forEach((listener) -> listener.modelSaved(this, new LinkedList<>(changes)));
             changes.forEach((propName) -> {
-                ((List<EditorCommand>) getEditor(propName).getCommands()).forEach((command) -> {
-                    command.activate();
-                });
+                List<EditorCommand> commands = getEditor(propName).getCommands();
+                commands.forEach(EditorCommand::activate);
             });
             return true;
         } catch (Exception e) {
@@ -679,6 +694,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * Перечитывание значений свойств из БД или установка начальных значений 
      * если запись в БД отсутствует.
      */
+    @SuppressWarnings("unchecked")
     public void read() {
         Map<String, String> dbValues;
         Integer ownerId = getOwner() == null ? null : getOwner().getID();
@@ -716,7 +732,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         try {
             synchronized (this) {
                 try {
-                    for (IConfigStoreService.ForeignLink link : getConfigService().findReferencedEntries(entityClass, getID())) {
+                    for (IConfigStoreService.ForeignLink link : getConfigService().findReferencedEntries(tableClass, getID())) {
                         if (!link.isIncoming) {
                             EntityRef ref = EntityRef.build(link.entryClass, link.entryID);
                             if (ref.getValue() != null && Entity.getDefinition(ref.getValue().getClass()).autoGenerated() && getConfigService().findReferencedEntries(ref.getEntityClass(), ref.getId()).isEmpty()) {
@@ -725,7 +741,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                             }
                         }
                     }
-                    getConfigService().removeClassInstance(entityClass, getID());
+                    getConfigService().removeClassInstance(tableClass, getID());
                     processAutoReferences(false, getProperties(Access.Any));
                 } catch (Exception e) {
                     OrmContext.error("Unable delete model from database", e);
@@ -744,28 +760,32 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
     
     private boolean maintenance(boolean showError) {
-        List<String> propList = getProperties(Access.Any).stream().filter((propName) -> {
-            return !isPropertyDynamic(propName);
-        }).collect(Collectors.toList());
-        
-        Map<String, String> dbValues = getConfigService().readClassInstance(entityClass, getID());
-        List<String> extraProps = dbValues.keySet().stream().filter((propName) -> {
-            return !propList.contains(propName) && !EntityModel.SYSPROPS.contains(propName);
-        }).collect(Collectors.toList());
+        Predicate<String> modelFilter = (propName) -> !isPropertyDynamic(propName);
+        Predicate<String> morphFilter = PolyMorph.class.isAssignableFrom(entityClass) ?
+                (propName) -> !PolyMorph.getExternalProperties(this).contains(propName) :
+                (propName) -> true;
+
+        List<String> propList = getProperties(Access.Any).stream()
+                .filter(modelFilter)
+                .filter(morphFilter)
+                .collect(Collectors.toList());
+        Map<String, String> dbValues = getConfigService().readClassInstance(tableClass, getID());
+
+        List<String> extraProps = dbValues.keySet().stream()
+                .filter((propName) -> !propList.contains(propName) && !EntityModel.SYSPROPS.contains(propName))
+                .collect(Collectors.toList());
         
         Map<String, IComplexType> absentProps = propList.stream()
-                .filter((propName) -> {
-                    return !dbValues.containsKey(propName);
-                })
+                .filter((propName) -> !dbValues.containsKey(propName))
                 .collect(Collectors.toMap(
                         propName -> propName, 
                         propName -> getProperty(propName).getPropValue()
                 ));
 
         if (!extraProps.isEmpty() || !absentProps.isEmpty()) {
-            OrmContext.debug("Perform maintenance class catalog {0}", entityClass.getSimpleName());
+            OrmContext.debug("Perform maintenance class catalog {0}", tableClass.getSimpleName());
             try {
-                getConfigService().maintainClassCatalog(entityClass, extraProps, absentProps);
+                getConfigService().maintainClassCatalog(tableClass, extraProps, absentProps);
                 return true;
             } catch (Exception e) {
                 OrmContext.error("Unable to maintain class catalog", e);
@@ -845,7 +865,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                         value.setValue(valueProvider.get());
                         if (baseProps != null) {
                             // User props
-                            List<String> baseUserProps = Arrays.asList(baseProps).stream()
+                            List<String> baseUserProps = Arrays.stream(baseProps)
                                     .filter((basePropName) -> !isPropertyDynamic(basePropName))
                                     .collect(Collectors.toList());
                             if (!baseUserProps.isEmpty()) {
@@ -870,21 +890,16 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                                 setValue(valueProvider.get());
                             };
                             
-                            List<String> baseRefProps = Arrays.asList(baseProps).stream()
-                                    .filter((basePropName) -> {
-                                        return getPropertyType(basePropName) == EntityRef.class;
-                                    })
-                                    .map((baseRefPropName) -> {
+                            List<String> baseRefProps = Arrays.stream(baseProps)
+                                    .filter((basePropName) -> getPropertyType(basePropName) == EntityRef.class)
+                                    .peek((baseRefPropName) -> {
                                         Entity baseEntity = (Entity) getValue(baseRefPropName);
                                         if (baseEntity != null) {
                                             baseEntity.model.addModelListener(refModelListener);
-                                            baseEntity.model.properties.values().stream().filter((propHolder) -> {
-                                                return baseEntity.model.dynamicProps.contains(propHolder.getName());
-                                            }).forEach((propHolder) -> {
-                                                propHolder.addChangeListener(refPropListener);
-                                            });
+                                            baseEntity.model.properties.values().stream()
+                                                    .filter((propHolder) -> baseEntity.model.dynamicProps.contains(propHolder.getName()))
+                                                    .forEach((propHolder) -> propHolder.addChangeListener(refPropListener));
                                         }
-                                        return baseRefPropName;
                                     })
                                     .collect(Collectors.toList());
                             if (!baseRefProps.isEmpty()) {
@@ -892,19 +907,15 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                                     if (baseRefProps.contains(name)) {
                                         if (oldValue != null) {
                                             ((Entity) oldValue).model.removeModelListener(refModelListener);
-                                            ((Entity) oldValue).model.properties.values().stream().filter((propHolder) -> {
-                                                return ((Entity) oldValue).model.dynamicProps.contains(propHolder.getName());
-                                            }).forEach((propHolder) -> {
-                                                propHolder.removeChangeListener(refPropListener);
-                                            });
+                                            ((Entity) oldValue).model.properties.values().stream()
+                                                    .filter((propHolder) -> ((Entity) oldValue).model.dynamicProps.contains(propHolder.getName()))
+                                                    .forEach((propHolder) -> propHolder.removeChangeListener(refPropListener));
                                         }
                                         if (newValue != null) {
                                             ((Entity) newValue).model.addModelListener(refModelListener);
-                                            ((Entity) newValue).model.properties.values().stream().filter((propHolder) -> {
-                                                return ((Entity) newValue).model.dynamicProps.contains(propHolder.getName());
-                                            }).forEach((propHolder) -> {
-                                                propHolder.addChangeListener(refPropListener);
-                                            });
+                                            ((Entity) newValue).model.properties.values().stream()
+                                                    .filter((propHolder) -> ((Entity) newValue).model.dynamicProps.contains(propHolder.getName()))
+                                                    .forEach((propHolder) -> propHolder.addChangeListener(refPropListener));
                                         }
                                     }
                                 });
@@ -930,6 +941,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             return propertyHolders.get(name);
         }
         
+        @SuppressWarnings("unchecked")
         void updateDynamicProps(List<String> names) {
             List<String> filtered = names.stream()
                     .filter(propName -> ISerializableType.class.isAssignableFrom(getPropertyType(propName)))
@@ -984,12 +996,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                         }
                     });
                 });
-                newValues.entrySet().forEach((entry) -> {
-                    if (getValue(entry.getKey()) != entry.getValue()) {
-                        setValue(entry.getKey(), entry.getValue());
-                        dependencies.values().removeIf((baseProps) -> {
-                            return baseProps.contains(entry.getKey());
-                        });
+
+                newValues.forEach((key, value) -> {
+                    if (getValue(key) != value) {
+                        setValue(key, value);
+                        dependencies.values().removeIf((baseProps) -> baseProps.contains(key));
                     }
                 });
                 if (!dependencies.isEmpty()) {
@@ -1006,9 +1017,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
 
         private Map<String, List<String>> buildUpdatePlan(List<String> names) {
             Map<String, List<String>> plan = new LinkedHashMap<>();
-            names.forEach((propName) -> {
-                plan.put(propName, getBaseProps(propName));
-            });
+            names.forEach((propName) -> plan.put(propName, getBaseProps(propName)));
             return plan;
         }
         
@@ -1017,9 +1026,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             if (!resolveMap.containsKey(propName)) {
                 chain.add(propName);
             } else {
-                resolveMap.get(propName).forEach((basePropName) -> {
-                    chain.addAll(getBaseProps(basePropName));
-                });
+                resolveMap.get(propName).forEach((basePropName) -> chain.addAll(getBaseProps(basePropName)));
             }
             return chain;
         }

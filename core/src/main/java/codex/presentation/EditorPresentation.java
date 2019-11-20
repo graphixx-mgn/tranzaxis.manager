@@ -83,11 +83,7 @@ public final class EditorPresentation extends JPanel {
     private void activateCommands() {
         systemCommands.forEach(sysCommand -> sysCommand.setContext(context.get()));
         contextCommands.forEach(command -> {
-            if (PolyMorph.class.isAssignableFrom(entityClass)) {
-                command.setContext(((PolyMorph) context.get()).getImplementation());
-            } else {
-                command.setContext(context.get());
-            }
+            command.setContext(context.get());
         });
     }
 

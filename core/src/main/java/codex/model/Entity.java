@@ -307,11 +307,9 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                         catalogClass -> catalogClass,
                         catalogClass -> {
                             Integer ownerId = owner == null ? null : owner.getID();
-                            final IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
-                            return CAS.readCatalogEntries(ownerId, catalogClass).values();
+                            return model.getConfigService().readCatalogEntries(ownerId, catalogClass).values();
                         }
                 ));
-
     }
     
     public final void setOverride(List<String> value) {
@@ -466,6 +464,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      * Получение команды по имени.
      * Устаревший метод. Следует использовать метод {@link Entity#getCommand(Class)}.
      */
+    //TODO: Возможно уже не нужно
     @Deprecated
     public final EntityCommand getCommand(String name) {
         return getCommands().stream()
@@ -747,8 +746,22 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         @Override
         public Void execute() throws Exception {
             EntityRef ownerRef = Entity.findOwner(Entity.this);
+
             childrenPIDs.forEach((catalogClass, PIDs) -> PIDs.forEach(PID -> {
-                Entity instance = Entity.newInstance(catalogClass, ownerRef, PID);
+                final Class<? extends Entity> implClass;
+
+                if (PolyMorph.class.isAssignableFrom(catalogClass)) {
+                    Map<String, String> dbValues = model.getConfigService().readClassInstance(catalogClass, PID, ownerRef == null ? null : ownerRef.getId());
+                    try {
+                        implClass = Class.forName(dbValues.get(PolyMorph.PROP_IMPL_CLASS)).asSubclass(Entity.class);
+                    } catch (ClassNotFoundException e) {
+                        return;
+                    }
+                } else {
+                    implClass = catalogClass;
+                }
+
+                Entity instance = Entity.newInstance(implClass, ownerRef, PID);
                 if (!childrenList().contains(instance)) {
                     insert(instance);
                 }

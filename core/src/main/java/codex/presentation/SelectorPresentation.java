@@ -175,14 +175,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         context.forEach(ctxEntity -> ctxEntity.removeNodeListener(this));
         contextCommands.forEach((command, ctxKind) -> {
-            if (PolyMorph.class.isAssignableFrom(entityClass)) {
-                command.setContext(context.stream()
-                        .map(ctxEntity -> ((PolyMorph) ctxEntity).getImplementation())
-                        .collect(Collectors.toList())
-                );
-            } else {
-                command.setContext(context);
-            }
+            command.setContext(context);
         });
         context.forEach(ctxEntity -> ctxEntity.addNodeListener(this));
     }
@@ -307,6 +300,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
             final List<Class<? extends Entity>> classCatalog = entity.getClassCatalog().stream()
+                    //TODO: После рефакторинга PolyMorph станет не нужно ?!
                     .filter(aClass -> !aClass.getSuperclass().equals(PolyMorph.class))
                     .collect(Collectors.toList());
 
@@ -704,11 +698,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     private static <E extends Entity> E cloneEntity(Class<E> entityClass, EntityRef source) {
         try {
             Method method = getCreatorMethod(entityClass);
-            if (method.getDeclaringClass().equals(PolyMorph.class)) {
-                return (E) method.invoke(null, entityClass, source, null);
-            } else {
-                return (E) method.invoke(null, entityClass, Entity.findOwner(source.getValue().getParent()), null);
-            }
+            return (E) method.invoke(null, entityClass, Entity.findOwner(source.getValue().getParent()), null);
         } catch (IllegalAccessException | InvocationTargetException e) {
             Logger.getLogger().warn("Unable to clone entity", e);
             return null;

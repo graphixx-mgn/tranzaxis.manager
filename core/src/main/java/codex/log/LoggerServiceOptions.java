@@ -70,7 +70,7 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
                 Language.get("context@tree")
         ));
 
-        EditorPage editorPage = getBaseObject().getEditorPage();
+        EditorPage editorPage = getEditorPage();
         GridBagConstraints gbc = new GridBagConstraints() {{
             insets = new Insets(5, 10, 5, 10);
             fill = GridBagConstraints.HORIZONTAL;
