@@ -73,8 +73,7 @@ public final class InstanceCommunicationService extends AbstractService<Communic
                 IRemoteService service = iterator.next();
                 Logger.getLogger().debug("Register remote service: ''{0}''", service.getTitle());
                 rmiRegistry.rebind(service.getClass().getCanonicalName(), service);
-                getConfig().insert(((AbstractRemoteService) service).getConfiguration());
-
+                getSettings().getBaseObject().insert(((AbstractRemoteService) service).getConfiguration());
             } catch (RemoteException e) {
                 // Do nothing
             } catch (ServiceConfigurationError e) {

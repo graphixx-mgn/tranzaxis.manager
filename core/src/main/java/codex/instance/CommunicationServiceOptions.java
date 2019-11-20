@@ -1,15 +1,15 @@
 package codex.instance;
 
+import codex.model.EntityDefinition;
 import codex.service.RemoteServiceOptions;
 import codex.model.Entity;
-import codex.service.LocalServiceOptions;
-import codex.utils.ImageUtils;
+import codex.service.Service;
+import codex.type.EntityRef;
 
-public class CommunicationServiceOptions extends LocalServiceOptions<InstanceCommunicationService> {
-
-    public CommunicationServiceOptions(InstanceCommunicationService service) {
-        super(service);
-        setIcon(ImageUtils.getByPath("/images/remotehost.png"));
+@EntityDefinition(icon = "/images/remotehost.png")
+public class CommunicationServiceOptions extends Service<InstanceCommunicationService> {
+    public CommunicationServiceOptions(EntityRef owner, String title) {
+        super(owner, title);
     }
 
     @Override
