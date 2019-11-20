@@ -8,41 +8,44 @@ import codex.explorer.tree.NodeTreeModel;
 import codex.model.*;
 import codex.presentation.EditorPage;
 import codex.presentation.SelectorTreeTable;
-import codex.service.LocalServiceOptions;
+import codex.service.Service;
+import codex.type.EntityRef;
 import codex.type.Enum;
 import codex.type.Str;
 import codex.utils.FileUtils;
-import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-public final class LoggerServiceOptions extends LocalServiceOptions<LogManagementService> {
+@EntityDefinition(icon = "/images/lamp.png")
+public final class LoggerServiceOptions extends Service<LogManagementService> {
 
-    final static String PROP_DB_FILE = "dbFile";
-    final static String PROP_DB_SIZE = "dbSize";
+    private final static String PROP_DB_FILE = "dbFile";
+    private final static String PROP_DB_SIZE = "dbSize";
 
     private final ContextView   root = new ContextView(RootContext.class);
     private final NodeTreeModel treeModel = new NodeTreeModel(root);
-    
-    public LoggerServiceOptions(LogManagementService service) {
-        super(service);
-        setIcon(ImageUtils.getByPath("/images/lamp.png"));
 
-        model.addDynamicProp(PROP_DB_FILE, new Str(null), Access.Select, () -> {
-            return Paths.get(System.getProperty("user.home"), LoggerServiceOptions.this.getService().getOption("file")).toString();
-        });
-        model.addDynamicProp(PROP_DB_SIZE, new Str(null), Access.Select, () -> {
-            Path path = Paths.get(System.getProperty("user.home"), LoggerServiceOptions.this.getService().getOption("file"));
-            return FileUtils.formatFileSize(path.toFile().length());
-        });
+    public LoggerServiceOptions(EntityRef owner, String title) {
+        super(owner, title);
+
+        // Properties
+        model.addDynamicProp(
+                PROP_DB_FILE, new Str(null), Access.Select,
+                () -> getService() == null ? null : Paths.get(System.getProperty("user.home"), getService().getOption("file")).toString()
+        );
+        model.addDynamicProp(
+                PROP_DB_SIZE, new Str(null), Access.Select,
+                () -> getService() == null ? null : FileUtils.formatFileSize(
+                        Paths.get(System.getProperty("user.home"), getService().getOption("file")).toFile().length()
+                )
+        );
 
         // Build context tree
         fillContext(Logger.getContextRegistry().getContexts());
@@ -67,7 +70,7 @@ public final class LoggerServiceOptions extends LocalServiceOptions<LogManagemen
                 Language.get("context@tree")
         ));
 
-        EditorPage editorPage = getEditorPage();
+        EditorPage editorPage = getBaseObject().getEditorPage();
         GridBagConstraints gbc = new GridBagConstraints() {{
             insets = new Insets(5, 10, 5, 10);
             fill = GridBagConstraints.HORIZONTAL;
@@ -125,6 +128,12 @@ public final class LoggerServiceOptions extends LocalServiceOptions<LogManagemen
     @Override
     protected void onOpenPageView() {
         model.updateDynamicProps(PROP_DB_SIZE);
+    }
+
+    @Override
+    protected void setService(LogManagementService service) {
+        super.setService(service);
+        model.updateDynamicProps(PROP_DB_FILE);
     }
 
     private void fillContext(Collection<Class<? extends IContext>> contexts) {

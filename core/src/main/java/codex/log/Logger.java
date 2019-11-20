@@ -2,7 +2,7 @@ package codex.log;
 
 import codex.context.IContext;
 import codex.context.ServiceCallContext;
-import codex.service.LocalServiceOptions;
+import codex.service.Service;
 import codex.utils.ImageUtils;
 import org.apache.log4j.AsyncAppender;
 import org.apache.log4j.spi.LoggingEvent;
@@ -185,7 +185,7 @@ public class Logger extends org.apache.log4j.Logger {
         }
 
         private Level getContextLevel() {
-            String level = LocalServiceOptions.getProperty(
+            String level = Service.getProperty(
                     LogManagementService.class,
                     id
             );
