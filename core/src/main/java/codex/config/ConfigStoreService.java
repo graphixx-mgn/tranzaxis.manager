@@ -40,7 +40,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
         }
         static boolean allowed() {
-            return Logger.contextAllowed(DumpContext.class, Level.Debug);
+            return Logger.contextAllowed(Collections.singletonList(DumpContext.class), Level.Debug);
         }
     }
 
