@@ -725,7 +725,11 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 Logger.getLogger().warn("Found uninitialized owner entity: {0}", found.model.getQualifiedName());
                 return null;
             } else {
-                return found.toRef();
+                Class<? extends Entity> tableClass = PolyMorph.class.isAssignableFrom(found.getClass()) ?
+                        PolyMorph.getPolymorphClass(found.getClass()) : found.getClass();
+                EntityRef ref = new EntityRef<>(tableClass.asSubclass(Entity.class));
+                ref.setValue(found);
+                return ref;
             }
         }
     }
