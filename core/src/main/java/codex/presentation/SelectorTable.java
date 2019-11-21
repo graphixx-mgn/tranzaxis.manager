@@ -18,8 +18,12 @@ import java.util.List;
 public final class SelectorTable extends JTable implements IEditableTable {
 
     private final List<String> editableProps = new LinkedList<>();
-    
+
     public SelectorTable(TableModel model) {
+        this(model, true);
+    }
+    
+    public SelectorTable(TableModel model, boolean autoResize) {
         super(model);
         setRowHeight(IEditor.FONT_VALUE.getSize() * 2);
         setShowVerticalLines(false);
@@ -38,9 +42,11 @@ public final class SelectorTable extends JTable implements IEditableTable {
         setDefaultEditor(Bool.class, new GeneralEditor());
         setDefaultEditor(IComplexType.class, new GeneralEditor());
 
-        TableColumnAdjuster adjuster = new TableColumnAdjuster(this, 12);
-        adjuster.setDynamicAdjustment(true);
-        adjuster.adjustColumns();
+        if (autoResize) {
+            TableColumnAdjuster adjuster = new TableColumnAdjuster(this, 12);
+            adjuster.setDynamicAdjustment(true);
+            adjuster.adjustColumns();
+        }
     }
 
     @Override
