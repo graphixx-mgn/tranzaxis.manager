@@ -67,7 +67,7 @@ public class ToggleButton extends PushButton {
     @Override
     protected final void redraw() {
         setBackground(checked ? null : Color.decode("#DDDDDD"));
-        setBorder(checked ? new MatteBorder(0, 0, 4, 0, PRESS_COLOR) : new MatteBorder(0, 0, 4, 0, Color.GRAY));
+        setBorder(checked ? new MatteBorder(0, 0, 4, 0, Color.decode("#90C8F6")) : new MatteBorder(0, 0, 4, 0, Color.GRAY));
         if (icon != null) {
             button.setIcon(checked ? icon : ImageUtils.grayscale(icon));
         }
