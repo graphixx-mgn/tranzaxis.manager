@@ -11,6 +11,7 @@ import codex.presentation.SelectorTreeTable;
 import codex.service.Service;
 import codex.type.EntityRef;
 import codex.type.Enum;
+import codex.type.Int;
 import codex.type.Str;
 import codex.utils.FileUtils;
 import codex.utils.Language;
@@ -26,8 +27,11 @@ import java.util.stream.StreamSupport;
 @EntityDefinition(icon = "/images/lamp.png")
 public final class LoggerServiceOptions extends Service<LogManagementService> {
 
-    private final static String PROP_DB_FILE = "dbFile";
-    private final static String PROP_DB_SIZE = "dbSize";
+    final static Integer STORE_DAYS = 15;
+
+    final static String PROP_DB_FILE = "dbFile";
+    final static String PROP_DB_SIZE = "dbSize";
+    final static String PROP_DB_DAYS = "storeDays";
 
     private final ContextView   root = new ContextView(RootContext.class);
     private final NodeTreeModel treeModel = new NodeTreeModel(root);
@@ -46,6 +50,7 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
                         Paths.get(System.getProperty("user.home"), getService().getOption("file")).toFile().length()
                 )
         );
+		model.addUserProp(PROP_DB_DAYS, new Int(STORE_DAYS), false, Access.Select);
 
         // Build context tree
         fillContext(Logger.getContextRegistry().getContexts());
