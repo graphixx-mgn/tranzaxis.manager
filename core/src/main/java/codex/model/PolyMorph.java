@@ -12,8 +12,12 @@ import java.util.stream.Stream;
 
 public abstract class PolyMorph extends ClassCatalog implements IModelListener {
 
+    @PropertyDefinition(state = true)
     final static String PROP_IMPL_CLASS = "class";
+
+    @PropertyDefinition(state = true)
     final static String PROP_IMPL_PARAM = "parameters";
+
     private final static List<String> SYSPROPS  = Arrays.asList(
         PROP_IMPL_CLASS,
         PROP_IMPL_PARAM
@@ -103,16 +107,6 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
     private void setParameters(Map<String, String> params) {
         model.setValue(PROP_IMPL_PARAM, params);
     }
-
-//    //TODO: Удалить потом
-//    public PolyMorph getImplementation() {
-//        return this;
-//    }
-//
-//    //TODO: Удалить потом
-//    public PolyMorph getBaseObject() {
-//        return this;
-//    }
 
     @Override
     public void modelChanged(EntityModel model, List<String> changes) {

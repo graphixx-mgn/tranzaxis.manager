@@ -74,6 +74,7 @@ public class Service<S extends IService> extends PolyMorph implements ICatalog {
             @Override
             public void modelSaved(EntityModel model, List<String> changes) {
                 changes.stream()
+                        .filter(propName -> !EntityModel.SYSPROPS.contains(propName) && !model.isStateProperty(propName))
                         .filter(propName -> !EntityModel.SYSPROPS.contains(propName))
                         .forEach(propName -> setProperty(
                                 getService().getClass(),

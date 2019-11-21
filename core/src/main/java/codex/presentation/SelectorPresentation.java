@@ -431,7 +431,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 } else {
                     if (!newEntity.model.isPropertyDynamic(propName)) {
                         if (!(overridableProps.contains(propName) && (overriddenProps == null || !overriddenProps.contains(propName)))) {
-                            if (!newEntity.model.isPropertyConditional(propName)) {
+                            if (!newEntity.model.isStateProperty(propName)) {
                                 newEntity.model.setValue(propName, context.model.getValue(propName));
                             }
                         }

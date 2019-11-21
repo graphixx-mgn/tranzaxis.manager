@@ -6,7 +6,7 @@ import java.lang.annotation.*;
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface PropertyDefinition {
-    boolean condition()  default false;
+    boolean state()  default false;
  }
 
 

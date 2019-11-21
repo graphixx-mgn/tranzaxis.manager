@@ -415,18 +415,18 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         return dynamicProps.contains(propName);
     }
 
-    public final boolean isPropertyConditional(String propName) {
-        return getConditionProps().contains(propName);
+    public final boolean isStateProperty(String propName) {
+        return getStateProps().contains(propName);
     }
 
-    private List<String> getConditionProps() {
+    private List<String> getStateProps() {
         List<String> props = new LinkedList<>();
 
         Class<?> nextClass = entityClass;
         while (Entity.class.isAssignableFrom(nextClass)) {
             Stream.of(nextClass.getDeclaredFields())
                     .filter(field -> field.isAnnotationPresent(PropertyDefinition.class))
-                    .filter(field -> field.getAnnotation(PropertyDefinition.class).condition())
+                    .filter(field -> field.getAnnotation(PropertyDefinition.class).state())
                     .forEach(field -> {
                         try {
                             field.setAccessible(true);
@@ -476,8 +476,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void commit(boolean showError, String... propNames) throws Exception {
         if (propNames != null && propNames.length > 0) {
-            List<String> updateProps = Arrays.asList(propNames);
+            List<String> updateProps = Arrays.stream(propNames).collect(Collectors.toList());
             updateProps.removeIf(propName -> !hasProperty(propName));
+            if (PolyMorph.class.isAssignableFrom(entityClass)) {
+                updateProps.add(PolyMorph.PROP_IMPL_PARAM);
+            }
             if (!updateProps.isEmpty()) {
                 OrmContext.debug("Perform partial commit model {0} {1}", getQualifiedName(), updateProps);
                 commit(showError, updateProps);
