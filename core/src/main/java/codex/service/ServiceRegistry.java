@@ -56,16 +56,6 @@ public final class ServiceRegistry {
         }
     }
 
-    private Class<? extends IService> getServiceInterface(Class<? extends IService> serviceClass) {
-        return serviceClass.isInterface() ?
-               serviceClass :
-               Arrays.stream(serviceClass.getInterfaces())
-                    .filter(IService.class::isAssignableFrom)
-                    .map(aClass -> (Class<? extends IService>) aClass.asSubclass(IService.class))
-                    .findFirst()
-                    .get();
-    }
-
     /**
      * Регистрация реализации сервиса в реестре. Каждый сервис мжет быть только 
      * в одном экземпляре. Запуск сервиса будет отложен до первого обращения.
@@ -82,7 +72,7 @@ public final class ServiceRegistry {
      * @param startImmediately Запустить сервис после регистрации.
      */
     private void registerService(IService service, boolean startImmediately) {
-        Class<? extends IService> serviceInterface = getServiceInterface(service.getClass());
+        Class<? extends IService> serviceInterface = IService.getServiceInterface(service.getClass());
         if (!registry.containsKey(serviceInterface)) {
             registry.put(serviceInterface, createServiceProxy(serviceInterface, service));
             Logger.getLogger().debug("Service Registry: register service ''{0}''", service.getTitle());
@@ -98,7 +88,7 @@ public final class ServiceRegistry {
     }
 
     public boolean isServiceRegistered(Class<? extends IService> serviceClass) {
-        return registry.containsKey(serviceClass);
+        return registry.containsKey(IService.getServiceInterface(serviceClass));
     }
 
     /**
@@ -127,7 +117,7 @@ public final class ServiceRegistry {
     }
     
     public final void addRegistryListener(Class<? extends IService> serviceInterface, IRegistryListener listener) {
-        Class<? extends IService> srvIface = getServiceInterface(serviceInterface);
+        Class<? extends IService> srvIface = IService.getServiceInterface(serviceInterface);
 
         if (!listeners.containsKey(srvIface)) {
             listeners.put(srvIface, new LinkedList<>());

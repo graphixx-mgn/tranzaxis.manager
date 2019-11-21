@@ -32,7 +32,10 @@ public class Service<S extends IService> extends PolyMorph implements ICatalog {
     }
 
     private static <S extends IService> Preferences getPreferences(Class<S> serviceClass) {
-        return Preferences.userRoot().node(APP_CATALOG).node(SRV_CATALOG).node(serviceClass.getTypeName());
+        return Preferences.userRoot()
+                .node(APP_CATALOG)
+                .node(SRV_CATALOG)
+                .node(IService.getServiceInterface(serviceClass).getTypeName());
     }
 
     public static <S extends IService> String getProperty(Class<S> serviceClass, String propName) {

@@ -1,11 +1,22 @@
 package codex.service;
 
 import java.lang.annotation.*;
+import java.util.Arrays;
 
 /**
  * Интерфейс сервиса.
  */
 public interface IService {
+
+    static Class<? extends IService> getServiceInterface(Class<? extends IService> serviceClass) {
+        return serviceClass.isInterface() ?
+                serviceClass :
+                Arrays.stream(serviceClass.getInterfaces())
+                        .filter(IService.class::isAssignableFrom)
+                        .map(aClass -> (Class<? extends IService>) aClass.asSubclass(IService.class))
+                        .findFirst()
+                        .get();
+    }
 
     /**
      * Возвращает имя сервиса.
