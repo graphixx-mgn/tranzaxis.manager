@@ -1,5 +1,8 @@
 package codex.log;
 
+import codex.command.EditorCommand;
+import codex.component.button.DialogButton;
+import codex.component.dialog.Dialog;
 import codex.context.ContextView;
 import codex.context.IContext;
 import codex.context.RootContext;
@@ -7,18 +10,20 @@ import codex.explorer.tree.INode;
 import codex.explorer.tree.NodeTreeModel;
 import codex.model.*;
 import codex.presentation.EditorPage;
+import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorTreeTable;
+import codex.property.PropertyHolder;
 import codex.service.Service;
-import codex.type.EntityRef;
+import codex.type.*;
 import codex.type.Enum;
-import codex.type.Int;
-import codex.type.Str;
 import codex.utils.FileUtils;
+import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Stream;
@@ -27,6 +32,7 @@ import java.util.stream.StreamSupport;
 @EntityDefinition(icon = "/images/lamp.png")
 public final class LoggerServiceOptions extends Service<LogManagementService> {
 
+    private final static ImageIcon LIMIT = ImageUtils.resize(ImageUtils.getByPath("/images/limit.png"), 20, 20);
     final static Integer STORE_DAYS = 15;
 
     final static String PROP_DB_FILE = "dbFile";
@@ -50,7 +56,10 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
                         Paths.get(System.getProperty("user.home"), getService().getOption("file")).toFile().length()
                 )
         );
-		model.addUserProp(PROP_DB_DAYS, new Int(STORE_DAYS), false, Access.Select);
+		model.addUserProp(PROP_DB_DAYS, new Int(STORE_DAYS), false, Access.Any);
+
+        // Editor settings
+        model.getEditor(PROP_DB_SIZE).addCommand(new StorageLimit());
 
         // Build context tree
         fillContext(Logger.getContextRegistry().getContexts());
@@ -171,5 +180,59 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
             parent.insert(context);
             return context;
         });
+    }
+
+    private class StorageLimit extends EditorCommand<Str, String> {
+
+        StorageLimit() {
+            super(LIMIT, Language.get(LoggerServiceOptions.class, PROP_DB_DAYS+".title"), null);
+        }
+
+        @Override
+        public boolean disableWithContext() {
+            return false;
+        }
+
+        @Override
+        public void execute(PropertyHolder<Str, String> context) {
+            ParamModel paramModel = new ParamModel();
+            paramModel.addProperty(model.getProperty(PROP_DB_DAYS));
+
+            DialogButton btnSubmit = Dialog.Default.BTN_OK.newInstance();
+            DialogButton btnCancel = Dialog.Default.BTN_CANCEL.newInstance();
+
+            codex.component.dialog.Dialog dialog = new codex.component.dialog.Dialog(
+                    null,
+                    ImageUtils.getByPath("/images/limit.png"),
+                    Language.get(LoggerServiceOptions.class, "storage.limit@title"),
+                    new JPanel(new BorderLayout()) {{
+                        add(new EditorPage(paramModel), BorderLayout.NORTH);
+                        setBorder(new CompoundBorder(
+                                new EmptyBorder(10, 5, 5, 5),
+                                new LineBorder(Color.LIGHT_GRAY, 1)
+                        ));
+                    }},
+                    (event) -> {
+                        if (event.getID() == Dialog.OK) {
+                            try {
+                                model.commit(true, PROP_DB_DAYS);
+                            } catch (Exception ignore) {
+                                ignore.printStackTrace();
+                            }
+                        } else {
+                            model.rollback(PROP_DB_DAYS);
+                        }
+                    },
+                    btnSubmit, btnCancel
+            ) {
+                @Override
+                public Dimension getPreferredSize() {
+                    Dimension prefSize = super.getPreferredSize();
+                    return new Dimension(550, prefSize.getSize().height);
+                }
+            };
+            dialog.setResizable(false);
+            dialog.setVisible(true);
+        }
     }
 }
