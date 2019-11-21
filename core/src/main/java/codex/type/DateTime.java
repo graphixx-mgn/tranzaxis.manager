@@ -6,8 +6,9 @@ import codex.mask.DateFormat;
 import codex.mask.IDateMask;
 import java.sql.Time;
 import java.text.MessageFormat;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Calendar;
 import java.util.Date;
 
 public class DateTime implements ISerializableType<Date, IDateMask> {
@@ -15,9 +16,15 @@ public class DateTime implements ISerializableType<Date, IDateMask> {
     private static final IEditorFactory<DateTime, Date> EDITOR_FACTORY = DateTimeEditor::new;
 
     public static Date trunc(Date date) {
-        Instant instant = date.toInstant();
-        instant = instant.truncatedTo(ChronoUnit.DAYS);
-        return Date.from(instant);
+        LocalDateTime localDateTime = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().atStartOfDay();
+        return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+    }
+
+    public static Date addDays(Date date, int days) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.add(Calendar.DATE, days);
+        return cal.getTime();
     }
 
     private Date value;
