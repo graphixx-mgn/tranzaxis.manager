@@ -655,8 +655,8 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             queries.addAll(columns.entrySet().stream()
                     .map((entry) -> {
                         return MessageFormat.format(
-                            "ALTER TABLE {0} ADD COLUMN [{1}]",
-                            className, entry.getKey().concat(" ").concat(entry.getValue())
+                            "ALTER TABLE {0} ADD COLUMN {1}",
+                            className, MessageFormat.format("[{0}] {1}", entry.getKey(), entry.getValue())
                         );
                     }).collect(Collectors.toList()));
         }
