@@ -111,7 +111,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
         }
     };
 
-    private final JTable table = new SelectorTable(tableModel);
+    private final JTable table = new SelectorTable(tableModel, false);
     private final int    iconSize = (int) (table.getRowHeight() * 0.7);
     private       Level  maxLevel = Level.Debug;
 
@@ -316,40 +316,27 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
         table.setComponentPopupMenu(popupMenu);
 
         frame.getContentPane().add(toolBar, BorderLayout.NORTH);
-        frame.getContentPane().add(new JScrollPane(table) {{
+
+        final JScrollPane scrollPane = new JScrollPane(table) {{
             getViewport().setBackground(Color.WHITE);
             setBorder(new CompoundBorder(
                     new EmptyBorder(5, 5, 5, 5),
                     new MatteBorder(1, 1, 1, 1, Color.GRAY)
             ));
             getVerticalScrollBar().addAdjustmentListener(LogUnit.this);
+        }};
+        frame.getContentPane().add(scrollPane, BorderLayout.CENTER);
 
-            final BoundedRangeModel brm = getVerticalScrollBar().getModel();
-            ((Logger) Logger.getLogger(Logger.class.getTypeName())).addAppendListener(event -> {
-                SwingUtilities.invokeLater(() -> {
-                    int extent  = brm.getExtent();
-                    int maximum = brm.getMaximum();
-                    int current = brm.getValue();
-                    if (frame.isVisible() && extent + current == maximum) {
-                        try {
-                            readNextPage();
-                            SwingUtilities.invokeLater(() -> {
-                                brm.setValueIsAdjusting(true);
-                                brm.setValue(Integer.MAX_VALUE);
-                                brm.setValueIsAdjusting(false);
-                            });
-                        } catch (IDataSupplier.LoadDataException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
-            });
-        }}, BorderLayout.CENTER);
+        final BoundedRangeModel brm = scrollPane.getVerticalScrollBar().getModel();
+        ((Logger) Logger.getLogger(Logger.class.getTypeName())).addAppendListener(event -> {
+            read(brm);
+        });
 
         AtomicBoolean frameCreated = new AtomicBoolean(false);
         frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowActivated(WindowEvent event) {
+                read(brm);
                 maxLevel = Level.Debug;
                 notifyUnit();
             }
@@ -360,6 +347,28 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                 super.windowOpened(e);
             }
         });
+    }
+
+    private void read(final BoundedRangeModel brm) {
+        if (frame.isVisible()) {
+            SwingUtilities.invokeLater(() -> {
+                int extent  = brm.getExtent();
+                int maximum = brm.getMaximum();
+                int current = brm.getValue();
+                if (extent + current == maximum) {
+                    try {
+                        readNextPage();
+                        SwingUtilities.invokeLater(() -> {
+                            brm.setValueIsAdjusting(true);
+                            brm.setValue(Integer.MAX_VALUE);
+                            brm.setValueIsAdjusting(false);
+                        });
+                    } catch (IDataSupplier.LoadDataException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
     }
 
     @Override
