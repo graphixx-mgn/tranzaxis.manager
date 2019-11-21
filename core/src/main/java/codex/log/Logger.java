@@ -3,6 +3,7 @@ package codex.log;
 import codex.context.IContext;
 import codex.context.ServiceCallContext;
 import codex.service.Service;
+import codex.service.ServiceRegistry;
 import codex.utils.ImageUtils;
 import org.apache.log4j.AsyncAppender;
 import org.apache.log4j.spi.LoggingEvent;
@@ -30,7 +31,7 @@ public class Logger extends org.apache.log4j.Logger {
 
     static {
         Thread.setDefaultUncaughtExceptionHandler(LMS);
-        LMS.startService();
+        ServiceRegistry.getInstance().registerService(LMS);
     }
 
     private final DatabaseAppender dbAppender = new DatabaseAppender() {
@@ -94,7 +95,14 @@ public class Logger extends org.apache.log4j.Logger {
         return sw.toString().trim();
     }
 
-    public static boolean contextAllowed(Class<? extends IContext> contextClass, Level level) {
+    public static boolean contextAllowed(List<Class<? extends IContext>> contexts, Level level) {
+        for (Class<? extends IContext> ctx : contexts) {
+            if (!contextAllowed(ctx, level)) return false;
+        }
+        return true;
+    }
+
+    private static boolean contextAllowed(Class<? extends IContext> contextClass, Level level) {
         boolean ctxAllow = level.getSysLevel().isGreaterOrEqual(CONTEXT_REGISTRY.getContext(contextClass).level.getSysLevel());
         if (ctxAllow && isOption(contextClass)) {
             return level.getSysLevel().isGreaterOrEqual(CONTEXT_REGISTRY.getContext(getParentContext(contextClass)).level.getSysLevel());
@@ -132,7 +140,7 @@ public class Logger extends org.apache.log4j.Logger {
         }
     }
 
-    private static java.util.List<Class<? extends IContext>> getMessageContexts() {
+    static java.util.List<Class<? extends IContext>> getMessageContexts() {
         return ServiceCallContext.getContextStack().stream()
                 .filter(aClass -> !ILogManagementService.class.isAssignableFrom(aClass))
                 .map(Logger::resolveContextClass)

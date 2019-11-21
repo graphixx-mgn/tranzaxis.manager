@@ -51,13 +51,13 @@ public class LogManagementService extends AbstractService<LoggerServiceOptions> 
 
     @Override
     public void log(Level level, String message) {
-        if (Logger.contextAllowed(Logger.getMessageLastContext(), level)) {
+        if (Logger.contextAllowed(Logger.getMessageContexts(), level)) {
             Logger.getSysLogger().log(level.getSysLevel(), message);
         }
     }
 
     private void logError(Level level, String message, Throwable exception) {
-        if (Logger.contextAllowed(Logger.getMessageLastContext(), level)) {
+        if (Logger.contextAllowed(Logger.getMessageContexts(), level)) {
             Logger.getSysLogger().log(level.getSysLevel(), message, exception);
         }
     }

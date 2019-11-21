@@ -95,6 +95,20 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
                     );
                 }
             }
+
+            @Override
+            public void modelSaved(EntityModel model, List<String> changes) {
+                for (INode node : treeModel) {
+                    final ContextView ctxView = (ContextView) node;
+                    final Class<? extends IContext> contextClass = ctxView.getContextClass();
+
+                    Object newValue = ctxView.model.getValue(ContextView.PROP_LEVEL);
+                    Level  newLevel = newValue instanceof Level ? (Level) newValue :
+                                    Boolean.TRUE.equals(newValue) ? Level.Debug : Level.Off;
+
+                    Logger.setContextLevel(contextClass, newLevel);
+                }
+            }
         });
 
         // Listeners
@@ -115,7 +129,6 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
                       newValue instanceof Level ? (Level) newValue :
                       Boolean.TRUE.equals(newValue) ? Level.Debug : Level.Off;
                 model.setValue(propName, newLevel);
-                Logger.setContextLevel(contextClass, newLevel);
             });
         }
     }
