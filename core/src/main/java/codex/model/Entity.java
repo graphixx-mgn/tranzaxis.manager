@@ -392,7 +392,9 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                                         Entity referenced = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class).getEntity(link.entryClass, link.entryID);
                                         return MessageFormat.format(
                                                 Language.get(EntityModel.class, link.isIncoming ? "link@incoming" : "link@outgoing"),
-                                                referenced != null && link.isIncoming ? referenced.getPathString() : link.entryPID
+                                                referenced != null && link.isIncoming ?
+                                                        referenced.getPathString() :
+                                                        EntityRef.build(link.entryClass, link.entryID).getValue().getTitle()
                                         );
                                     }).collect(Collectors.joining())
                     )
@@ -409,9 +411,10 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      */
     private Collection<IConfigStoreService.ForeignLink> findReferences() {
         if (getID() == null) return Collections.emptyList();
+        Class<? extends Entity> tableClass = PolyMorph.class.isAssignableFrom(getClass()) ? PolyMorph.getPolymorphClass(getClass()) : getClass();
 
         IConfigStoreService ICS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
-        List<IConfigStoreService.ForeignLink> links = ICS.findReferencedEntries(getClass(), getID());
+        List<IConfigStoreService.ForeignLink> links = ICS.findReferencedEntries(tableClass, getID());
         links.removeIf(link -> {
             if (link.isIncoming) {
                 return false;
@@ -725,11 +728,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 Logger.getLogger().warn("Found uninitialized owner entity: {0}", found.model.getQualifiedName());
                 return null;
             } else {
-                Class<? extends Entity> tableClass = PolyMorph.class.isAssignableFrom(found.getClass()) ?
-                        PolyMorph.getPolymorphClass(found.getClass()) : found.getClass();
-                EntityRef ref = new EntityRef<>(tableClass.asSubclass(Entity.class));
-                ref.setValue(found);
-                return ref;
+                return found.toRef();
             }
         }
     }

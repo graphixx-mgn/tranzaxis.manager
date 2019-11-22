@@ -97,10 +97,20 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 true,
                 ICatalog.class.isAssignableFrom(entityClass) ? Access.Any : Access.Select
         );
-        addUserProp(EntityModel.OWN, owner != null ? owner : new EntityRef<>(null),
-                false, 
-                DEV_MODE ? null : Access.Any
-        );
+
+        if (owner != null) {
+            // Подмена класса полиморфных сущностей чтобы:
+            // * при создании записи в БД создалась ссылка на нужную таблицу
+            // * при загрузке запись из БД корректно прогрузилась в свойство
+            Class<? extends Entity> tableClass = owner.getValue() instanceof PolyMorph ?
+                    PolyMorph.getPolymorphClass(owner.getValue().getClass()) : owner.getValue().getClass();
+            EntityRef ownerRef = new EntityRef<>(tableClass.asSubclass(Entity.class));
+            //noinspection unchecked
+            ownerRef.setValue(owner.getValue());
+            addUserProp(EntityModel.OWN, ownerRef, false, DEV_MODE ? null : Access.Any);
+        } else {
+            addUserProp(EntityModel.OWN, new EntityRef<>(null), false, DEV_MODE ? null : Access.Any);
+        }
         addUserProp(
                 EntityModel.OVR, 
                 new ArrStr(databaseValues.get(OVR) != null ? ArrStr.parse(databaseValues.get(OVR)) : new LinkedList<>()),
@@ -538,7 +548,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             }
         }
     }
-    
+
     private static Map<String, IComplexType> getPropDefinitions(EntityModel model) {
         Map<String, IComplexType> propDefinitions = new LinkedHashMap<>();
         Predicate<String> modelFilter = (propName) -> !model.dynamicProps.contains(propName) || EntityModel.ID.equals(propName);
