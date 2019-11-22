@@ -27,12 +27,14 @@ import org.atteo.classindex.ClassIndex;
 import javax.swing.*;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -494,9 +496,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             editorPage.addAncestorListener(new AncestorListener() {
                 @Override
                 public void ancestorAdded(AncestorEvent event) {
-                    if (event.getAncestorParent() instanceof JTabbedPane || event.getAncestor() instanceof Dialog) {
-                        onOpenPageView();
-                    }
+                    onOpenPageView();
                 }
 
                 @Override

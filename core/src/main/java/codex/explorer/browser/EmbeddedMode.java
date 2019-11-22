@@ -41,9 +41,8 @@ public final class EmbeddedMode extends BrowseMode<JPanel> {
 
         EditorPresentation editorPresentation = node.getEditorPresentation();
         if (editorPresentation != null) {
-            editorPresentation.add(node.getEditorPage());
-            editorPanel.add(editorPresentation);
             editorPresentation.refresh();
+            editorPanel.add(editorPresentation);
         }
         SelectorPresentation selectorPresentation = node.getSelectorPresentation();
         if (selectorPresentation != null) {

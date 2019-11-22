@@ -36,7 +36,6 @@ public final class TabbedMode extends BrowseMode<JTabbedPane> {
         }
         EditorPresentation editorPresentation = node.getEditorPresentation();
         if (editorPresentation != null) {
-            editorPresentation.refresh();
             container.insertTab(
                     EDITOR_TITLE,
                     TabKind.Editor.icon,
@@ -45,6 +44,7 @@ public final class TabbedMode extends BrowseMode<JTabbedPane> {
                     }},
                     null, container.getTabCount()
             );
+            editorPresentation.refresh();
         }
     }
 
