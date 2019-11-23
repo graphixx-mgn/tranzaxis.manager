@@ -7,14 +7,21 @@ import java.awt.geom.Arc2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.Base64;
+import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.text.*;
+import javax.swing.text.html.HTML;
+import javax.swing.text.html.HTMLEditorKit;
+import javax.swing.text.html.ImageView;
 
 public class ImageUtils {
     
@@ -203,6 +210,85 @@ public class ImageUtils {
         }
         byte[] imageInByte = b.toByteArray();
         return new String(Base64.getEncoder().encode(imageInByte));
+    }
+
+
+    public static class HTMLToolKit extends HTMLEditorKit {
+        private static HTMLFactory factory = null;
+
+        @Override
+        public ViewFactory getViewFactory() {
+            if (factory == null) {
+                factory = new HTMLFactory() {
+                    @Override
+                    public View create(Element elem) {
+                        AttributeSet attrs = elem.getAttributes();
+                        Object elementName = attrs.getAttribute(AbstractDocument.ElementNameAttribute);
+                        Object o = (elementName != null) ? null : attrs.getAttribute(StyleConstants.NameAttribute);
+                        if (o instanceof HTML.Tag) {
+                            HTML.Tag kind = (HTML.Tag) o;
+                            if (kind == HTML.Tag.IMG) {
+                                return new BASE64ImageView(elem);
+                            }
+                        }
+                        return super.create(elem);
+                    }
+                };
+            }
+            return factory;
+        }
+    }
+
+
+    private static class BASE64ImageView extends ImageView {
+
+        BASE64ImageView(Element element) {
+            super(element);
+            populateImage();
+        }
+
+        private void populateImage() {
+            Dictionary<URL, Image> cache = (Dictionary<URL, Image>) getDocument().getProperty("imageCache");
+            if (cache == null) {
+                cache = new Hashtable<>();
+                getDocument().putProperty("imageCache", cache);
+            }
+            cache.put(getImageURL(), loadImage());
+        }
+
+        private Image loadImage() {
+            String b64 = getBASE64Image();
+            BufferedImage newImage = null;
+            ByteArrayInputStream bais = null;
+            try {
+                bais = new ByteArrayInputStream(Base64.getDecoder().decode(b64.getBytes()));
+                newImage = ImageIO.read(bais);
+            } catch (Throwable ex) {
+                ex.printStackTrace();
+            }
+            return newImage;
+        }
+
+        @Override
+        public URL getImageURL() {
+            String src = (String) getElement().getAttributes().getAttribute(HTML.Attribute.SRC);
+            if (isBase64Encoded(src)) {
+                return BASE64ImageView.class.getProtectionDomain().getCodeSource().getLocation();
+            }
+            return super.getImageURL();
+        }
+
+        private boolean isBase64Encoded(String src) {
+            return src != null && src.contains("base64,");
+        }
+
+        private String getBASE64Image() {
+            String src = (String) getElement().getAttributes().getAttribute(HTML.Attribute.SRC);
+            if (!isBase64Encoded(src)) {
+                return null;
+            }
+            return src.substring(src.indexOf("base64,") + 7);
+        }
     }
     
 }

@@ -134,9 +134,26 @@ public final class MessageBox extends Dialog {
             iconLabel.setBorder(new EmptyBorder(0, 0, 0, 20));
             add(iconLabel, BorderLayout.WEST);
 
-            final JLabel messageLabel = new JLabel("<html>"+text.replaceAll("\n", "<br>")+"</html>");
-            messageLabel.setFont(IEditor.FONT_VALUE.deriveFont((float) (IEditor.FONT_VALUE.getSize()*0.9)));
-            add(messageLabel, BorderLayout.CENTER);
+            final ImageUtils.HTMLToolKit toolKit = new ImageUtils.HTMLToolKit();
+            final JEditorPane pane = new JEditorPane() {
+                @Override
+                public void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g;
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                    g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                    super.paintComponent(g2);
+                }
+            };
+            pane.setEditorKit(toolKit);
+            pane.setOpaque(false);
+            pane.setContentType("text/html");
+            pane.setEditable(false);
+            pane.setText("<html>"+text.replaceAll("\n", "<br>")+"</html>");
+            pane.setFont(IEditor.FONT_VALUE.deriveFont((float) (IEditor.FONT_VALUE.getSize()*0.9)));
+            pane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
+
+            add(pane, BorderLayout.CENTER);
         }
 
         @Override
