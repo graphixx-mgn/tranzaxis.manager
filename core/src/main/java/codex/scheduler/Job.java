@@ -99,15 +99,15 @@ class Job extends PolyMorph {
     }
 
     @Override
-    public void insert(INode child) {
-        super.insert(child);
+    public void attach(INode child) {
+        super.attach(child);
         ((Entity) child).model.addModelListener(scheduleListener);
         updateNextSchedule();
     }
 
     @Override
-    public void delete(INode child) {
-        super.delete(child);
+    public void detach(INode child) {
+        super.detach(child);
         ((Entity) child).model.removeModelListener(scheduleListener);
         updateNextSchedule();
     }

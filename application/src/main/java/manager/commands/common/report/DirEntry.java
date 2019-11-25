@@ -117,7 +117,7 @@ public class DirEntry extends Entry {
                     //
                 }
             } else {
-                entry.getParent().delete(entry);
+                entry.getParent().detach(entry);
             }
         }
     }

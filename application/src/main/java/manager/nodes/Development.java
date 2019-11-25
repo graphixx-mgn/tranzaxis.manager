@@ -26,19 +26,19 @@ public class Development extends RepositoryBranch {
     }
 
     @Override
-    public void delete(INode child) {
+    public void detach(INode child) {
         // Do not delete from tree
     }
 
     @Override
     public void loadBranch() {
-        getRepository().insert(this);
+        getRepository().attach(this);
     }
 
     @Override
     public void unloadBranch() {
-        new LinkedList<>(childrenList()).forEach(this::delete);
-        getRepository().delete(this);
+        new LinkedList<>(childrenList()).forEach(this::detach);
+        getRepository().detach(this);
     }
 
     @Override

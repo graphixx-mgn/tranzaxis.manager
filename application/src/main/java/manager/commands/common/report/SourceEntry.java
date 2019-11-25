@@ -36,7 +36,7 @@ public class SourceEntry extends DirEntry {
         if (logDir.exists()) {
             Stream.of(IComplexType.coalesce(logDir.listFiles(), new File[]{})).forEach(file -> {
                 if (file.getName().startsWith("heapdump")) {
-                    parent.insert(Entity.newInstance(DumpEntry.class, getOwner().toRef(), file.getAbsolutePath()));
+                    parent.attach(Entity.newInstance(DumpEntry.class, getOwner().toRef(), file.getAbsolutePath()));
                 }
             });
         }
@@ -66,7 +66,7 @@ public class SourceEntry extends DirEntry {
                         //
                     }
                 } else {
-                    getParent().delete(SourceEntry.this);
+                    getParent().detach(SourceEntry.this);
                 }
             }
         });

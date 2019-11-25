@@ -64,7 +64,7 @@ public interface INode extends TreeNode {
      * Вставить дочерний узел.
      * @param child Ссылка на дочерний узел.
      */
-    void insert(INode child);
+    void attach(INode child);
     
     /**
      * Перемещение дочернего узла.
@@ -77,7 +77,7 @@ public interface INode extends TreeNode {
      * Удалить дочерний узел.
      * @param child Ссылка на дочерний узел.
      */
-    void delete(INode child);
+    void detach(INode child);
     
     /**
      * Возвращает список имен узлов от корневого до текущего.

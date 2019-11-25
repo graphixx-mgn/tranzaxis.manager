@@ -121,7 +121,7 @@ public class PackageView extends Catalog {
                 pluginPackage.getPlugins().forEach(pluginHandler -> {
                     Plugin pluginView = pluginHandler.getView();
                     pluginView.addNodeListener(updatePackage);
-                    insert(pluginView);
+                    attach(pluginView);
                 });
             }
             if (packageSupplier.get().isBuild()) {

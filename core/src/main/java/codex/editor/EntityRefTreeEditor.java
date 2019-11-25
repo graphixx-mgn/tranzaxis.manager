@@ -201,7 +201,7 @@ public class EntityRefTreeEditor extends AbstractEditor<EntityRef<Entity>, Entit
                             treeStream.get()
                                     .filter((node) -> ((EntityProxy) node).getEntity() == entityEAS.getParent())
                                     .findFirst()
-                                    .ifPresent(parentNode -> parentNode.insert(new EntityProxy(entityEAS)));
+                                    .ifPresent(parentNode -> parentNode.attach(new EntityProxy(entityEAS)));
 
                         }
                     }

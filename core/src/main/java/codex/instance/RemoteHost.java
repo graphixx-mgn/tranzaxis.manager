@@ -42,7 +42,7 @@ public class RemoteHost extends Catalog {
                     Class<? extends AbstractRemoteService> serviceClass = Class.forName(serviceClassName).asSubclass(AbstractRemoteService.class);
                     RemoteServiceControl serviceControl = createControl(serviceClass);
                     if (serviceControl != null) {
-                        insert(serviceControl);
+                        attach(serviceControl);
                     }
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();

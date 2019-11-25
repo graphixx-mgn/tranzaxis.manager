@@ -10,7 +10,6 @@ import codex.explorer.tree.INode;
 import codex.explorer.tree.NodeTreeModel;
 import codex.model.*;
 import codex.presentation.EditorPage;
-import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorTreeTable;
 import codex.property.PropertyHolder;
 import codex.service.Service;
@@ -23,7 +22,6 @@ import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Stream;
@@ -177,7 +175,7 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
         return added.filter(ctx -> ctx.getContextClass() == contextClass).findFirst().orElseGet(() -> {
             ContextView parent  = addContext(contextClass.getAnnotation(IContext.Definition.class).parent());
             ContextView context = new ContextView(contextClass);
-            parent.insert(context);
+            parent.attach(context);
             return context;
         });
     }

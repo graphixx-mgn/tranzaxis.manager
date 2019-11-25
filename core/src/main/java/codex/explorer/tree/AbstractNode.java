@@ -70,7 +70,6 @@ public abstract class AbstractNode implements INode {
                 this
                 .getPath()
                 .stream()
-                .skip(1)
                 .map(Object::toString)
                 .collect(Collectors.joining("/"))
         );
@@ -98,7 +97,7 @@ public abstract class AbstractNode implements INode {
     }
     
     @Override
-    public void insert(INode child) {
+    public void attach(INode child) {
         child.setParent(this);
         children.add(child);
         new LinkedList<>(nodeListeners).forEach((listener) -> listener.childInserted(this, child));
@@ -114,7 +113,7 @@ public abstract class AbstractNode implements INode {
     }
 
     @Override
-    public void delete(INode child) {
+    public void detach(INode child) {
         if (childrenList().contains(child)) {
             int index = children.indexOf(child);
             children.remove(child);

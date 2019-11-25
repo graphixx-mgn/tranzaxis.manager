@@ -28,7 +28,7 @@ public class FileEntry extends Entry {
             throw new UncheckedIOException(e);
         } finally {
             if (!file.exists()) {
-               getParent().delete(this);
+               getParent().detach(this);
             } else {
                 fireChangeEvent();
             }

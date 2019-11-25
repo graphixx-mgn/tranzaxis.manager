@@ -46,14 +46,14 @@ public class InstanceView extends Catalog {
     public void loadChildren() {
         NodeTreeModel treeModel = new NodeTreeModel(this);
         StreamSupport.stream(treeModel.spliterator(), false).forEach(parentNode -> {
-            parentNode.childrenList().forEach(parentNode::delete);
+            parentNode.childrenList().forEach(parentNode::detach);
         });
 
         Database database = getEnvironment().getDataBase(true);
         Integer  instance = getEnvironment().getInstanceId();
 
         Entity ics = Entity.newInstance(getChildClass(), getOwner().toRef(), String.valueOf(instance));
-        insert(ics);
+        attach(ics);
 
         try (ResultSet rs = DAS.select(
                 database.getConnectionID(false),
@@ -67,7 +67,7 @@ public class InstanceView extends Catalog {
                 Class<? extends AbstractInstanceUnit> unitClass = getUnitClass(uri);
                 AbstractInstanceUnit unit = Entity.newInstance(unitClass, getOwner().toRef(), id);
                 if (unit.getUsed()) {
-                    ics.insert(unit);
+                    ics.attach(unit);
                 }
             }
         } catch (SQLException e) {

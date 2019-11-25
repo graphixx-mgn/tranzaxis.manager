@@ -47,7 +47,7 @@ public final class PluginManager extends AbstractUnit {
         @Override
         void addPluginPackage(PluginPackage pluginPackage) {
             super.addPluginPackage(pluginPackage);
-            pluginCatalog.insert(new PackageView(pluginPackage));
+            pluginCatalog.attach(new PackageView(pluginPackage));
         }
     };
 

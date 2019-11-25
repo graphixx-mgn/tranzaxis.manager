@@ -21,7 +21,7 @@ public abstract class AbstractService<T extends Service> implements IService {
             if (!isStarted()) {
                 serviceStarted = true;
                 getSettings();
-                ServiceRegistry.getInstance().getCatalog().insert(settings);
+                ServiceRegistry.getInstance().getCatalog().attach(settings);
             }
         }
     }

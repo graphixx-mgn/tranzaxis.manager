@@ -49,7 +49,7 @@ public class InstanceUnit extends AbstractUnit {
             IInstanceDispatcher dispatcher = (IInstanceDispatcher) service;
             dispatcher.getInstances().forEach((instance) -> {
                 INode root = (INode) instancesTree.getRoot();
-                root.insert(new RemoteHost(instance));
+                root.attach(new RemoteHost(instance));
                 if (root.getChildCount() > 0) {
                     explorer.getViewport();
                     explorer.viewportBound();
@@ -60,7 +60,7 @@ public class InstanceUnit extends AbstractUnit {
                 @Override
                 public void instanceLinked(Instance instance) {
                     INode root = (INode) instancesTree.getRoot();
-                    root.insert(new RemoteHost(instance));
+                    root.attach(new RemoteHost(instance));
                     if (root.getChildCount() > 0) {
                         explorer.getViewport();
                         explorer.viewportBound();
@@ -72,7 +72,7 @@ public class InstanceUnit extends AbstractUnit {
                     INode root = (INode) instancesTree.getRoot();
                     getViews().stream()
                             .filter((view) -> view.getInstance().equals(instance))
-                            .forEach(root::delete);
+                            .forEach(root::detach);
                 }
             });
         });

@@ -89,7 +89,7 @@ class RemotePackageView extends Catalog {
                         PackageView.changePropertyNaming(model.getProperty(propName), propTitle, propDesc);
                     });
         } else {
-            remotePackage.getPlugins().forEach(remotePlugin -> insert(new RemotePluginView(remotePlugin)));
+            remotePackage.getPlugins().forEach(remotePlugin -> attach(new RemotePluginView(remotePlugin)));
         }
         ((AnyTypeView) model.getEditor("version")).addCommand(new ShowChanges());
     }

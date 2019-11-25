@@ -32,7 +32,6 @@ import java.util.stream.StreamSupport;
 
 final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements IInstanceListener, IPluginLoaderService.IPublicationListener {
 
-    //private final static IInstanceDispatcher ICS = ServiceRegistry.getInstance().lookupService(IInstanceDispatcher.class);
     private final static ImageIcon CMD_ICON = ImageUtils.getByPath("/images/update.png");
 
     private static final Comparator<String> VER_COMPARATOR = (ver1, ver2) -> {
@@ -97,7 +96,7 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
                     RemotePackageView pkgView = (RemotePackageView) node;
                     if (pkgView != treeModel.getRoot()) {
                         if (!updates.contains(pkgView.remotePackage)) {
-                            ((INode) treeModel.getRoot()).delete(pkgView);
+                            ((INode) treeModel.getRoot()).detach(pkgView);
                         } else {
                             pkgView.refreshUpgradeInfo();
                         }
@@ -109,7 +108,7 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
                             ((RemotePackageView) node).remotePackage.equals(remotePackage)
                     );
                     if (nodeNotExists) {
-                        ((INode) treeModel.getRoot()).insert(new RemotePackageView(remotePackage));
+                        ((INode) treeModel.getRoot()).attach(new RemotePackageView(remotePackage));
                     }
                 });
                 treeModel.nodeStructureChanged((INode) treeModel.getRoot());

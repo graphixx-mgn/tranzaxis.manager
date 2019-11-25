@@ -88,7 +88,7 @@ public class DiskUsageReport extends EntityCommand<Common> {
                     ))
                     .entrySet()
                     .stream()
-                    .peek(repoEntries -> repoEntries.getValue().forEach(entry -> repoEntries.getKey().insert(entry)))
+                    .peek(repoEntries -> repoEntries.getValue().forEach(entry -> repoEntries.getKey().attach(entry)))
                     .map(Map.Entry::getKey)
                     .sorted()
                     .peek(RepoView::sortChildren)
