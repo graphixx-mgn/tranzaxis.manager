@@ -199,7 +199,7 @@ public class ShortcutSection extends Entity implements IModelListener {
             signDelete.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mousePressed(MouseEvent e) {
-                    remove();
+                    removeSection();
                 }
             });
             controls.add(signDelete);
@@ -217,7 +217,7 @@ public class ShortcutSection extends Entity implements IModelListener {
     /**
      * Удаление секции и её виджета.
      */
-    private void remove() {
+    private void removeSection() {
         List<IConfigStoreService.ForeignLink> links = CAS.findReferencedEntries(ShortcutSection.class, getID());
         if (links.isEmpty()) {                    
             if (model.remove()) {
