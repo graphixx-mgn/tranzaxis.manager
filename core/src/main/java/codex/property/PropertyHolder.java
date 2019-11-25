@@ -67,7 +67,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
         }
         this.name    = name;
         this.title   = title;
-        this.desc    = desc;
+        this.desc    = desc.equals(Language.NOT_FOUND) ? null : desc;
         this.require = require;
         this.value   = value;
         
