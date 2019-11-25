@@ -9,11 +9,10 @@ import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.MessageFormat;
-import java.util.Base64;
-import java.util.Dictionary;
-import java.util.Hashtable;
+import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
@@ -273,7 +272,11 @@ public class ImageUtils {
         public URL getImageURL() {
             String src = (String) getElement().getAttributes().getAttribute(HTML.Attribute.SRC);
             if (isBase64Encoded(src)) {
-                return BASE64ImageView.class.getProtectionDomain().getCodeSource().getLocation();
+                try {
+                    return new URL("file:"+src);
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }
             }
             return super.getImageURL();
         }
