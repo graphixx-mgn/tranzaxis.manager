@@ -61,7 +61,7 @@ public class DebugProfile extends EntityCommand<Offshoot> {
                 Language.get("title"),
                 ImageUtils.getByPath("/images/debugger.png"),
                 Language.get("title"),
-                (offshoot) -> offshoot.getWCStatus().equals(WCStatus.Succesfull)
+                (offshoot) -> offshoot.getWCStatus().equals(WCStatus.Successful)
         );
 
         // Parameters

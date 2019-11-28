@@ -57,7 +57,7 @@ public class BuildWC extends EntityCommand<Offshoot> {
                 Language.get("title"),
                 ImageUtils.getByPath("/images/build.png"),
                 Language.get("desc"), 
-                (offshoot) -> offshoot.getWCStatus().equals(WCStatus.Succesfull)
+                (offshoot) -> offshoot.getWCStatus().equals(WCStatus.Successful)
         );
         setParameters(
                 new PropertyHolder<>(PARAM_CLEAN, new Bool(Boolean.FALSE), true)

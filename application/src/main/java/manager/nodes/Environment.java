@@ -482,6 +482,7 @@ public class Environment extends Entity implements INodeListener {
     public boolean canStartServer() {
         return IComplexType.notNull(
                 getBinaries(),
+                getDataBase(true),
                 getLayerUri(false),
                 getInstanceId()
         );
