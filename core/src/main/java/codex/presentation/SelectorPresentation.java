@@ -347,7 +347,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                             try {
                                 newEntity.model.commit(true);
                                 newEntity.setTitle(newEntity.getPID());
-                                context.insert(newEntity);
+                                context.attach(newEntity);
 
                                 table.getSelectionModel().setSelectionInterval(
                                         tableModel.getRowCount() - 1,
@@ -472,7 +472,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                             try {
                                 newEntity.model.commit(true);
                                 newEntity.setTitle(newEntity.getPID());
-                                context.getParent().insert(newEntity);
+                                context.getParent().attach(newEntity);
 
                                 table.getSelectionModel().setSelectionInterval(
                                         tableModel.getRowCount() - 1, 
@@ -652,28 +652,15 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public String acquireConfirmation() {
-            String message;
-            if (getContext().size() == 1) {
-                message = MessageFormat.format(
-                        Language.get(SelectorPresentation.class, "confirm@del.single"),
-                        getContext().get(0)
-                );
-            } else {
-                message = MessageFormat.format(
-                        Language.get(SelectorPresentation.class, "confirm@del.range"),
-                        getContext().stream()
-                                .map(entity -> "&bull;&nbsp;<b>"+entity+"</b>")
-                                .collect(Collectors.joining("<br>"))
-                );
-            }
-            return message;
+            return MessageFormat.format(
+                    Language.get(SelectorPresentation.class, getContext().size() == 1 ? "confirm@del.single" : "confirm@del.range"),
+                    Entity.entitiesTable(getContext(), false)
+            );
         }
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            if (context.checkRemoval()) {
-                deleteInstance(entity, context);
-            }
+            deleteInstance(entity, context);
         }
 
         @Override
@@ -709,7 +696,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         try {
             Method method = getCleanerMethod(parentEntity.getClass());
             method.setAccessible(true);
-            method.invoke(null, entity, false, false);
+            method.invoke(null, entity, true, true);
         } catch (IllegalAccessException | InvocationTargetException e) {
             Logger.getLogger().warn("Unable to delete entity", e);
         }

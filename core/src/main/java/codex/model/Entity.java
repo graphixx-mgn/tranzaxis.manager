@@ -1,11 +1,14 @@
 package codex.model;
 
 import codex.command.EntityCommand;
+import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
+import codex.component.panel.HTMLView;
 import codex.config.IConfigStoreService;
 import codex.editor.AbstractEditor;
+import codex.editor.BoolEditor;
 import codex.editor.IEditor;
 import codex.explorer.IExplorerAccessService;
 import codex.explorer.tree.AbstractNode;
@@ -15,6 +18,7 @@ import codex.presentation.EditorPage;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.property.IPropertyChangeListener;
+import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.task.ITask;
@@ -25,6 +29,10 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import org.atteo.classindex.ClassIndex;
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
+import javax.swing.border.TitledBorder;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
 import java.awt.*;
@@ -36,6 +44,7 @@ import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -46,8 +55,10 @@ import java.util.stream.StreamSupport;
 @EntityDefinition
 public abstract class Entity extends AbstractNode implements IPropertyChangeListener, Iconified {
 
+    private static final ImageIcon ICON_ERROR   = ImageUtils.getByPath("/images/stop.png");
     private static final ImageIcon ICON_INVALID = ImageUtils.getByPath("/images/warn.png");
     private static final ImageIcon ICON_LOCKED  = ImageUtils.getByPath("/images/lock.png");
+    private static final ImageIcon ICON_REMOVE  = ImageUtils.getByPath("/images/close.png");
    
     private static final Boolean DEV_MODE = "1".equals(java.lang.System.getProperty("showSysProps"));
     private static final EntityCache     CACHE = EntityCache.getInstance();
@@ -105,14 +116,14 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             boolean remove(boolean readAfter) {
                 // TODO: Перенести в Entity.remove (чтобы работало в PolyMorph)
                 if (getID() == null) {
-                    System.out.println("Remove from cache (ID==null): "+Entity.this);
+                    //System.out.println("Remove from cache (ID==null): "+Entity.this);
                     CACHE.remove(Entity.this);
                     if (readAfter) read();
                     return true;
                 } else {
                     boolean success = super.remove(readAfter);
                     if (success) {
-                        System.out.println("Remove from cache (ID==??): "+Entity.this);
+                        //System.out.println("Remove from cache (ID==??): "+Entity.this);
                         CACHE.remove(Entity.this);
                     }
                     return success;
@@ -323,9 +334,9 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     }
 
     @Override
-    public void insert(INode child) {
+    public void attach(INode child) {
         if (child.getParent() != this) {
-            super.insert(child);
+            super.attach(child);
         }
 
         if (isOverridable()) {
@@ -355,61 +366,183 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     }
 
     final void remove(boolean cascade, boolean confirmation) {
-        if (cascade) {
-            Collection<IConfigStoreService.ForeignLink> links = findReferences();
-            if (!links.isEmpty()) {
-                if (confirmation) {
-                    //TODO: Показать диалог с удаляемыми ссылками / очищаемыми свойствами
+        Collection<IConfigStoreService.ForeignLink> links = findReferences(true);
+        if (links.isEmpty()) {
+            // Already confirmed in selector command or confirmation == false
+            EntityModel.OrmContext.debug("Entity ''{0}'' does not have references", model.getQualifiedName());
+        } else {
+            if (cascade) {
+                if (confirmation && !removalConfirmed(this, links, true)) {
+                    return;
                 }
-                //TODO: Сначала сбросить свойства по внешним ссылкам и удалить сущности по внутренним ссылкам
+            } else {
+                if (confirmation) {
+                    EntityModel.OrmContext.debug("Entity ''{0}'' may not be removed due to references", model.getQualifiedName());
+                    removalConfirmed(this, links, false);
+                }
+                return;
             }
         }
+        remove();
+    }
+
+    protected void remove() {
+        Collection<IConfigStoreService.ForeignLink> links = findReferences(false);
+        links.forEach(link -> {
+                    if (link.isIncoming) {
+                        Entity extRef = EntityRef.build(link.entryClass, link.entryID).getValue();
+                        extRef.model.getProperties(Access.Any).forEach(propName -> {
+                            if (this.equals(extRef.model.getValue(propName))) {
+                                extRef.model.setValue(propName, null);
+                                try {
+                                    extRef.model.commit(false, propName);
+                                } catch (Exception ignore) {
+                                    //
+                                }
+                            }
+                        });
+                    } else {
+                        EntityRef.build(link.entryClass, link.entryID).getValue().remove(true, false);
+                    }
+                });
+
+        EntityModel.OrmContext.debug("Remove entity ''{0}''", model.getQualifiedName());
         if (model.remove(false)) {
             if (getParent() != null && !Entity.getDefinition(getClass()).autoGenerated()) {
-                System.out.println("Remove from parent: "+this);
-                getParent().delete(this);
+                getParent().detach(this);
             }
             if (getParent() != null) {
-                System.out.println("Read model: "+this);
                 model.read();
                 fireChangeEvent();
             }
         }
     }
 
-    public final boolean checkRemoval() {
-        Collection<IConfigStoreService.ForeignLink> links = findReferences();
-        if (links.isEmpty()) {
-            EntityModel.OrmContext.debug("Entity ''{0}'' does not have references", model.getQualifiedName());
-            return true;
-        } else {
-            EntityModel.OrmContext.debug("Entity ''{0}'' may not be removed due to references", model.getQualifiedName());
-            MessageBox.show(
-                    MessageType.ERROR,
-                    MessageFormat.format(Language.get(EntityModel.class, "error@notdeleted"), getPID()).concat(
-                            links.stream()
-                                    .map(link -> {
-                                        Entity referenced = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class).getEntity(link.entryClass, link.entryID);
-                                        return MessageFormat.format(
-                                                Language.get(EntityModel.class, link.isIncoming ? "link@incoming" : "link@outgoing"),
-                                                referenced != null && link.isIncoming ?
-                                                        referenced.getPathString() :
-                                                        EntityRef.build(link.entryClass, link.entryID).getValue().getTitle()
-                                        );
-                                    }).collect(Collectors.joining())
-                    )
-            );
-            return false;
+    private static boolean removalConfirmed(Entity entity, Collection<IConfigStoreService.ForeignLink> links, boolean removalAllowed) {
+        final AtomicBoolean result = new AtomicBoolean(false);
+        final Collection<Entity> childEntities = links.stream()
+                .filter(link -> !link.isIncoming)
+                .map(link -> EntityRef.build(link.entryClass, link.entryID).getValue())
+                .collect(Collectors.toList());
+        final Collection<Entity> extEntities = links.stream()
+                .filter(link -> link.isIncoming)
+                .map(link -> EntityRef.build(link.entryClass, link.entryID).getValue())
+                .collect(Collectors.toList());
+
+        PropertyHolder<Bool, Boolean> confirm = new PropertyHolder<>("cascade", new Bool(false), false);
+        BoolEditor check = new BoolEditor(confirm);
+
+        DialogButton next = Dialog.Default.BTN_OK.newInstance();
+        DialogButton exit = Dialog.Default.BTN_CANCEL.newInstance();
+        DialogButton[] buttonSet = new LinkedList<DialogButton>() {{
+            if (removalAllowed) add(next);
+            add(exit);
+        }}.toArray(new DialogButton[]{});
+
+        if (removalAllowed) {
+            next.setEnabled(false);
+            confirm.addChangeListener((name, oldValue, newValue) -> {
+                next.setEnabled(newValue == Boolean.TRUE);
+            });
         }
+
+        new Dialog(
+                FocusManager.getCurrentManager().getActiveWindow(),
+                removalAllowed ? ICON_INVALID : ICON_ERROR,
+                removalAllowed ? Language.get(MessageType.class, "message@warning") : MessageType.ERROR.toString(),
+                new JPanel(new BorderLayout()) {{
+                    setBorder(new EmptyBorder(10, 5, 15, 5));
+
+                    JLabel infoLabel = new JLabel() {{
+                        setBorder(new EmptyBorder(0, 5, 5, 5));
+                        setIconTextGap(10);
+                        if (removalAllowed) {
+                            setIcon(ImageUtils.combine(
+                                    Entity.newPrototype(entity.getClass()).getIcon(),
+                                    ImageUtils.resize(ICON_REMOVE, 0.8f),
+                                    SwingConstants.SOUTH_EAST
+                            ));
+                            setText(MessageFormat.format(
+                                    Language.get(Entity.class, "cascade@warn"),
+                                    String.join("<br>", new LinkedList<String>() {{
+                                        if (!childEntities.isEmpty()) add(Language.get(Entity.class, "ref@child.info"));
+                                        if (!extEntities.isEmpty()) add(Language.get(Entity.class, "ref@ext.info"));
+                                    }})
+                            ));
+                        } else {
+                            setIcon(ICON_ERROR);
+                            setText(MessageFormat.format(Language.get(Entity.class, "error@notdeleted"), entity));
+                        }
+                    }};
+                    add(infoLabel, BorderLayout.NORTH);
+
+                    add(new JPanel() {{
+                        setBorder(new EmptyBorder(
+                                0, infoLabel.getIcon().getIconWidth()+infoLabel.getIconTextGap()+infoLabel.getInsets().left,
+                                0, 5
+                        ));
+                        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+                        if (!childEntities.isEmpty()) {
+                            add(new HTMLView() {{
+                                setBorder(new TitledBorder(
+                                        new LineBorder(Color.LIGHT_GRAY, 1),
+                                        Language.get(Entity.class, "ref@child")
+                                ));
+                                setText("<html>"+entitiesTable(childEntities, false)+"</html>");
+                                setFont(IEditor.FONT_VALUE.deriveFont((float) (IEditor.FONT_VALUE.getSize()*0.9)));
+                            }});
+                        }
+                        if (!extEntities.isEmpty()) {
+                            add(new HTMLView() {{
+                                setBorder(new CompoundBorder(
+                                        new EmptyBorder(5, 0, 0, 0),
+                                        new TitledBorder(
+                                                new LineBorder(Color.LIGHT_GRAY, 1),
+                                                Language.get(Entity.class, "ref@ext")
+                                        )
+                                ));
+                                setText("<html>"+entitiesTable(extEntities, true)+"</html>");
+                                setFont(IEditor.FONT_VALUE.deriveFont((float) (IEditor.FONT_VALUE.getSize()*0.9)));
+                            }});
+                        }
+                    }}, BorderLayout.CENTER);
+
+                    if (removalAllowed) {
+                        add(new JPanel() {{
+                            setBorder(new EmptyBorder(
+                                    5, infoLabel.getIcon().getIconWidth()+infoLabel.getIconTextGap()+infoLabel.getInsets().left+2,
+                                    0, 5
+                            ));
+                            setLayout(new BorderLayout(10, 5));
+                            add(check.getEditor(), BorderLayout.WEST);
+                            add(check.getLabel(),  BorderLayout.CENTER);
+                        }}, BorderLayout.SOUTH);
+                    }
+                }},
+                event -> result.set(event.getID() == Dialog.OK),
+                buttonSet
+        ).setVisible(true);
+        return result.get();
     }
 
+    public static String entitiesTable(Collection<Entity> entities, boolean showPath) {
+        return entities.stream()
+                .map(entity -> MessageFormat.format(
+                        Language.get(Entity.class, "entity@html"),
+                        ImageUtils.toBase64(entity.getIcon()),
+                        (int) (IEditor.FONT_VALUE.getSize()*1.7),
+                        showPath && entity.getParent() != null ? entity.getPathString() : entity.getTitle()
+                ))
+                .collect(Collectors.joining("\n"));
+    }
 
     /**
      * Поиск внешних ссылок на данную модель.
      * Внешняя ссылка - это поле типа EntityRef у другой сущности.
      * Внутренняя ссылка - это сущность, владельцем которой являетя эта сущность
      */
-    private Collection<IConfigStoreService.ForeignLink> findReferences() {
+    private Collection<IConfigStoreService.ForeignLink> findReferences(boolean traceResult) {
+        //TODO: вызов метода сразу после создания дочерних сущностей Polymorph владельца приводит к ошибке
         if (getID() == null) return Collections.emptyList();
         Class<? extends Entity> tableClass = PolyMorph.class.isAssignableFrom(getClass()) ? PolyMorph.getPolymorphClass(getClass()) : getClass();
 
@@ -431,7 +564,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 }
             }
         });
-        if (!links.isEmpty()) {
+        if (!links.isEmpty() && traceResult) {
             EntityModel.OrmContext.debug(
                     "Entity ''{0}'' has references:\n{1}",
                     model.getQualifiedName(),
@@ -448,7 +581,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         }
         return links;
     }
-    
+
     /**
      * Получение списка имеющихся команд сущности.
      */
@@ -766,7 +899,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
 
                 Entity instance = Entity.newInstance(implClass, ownerRef, PID);
                 if (!childrenList().contains(instance)) {
-                    insert(instance);
+                    attach(instance);
                 }
             }));
             return null;
