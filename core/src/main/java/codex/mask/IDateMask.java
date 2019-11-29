@@ -20,6 +20,10 @@ public interface IDateMask extends IMask<Date> {
             (SimpleDateFormat) DateFormat.getDateInstance(DateFormat.LONG, Language.getLocale()),
             new SimpleDateFormat(" HH:mm:ss,SSS")
         ),
+        Date(
+            (SimpleDateFormat) DateFormat.getDateInstance(DateFormat.LONG, Language.getLocale()),
+            new SimpleDateFormat("")
+        ),
         Time(
             new SimpleDateFormat(""),
             new SimpleDateFormat("HH:mm:ss")
