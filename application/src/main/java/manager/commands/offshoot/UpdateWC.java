@@ -2,6 +2,7 @@ package manager.commands.offshoot;
 
 import codex.command.EntityCommand;
 import codex.log.Logger;
+import codex.mask.DateFormat;
 import codex.task.AbstractTask;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
@@ -17,7 +18,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import javax.swing.SwingUtilities;
 import manager.nodes.Offshoot;
-import static manager.nodes.Offshoot.DATE_FORMAT;
 import manager.svn.SVN;
 import manager.type.WCStatus;
 import org.tmatesoft.svn.core.*;
@@ -50,12 +50,12 @@ public class UpdateWC extends EntityCommand<Offshoot> {
         executeTask(offshoot, new UpdateTask(offshoot, SVNRevision.HEAD), false);
     }
     
-    public class UpdateTask extends AbstractTask<Void> {
+    public static class UpdateTask extends AbstractTask<Void> {
 
         private final Offshoot    offshoot;
         private final SVNRevision revision;
 
-        public UpdateTask(Offshoot offshoot, SVNRevision revision) {
+        UpdateTask(Offshoot offshoot, SVNRevision revision) {
             super(MessageFormat.format(
                     Language.get(UpdateWC.class, "task@title"),
                     offshoot.getLocalPath(),
@@ -77,17 +77,17 @@ public class UpdateWC extends EntityCommand<Offshoot> {
             String wcPath  = offshoot.getLocalPath();
             String repoUrl = offshoot.getRemotePath();
             SVNRevision R1 = offshoot.getWorkingCopyRevision(false);
-            String   strR1 = new StringBuilder()
-                    .append(SVNRevision.UNDEFINED.equals(R1) ? "<unknown>" : R1)
-                    .append(SVNRevision.UNDEFINED.equals(R1) ? "" : "/".concat(DATE_FORMAT.format(offshoot.getWorkingCopyRevisionDate(false))))
-                    .toString();
+            String strR1 = SVNRevision.UNDEFINED.equals(R1) ? "<unknown>" : MessageFormat.format(
+                    "{0} / {1}",
+                    R1, DateFormat.Full.newInstance().getFormat().format(offshoot.getWorkingCopyRevisionDate(false))
+            );
             ISVNAuthenticationManager authMgr = offshoot.getRepository().getAuthManager();
 
             setProgress(0, Language.get(UpdateWC.class, "command@calc"));
             try {
                 List<Path> changes = SVN.changes(wcPath, repoUrl, revision, authMgr, new ISVNEventHandler() {
                     @Override
-                    public void handleEvent(SVNEvent event, double d) throws SVNException {
+                    public void handleEvent(SVNEvent event, double d) {
                         if (event.getErrorMessage() != null && event.getErrorMessage().getErrorCode() == SVNErrorCode.WC_CLEANUP_REQUIRED) {
                             if (event.getExpectedAction() == SVNEventAction.RESOLVER_STARTING) {
                                 Logger.getLogger().info("UPDATE [{0}] perform automatic cleanup", wcPath);
@@ -124,13 +124,13 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                     long total = changes.size();
                     SVN.update(repoUrl, wcPath, revision, authMgr, new ISVNEventHandler() {
                             @Override
-                            public void handleEvent(SVNEvent event, double d) throws SVNException {
+                            public void handleEvent(SVNEvent event, double d) {
                                 if (event.getAction() != SVNEventAction.UPDATE_STARTED && event.getAction() != SVNEventAction.UPDATE_COMPLETED) {
                                     if (changes.contains(event.getFile().toPath())) {
                                         loaded.addAndGet(1);
                                         int percent = (int) (loaded.get() * 100 / total);
                                         setProgress(
-                                                percent > 100 ? 100 : percent,
+                                                Math.min(percent, 100),
                                                 MessageFormat.format(
                                                         Language.get(UpdateWC.class, "command@progress"),
                                                         event.getFile().getPath().replace(wcPath+File.separator, "")
@@ -145,12 +145,6 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                                             changed.addAndGet(1);
                                         } else if (action == SVNEventAction.RESTORE) {
                                             restored.addAndGet(1);
-                                        } else {
-//                                            System.err.println(event.getContentsStatus());
-//                                            System.err.println(event.getErrorMessage());
-//                                            System.err.println(event.getExpectedAction());
-//                                            Logger.getLogger().warn("Conflict: {0}", event.getFile().getPath());
-                                            System.err.println(action + " / " + event.getFile().getPath().replace(wcPath+File.separator, ""));
                                         }
                                     } else {
                                         if (event.getFile().isFile()) System.out.println(event);
@@ -167,10 +161,11 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                             }
                         }
                     );
-                    String strR2 = new StringBuilder()
-                            .append(offshoot.getWorkingCopyRevision(false))
-                            .append("/").append(DATE_FORMAT.format(offshoot.getWorkingCopyRevisionDate(false)))
-                            .toString();
+                    String strR2 = MessageFormat.format(
+                            "{0} / {1}",
+                            offshoot.getWorkingCopyRevision(false),
+                            DateFormat.Full.newInstance().getFormat().format(offshoot.getWorkingCopyRevisionDate(false))
+                    );
                     Logger.getLogger().info(
                             "UPDATE [{0}] finished\nRevision: {1} -> {2}\n"+
                             (added.get()    == 0 ? "" : " * Added:    {3}\n")+
@@ -188,10 +183,12 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                         .iterate(e, Throwable::getCause)
                         .filter(element -> element.getCause() == null)
                         .findFirst();
-                if (rootCause.get() instanceof SVNCancelException || rootCause.get() instanceof ClosedChannelException) {
-                    Logger.getLogger().info("UPDATE [{0}] canceled", wcPath);
-                } else {
-                    throw e;
+                if (rootCause.isPresent()) {
+                    if (rootCause.get() instanceof SVNCancelException || rootCause.get() instanceof ClosedChannelException) {
+                        Logger.getLogger().info("UPDATE [{0}] canceled", wcPath);
+                    } else {
+                        throw e;
+                    }
                 }
             }
             return null;
@@ -201,7 +198,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
         public void finished(Void res) {
             SwingUtilities.invokeLater(() -> {
                 offshoot.model.updateDynamicProps();
-                offshoot.setWCLoaded(offshoot.getWCStatus().equals(WCStatus.Succesfull));
+                offshoot.setWCLoaded(offshoot.getWCStatus().equals(WCStatus.Successful));
                 try {
                     offshoot.model.commit(false);
                 } catch (Exception e) {

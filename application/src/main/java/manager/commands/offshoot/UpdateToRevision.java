@@ -75,7 +75,7 @@ public class UpdateToRevision extends EntityCommand<Offshoot> {
     public void execute(Offshoot context, Map<String, IComplexType> params) {
         executeTask(
                 context,
-                context.getCommand(UpdateWC.class).new UpdateTask(context, SVNRevision.create(
+                new UpdateWC.UpdateTask(context, SVNRevision.create(
                         ((Int) params.get(PARAM_REVISION)).getValue()
                 )),
                 false

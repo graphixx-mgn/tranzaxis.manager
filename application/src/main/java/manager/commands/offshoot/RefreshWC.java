@@ -43,7 +43,7 @@ public class RefreshWC extends EntityCommand<Offshoot> {
                 offshoot, 
                 new GroupTask<>(
                         Language.get("title") + ": "+(offshoot).getLocalPath(),
-                        offshoot.getCommand(UpdateWC.class).new UpdateTask(offshoot, SVNRevision.HEAD),
+                        new UpdateWC.UpdateTask(offshoot, SVNRevision.HEAD),
                         new BuildKernelTask(offshoot),
                         new BuildSourceTask(offshoot, map.get(PARAM_CLEAN).getValue() == Boolean.TRUE)
                 ), 

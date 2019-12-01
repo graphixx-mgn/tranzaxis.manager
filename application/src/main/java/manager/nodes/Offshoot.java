@@ -2,6 +2,7 @@ package manager.nodes;
 
 import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
+import codex.log.Logger;
 import codex.model.Access;
 import codex.model.CommandRegistry;
 import codex.model.Entity;
@@ -25,12 +26,15 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
 import codex.utils.Language;
 import manager.commands.offshoot.*;
 import manager.svn.SVN;
 import manager.type.BuildStatus;
 import manager.type.WCStatus;
 import org.apache.commons.io.FileDeleteStrategy;
+import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.wc.*;
 import javax.swing.*;
@@ -58,21 +62,34 @@ public class Offshoot extends BinarySource {
         
         // Properties
         model.addDynamicProp(PROP_WC_STATUS, new Enum<>(WCStatus.Absent), Access.Edit, () -> {
-            if (this.getOwner() != null) {
-                return getWorkingCopyStatus();
+            if (this.getOwner() != null && new File(getLocalPath()).exists()) {
+                new Thread(() -> {
+                    if (this.getOwner() != null) {
+                        setWCStatus(getWorkingCopyStatus());
+                    }
+                }).start();
+                return WCStatus.Unknown;
             } else {
                 return WCStatus.Absent;
             }
         });
         model.addDynamicProp(PROP_WC_REVISION, new Str(null), null, () -> {
-            WCStatus status = getWCStatus();
-            if ((status.equals(WCStatus.Succesfull) || status.equals(WCStatus.Erroneous)) && SVNWCUtil.isVersionedDirectory(new File(getLocalPath()))) {
-                return getWorkingCopyRevision(false).getNumber()+" / "+DATE_FORMAT.format(getWorkingCopyRevisionDate(false));
-            } else {
-                return null;
-            }
+            new Thread(() -> {
+                WCStatus status = getWCStatus();
+                if ((status.equals(WCStatus.Successful) || status.equals(WCStatus.Erroneous)) && SVNWCUtil.isVersionedDirectory(new File(getLocalPath()))) {
+                    model.setValue(
+                            PROP_WC_REVISION,
+                            MessageFormat.format(
+                                    "{0} / {1}",
+                                    getWorkingCopyRevision(false).getNumber(),
+                                    DATE_FORMAT.format(getWorkingCopyRevisionDate(false))
+                            )
+                    );
+                }
+            }).start();
+            return null;
         }, PROP_WC_STATUS);
-        model.addUserProp(PROP_WC_BUILT,       new BuildStatus(), false, null);
+        model.addUserProp(PROP_WC_BUILT, new BuildStatus(), false, null);
 
         PropertyHolder<Bool, Boolean> propLoaded = new PropertyHolder<Bool, Boolean>(PROP_WC_LOADED, new Bool(null), false) {
             @Override
@@ -86,6 +103,11 @@ public class Offshoot extends BinarySource {
     public final String getVersion() {
         return getPID();
     }
+
+    public final void setWCStatus(WCStatus wcStatus) {
+        model.setValue(PROP_WC_STATUS, wcStatus);
+        setMode(wcStatus.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED);
+    }
     
     public final WCStatus getWCStatus() {
         WCStatus wcStatus = (WCStatus) model.getValue(PROP_WC_STATUS);
@@ -97,6 +119,7 @@ public class Offshoot extends BinarySource {
         return model.getValue(PROP_WC_LOADED) == Boolean.TRUE;
     }
     
+    @SuppressWarnings("unchecked")
     public final BuildStatus getBuiltStatus() {
         List<String> value = (List<String>) model.getValue(PROP_WC_BUILT);
         if (value != null) {
@@ -137,14 +160,12 @@ public class Offshoot extends BinarySource {
     }
     
     public final WCStatus getWorkingCopyStatus() {
-        String   wcPath = getLocalPath();
-        WCStatus status;
-
+        String wcPath = getLocalPath();
         final File localDir = new File(wcPath);
         if (!localDir.exists()) {
-            status = WCStatus.Absent;
+            return WCStatus.Absent;
         } else if (!SVNWCUtil.isVersionedDirectory(localDir)) {
-            status = WCStatus.Invalid;
+            return WCStatus.Invalid;
         } else {
             ISVNAuthenticationManager authMgr = getRepository().getAuthManager();
             SVNInfo info = SVN.info(wcPath, false, authMgr);
@@ -154,34 +175,38 @@ public class Offshoot extends BinarySource {
                     info.getCommittedRevision() == null ||
                     info.getCommittedRevision() == SVNRevision.UNDEFINED
             ) {
-                status = WCStatus.Interrupted;
+                return WCStatus.Interrupted;
             } else {
-                status = WCStatus.Succesfull;
-
-//                final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
-//                try {
-//                    System.out.println("Check "+wcPath);
-//                    clientMgr.getStatusClient().doStatus(new File(wcPath), SVNRevision.HEAD, SVNDepth.INFINITY, false, false, false, false, new ISVNStatusHandler() {
-//                        @Override
-//                        public void handleStatus(SVNStatus svnStatus) throws SVNException {
-//                            if (svnStatus.isConflicted()) {
-//                                System.out.println("path=" + svnStatus.getFile() + ", conflict=" + svnStatus.isConflicted());
-//                                System.out.println("node="+svnStatus.getNodeStatus()+", content="+svnStatus.getContentsStatus());
-//                                System.out.println("conflict="+svnStatus.getTreeConflict());
-//                            }
-//                        }
-//                    }, null);
-//                } catch (SVNException e) {
-//                    Logger.getLogger().warn("SVN operation ''status'' error: {0}", e.getErrorMessage());
-//                }
-//                if (SVN.status(wcPath, false, authMgr).isConflicted()) {
-//                    status = WCStatus.Erroneous;
-//                } else {
-//                    status = WCStatus.Succesfull;
-//                }
+                List<SVNStatus> statusList = SVN.status(wcPath, false, info.getCommittedRevision(), authMgr);
+                List<File> conflictList = statusList.stream()
+                        .filter(svnStatus -> {
+                            if (svnStatus.getPropertiesStatus() == SVNStatusType.STATUS_CONFLICTED) {
+                                try {
+                                    SVN.resolve(svnStatus.getFile(), getRepository().getAuthManager());
+                                } catch (SVNException e) {
+                                    e.printStackTrace();
+                                }
+                                Logger.getLogger().info("Property conflicts in ''{0}'' has been automatically resolved", svnStatus.getFile());
+                                return false;
+                            }
+                            return svnStatus.getContentsStatus() == SVNStatusType.STATUS_CONFLICTED;
+                        })
+                        .map(SVNStatus::getFile)
+                        .collect(Collectors.toList());
+                if (!conflictList.isEmpty()) {
+                    Logger.getLogger().warn(
+                            "Working copy ''{0}/{1}'' has file conflicts:\n{2}",
+                            getRepository().getTitle(),
+                            getTitle(),
+                            conflictList.stream()
+                                .map(file -> MessageFormat.format("\t* {0}", file.getAbsolutePath().replace(getLocalPath(), "")))
+                                .collect(Collectors.joining("\n"))
+                    );
+                    return WCStatus.Erroneous;
+                }
+                return WCStatus.Successful;
             }
         }
-        return status;
     }
     
     public final SVNRevision getWorkingCopyRevision(boolean remote) {

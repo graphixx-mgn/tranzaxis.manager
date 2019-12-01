@@ -18,20 +18,7 @@ import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
 import org.tmatesoft.svn.core.internal.wc.DefaultSVNOptions;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
-import org.tmatesoft.svn.core.wc.ISVNEventHandler;
-import org.tmatesoft.svn.core.wc.ISVNStatusHandler;
-import org.tmatesoft.svn.core.wc.SVNClientManager;
-import org.tmatesoft.svn.core.wc.SVNEvent;
-import org.tmatesoft.svn.core.wc.SVNEventAction;
-import org.tmatesoft.svn.core.wc.SVNInfo;
-import org.tmatesoft.svn.core.wc.SVNLogClient;
-import org.tmatesoft.svn.core.wc.SVNRevision;
-import org.tmatesoft.svn.core.wc.SVNStatus;
-import org.tmatesoft.svn.core.wc.SVNStatusClient;
-import org.tmatesoft.svn.core.wc.SVNStatusType;
-import org.tmatesoft.svn.core.wc.SVNUpdateClient;
-import org.tmatesoft.svn.core.wc.SVNWCClient;
-import org.tmatesoft.svn.core.wc.SVNWCUtil;
+import org.tmatesoft.svn.core.wc.*;
 import org.tmatesoft.svn.core.wc2.SvnDiffSummarize;
 import org.tmatesoft.svn.core.wc2.SvnOperationFactory;
 import org.tmatesoft.svn.core.wc2.SvnTarget;
@@ -125,18 +112,23 @@ public class SVN {
         return info;
     }
 
-    public static SVNStatus status(String url, boolean remote, ISVNAuthenticationManager authMgr){
-        SVNStatus status = null;
+    public static List<SVNStatus> status(String path, boolean remote, SVNRevision revision, ISVNAuthenticationManager authMgr) {
+        List<SVNStatus> statuses = new LinkedList<>();
         final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
 
         try {
-            status = clientMgr.getStatusClient().doStatus(new File(url), remote);
+            clientMgr.getStatusClient().doStatus(new File(path), revision, SVNDepth.INFINITY, remote, true, false, false, new ISVNStatusHandler() {
+                @Override
+                public void handleStatus(SVNStatus svnStatus) throws SVNException {
+                    statuses.add(svnStatus);
+                }
+            }, new LinkedList<>());
         } catch (SVNException e) {
             Logger.getLogger().warn("SVN operation ''status'' error: {0}", e.getErrorMessage());
         } finally {
             clientMgr.dispose();
         }
-        return status;
+        return statuses;
     }
     
     public static List<SVNDirEntry> list(String url, ISVNAuthenticationManager authMgr) throws SVNException {
@@ -310,6 +302,17 @@ public class SVN {
             clientMgr.dispose();
         }
         return log;
+    }
+
+    public static void resolve(File file, ISVNAuthenticationManager authMgr) throws SVNException {
+        final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
+
+        try {
+            SVNWCClient client = clientMgr.getWCClient();
+            client.doResolve(file, SVNDepth.IMMEDIATES, SVNConflictChoice.THEIRS_FULL);
+        } finally {
+            clientMgr.dispose();
+        }
     }
     
 }
