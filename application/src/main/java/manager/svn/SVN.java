@@ -102,14 +102,18 @@ public class SVN {
         }
     }
     
-    public static SVNInfo info(String url, boolean remote, ISVNAuthenticationManager authMgr){
+    public static SVNInfo info(String url, boolean remote, ISVNAuthenticationManager authMgr) {
+        return info(url, SVNRevision.HEAD, remote, authMgr);
+    }
+
+    public static SVNInfo info(String url, SVNRevision revision, boolean remote, ISVNAuthenticationManager authMgr) {
         SVNInfo info = null;
         final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
-        
+
         try {
             if (remote) {
                 SVNURL svnUrl = SVNURL.parseURIEncoded(url);
-                info = clientMgr.getWCClient().doInfo(svnUrl, SVNRevision.HEAD, SVNRevision.HEAD);
+                info = clientMgr.getWCClient().doInfo(svnUrl, revision, revision);
             } else if (new File(url).exists()) {
                 info = clientMgr.getWCClient().doInfo(new File(url), SVNRevision.WORKING);
             }
@@ -290,6 +294,7 @@ public class SVN {
         } finally {
             clientMgr.dispose();
         }
+
         return logEntry.get() != null ? SVNRevision.create(logEntry.get().getRevision()) : SVNRevision.UNDEFINED;
     }
 

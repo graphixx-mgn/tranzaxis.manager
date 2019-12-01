@@ -68,8 +68,7 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
 
     public PolyMorph(EntityRef owner, String title) {
         super(owner, null, title, "");
-        final EntityDefinition entityDef = Entity.getDefinition(getClass());
-        setIcon(ImageUtils.getByPath(entityDef.icon()));
+
         model.removeChangeListener(this);
         model.addChangeListener((name, oldValue, newValue) -> {
             if (!name.equals(PROP_IMPL_PARAM)) {
@@ -78,6 +77,9 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
         });
 
         model.addUserProp(PROP_IMPL_CLASS, new Str(null), false, Access.Select);
+        final Class<? extends Entity> implClass = getPolymorphClass(getClass()).equals(getClass()) ? getImplClass() : getClass();
+        final EntityDefinition entityDef = Entity.getDefinition(implClass);
+        setIcon(ImageUtils.getByPath(entityDef.icon()));
 
         // Child object's properties map
         PropertyHolder<codex.type.Map<String, String>, Map<String, String>> propertiesHolder = new PropertyHolder<>(
@@ -136,5 +138,13 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
                 })
                 .flatMap(Collection::stream)
                .collect(Collectors.toList());
+    }
+
+    private Class<? extends PolyMorph> getImplClass() {
+        try {
+            return Class.forName((String) model.getValue(PROP_IMPL_CLASS)).asSubclass(PolyMorph.class);
+        } catch (ClassNotFoundException e) {
+            return getClass().asSubclass(PolyMorph.class);
+        }
     }
 }

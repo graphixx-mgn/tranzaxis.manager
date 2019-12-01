@@ -8,6 +8,12 @@ public class DateFormat implements IDateMask {
         }
     }
 
+    public static class Date {
+        public static IDateMask newInstance() {
+            return new DateFormat(Format.Date);
+        }
+    }
+
     public static class Time {
         public static IDateMask newInstance() {
             return new DateFormat(Format.Time);

@@ -37,8 +37,8 @@ final class PluginCatalog extends Catalog {
     }
 
     @Override
-    public void insert(INode child) {
-        super.insert(child);
+    public void attach(INode child) {
+        super.attach(child);
         getCommand(ShowPackagesUpdates.class).activate();
     }
 

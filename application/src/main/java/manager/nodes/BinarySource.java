@@ -19,7 +19,7 @@ public abstract class BinarySource extends Catalog {
 
     private final static IExplorerAccessService EAS = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class);
     
-    static final Comparator<String> VERSION_SORTER = new Comparator<String>() {
+    public static final Comparator<String> VERSION_SORTER = new Comparator<String>() {
         @Override
         public int compare(String prev, String next) {
             if ("trunk".equals(prev)) {
