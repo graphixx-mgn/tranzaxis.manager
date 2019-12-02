@@ -1,9 +1,7 @@
 package plugin;
 
 import codex.component.dialog.Dialog;
-import codex.explorer.browser.BrowseMode;
 import codex.mask.DateFormat;
-import codex.model.Access;
 import codex.model.Catalog;
 import codex.model.Entity;
 import codex.model.ParamModel;
@@ -76,7 +74,7 @@ public class ShowVersionInfo extends CommandPlugin<Offshoot> {
         }
 
         @Override
-        public ParamModel execute() throws Exception {
+        public ParamModel execute() {
             ParamModel paramModel = new ParamModel();
             try {
                 BranchDocument branch = getBranch(offshoot);
@@ -118,45 +116,43 @@ public class ShowVersionInfo extends CommandPlugin<Offshoot> {
         @Override
         @SuppressWarnings("unchecked")
         public void finished(ParamModel paramModel) {
-            SwingUtilities.invokeLater(() -> {
-                new Dialog(
-                        Dialog.findNearestWindow(),
-                        ImageUtils.getByPath(Language.get(ShowVersionInfo.class, "icon")),
-                        Language.get(ShowVersionInfo.class, "title"),
-                        new JPanel(new BorderLayout()) {{
-                            // Common properties
-                            EditorPage page = new EditorPage(paramModel);
-                            add(page, BorderLayout.NORTH);
+            SwingUtilities.invokeLater(() -> new Dialog(
+                    Dialog.findNearestWindow(),
+                    ImageUtils.getByPath(Language.get(ShowVersionInfo.class, "icon")),
+                    Language.get(ShowVersionInfo.class, "title"),
+                    new JPanel(new BorderLayout()) {{
+                        // Common properties
+                        EditorPage page = new EditorPage(paramModel);
+                        add(page, BorderLayout.NORTH);
 
-                            // Releases
-                            if (paramModel.hasProperty(PROP_RELEASE_INFO)) {
-                                paramModel.getEditor(PROP_RELEASE_INFO).setVisible(false);
-                                Map<String, ReleaseInfo> releases = ((Map<String, ReleaseInfo>) paramModel.getValue(PROP_RELEASE_INFO));
-                                if (!releases.isEmpty()) {
-                                    ReleaseCatalog catalog = new ReleaseCatalog();
-                                    releases.forEach((version, releaseInfo) -> catalog.attach(releaseInfo));
+                        // Releases
+                        if (paramModel.hasProperty(PROP_RELEASE_INFO)) {
+                            paramModel.getEditor(PROP_RELEASE_INFO).setVisible(false);
+                            Map<String, ReleaseInfo> releases = ((Map<String, ReleaseInfo>) paramModel.getValue(PROP_RELEASE_INFO));
+                            if (!releases.isEmpty()) {
+                                ReleaseCatalog catalog = new ReleaseCatalog();
+                                releases.forEach((version, releaseInfo) -> catalog.attach(releaseInfo));
 
-                                    SelectorPresentation releasesView = catalog.getSelectorPresentation();
-                                    if (releasesView != null) {
-                                        releasesView.setBorder(new TitledBorder(
-                                                new LineBorder(Color.GRAY, 1),
-                                                Language.get(ShowVersionInfo.class, "releases@title")
-                                        ));
-                                        add(catalog.getSelectorPresentation(), BorderLayout.CENTER);
-                                    }
+                                SelectorPresentation releasesView = catalog.getSelectorPresentation();
+                                if (releasesView != null) {
+                                    releasesView.setBorder(new TitledBorder(
+                                            new LineBorder(Color.GRAY, 1),
+                                            Language.get(ShowVersionInfo.class, "releases@title")
+                                    ));
+                                    add(catalog.getSelectorPresentation(), BorderLayout.CENTER);
                                 }
                             }
-                        }},
-                        null,
-                        Dialog.Default.BTN_CLOSE.newInstance()
-                ) {
-                    @Override
-                    public Dimension getPreferredSize() {
-                        Dimension prefSize = super.getPreferredSize();
-                        return new Dimension(650, prefSize.getSize().height);
-                    }
-                }.setVisible(true);
-            });
+                        }
+                    }},
+                    null,
+                    Dialog.Default.BTN_CLOSE.newInstance()
+            ) {
+                @Override
+                public Dimension getPreferredSize() {
+                    Dimension prefSize = super.getPreferredSize();
+                    return new Dimension(650, prefSize.getSize().height);
+                }
+            }.setVisible(true));
         }
 
         private BranchDocument getBranch(Offshoot offshoot) throws Exception {
@@ -169,7 +165,7 @@ public class ShowVersionInfo extends CommandPlugin<Offshoot> {
             return ReleaseDocument.Factory.parse(fileStream);
         }
 
-        private BinarySource getLastRelease(BranchDocument branch) throws Exception {
+        private BinarySource getLastRelease(BranchDocument branch) {
             Type.Enum branchType = branch.getBranch().getType();
             BinarySource release;
             if (branchType == Type.DEV) {
@@ -208,13 +204,15 @@ public class ShowVersionInfo extends CommandPlugin<Offshoot> {
                                 SVNDirEntry::getName,
                                 BinarySource.VERSION_SORTER.reversed()
                         ))
-                        .forEach(svnDirEntry -> releases.put(
-                                svnDirEntry.getName(),
-                                new ReleaseInfo(
-                                        svnDirEntry.getName(),
-                                        new Revision(svnDirEntry.getRevision(), svnDirEntry.getDate())
-                                )
-                        ));
+                        .forEach(svnDirEntry -> {
+                            try {
+                                SVNRevision revision = SVN.getMinimalRevision(svnDirEntry.getURL().toString(), offshoot.getRepository().getAuthManager());
+                                Date date = SVN.info(svnDirEntry.getURL().toString(), revision, true, offshoot.getRepository().getAuthManager()).getCommittedDate();
+                                releases.put(svnDirEntry.getName(), new ReleaseInfo(svnDirEntry.getName(), new Revision(revision.getNumber(), date)));
+                            } catch (SVNException ignore) {
+                                //
+                            }
+                        });
             }
             return releases;
         }
