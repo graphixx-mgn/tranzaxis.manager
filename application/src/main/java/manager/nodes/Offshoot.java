@@ -65,7 +65,14 @@ public class Offshoot extends BinarySource {
             if (this.getOwner() != null && new File(getLocalPath()).exists()) {
                 new Thread(() -> {
                     if (this.getOwner() != null) {
-                        setWCStatus(getWorkingCopyStatus());
+                        try {
+                            getLock().acquire();
+                            setWCStatus(getWorkingCopyStatus());
+                        } catch (InterruptedException ignore) {
+                            //
+                        } finally {
+                            getLock().release();
+                        }
                     }
                 }).start();
                 return WCStatus.Unknown;
@@ -199,7 +206,7 @@ public class Offshoot extends BinarySource {
                             getRepository().getTitle(),
                             getTitle(),
                             conflictList.stream()
-                                .map(file -> MessageFormat.format("\t* {0}", file.getAbsolutePath().replace(getLocalPath(), "")))
+                                .map(file -> MessageFormat.format(" * {0}", file.getAbsolutePath().replace(getLocalPath(), "")))
                                 .collect(Collectors.joining("\n"))
                     );
                     return WCStatus.Erroneous;
