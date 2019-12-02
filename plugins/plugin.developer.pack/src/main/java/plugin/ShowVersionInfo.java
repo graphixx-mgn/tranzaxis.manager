@@ -1,7 +1,6 @@
 package plugin;
 
 import codex.component.dialog.Dialog;
-import codex.mask.DateFormat;
 import codex.model.Catalog;
 import codex.model.Entity;
 import codex.model.ParamModel;
@@ -95,7 +94,7 @@ public class ShowVersionInfo extends CommandPlugin<Offshoot> {
                     paramModel.setValue(PROP_BRANCH_CREATE, MessageFormat.format(
                             "{0} / {1}",
                             String.valueOf(revision.getNumber()),
-                            DateFormat.Date.newInstance().getFormat().format(date)
+                            Offshoot.DATE_FORMAT.format(date)
                     ));
 
                     paramModel.addProperty(PROP_RELEASE_INFO, new codex.type.Map<>(
@@ -264,7 +263,7 @@ public class ShowVersionInfo extends CommandPlugin<Offshoot> {
             return MessageFormat.format(
                     "{0} / {1}",
                     String.valueOf(revision),
-                    DateFormat.Full.newInstance().getFormat().format(date)
+                    Offshoot.DATE_FORMAT.format(date)
             );
         }
     }

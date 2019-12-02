@@ -81,19 +81,13 @@ public class Offshoot extends BinarySource {
             }
         });
         model.addDynamicProp(PROP_WC_REVISION, new Str(null), null, () -> {
-            new Thread(() -> {
-                WCStatus status = getWCStatus();
-                if ((status.equals(WCStatus.Successful) || status.equals(WCStatus.Erroneous)) && SVNWCUtil.isVersionedDirectory(new File(getLocalPath()))) {
-                    model.setValue(
-                            PROP_WC_REVISION,
-                            MessageFormat.format(
-                                    "{0} / {1}",
-                                    getWorkingCopyRevision(false).getNumber(),
-                                    DATE_FORMAT.format(getWorkingCopyRevisionDate(false))
-                            )
-                    );
+            if (getWCStatus() != WCStatus.Absent) {
+                SVNRevision revision = getWorkingCopyRevision(false);
+                Date date = getWorkingCopyRevisionDate(false);
+                if (!SVNRevision.UNDEFINED.equals(revision) && date != null) {
+                    return MessageFormat.format("{0} / {1}", String.valueOf(revision.getNumber()), DATE_FORMAT.format(date));
                 }
-            }).start();
+            }
             return null;
         }, PROP_WC_STATUS);
         model.addUserProp(PROP_WC_BUILT, new BuildStatus(), false, null);
@@ -113,7 +107,6 @@ public class Offshoot extends BinarySource {
 
     public final void setWCStatus(WCStatus wcStatus) {
         model.setValue(PROP_WC_STATUS, wcStatus);
-        setMode(wcStatus.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED);
     }
     
     public final WCStatus getWCStatus() {

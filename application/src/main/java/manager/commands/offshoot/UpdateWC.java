@@ -2,7 +2,6 @@ package manager.commands.offshoot;
 
 import codex.command.EntityCommand;
 import codex.log.Logger;
-import codex.mask.DateFormat;
 import codex.task.AbstractTask;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
@@ -79,7 +78,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
             SVNRevision R1 = offshoot.getWorkingCopyRevision(false);
             String strR1 = SVNRevision.UNDEFINED.equals(R1) ? "<unknown>" : MessageFormat.format(
                     "{0} / {1}",
-                    R1, DateFormat.Full.newInstance().getFormat().format(offshoot.getWorkingCopyRevisionDate(false))
+                    R1, Offshoot.DATE_FORMAT.format(offshoot.getWorkingCopyRevisionDate(false))
             );
             ISVNAuthenticationManager authMgr = offshoot.getRepository().getAuthManager();
 
@@ -164,7 +163,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                     String strR2 = MessageFormat.format(
                             "{0} / {1}",
                             offshoot.getWorkingCopyRevision(false),
-                            DateFormat.Full.newInstance().getFormat().format(offshoot.getWorkingCopyRevisionDate(false))
+                            Offshoot.DATE_FORMAT.format(offshoot.getWorkingCopyRevisionDate(false))
                     );
                     Logger.getLogger().info(
                             "UPDATE [{0}] finished\nRevision: {1} -> {2}\n"+
