@@ -46,6 +46,7 @@ class ShowExtraProps extends EntityCommand<Entity> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void execute(Entity context, Map<String, IComplexType> params) {
         DialogButton btnSubmit = Dialog.Default.BTN_OK.newInstance();
         DialogButton btnCancel = Dialog.Default.BTN_CANCEL.newInstance();
@@ -63,21 +64,13 @@ class ShowExtraProps extends EntityCommand<Entity> {
 
         EntityModel childModel  = context.model;
         EntityModel parentModel = ((Entity) context.getParent()).model;
-        List<String> overrideProps = parentModel.getProperties(Access.Edit)
-                .stream()
-                .filter(
-                        propName ->
-                                extraPropNames.contains(propName) &&
-                                childModel.hasProperty(propName) &&
-                                        !childModel.isPropertyDynamic(propName) &&
-                                        !EntityModel.SYSPROPS.contains(propName) &&
-                                        parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
-                ).collect(Collectors.toList());
+        List<String> overrideProps = context.getOverrideProps(parentModel).stream()
+                .filter(extraPropNames::contains)
+                .collect(Collectors.toList());
+
         if (!overrideProps.isEmpty()) {
             overrideProps.forEach((propName) -> {
-                if (paramModel.getEditor(propName).getCommands().stream().noneMatch((command) -> {
-                    return command instanceof OverrideProperty;
-                })) {
+                if (paramModel.getEditor(propName).getCommands().stream().noneMatch((command) -> command instanceof OverrideProperty)) {
                     paramModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName, paramModel.getEditor(propName)));
                 }
             });
@@ -134,6 +127,7 @@ class ShowExtraProps extends EntityCommand<Entity> {
                     .collect(Collectors.toList());
     }
 
+    @SuppressWarnings("unchecked")
     private void acceptChanges(EntityModel model, List<String> overrideProps, List<String> savedOverridden, Map<String, Boolean> initialOverriddenDiff) {
         try {
             List<String> changes = model.getChanges();
@@ -175,7 +169,6 @@ class ShowExtraProps extends EntityCommand<Entity> {
         if (!overrideProps.isEmpty()) {
             Map<String, Boolean> currentOverriddenDiff = OverrideProperty.getOverrideChanges(model);
             if (!initialOverriddenDiff.equals(currentOverriddenDiff)) {
-                Logger.getLogger().debug("Rollback overridden extra properties of [Environment/#1-'Wirecard Trunk']");
                 model.setValue("OVR", OverrideProperty.applyOverrideChanges(savedOverridden, initialOverriddenDiff));
             }
         }

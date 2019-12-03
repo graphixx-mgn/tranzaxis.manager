@@ -278,6 +278,13 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         if (parent != null && getChildClass() != null) {
             loadChildren();
         }
+        if (parent != null && isOverridable()) {
+            EntityModel parentModel = ((Entity) getParent()).model;
+            List<String> overrideProps = getOverrideProps(parentModel);
+            if (!overrideProps.isEmpty()) {
+                addOverrideCommand(parentModel, model, overrideProps);
+            }
+        }
     }
 
     public void loadChildren() {
@@ -324,44 +331,39 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                         }
                 ));
     }
-    
-    public final void setOverride(List<String> value) {
-        model.setOverride(value);
-    }
 
     public boolean isOverridable() {
         return true;
+    }
+
+    public List<String> getOverrideProps(EntityModel parentModel) {
+        final EntityModel childModel = model;
+        return parentModel.getProperties(Access.Edit).stream()
+            .filter(
+                    propName ->
+                            childModel.hasProperty(propName) &&
+                            !childModel.isPropertyDynamic(propName)  &&
+                            !PolyMorph.SYSPROPS.contains(propName)   &&
+                            !EntityModel.SYSPROPS.contains(propName) &&
+                            parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
+            ).collect(Collectors.toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void addOverrideCommand(EntityModel parentModel, EntityModel childModel, List<String> props) {
+        if (!props.isEmpty()) {
+            props.forEach((propName) -> {
+                if (childModel.getEditor(propName).getCommands().stream().noneMatch((command) -> command instanceof OverrideProperty)) {
+                    childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
+                }
+            });
+        }
     }
 
     @Override
     public void attach(INode child) {
         if (child.getParent() != this) {
             super.attach(child);
-        }
-
-        if (isOverridable()) {
-            Entity childEntity = (Entity) child;
-            EntityModel childModel = childEntity.model;
-            EntityModel parentModel = this.model;
-
-            List<String> overrideProps = parentModel.getProperties(Access.Edit)
-                    .stream()
-                    .filter(
-                            propName ->
-                                    childModel.hasProperty(propName) &&
-                                            !childModel.isPropertyDynamic(propName) &&
-                                            !EntityModel.SYSPROPS.contains(propName) &&
-                                            parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
-                    ).collect(Collectors.toList());
-            if (!overrideProps.isEmpty()) {
-                overrideProps.forEach((propName) -> {
-                    if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
-                        return command instanceof OverrideProperty;
-                    })) {
-                        childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
-                    }
-                });
-            }
         }
     }
 

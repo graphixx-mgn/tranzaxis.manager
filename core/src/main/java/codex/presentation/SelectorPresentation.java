@@ -29,6 +29,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Презентация селектора сущности. Реализует как функциональность отображения и 
@@ -253,19 +254,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         }
     }
 
-    private List<String> getOverrideProps(EntityModel parentModel, EntityModel childModel) {
-        return parentModel.getProperties(Access.Edit).stream()
-                .filter(
-                        propName ->
-                                childModel.hasProperty(propName) &&
-                                        !childModel.isPropertyDynamic(propName) &&
-                                        !EntityModel.SYSPROPS.contains(propName) &&
-                                        parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
-                ).collect(Collectors.toList());
-    }
-
     @SuppressWarnings("unchecked")
-    private void addOverrideCommand(EntityModel parentModel, EntityModel childModel, List<String> props) {
+    private static void addOverrideCommand(EntityModel parentModel, EntityModel childModel, List<String> props) {
         if (!props.isEmpty()) {
             props.forEach((propName) -> {
                 if (childModel.getEditor(propName).getCommands().stream().noneMatch((command) -> command instanceof OverrideProperty)) {
@@ -324,8 +314,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
             final EntityModel parentModel = context.model;
             final EntityModel childModel = newEntity.model;
-
-            final List<String> overridableProps = getOverrideProps(parentModel, childModel);
+            final List<String> overridableProps = newEntity.getOverrideProps(parentModel);
             addOverrideCommand(parentModel, childModel, overridableProps);
 
             final Dialog editor = new Dialog(
@@ -396,7 +385,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             editor.setResizable(false);
             editor.setVisible(true);
         }
-
     }
     
     class CloneEntity extends EntityCommand<Entity> {
@@ -419,13 +407,16 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 return;
             }
 
-            final EntityModel parentModel = ((Entity) context.getParent()).model;
-            final EntityModel childModel  = newEntity.model;
+            final EntityModel parentModel = context.model;
+            final EntityModel childModel = newEntity.model;
+            final List<String> overridableProps = newEntity.getOverrideProps(parentModel);
+            addOverrideCommand(parentModel, childModel, overridableProps);
 
-            final List<String> overridableProps = getOverrideProps(parentModel, childModel);
-            final List<String> overriddenProps  = context.getOverride();
-
-            context.model.getProperties(Access.Edit).forEach((propName) -> {
+            final List<String> overriddenProps = context.getOverride();
+            Stream.concat(
+                    Stream.of(EntityModel.OVR),
+                    context.model.getProperties(Access.Edit).stream()
+            ).forEach((propName) -> {
                 if ("PID".equals(propName)) {
                     newEntity.model.setValue(propName, context.model.getValue(propName)+" (1)");
                 } else {
@@ -438,17 +429,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     }
                 }
             });
-            newEntity.setOverride(overriddenProps);
-
-            if (!overridableProps.isEmpty()) {
-                overridableProps.forEach((propName) -> {
-                    if (!childModel.getEditor(propName).getCommands().stream().anyMatch((command) -> {
-                        return command instanceof OverrideProperty;
-                    })) {
-                        childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
-                    }
-                });
-            }
 
             final DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
             final DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
