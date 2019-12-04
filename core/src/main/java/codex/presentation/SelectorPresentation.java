@@ -23,6 +23,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.*;
@@ -290,8 +291,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
             final List<Class<? extends Entity>> classCatalog = entity.getClassCatalog().stream()
-                    //TODO: После рефакторинга PolyMorph станет не нужно ?!
-                    .filter(aClass -> !aClass.getSuperclass().equals(PolyMorph.class))
+                    .filter(aClass -> !Modifier.isAbstract(aClass.getModifiers()))
                     .collect(Collectors.toList());
 
             Class<? extends Entity> createEntityClass;

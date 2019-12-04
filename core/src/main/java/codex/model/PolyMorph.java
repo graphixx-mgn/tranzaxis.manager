@@ -18,12 +18,12 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
     @PropertyDefinition(state = true)
     final static String PROP_IMPL_PARAM = "parameters";
 
-    private final static List<String> SYSPROPS  = Arrays.asList(
+    final static List<String> SYSPROPS = Arrays.asList(
         PROP_IMPL_CLASS,
         PROP_IMPL_PARAM
     );
 
-    static <E extends Entity> Class<? extends PolyMorph> getPolymorphClass(Class<E> entityClass) {
+    public static <E extends Entity> Class<? extends PolyMorph> getPolymorphClass(Class<E> entityClass) {
         Class<? super E> nextClass = entityClass;
         while (!nextClass.getSuperclass().equals(PolyMorph.class)) {
             nextClass = nextClass.getSuperclass();
@@ -118,8 +118,11 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
                 .filter(propName -> !propName.equals(EntityModel.THIS))
                 .forEach(propName -> {
                     Map<String, String> parameters = getParameters(true);
-                    parameters.put(propName, model.getProperty(propName).getPropValue().toString());
-                    setParameters(parameters);
+                    String serializedValue = model.getProperty(propName).getPropValue().toString();
+                    if (!serializedValue.equals(parameters.get(propName))) {
+                        parameters.put(propName, model.getProperty(propName).getPropValue().toString());
+                        setParameters(parameters);
+                    }
                 });
     }
 

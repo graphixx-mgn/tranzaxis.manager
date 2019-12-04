@@ -188,6 +188,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      */
     public final void setTitle(String title) {
         this.title = title;
+        fireChangeEvent();
     }
     
     /**
@@ -264,7 +265,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         Class<? extends Entity> childClass = getChildClass();
         if (childClass.isAnnotationPresent(ClassCatalog.Definition.class)) {
             return StreamSupport.stream(ClassIndex.getSubclasses(codex.model.ClassCatalog.class).spliterator(), false)
-                    .filter(aClass -> childClass.isAssignableFrom(aClass) && !Modifier.isAbstract(aClass.getModifiers()))
+                    .filter(childClass::isAssignableFrom)
                     .sorted(Comparator.comparing(Class::getTypeName))
                     .collect(Collectors.toList());
         } else {
@@ -800,16 +801,29 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return null;
     }
     
-    public static <E extends Entity> E  newInstance(Class<E> entityClass, EntityRef owner, String PID) {
+    @SuppressWarnings("unchecked")
+    public static <E extends Entity> E newInstance(Class<E> entityClass, EntityRef owner, String PID) {
         synchronized (entityClass) {
+            Class<E> implClass = entityClass;
+            if (PolyMorph.class.isAssignableFrom(entityClass) && Modifier.isAbstract(entityClass.getModifiers())) {
+                Map<String, String> dbValues = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).readClassInstance(
+                        entityClass, PID, owner == null ? null : owner.getId()
+                );
+                try {
+                    implClass = (Class<E>) Class.forName(dbValues.get(PolyMorph.PROP_IMPL_CLASS));
+                } catch (ClassNotFoundException ignore) {
+                    //
+                }
+            }
+
             final Entity found = CACHE.find(
-                    entityClass,
+                    implClass,
                     owner == null ? null : owner.getId(),
                     PID != null ? PID : Language.get(entityClass, "title", new java.util.Locale("en", "US"))
             );
             if (found == null) {
                 try {
-                    Constructor<E> ctor = entityClass.getDeclaredConstructor(EntityRef.class, String.class);
+                    Constructor<E> ctor = implClass.getDeclaredConstructor(EntityRef.class, String.class);
                     ctor.setAccessible(true);
                     final E created = ctor.newInstance(owner, PID);
                     if (created.getPID() == null) {
@@ -823,7 +837,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                         });
                     } else if (Language.NOT_FOUND.equals(created.getPID())) {
                         throw new IllegalStateException(MessageFormat.format(
-                                "Localization string 'title' not defined for class ''{0}''", entityClass
+                                "Localization string 'title' not defined for class ''{0}''", implClass
                         ));
                     }
                     return created;
@@ -831,13 +845,13 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                     Throwable exception = e;
                     do {
                         Logger.getLogger().error(
-                                MessageFormat.format("Unable instantiate entity ''{0}'' / [Class: {1}]", PID, entityClass.getCanonicalName()), exception
+                                MessageFormat.format("Unable instantiate entity ''{0}'' / [Class: {1}]", PID, implClass.getCanonicalName()), exception
                         );
                     } while ((exception = exception.getCause()) != null);
                 } catch (NoSuchMethodException e) {
                     Logger.getLogger().error(
-                            "Entity ''{0}'' does not have universal constructor (EntityRef<owner>, String<PID>)", 
-                            entityClass.getCanonicalName()
+                            "Entity ''{0}'' does not have universal constructor (EntityRef<owner>, String<PID>)",
+                            implClass.getCanonicalName()
                     );
                 }
             }
