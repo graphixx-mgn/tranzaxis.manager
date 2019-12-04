@@ -407,8 +407,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 return;
             }
 
-            final EntityModel parentModel = context.model;
-            final EntityModel childModel = newEntity.model;
+            final EntityModel parentModel = ((Entity) context.getParent()).model;
+            final EntityModel childModel  = newEntity.model;
             final List<String> overridableProps = newEntity.getOverrideProps(parentModel);
             addOverrideCommand(parentModel, childModel, overridableProps);
 
