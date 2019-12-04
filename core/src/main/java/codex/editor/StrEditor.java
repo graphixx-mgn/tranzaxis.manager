@@ -155,6 +155,7 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
         textField.getDocument().removeDocumentListener(this);
         textField.setText(value == null ? "" : value);
         textField.getDocument().addDocumentListener(this);
+        textField.setCaretPosition(0);
         verify();
     }
     

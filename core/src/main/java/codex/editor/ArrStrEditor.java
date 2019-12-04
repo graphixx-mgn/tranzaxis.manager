@@ -121,8 +121,10 @@ public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
                         value.stream().map((item) -> item == null ? "" : item).toArray()
                     ).replaceAll("\\{\\d+\\}", "")
             );
+            textField.setCaretPosition(0);
         } else {
             textField.setText(IComplexType.coalesce(value, "").toString());
+            textField.setCaretPosition(0);
         }
         if (signDelete!= null) {
             signDelete.setVisible(!propHolder.isEmpty() && !propHolder.isInherited() && isEditable() && textField.isFocusOwner());
