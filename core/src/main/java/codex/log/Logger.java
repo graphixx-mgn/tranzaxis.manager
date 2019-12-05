@@ -2,6 +2,7 @@ package codex.log;
 
 import codex.context.IContext;
 import codex.context.ServiceCallContext;
+import codex.model.PolyMorph;
 import codex.service.Service;
 import codex.service.ServiceRegistry;
 import codex.utils.ImageUtils;
@@ -133,10 +134,14 @@ public class Logger extends org.apache.log4j.Logger {
     }
 
     private static Class<? extends IContext> resolveContextClass(Class<? extends IContext> contextClass) {
-        if (contextClass.isAnonymousClass() && IContext.class.isAssignableFrom(contextClass.getSuperclass())) {
-            return contextClass.getSuperclass().asSubclass(IContext.class);
+        Class<? extends IContext> targetClass = PolyMorph.class.isAssignableFrom(contextClass) ?
+                PolyMorph.getPolymorphClass(contextClass.asSubclass(PolyMorph.class)).asSubclass(IContext.class) :
+                contextClass;
+
+        if (targetClass.isAnonymousClass() && IContext.class.isAssignableFrom(targetClass.getSuperclass())) {
+            return targetClass.getSuperclass().asSubclass(IContext.class);
         } else {
-            return contextClass;
+            return targetClass;
         }
     }
 
@@ -163,6 +168,11 @@ public class Logger extends org.apache.log4j.Logger {
         private final Class<? extends IContext> clazz;
 
         private ContextInfo(Class<? extends IContext> contextClass) {
+//            Class<? extends IContext> targetClass = PolyMorph.class.isAssignableFrom(contextClass) ?
+//                    PolyMorph.getPolymorphClass(contextClass.asSubclass(PolyMorph.class)).asSubclass(IContext.class) :
+//                    contextClass;
+
+
             IContext.Definition contextDef = contextClass.getAnnotation(IContext.Definition.class);
 
             clazz = contextClass;
@@ -217,7 +227,7 @@ public class Logger extends org.apache.log4j.Logger {
                     .map(ContextInfo::new)
                     .sorted(Comparator.comparing(ctxInfo -> ctxInfo.clazz.getTypeName()))
                     .forEach(ctxInfo -> {
-                        idMap.put(ctxInfo.id, ctxInfo);
+                        idMap.putIfAbsent(ctxInfo.id, ctxInfo);
                         classMap.put(ctxInfo.clazz, ctxInfo);
                     });
         }
