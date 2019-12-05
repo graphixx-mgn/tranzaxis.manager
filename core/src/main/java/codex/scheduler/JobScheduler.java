@@ -55,41 +55,6 @@ public class JobScheduler extends AbstractUnit {
     }
 
 
-    enum ScheduleKind implements Iconified {
-
-        @Enum.Undefined
-        Undefined(null),
-
-        Timer(ImageUtils.getByPath("/images/timer.png")),
-        Daily(ImageUtils.getByPath("/images/daily.png"))
-        ;
-
-        private final ImageIcon icon;
-        private final String    title;
-        private final String    format;
-
-        ScheduleKind(ImageIcon icon) {
-            this.icon   = icon;
-            this.title  = Language.get(JobScheduler.class, "kind@"+name().toLowerCase());
-            this.format = Language.get(JobScheduler.class, "kind@"+name().toLowerCase()+"@format");
-        }
-
-        String getFormat() {
-            return equals(Undefined) ? Language.NOT_FOUND : format;
-        }
-
-        @Override
-        public String toString() {
-            return title;
-        }
-
-        @Override
-        public ImageIcon getIcon() {
-            return icon;
-        }
-    }
-
-
     enum JobStatus implements Iconified {
         @Enum.Undefined
         Undefined(new ImageIcon()),

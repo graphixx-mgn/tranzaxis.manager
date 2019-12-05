@@ -1,32 +1,26 @@
 package codex.scheduler;
 
-import codex.explorer.tree.INode;
 import codex.mask.IDateMask;
 import codex.model.*;
-import codex.type.*;
 import codex.type.Enum;
-import codex.utils.ImageUtils;
-import codex.utils.Language;
+import codex.type.*;
 import javax.swing.*;
-import java.text.MessageFormat;
-import java.util.Comparator;
 import java.util.Date;
-import java.util.List;
 
 @ClassCatalog.Definition(selectorProps = {Job.PROP_NEXT_SCHEDULE})
-class Job extends PolyMorph {
+abstract class Job extends PolyMorph {
 
-    private static final Iconified EMPTY = new Iconified() {
-        @Override
-        public ImageIcon getIcon() {
-            return ImageUtils.getByPath("/images/unavailable.png");
-        }
-
-        @Override
-        public String toString() {
-            return Language.get(Job.class, "next.empty");
-        }
-    };
+//    private static final Iconified EMPTY = new Iconified() {
+//        @Override
+//        public ImageIcon getIcon() {
+//            return ImageUtils.getByPath("/images/unavailable.png");
+//        }
+//
+//        @Override
+//        public String toString() {
+//            return Language.get(Job.class, "next.empty");
+//        }
+//    };
 
     @PropertyDefinition(state = true)
     final static String PROP_JOB_STATUS    = "status";
@@ -35,14 +29,14 @@ class Job extends PolyMorph {
     final static String PROP_JOB_RESULT    = "result";
     final static String PROP_NEXT_SCHEDULE = "next";
 
-    private IModelListener scheduleListener = new IModelListener() {
-        @Override
-        public void modelSaved(EntityModel model, List<String> changes) {
-            if (changes.contains(Schedule.PROP_NEXT)) {
-                updateNextSchedule();
-            }
-        }
-    };
+//    private IModelListener scheduleListener = new IModelListener() {
+//        @Override
+//        public void modelSaved(EntityModel model, List<String> changes) {
+//            if (changes.contains(Schedule.PROP_NEXT)) {
+//                updateNextSchedule();
+//            }
+//        }
+//    };
 
     Job(EntityRef owner, String title) {
         super(owner, title);
@@ -65,7 +59,7 @@ class Job extends PolyMorph {
                 }
             };
         }, PROP_JOB_STATUS, PROP_JOB_FINISH);
-        updateNextSchedule();
+//        updateNextSchedule();
     }
 
     void setJobStatus(JobScheduler.JobStatus status) {
@@ -98,50 +92,50 @@ class Job extends PolyMorph {
         return true;
     }
 
-    @Override
-    public void attach(INode child) {
-        super.attach(child);
-        ((Entity) child).model.addModelListener(scheduleListener);
-        updateNextSchedule();
-    }
+//    @Override
+//    public void attach(INode child) {
+//        super.attach(child);
+//        ((Entity) child).model.addModelListener(scheduleListener);
+//        updateNextSchedule();
+//    }
 
-    @Override
-    public void detach(INode child) {
-        super.detach(child);
-        ((Entity) child).model.removeModelListener(scheduleListener);
-        updateNextSchedule();
-    }
+//    @Override
+//    public void detach(INode child) {
+//        super.detach(child);
+//        ((Entity) child).model.removeModelListener(scheduleListener);
+//        updateNextSchedule();
+//    }
 
-    private void updateNextSchedule() {
-        Schedule nextSchedule = childrenList().stream()
-                .map(iNode -> (Schedule) iNode)
-                .filter(schedule -> schedule.getNextTime() != null)
-                .min(Comparator.comparing(Schedule::getNextTime))
-                .orElse(null);
-        model.setValue(PROP_NEXT_SCHEDULE, nextSchedule == null ? EMPTY : new ScheduleProxy(nextSchedule));
-    }
+//    private void updateNextSchedule() {
+//        Schedule nextSchedule = childrenList().stream()
+//                .map(iNode -> (Schedule) iNode)
+//                .filter(schedule -> schedule.getNextTime() != null)
+//                .min(Comparator.comparing(Schedule::getNextTime))
+//                .orElse(null);
+//        model.setValue(PROP_NEXT_SCHEDULE, nextSchedule == null ? EMPTY : new ScheduleProxy(nextSchedule));
+//    }
 
 
-    private static class ScheduleProxy implements Iconified {
-        private final Schedule schedule;
-
-        ScheduleProxy(Schedule schedule) {
-            this.schedule = schedule;
-        }
-
-        @Override
-        public ImageIcon getIcon() {
-            return schedule.getIcon();
-        }
-
-        @Override
-        public String toString() {
-            return MessageFormat.format(
-                    "{0} ({1})",
-                    schedule.getTitle(),
-                    IDateMask.Format.Full.format(schedule.getNextTime())
-            );
-        }
-    }
+//    private static class ScheduleProxy implements Iconified {
+//        private final Schedule schedule;
+//
+//        ScheduleProxy(Schedule schedule) {
+//            this.schedule = schedule;
+//        }
+//
+//        @Override
+//        public ImageIcon getIcon() {
+//            return schedule.getIcon();
+//        }
+//
+//        @Override
+//        public String toString() {
+//            return MessageFormat.format(
+//                    "{0} ({1})",
+//                    schedule.getTitle(),
+//                    IDateMask.Format.Full.format(schedule.getNextTime())
+//            );
+//        }
+//    }
 
 }
