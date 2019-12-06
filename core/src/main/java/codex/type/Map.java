@@ -5,7 +5,9 @@ import codex.editor.MapEditor;
 import codex.mask.IMask;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.text.MessageFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<java.util.Map<K, V>>> {
 
@@ -145,6 +147,15 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
 
     @Override
     public String getQualifiedValue(java.util.Map<K, V> val) {
-        return "MAP_EXT";
+        return val == null || val.isEmpty() ? "<NULL>" : MessageFormat.format(
+                "[\n{0}\n]",
+                val.entrySet().stream()
+                        .map(kvEntry -> MessageFormat.format(
+                                "    {0}={1}",
+                                keyBuf.getQualifiedValue(kvEntry.getKey()),
+                                valBuf.getQualifiedValue(kvEntry.getValue()))
+                        )
+                        .collect(Collectors.joining(",\n"))
+        );
     }
 }

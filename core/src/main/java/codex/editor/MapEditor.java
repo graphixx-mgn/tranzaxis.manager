@@ -28,9 +28,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, V>> {
 
@@ -44,9 +44,12 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
     private JTextField textField;
     private EditMode mode = EditMode.ModifyAllowed;
     private java.util.Map<K, V> internalValue;
+    private final String[] placeholder;
 
     public MapEditor(PropertyHolder<Map<K, V>, java.util.Map<K, V>> propHolder) {
         super(propHolder);
+
+        placeholder = ArrStr.parse(propHolder.getPlaceholder()).toArray(new String[]{});
 
         TableEditor defCommand = new TableEditor();
         addCommand(defCommand);
@@ -118,8 +121,8 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
         java.util.Map.Entry<? extends ISerializableType<K, ? extends IMask<K>>, ? extends ISerializableType<V, ? extends IMask<V>>> entry = map.newEntry();
 
         return new AbstractMap.SimpleEntry<>(
-                new PropertyHolder<>("key", entry.getKey(), true),
-                new PropertyHolder<>("val", entry.getValue(), true)
+                new PropertyHolder<>("key", placeholder[0], null, entry.getKey(), true),
+                new PropertyHolder<>("val", placeholder[1], null, entry.getValue(), true)
         );
     }
 
@@ -138,9 +141,7 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
             Class kClass = ((Map) propHolder.getPropValue()).getKeyClass();
             Class vClass = ((Map) propHolder.getPropValue()).getValClass();
 
-            String placeholder = ArrStr.merge(Arrays.asList("Key", "Val"));
-
-            DefaultTableModel tableModel = new DefaultTableModel(ArrStr.parse(/*propHolder.getPlaceholder()*/placeholder).toArray(), 0) {
+            DefaultTableModel tableModel = new DefaultTableModel(placeholder, 0) {
                 @Override
                 public Class<?> getColumnClass(int columnIndex) {
                     Class  c = columnIndex == 0 ? kClass : vClass;
@@ -320,6 +321,20 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
                     btnConfirm,
                     btnDecline
             ) {
+                {
+                    // Перекрытие обработчика кнопок
+                    Function<DialogButton, ActionListener> defaultHandler = handler;
+                    handler = (button) -> {
+                        return (event) -> {
+                            boolean keyValid = model.getEditor(entry.getKey().getName()).stopEditing() && entry.getKey().isValid();
+                            boolean valValid = model.getEditor(entry.getValue().getName()).stopEditing() && entry.getValue().isValid();
+
+                            if (event.getID() != Dialog.OK || (keyValid && valValid)) {
+                                defaultHandler.apply(button).actionPerformed(event);
+                            }
+                        };
+                    };
+                }
                 @Override
                 public Dimension getPreferredSize() {
                     return new Dimension(550, super.getPreferredSize().height);
