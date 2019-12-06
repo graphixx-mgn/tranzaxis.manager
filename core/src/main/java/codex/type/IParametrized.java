@@ -1,3 +1,7 @@
 package codex.type;
 
-public interface IParametrized {}
+public interface IParametrized {
+
+    Class<?> getValueClass();
+
+}

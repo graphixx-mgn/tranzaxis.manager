@@ -6,7 +6,7 @@ public interface ISerializableType<T, M extends IMask<T>> extends IComplexType<T
 
     @Override
     default ISerializableType<T, M> setMask(M mask) {
-        return null;
+        return this;
     }
 
 }

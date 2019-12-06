@@ -49,6 +49,11 @@ public class Enum<T extends java.lang.Enum> implements ISerializableType<T, IMas
     }
 
     @Override
+    public Class<?> getValueClass() {
+        return value.getClass();
+    }
+
+    @Override
     public T getValue() {
         return value;
     }

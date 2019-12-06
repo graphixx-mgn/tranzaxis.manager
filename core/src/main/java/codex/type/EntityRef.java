@@ -26,6 +26,11 @@ public class EntityRef<E extends Entity> implements ISerializableType<E, IRefMas
     public EntityRef(Class<E> entityClass) {
         setEntityClass(entityClass);
     }
+
+    @Override
+    public Class<?> getValueClass() {
+        return entityClass;
+    }
     
     /**
      * Устанавливает класс сущности, используется редактором {@link EntityRefEditor}.
@@ -134,5 +139,4 @@ public class EntityRef<E extends Entity> implements ISerializableType<E, IRefMas
         }
         return null;
     }
-    
 }
