@@ -486,17 +486,53 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                         ));
                         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
                         if (!childEntities.isEmpty()) {
-                            add(new HTMLView() {{
+                            HTMLView view = new HTMLView() {
+                                {
+                                    setText("<html>"+entitiesTable(childEntities, false)+"</html>");
+                                    setFont(IEditor.FONT_VALUE.deriveFont((float) (IEditor.FONT_VALUE.getSize()*0.9)));
+                                }
+                                @Override
+                                public Dimension getPreferredScrollableViewportSize() {
+                                    if (childEntities.size() > 4) {
+                                        Dimension defSize = super.getPreferredScrollableViewportSize();
+                                        int margin = getInsets().top + getInsets().bottom + 2;
+                                        int itemHeight = (defSize.height - margin) / childEntities.size();
+                                        return new Dimension(defSize.width, itemHeight * 4 + margin);
+                                    } else {
+                                        return super.getPreferredScrollableViewportSize();
+                                    }
+                                }
+                            };
+
+                            add(new JScrollPane(view) {{
+                                SwingUtilities.invokeLater(() -> getViewport().setViewPosition(new Point(0, 0)));
                                 setBorder(new TitledBorder(
-                                        new LineBorder(Color.LIGHT_GRAY, 1),
-                                        Language.get(Entity.class, "ref@child")
+                                    new LineBorder(Color.LIGHT_GRAY, 1),
+                                    Language.get(Entity.class, "ref@child")
                                 ));
-                                setText("<html>"+entitiesTable(childEntities, false)+"</html>");
-                                setFont(IEditor.FONT_VALUE.deriveFont((float) (IEditor.FONT_VALUE.getSize()*0.9)));
                             }});
                         }
                         if (!extEntities.isEmpty()) {
-                            add(new HTMLView() {{
+                            HTMLView view = new HTMLView() {
+                                {
+                                    setText("<html>"+entitiesTable(extEntities, false)+"</html>");
+                                    setFont(IEditor.FONT_VALUE.deriveFont((float) (IEditor.FONT_VALUE.getSize()*0.9)));
+                                }
+                                @Override
+                                public Dimension getPreferredScrollableViewportSize() {
+                                    if (extEntities.size() > 4) {
+                                        Dimension defSize = super.getPreferredScrollableViewportSize();
+                                        int margin = getInsets().top + getInsets().bottom + 2;
+                                        int itemHeight = (defSize.height - margin) / extEntities.size();
+                                        return new Dimension(defSize.width, itemHeight * 4 + margin);
+                                    } else {
+                                        return super.getPreferredScrollableViewportSize();
+                                    }
+                                }
+                            };
+
+                            add(new JScrollPane(view) {{
+                                SwingUtilities.invokeLater(() -> getViewport().setViewPosition(new Point(0, 0)));
                                 setBorder(new CompoundBorder(
                                         new EmptyBorder(5, 0, 0, 0),
                                         new TitledBorder(
@@ -504,8 +540,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                                                 Language.get(Entity.class, "ref@ext")
                                         )
                                 ));
-                                setText("<html>"+entitiesTable(extEntities, true)+"</html>");
-                                setFont(IEditor.FONT_VALUE.deriveFont((float) (IEditor.FONT_VALUE.getSize()*0.9)));
                             }});
                         }
                     }}, BorderLayout.CENTER);
@@ -528,12 +562,13 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return result.get();
     }
 
+    private static int TABLE_ITEM_HEIGHT = (int) (IEditor.FONT_VALUE.getSize()*1.7);
     public static String entitiesTable(Collection<Entity> entities, boolean showPath) {
         return entities.stream()
                 .map(entity -> MessageFormat.format(
                         Language.get(Entity.class, "entity@html"),
                         ImageUtils.toBase64(entity.getIcon()),
-                        (int) (IEditor.FONT_VALUE.getSize()*1.7),
+                        TABLE_ITEM_HEIGHT,
                         showPath && entity.getParent() != null ? entity.getPathString() : entity.getTitle()
                 ))
                 .collect(Collectors.joining("\n"));
