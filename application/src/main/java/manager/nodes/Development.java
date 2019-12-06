@@ -3,8 +3,6 @@ package manager.nodes;
 import codex.explorer.tree.INode;
 import codex.model.Access;
 import codex.model.Entity;
-import codex.service.ServiceRegistry;
-import codex.task.ITaskExecutorService;
 import codex.type.ArrStr;
 import codex.type.EntityRef;
 import codex.utils.ImageUtils;
@@ -58,7 +56,7 @@ public class Development extends RepositoryBranch {
 
 
     public static <E extends Entity> void deleteInstance(E entity, boolean cascade, boolean confirmation) {
-        ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).executeTask(((Offshoot) entity).new DeleteOffshoot());
+        Entity.deleteInstance(entity, true, true);
     }
 
 }

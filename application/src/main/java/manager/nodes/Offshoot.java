@@ -10,6 +10,7 @@ import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.task.ITask;
+import codex.task.ITaskExecutorService;
 import codex.task.ITaskListener;
 import codex.type.Bool;
 import codex.type.EntityRef;
@@ -27,7 +28,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
 import codex.utils.Language;
 import manager.commands.offshoot.*;
 import manager.svn.SVN;
@@ -223,6 +223,21 @@ public class Offshoot extends BinarySource {
         return info == null ? null : info.getCommittedDate();
     }
 
+    @Override
+    protected void remove() {
+        ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).executeTask((this).new DeleteOffshoot() {
+            @Override
+            public void finished(Void result) {
+                SwingUtilities.invokeLater(() -> {
+                    if (!isCancelled() && Offshoot.this.getWorkingCopyStatus() == WCStatus.Absent) {
+                        Offshoot.super.remove();
+                    } else {
+                        Offshoot.this.model.read();
+                    }
+                });
+            }
+        });
+    }
 
     public class DeleteOffshoot extends AbstractTask<Void> {
 
@@ -312,15 +327,7 @@ public class Offshoot extends BinarySource {
         }
 
         @Override
-        public void finished(Void result) {
-            SwingUtilities.invokeLater(() -> {
-                if (!isCancelled() && Offshoot.this.getWorkingCopyStatus() == WCStatus.Absent) {
-                    Entity.deleteInstance(Offshoot.this, false, false);
-                } else {
-                    Offshoot.this.model.read();
-                }
-            });
-        }
+        public void finished(Void result) {}
     }
     
 }
