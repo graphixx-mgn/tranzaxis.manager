@@ -38,13 +38,23 @@ public class Weekly extends Schedule {
 
         Map<Integer, Boolean> weekDays = new LinkedHashMap<>();
         for (int day=1; day<=7; day++) weekDays.put(day, false);
-        model.addUserProp(PROP_WEEK_DAYS, new codex.type.Map<Integer, Boolean>(new Int(), new Bool(), weekDays) {
-            @Override
-            public IEditorFactory<codex.type.Map<Integer, Boolean>, Map<Integer, Boolean>> editorFactory() {
-                return WeekEditor::new;
-            }
-        }, false, Access.Select);
 
+        PropertyHolder<codex.type.Map<Integer, Boolean>, Map<Integer, Boolean>> weekHolder = new PropertyHolder<codex.type.Map<Integer, Boolean>, Map<Integer, Boolean>>(
+                PROP_WEEK_DAYS,
+                new codex.type.Map<Integer, Boolean>(new Int(), new Bool(), weekDays) {
+                    @Override
+                    public IEditorFactory<codex.type.Map<Integer, Boolean>, Map<Integer, Boolean>> editorFactory() {
+                        return WeekEditor::new;
+                    }
+                },
+                true
+        ) {
+            @Override
+            public boolean isValid() {
+                return getPropValue().getValue().values().stream().anyMatch(enabled -> enabled);
+            }
+        };
+        model.addUserProp(weekHolder, Access.Select);
         model.addUserProp(PROP_RUN_TIME, new DateTime().setMask(DateFormat.Time.newInstance()), true, Access.Select);
 
         model.addPropertyGroup(Language.get(Schedule.class, "group@kind"), PROP_WEEK_DAYS, PROP_RUN_TIME);
