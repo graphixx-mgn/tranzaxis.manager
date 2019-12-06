@@ -28,7 +28,7 @@ public class AnyType implements IComplexType<Object, IMask<Object>> {
     public void valueOf(String value) {}
 
     @Override
-    public IEditorFactory<? extends IComplexType<Object, IMask<Object>>, Object> editorFactory() {
+    public IEditorFactory<AnyType, Object> editorFactory() {
         return EDITOR_FACTORY;
     }
 

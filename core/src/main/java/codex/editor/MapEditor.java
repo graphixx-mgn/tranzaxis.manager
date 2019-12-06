@@ -86,7 +86,7 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
         PlaceHolder placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.ALWAYS);
         placeHolder.setForeground(COLOR_DISABLED);
         placeHolder.setBorder(textField.getBorder());
-        placeHolder.changeAlpha(10);
+        placeHolder.changeAlpha(100);
 
         Box container = new Box(BoxLayout.X_AXIS);
         container.setBackground(textField.getBackground());

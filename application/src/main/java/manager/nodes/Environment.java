@@ -187,9 +187,9 @@ public class Environment extends Entity implements INodeListener {
         model.addExtraProp(PROP_EXPLORER_OPTS, new ArrStr(), true);
         model.addDynamicProp(
                 PROP_RUN_COMMANDS,
-                new Str(null) {
+                new AnyType() {
                     @Override
-                    public IEditorFactory editorFactory() {
+                    public IEditorFactory<AnyType, Object> editorFactory() {
                         return TextView::new;
                     }
                 },
