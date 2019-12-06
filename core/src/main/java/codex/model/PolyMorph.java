@@ -84,7 +84,7 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
         // Child object's properties map
         PropertyHolder<codex.type.Map<String, String>, Map<String, String>> propertiesHolder = new PropertyHolder<>(
                 PROP_IMPL_PARAM,
-                new codex.type.Map<>(Str.class, Str.class, new HashMap<>()),
+                new codex.type.Map<>(new Str(), new Str(), new HashMap<>()),
                 false
         );
 

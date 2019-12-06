@@ -38,7 +38,7 @@ public class Weekly extends Schedule {
 
         Map<Integer, Boolean> weekDays = new LinkedHashMap<>();
         for (int day=1; day<=7; day++) weekDays.put(day, false);
-        model.addUserProp(PROP_WEEK_DAYS, new codex.type.Map<Integer, Boolean>(Int.class, Bool.class, weekDays) {
+        model.addUserProp(PROP_WEEK_DAYS, new codex.type.Map<Integer, Boolean>(new Int(), new Bool(), weekDays) {
             @Override
             public IEditorFactory<codex.type.Map<Integer, Boolean>, Map<Integer, Boolean>> editorFactory() {
                 return WeekEditor::new;

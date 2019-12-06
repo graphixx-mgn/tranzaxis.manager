@@ -30,8 +30,8 @@ public class NotifyServiceOptions extends Service<NotificationService> {
                 ));
         model.addUserProp(PROP_CONDITIONS,
                 new codex.type.Map<>(
-                        ContextType.class,
-                        new Enum<NotifyCondition>(NotifyCondition.class){}.getClass(),
+                        new ContextType(),
+                        new Enum<>(NotifyCondition.ALWAYS),
                         sources
                 ),
                 false, Access.Select
