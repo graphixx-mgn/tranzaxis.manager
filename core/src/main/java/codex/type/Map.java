@@ -24,6 +24,7 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
     private final ISerializableType<V, ? extends IMask<V>> valBuf;
 
     private java.util.Map<K, V> value;
+    private final V defaultValue;
 
     @SuppressWarnings("unchecked")
     public Map(
@@ -41,6 +42,8 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
 
         keyBuf = createKey();
         valBuf = createVal();
+
+        defaultValue = defVal.getValue();
 
         setValue(value);
     }
@@ -102,12 +105,18 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
             } else {
                 instance = valClass.getConstructor().newInstance();
             }
+            instance.setValue(defaultValue);
             ((ISerializableType<V, IMask<V>>) instance).setMask(valMask);
             return instance;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
             return null;
         }
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return value == null || value.isEmpty();
     }
 
     @Override
