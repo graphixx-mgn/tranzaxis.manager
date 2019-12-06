@@ -16,16 +16,21 @@ import codex.utils.Language;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.event.TableModelEvent;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.function.Consumer;
 
 public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, V>> {
 
@@ -34,6 +39,7 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
     private static final ImageIcon   ADD_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 26, 26);
     private static final ImageIcon   DEL_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 26, 26);
     private static final ImageIcon CLEAR_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/remove.png"), 26, 26);
+    private static final ImageIcon  WARN_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), 26, 26);
 
     private JTextField textField;
     private EditMode mode = EditMode.ModifyAllowed;
@@ -59,6 +65,10 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
         this.mode = mode;
     }
 
+    public enum EditMode {
+        ModifyPermitted, ModifyAllowed
+    }
+
     @Override
     public Box createEditor() {
         internalValue = new LinkedHashMap<>();
@@ -71,8 +81,9 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
         textField.addFocusListener(this);
 
         PlaceHolder placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.ALWAYS);
+        placeHolder.setForeground(COLOR_DISABLED);
         placeHolder.setBorder(textField.getBorder());
-        placeHolder.changeAlpha(100);
+        placeHolder.changeAlpha(10);
 
         Box container = new Box(BoxLayout.X_AXIS);
         container.setBackground(textField.getBackground());
@@ -87,7 +98,10 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
         if (internalValue.isEmpty()) {
             textField.setText("");
         } else {
-            textField.setText(MessageFormat.format(Language.get(Map.class, "defined"), internalValue.size()));
+            textField.setText(MessageFormat.format(
+                    Language.get(codex.type.Map.class, "defined"),
+                    Language.getPlural().npl(internalValue.size(), " "+Language.get(codex.type.Map.class, "item"))
+            ));
         }
     }
 
@@ -95,28 +109,19 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
     public void setEditable(boolean editable) {
         super.setEditable(editable);
         textField.setFocusable(false);
-        textField.setForeground(editable && !propHolder.isInherited() ? Color.decode("#3399FF") : COLOR_DISABLED);
+        textField.setForeground(editable && !propHolder.isInherited() ? Color.decode("#3399FF") : COLOR_INACTIVE);
         textField.setOpaque(editable && !propHolder.isInherited());
     }
 
-    private java.util.Map.Entry<
-            PropertyHolder<ISerializableType<K, ? extends IMask<K>>, K>,
-            PropertyHolder<ISerializableType<V, ? extends IMask<V>>, V>
-    > createHolderEntry() {
+    private java.util.Map.Entry<PropertyHolder<ISerializableType<K, ? extends IMask<K>>, K>,PropertyHolder<ISerializableType<V, ? extends IMask<V>>, V>> createHolderEntry() {
         Map<K, V> map = propHolder.getOwnPropValue();
-        java.util.Map.Entry<? extends ISerializableType<K, ? extends IMask<K>>, ? extends ISerializableType<V, ? extends IMask<V>>> entry = map.getEntry();
+        java.util.Map.Entry<? extends ISerializableType<K, ? extends IMask<K>>, ? extends ISerializableType<V, ? extends IMask<V>>> entry = map.newEntry();
 
         return new AbstractMap.SimpleEntry<>(
                 new PropertyHolder<>("key", entry.getKey(), true),
                 new PropertyHolder<>("val", entry.getValue(), true)
         );
     }
-
-
-    public enum EditMode {
-        ModifyPermitted, ModifyAllowed
-    }
-
 
     private class TableEditor extends EditorCommand<Map<K, V>, java.util.Map<K, V>> {
 
@@ -129,11 +134,13 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
         }
 
         @Override
-        public void execute(PropertyHolder context) {
+        public void execute(PropertyHolder<Map<K, V>, java.util.Map<K, V>> context) {
             Class kClass = ((Map) propHolder.getPropValue()).getKeyClass();
             Class vClass = ((Map) propHolder.getPropValue()).getValClass();
 
-            DefaultTableModel tableModel = new DefaultTableModel(ArrStr.parse(propHolder.getPlaceholder()).toArray(), 0) {
+            String placeholder = ArrStr.merge(Arrays.asList("Key", "Val"));
+
+            DefaultTableModel tableModel = new DefaultTableModel(ArrStr.parse(/*propHolder.getPlaceholder()*/placeholder).toArray(), 0) {
                 @Override
                 public Class<?> getColumnClass(int columnIndex) {
                     Class  c = columnIndex == 0 ? kClass : vClass;
@@ -160,19 +167,20 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
             GeneralRenderer renderer = new GeneralRenderer() {
                 @Override
                 public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                    boolean isSerializable = value != null && ISerializableType.class.isAssignableFrom(value.getClass());
+                    boolean isEmpty = value == null || (isSerializable && ((ISerializableType) value).isEmpty());
+                    Object  shownValue = value == null ? null : (isSerializable ? ((ISerializableType) value).getValue() : value);
+
                     Component c = super.getTableCellRendererComponent(
                             table,
-                            ISerializableType.class.isAssignableFrom(value.getClass()) ?
-                                    ((ISerializableType) value).getValue() : value,
+                            shownValue,
                             isSelected,
                             hasFocus,
                             row,
                             column
                     );
-                    if (ISerializableType.class.isAssignableFrom(value.getClass())) {
-                        if (((ISerializableType) value).isEmpty()) {
-                            c.setForeground(Color.decode("#999999"));
-                        }
+                    if (isEmpty) {
+                        c.setForeground(Color.decode("#999999"));
                     }
                     return c;
                 }
@@ -194,78 +202,26 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
             content.add(scrollPane, BorderLayout.CENTER);
 
             if (mode.equals(EditMode.ModifyAllowed)) {
-               PushButton clean  = new PushButton(CLEAR_ICON, null);
-                clean.setEnabled(MapEditor.this.isEditable() && !propHolder.isInherited() && internalValue.size() > 0);
-                clean.addActionListener((event) -> {
-                    internalValue.clear();
-                    while (tableModel.getRowCount() > 0) {
-                        tableModel.removeRow(0);
-                    }
-                    table.getSelectionModel().clearSelection();
-                });
-                table.getModel().addTableModelListener(event -> {
-                    if (event.getType() == TableModelEvent.INSERT || event.getType() == TableModelEvent.DELETE) {
-                        clean.setEnabled(table.getRowCount() > 0);
-                    }
-                });
-
                 PushButton insert = new PushButton(ADD_ICON, null);
                 insert.setEnabled(MapEditor.this.isEditable() && !propHolder.isInherited());
-                insert.addActionListener((e) -> {
-                    java.util.Map.Entry<
-                            PropertyHolder<ISerializableType<K, ? extends IMask<K>>, K>,
-                            PropertyHolder<ISerializableType<V, ? extends IMask<V>>, V>
-                    >  entry = createHolderEntry();
-
-                    ParamModel model = new ParamModel();
-                    model.addProperty(entry.getKey());
-                    model.addProperty(entry.getValue());
-                    DialogButton btnConfirm = codex.component.dialog.Dialog.Default.BTN_OK.newInstance(Language.get(MapEditor.class, "confirm@title"));
-                    DialogButton btnDecline = codex.component.dialog.Dialog.Default.BTN_CANCEL.newInstance();
-
-                    new codex.component.dialog.Dialog(
-                            FocusManager.getCurrentManager().getActiveWindow(),
-                            ADD_ICON,
-                            Language.get(MapEditor.class, "add@title"),
-                            new EditorPage(model),
-                            event -> {
-                                if (event.getID() == codex.component.dialog.Dialog.OK) {
-                                    tableModel.addRow(new Object[] {
-                                            entry.getKey().getPropValue(),
-                                            entry.getValue().getPropValue()
-                                    });
-                                    internalValue.put(
-                                            entry.getKey().getPropValue().getValue(),
-                                            entry.getValue().getPropValue().getValue()
-                                    );
-                                }
-                            },
-                            btnConfirm,
-                            btnDecline
-                    ) {
-                        @Override
-                        public Dimension getPreferredSize() {
-                            return new Dimension(550, super.getPreferredSize().height);
-                        }
-                    }.setVisible(true);
-                });
+                insert.addActionListener(new InsertAction(tableModel));
 
                 PushButton delete = new PushButton(DEL_ICON, null);
                 delete.setEnabled(false);
-                delete.addActionListener((event) -> {
-                    int rowIdx = table.getSelectedRow();
-                    internalValue.remove(table.getModel().getValueAt(rowIdx, 0));
-                    tableModel.removeRow(rowIdx);
-                    if (rowIdx < tableModel.getRowCount()) {
-                        table.getSelectionModel().setSelectionInterval(rowIdx, rowIdx);
-                    } else if (rowIdx == tableModel.getRowCount()) {
-                        table.getSelectionModel().setSelectionInterval(rowIdx - 1, rowIdx - 1);
-                    } else {
-                        table.getSelectionModel().clearSelection();
+                delete.addActionListener(new DeleteAction(tableModel, table));
+                table.getSelectionModel().addListSelectionListener(event -> delete.setEnabled(
+                        MapEditor.this.isEditable() &&
+                        !propHolder.isInherited() &&
+                        table.getSelectedRow() >= 0
+                ));
+
+                PushButton clear = new PushButton(CLEAR_ICON, null);
+                clear.setEnabled(MapEditor.this.isEditable() && !propHolder.isInherited() && internalValue.size() > 0);
+                clear.addActionListener(new ClearAction(tableModel, table));
+                table.getModel().addTableModelListener(event -> {
+                    if (event.getType() == TableModelEvent.INSERT || event.getType() == TableModelEvent.DELETE) {
+                        clear.setEnabled(table.getRowCount() > 0);
                     }
-                });
-                table.getSelectionModel().addListSelectionListener(event -> {
-                    delete.setEnabled(table.getSelectedRow() >= 0);
                 });
 
                 Box controls = new Box(BoxLayout.Y_AXIS);
@@ -274,7 +230,7 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
                 controls.add(Box.createVerticalStrut(10));
                 controls.add(delete);
                 controls.add(Box.createVerticalStrut(10));
-                controls.add(clean);
+                controls.add(clear);
 
                 content.add(controls, BorderLayout.EAST);
             }
@@ -283,7 +239,7 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
             confirmBtn.setEnabled(isEditable() && !propHolder.isInherited());
             DialogButton declineBtn = codex.component.dialog.Dialog.Default.BTN_CANCEL.newInstance();
 
-            Dialog dialog = new codex.component.dialog.Dialog(
+            codex.component.dialog.Dialog dialog = new codex.component.dialog.Dialog(
                     SwingUtilities.getWindowAncestor(editor),
                     MapEditor.this.isEditable() && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON,
                     propHolder.getTitle(),
@@ -304,17 +260,143 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
     }
 
 
+    private class InsertAction implements ActionListener {
+
+        private final DefaultTableModel tableModel;
+
+        InsertAction(DefaultTableModel tableModel) {
+            this.tableModel = tableModel;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            java.util.Map.Entry<PropertyHolder<ISerializableType<K, ? extends IMask<K>>, K>, PropertyHolder<ISerializableType<V, ? extends IMask<V>>, V>> entry = createHolderEntry();
+
+            ParamModel model = new ParamModel();
+            model.addProperty(entry.getKey());
+            model.addProperty(entry.getValue());
+
+            JPanel duplicateWarn = new JPanel(new BorderLayout()) {{
+                JLabel label = new JLabel(Language.get(MapEditor.class, "warn@duplicate"), WARN_ICON, SwingConstants.LEFT);
+                label.setOpaque(true);
+                label.setBackground(new Color(0x33DE5347, true));
+                label.setForeground(IEditor.COLOR_INVALID);
+                label.setBorder(new CompoundBorder(
+                        new LineBorder(Color.decode("#DE5347"), 1),
+                        new EmptyBorder(5, 10, 5, 10)
+                ));
+                setBorder(new EmptyBorder(5, 10, 5, 10));
+                add(label, BorderLayout.CENTER);
+            }};
+
+            DialogButton btnConfirm = codex.component.dialog.Dialog.Default.BTN_OK.newInstance(Language.get(MapEditor.class, "confirm@title"));
+            DialogButton btnDecline = codex.component.dialog.Dialog.Default.BTN_CANCEL.newInstance();
+
+            Dialog insert = new Dialog(
+                    FocusManager.getCurrentManager().getActiveWindow(),
+                    ADD_ICON,
+                    Language.get(MapEditor.class, "add@title"),
+                    new JPanel(new BorderLayout()) {{
+                        add(new EditorPage(model), BorderLayout.CENTER);
+                        add(duplicateWarn, BorderLayout.SOUTH);
+                    }},
+                    event -> {
+                        if (event.getID() == codex.component.dialog.Dialog.OK) {
+                            K key = entry.getKey().getPropValue().getValue();
+                            V val = entry.getValue().getPropValue().getValue();
+
+                            if (!internalValue.containsKey(key)) {
+                                tableModel.addRow(new Object[] {key, val});
+                            } else {
+                                for (int row = 0;  row < tableModel.getRowCount(); row++) {
+                                    if (tableModel.getValueAt(row, 0).equals(key)) {
+                                        tableModel.setValueAt(val, row, 1);
+                                    }
+                                }
+                            }
+                            internalValue.put(key, val);
+                        }
+                    },
+                    btnConfirm,
+                    btnDecline
+            ) {
+                @Override
+                public Dimension getPreferredSize() {
+                    return new Dimension(550, super.getPreferredSize().height);
+                }
+            };
+
+            Consumer<K> keyExistCheck = k -> {
+                duplicateWarn.setVisible(internalValue.containsKey(k));
+                btnConfirm.setEnabled(!internalValue.containsKey(k));
+                insert.pack();
+            };
+
+            keyExistCheck.accept(entry.getKey().getPropValue().getValue());
+            //noinspection unchecked
+            entry.getKey().addChangeListener((name, oldValue, newValue) -> keyExistCheck.accept((K) newValue));
+
+            insert.setVisible(true);
+        }
+    }
+
+    private class DeleteAction implements ActionListener {
+
+        private final DefaultTableModel tableModel;
+        private final JTable table;
+
+        DeleteAction(DefaultTableModel tableModel, JTable table) {
+            this.tableModel = tableModel;
+            this.table = table;
+        }
+
+        @Override
+        @SuppressWarnings("SuspiciousMethodCalls")
+        public void actionPerformed(ActionEvent e) {
+            int rowIdx = table.getSelectedRow();
+            internalValue.remove(table.getModel().getValueAt(rowIdx, 0));
+            tableModel.removeRow(rowIdx);
+            if (rowIdx < tableModel.getRowCount()) {
+                table.getSelectionModel().setSelectionInterval(rowIdx, rowIdx);
+            } else if (rowIdx == tableModel.getRowCount()) {
+                table.getSelectionModel().setSelectionInterval(rowIdx - 1, rowIdx - 1);
+            } else {
+                table.getSelectionModel().clearSelection();
+            }
+        }
+    }
+
+    private class ClearAction implements ActionListener {
+
+        private final DefaultTableModel tableModel;
+        private final JTable table;
+
+        ClearAction(DefaultTableModel tableModel, JTable table) {
+            this.tableModel = tableModel;
+            this.table = table;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            internalValue.clear();
+            while (tableModel.getRowCount() > 0) {
+                tableModel.removeRow(0);
+            }
+            table.getSelectionModel().clearSelection();
+        }
+    }
+
+
     private class CellEditor extends AbstractCellEditor implements TableCellEditor {
 
         private java.util.Map.Entry<? extends ISerializableType<K, ? extends IMask<K>>, ? extends ISerializableType<V, ? extends IMask<V>>> entry;
         private IEditor<? extends ISerializableType<V, ? extends IMask<V>>, V> editor;
 
-        CellEditor() {}
-
         @Override
         @SuppressWarnings("unchecked")
         public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            entry = propHolder.getPropValue().getEntry();
+            entry = propHolder.getPropValue().newEntry();
+
             entry.getKey().setValue((K) table.getValueAt(row, 0));
             entry.getValue().setValue((V) value);
 
@@ -328,7 +410,9 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
             EventQueue.invokeLater(() -> editor.getFocusTarget().requestFocus());
 
             if (entry.getValue().getClass() == Bool.class) {
-                JComponent renderedComp = (JComponent) table.getCellRenderer(row, column).getTableCellRendererComponent(table, value, true, true, row, column);
+                JComponent renderedComp = (JComponent) table.getCellRenderer(row, column).getTableCellRendererComponent(
+                        table, value, true, true, row, column
+                );
                 JPanel container = new JPanel();
                 container.setOpaque(true);
                 container.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 2));
@@ -348,6 +432,5 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
             internalValue.put(entry.getKey().getValue(), entry.getValue().getValue());
             return value;
         }
-
     }
 }

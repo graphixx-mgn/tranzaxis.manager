@@ -1,53 +1,44 @@
 package codex.type;
 
-import codex.editor.MapEditor;
 import codex.editor.IEditorFactory;
+import codex.editor.MapEditor;
 import codex.mask.IMask;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.ParameterizedType;
-import java.text.MessageFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
-public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<java.util.Map<K, V>>> {
+public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<java.util.Map<K, V>>>/*, Map<K, V>*/ {
 
     private final Class<? extends ISerializableType<K, ? extends IMask<K>>> keyClass;
     private final Class<? extends ISerializableType<V, ? extends IMask<V>>> valClass;
-    private final Class<?> valParamClass;
-    private final Class<?> keyParamClass;
 
-    private final ISerializableType<K, ? extends IMask<K>> dbKey;
-    private final ISerializableType<V, ? extends IMask<V>> dbVal;
+    private final Class<?> keyParamClass;
+    private final Class<?> valParamClass;
+
+    private final IMask<K> keyMask;
+    private final IMask<V> valMask;
+
+    private final ISerializableType<K, ? extends IMask<K>> keyBuf;
+    private final ISerializableType<V, ? extends IMask<V>> valBuf;
 
     private java.util.Map<K, V> value;
 
+    @SuppressWarnings("unchecked")
     public Map(
-            Class<? extends ISerializableType<K, ? extends IMask<K>>> keyClass,
-            Class<? extends ISerializableType<V, ? extends IMask<V>>> valClass,
+            ISerializableType<K, ? extends IMask<K>> defKey,
+            ISerializableType<V, ? extends IMask<V>> defVal,
             java.util.Map<K, V> value) {
 
-        if (IParametrized.class.isAssignableFrom(keyClass)) {
-            //noinspection unchecked
-            this.keyClass = ((Class<? extends ISerializableType<K, IMask<K>>>) ((ParameterizedType) keyClass.getGenericSuperclass()).getRawType());
-            this.keyParamClass = ((Class<?>) ((ParameterizedType) keyClass.getGenericSuperclass()).getActualTypeArguments()[0]);
-        } else {
-            this.keyClass = keyClass;
-            this.keyParamClass = null;
-        }
-        if (IParametrized.class.isAssignableFrom(valClass)) {
-            //noinspection unchecked
-            this.valClass = ((Class<? extends ISerializableType<V, IMask<V>>>) ((ParameterizedType) valClass.getGenericSuperclass()).getRawType());
-            this.valParamClass = ((Class<?>) ((ParameterizedType) valClass.getGenericSuperclass()).getActualTypeArguments()[0]);
-        } else {
-            this.valClass = valClass;
-            this.valParamClass = null;
-        }
+        keyClass = (Class<? extends ISerializableType<K, IMask<K>>>) defKey.getClass();
+        keyParamClass = IParametrized.class.isAssignableFrom(keyClass) ? ((IParametrized) defKey).getValueClass() : null;
+        keyMask  = defKey.getMask();
 
-        dbKey = createKey();
-        dbVal = createVal();
-        if (dbKey == null) throw new InstantiationError("Unable to create key wrapping class instance: "+keyClass);
-        if (dbVal == null) throw new InstantiationError("Unable to create value wrapping class instance: "+valClass);
+        valClass = (Class<? extends ISerializableType<V, IMask<V>>>) defVal.getClass();
+        valParamClass = IParametrized.class.isAssignableFrom(valClass) ? ((IParametrized) defVal).getValueClass() : null;
+        valMask  = defVal.getMask();
+
+        keyBuf = createKey();
+        valBuf = createVal();
 
         setValue(value);
     }
@@ -65,10 +56,6 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
         return new LinkedHashMap<>(value);
     }
 
-    public java.util.Map.Entry<? extends ISerializableType<K, ? extends IMask<K>>, ? extends ISerializableType<V, ? extends IMask<V>>> getEntry() {
-        return new AbstractMap.SimpleEntry<>(createKey(), createVal());
-    }
-
     @Override
     public void setValue(java.util.Map<K, V> value) {
         if (value != null) {
@@ -78,39 +65,52 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
         }
     }
 
-    @Override
-    public IEditorFactory<Map<K, V>, java.util.Map<K, V>> editorFactory() {
-        return MapEditor::new;
+    public java.util.Map.Entry<? extends ISerializableType<K, ? extends IMask<K>>, ? extends ISerializableType<V, ? extends IMask<V>>> newEntry() {
+        return new AbstractMap.SimpleEntry<>(createKey(), createVal());
     }
 
+    @SuppressWarnings("unchecked")
     private ISerializableType<K, ? extends IMask<K>> createKey() {
         try {
+            final ISerializableType<K, ? extends IMask<K>> instance;
+
             if (IParametrized.class.isAssignableFrom(keyClass)) {
                 Constructor<? extends ISerializableType<K, ? extends IMask<K>>> ctor = keyClass.getDeclaredConstructor(Class.class);
                 ctor.setAccessible(true);
-                return ctor.newInstance(keyParamClass);
+                instance = ctor.newInstance(keyParamClass);
             } else {
-                return keyClass.getConstructor().newInstance();
+                instance = keyClass.getConstructor().newInstance();
             }
+            ((ISerializableType<K,IMask<K>>) instance).setMask(keyMask);
+            return instance;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
             return null;
         }
     }
 
+    @SuppressWarnings("unchecked")
     private ISerializableType<V, ? extends IMask<V>> createVal() {
         try {
+            final ISerializableType<V, ? extends IMask<V>> instance;
             if (IParametrized.class.isAssignableFrom(valClass)) {
                 Constructor<? extends ISerializableType<V, ? extends IMask<V>>> ctor = valClass.getDeclaredConstructor(Class.class);
                 ctor.setAccessible(true);
-                return ctor.newInstance(valParamClass);
+                instance = ctor.newInstance(valParamClass);
             } else {
-                return valClass.getConstructor().newInstance();
+                instance = valClass.getConstructor().newInstance();
             }
+            ((ISerializableType<V, IMask<V>>) instance).setMask(valMask);
+            return instance;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
             return null;
         }
+    }
+
+    @Override
+    public IEditorFactory<Map<K, V>, java.util.Map<K, V>> editorFactory() {
+        return MapEditor::new;
     }
 
     @Override
@@ -118,10 +118,10 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
         if (value != null && !value.isEmpty()) {
             List<String> list = ArrStr.parse(value);
             for (int keyIdx = 0; keyIdx < list.size(); keyIdx = keyIdx+2) {
-                if (dbKey != null) dbKey.valueOf(list.get(keyIdx));
-                if (dbVal != null) dbVal.valueOf(list.get(keyIdx+1));
-                if (dbKey != null) {
-                    this.value.put(dbKey.getValue(), dbVal == null ? null : dbVal.getValue());
+                if (keyBuf != null) keyBuf.valueOf(list.get(keyIdx));
+                if (valBuf != null) valBuf.valueOf(list.get(keyIdx+1));
+                if (keyBuf != null) {
+                    this.value.put(keyBuf.getValue(), valBuf == null ? null : valBuf.getValue());
                 }
             }
         }
@@ -134,10 +134,10 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
         } else {
             List<String> list = new LinkedList<>();
             value.forEach((k, v) -> {
-                dbKey.setValue(k);
-                dbVal.setValue(v);
-                list.add(dbKey.toString());
-                list.add(dbVal.toString());
+                keyBuf.setValue(k);
+                valBuf.setValue(v);
+                list.add(keyBuf.toString());
+                list.add(valBuf.toString());
             });
             return ArrStr.merge(list);
         }
@@ -145,15 +145,6 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
 
     @Override
     public String getQualifiedValue(java.util.Map<K, V> val) {
-        return val == null || val.isEmpty() ? "<NULL>" : MessageFormat.format(
-                "[\n{0}\n]",
-                val.entrySet().stream()
-                        .map(kvEntry -> MessageFormat.format(
-                                "    {0}={1}",
-                                dbKey.getQualifiedValue(kvEntry.getKey()),
-                                dbVal.getQualifiedValue(kvEntry.getValue()))
-                        )
-                        .collect(Collectors.joining(",\n"))
-        );
+        return "MAP_EXT";
     }
 }
