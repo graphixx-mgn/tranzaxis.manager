@@ -290,22 +290,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            final List<Class<? extends Entity>> classCatalog = entity.getClassCatalog().stream()
-                    .filter(aClass -> !Modifier.isAbstract(aClass.getModifiers()))
-                    .collect(Collectors.toList());
-
-            Class<? extends Entity> createEntityClass;
-            if (classCatalog.size() == 0) {
-                MessageBox.show(MessageType.WARNING, Language.get(ClassSelector.class, "empty"));
-                return;
-            } else if (classCatalog.size() > 1 || context.getChildClass().isAnnotationPresent(ClassCatalog.Definition.class)) {
-                createEntityClass = new ClassSelector(classCatalog).select();
-                if (createEntityClass == null) {
-                    return;
-                }
-            } else {
-                createEntityClass = classCatalog.get(0);
-            }
+            Class<? extends Entity> createEntityClass = ClassSelector.select(context);
+            if (createEntityClass == null) return;
 
             final Entity newEntity = SelectorPresentation.newEntity(createEntityClass, Entity.findOwner(context));
             if (newEntity == null) {

@@ -46,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 /**
  * Абстракная сущность, базовый родитель прикладных сущностей приложения.
@@ -257,22 +256,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return this;
     }
 
-    /**
-     * Возвращает список классов, разрешенных для создания и загрузки в данном каталоге.
-     * Каждый из этих классов наследуется от одного класса {@link ClassCatalog}.
-     */
-    public final List<Class<? extends Entity>> getClassCatalog() {
-        Class<? extends Entity> childClass = getChildClass();
-        if (childClass.isAnnotationPresent(ClassCatalog.Definition.class)) {
-            return StreamSupport.stream(ClassIndex.getSubclasses(codex.model.ClassCatalog.class).spliterator(), false)
-                    .filter(childClass::isAssignableFrom)
-                    .sorted(Comparator.comparing(Class::getTypeName))
-                    .collect(Collectors.toList());
-        } else {
-            return Collections.singletonList(childClass);
-        }
-    }
-
     @Override
     public void setParent(INode parent) {
         super.setParent(parent);
@@ -323,7 +306,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
 
     protected Map<Class<? extends Entity>, Collection<String>> getChildrenPIDs() {
         Entity owner = ICatalog.class.isAssignableFrom(this.getClass()) ? this.getOwner() : this;
-        return getClassCatalog().stream()
+        return ClassCatalog.getClassCatalog(this).stream()
                 .collect(Collectors.toMap(
                         catalogClass -> catalogClass,
                         catalogClass -> {

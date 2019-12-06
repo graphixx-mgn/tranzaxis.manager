@@ -2,67 +2,109 @@ package codex.presentation;
 
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
-import codex.component.render.GeneralRenderer;
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
 import codex.editor.IEditor;
+import codex.model.ClassCatalog;
 import codex.model.Entity;
 import codex.model.EntityDefinition;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.lang.reflect.Modifier;
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.Stack;
 import java.util.function.Supplier;
 
 class ClassSelector {
 
-    final static ImageIcon ICON_UNKNOWN = ImageUtils.getByPath("/images/question.png");
-    final static ImageIcon ICON_CATALOG = ImageUtils.getByPath("/images/catalog.png");
+    private final static int       SIZE = (int) (IEditor.FONT_VALUE.getSize() * 1.6);
+    private final static ImageIcon ICON_UNKNOWN = ImageUtils.resize(ImageUtils.getByPath("/images/question.png"), SIZE, SIZE);
+    private final static ImageIcon ICON_FOLDER  = ImageUtils.resize(ImageUtils.getByPath("/images/folder.png"), SIZE, SIZE);
+    private final static ImageIcon ICON_CATALOG = ImageUtils.getByPath("/images/catalog.png");
 
-    private final DialogButton acceptBtn = Dialog.Default.BTN_OK.newInstance();
-    private final Dialog       selector;
+    private Dialog selector;
     private Supplier<Class<? extends Entity>> classSupplier;
 
-    ClassSelector(List<Class<? extends Entity>> classList) {
-        this(new DefaultListModel<Class<? extends Entity>>() {{
-            classList.forEach(this::addElement);
-        }});
+    public static Class<? extends Entity> select(Entity entity) {
+        List<Class<? extends Entity>> classCatalog = ClassCatalog.getClassCatalog(entity);
+        classCatalog.removeIf(aClass ->
+                Modifier.isAbstract(aClass.getModifiers()) &&
+                !aClass.isAnnotationPresent(ClassCatalog.Domain.class)
+        );
+        if (classCatalog.size() == 0) {
+            MessageBox.show(MessageType.WARNING, Language.get(ClassSelector.class, "empty"));
+            return null;
+        } else if (classCatalog.size() == 1) {
+            return classCatalog.get(0);
+        } else {
+            return new ClassSelector(buildTree(classCatalog)).select();
+        }
     }
 
-    ClassSelector(DefaultListModel<Class<? extends Entity>> classListModel) {
-        JList<Class<? extends Entity>> list = new JList<>(classListModel);
-        list.setBorder(new EmptyBorder(5, 10, 5, 10));
-
-        list.setCellRenderer(new GeneralRenderer<Class<? extends Entity>>() {
-            @Override
-            public Component getListCellRendererComponent(JList<? extends Class<? extends Entity>> list, Class<? extends Entity> entityClass, int index, boolean isSelected, boolean hasFocus) {
-                JLabel label = (JLabel) super.getListCellRendererComponent(list, entityClass, index, isSelected, hasFocus);
-                EntityDefinition entityDef = Entity.getDefinition(entityClass);
-                if (entityDef != null && !entityDef.icon().isEmpty()) {
-                    label.setIcon(ImageUtils.resize(ImageUtils.getByPath(entityDef.icon()), 17, 17));
-                } else {
-                    label.setIcon(ImageUtils.resize(ICON_UNKNOWN, 17, 17));
-                }
-                if (entityDef != null && !entityDef.title().isEmpty()) {
-                    label.setText(Language.get(entityClass, entityDef.title()));
-                } else {
-                    label.setText(MessageFormat.format("<{0}>", entityClass.getTypeName()));
-                    label.setForeground(IEditor.COLOR_INVALID);
-                }
-                return label;
-            }
+    private static DefaultTreeModel buildTree(List<Class<? extends Entity>> classCatalog) {
+        classCatalog.sort((class1, class2) -> {
+            if (class1.isAssignableFrom(class2)) {
+                return -1;
+            } else if (class2.isAssignableFrom(class1)) {
+                return 1;
+            } return 0;
         });
 
-        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        list.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                acceptBtn.setEnabled(!list.isSelectionEmpty());
+        final Stack<DefaultMutableTreeNode> stack = new Stack<>();
+        stack.push(new DefaultMutableTreeNode(Object.class));
+        final DefaultTreeModel treeModel = new DefaultTreeModel(stack.peek());
+
+        classCatalog.forEach(aClass -> {
+            if (((Class<?>) stack.peek().getUserObject()).isAssignableFrom(aClass)) {
+                DefaultMutableTreeNode parent = stack.peek();
+                stack.push(new DefaultMutableTreeNode(aClass));
+                parent.add(stack.peek());
+            } else {
+                DefaultMutableTreeNode parent;
+                do {
+                    stack.pop();
+                    parent = stack.peek();
+                } while (!((Class<?>) parent.getUserObject()).isAssignableFrom(aClass));
+                stack.push(new DefaultMutableTreeNode(aClass));
+                parent.add(stack.peek());
             }
         });
-        list.addMouseListener(new MouseAdapter() {
+        return treeModel;
+    }
+
+    private ClassSelector(DefaultTreeModel classTreeModel) {
+        JTree classTree = new JTree(classTreeModel);
+        classTree.setRowHeight(SIZE+2);
+        classTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+        classTree.setBorder(new EmptyBorder(-15, 5, 5, 5));
+
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) classTreeModel.getRoot();
+        classTree.expandPath(new TreePath(((DefaultMutableTreeNode) root.getFirstChild()).getPath()));
+
+        DialogButton acceptBtn = Dialog.Default.BTN_OK.newInstance();
+        acceptBtn.setEnabled(false);
+
+        classTree.addTreeSelectionListener((TreeSelectionEvent event) -> SwingUtilities.invokeLater(() -> {
+            final DefaultMutableTreeNode node = (DefaultMutableTreeNode) classTree.getLastSelectedPathComponent();
+            if (node != null) {
+                Class<?> entityClass = (Class<?>) node.getUserObject();
+                if (entityClass.isAnnotationPresent(ClassCatalog.Domain.class)) {
+                    classTree.clearSelection();
+                    classTree.getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
+                }
+            }
+            acceptBtn.setEnabled(!classTree.getSelectionModel().isSelectionEmpty());
+        }));
+
+        classTree.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent event) {
                 if (event.getClickCount() == 2) {
                     selector.setVisible(false);
@@ -70,35 +112,77 @@ class ClassSelector {
             }
         });
 
-        JScrollPane scroll = new JScrollPane(list);
-        JPanel content = new JPanel(new BorderLayout());
-        content.setBorder(new EmptyBorder(5, 5, 5, 5));
-        content.add(scroll, BorderLayout.CENTER);
-        content.setPreferredSize(new Dimension(
-                Math.max(content.getPreferredSize().width+50, 300),
-                200
-        ));
+        classTree.setCellRenderer((tree, value, selected, expanded, leaf, row, hasFocus) -> {
+            JLabel label = new JLabel();
+            label.setOpaque(true);
+            label.setIconTextGap(6);
+            label.setForeground(selected ? Color.WHITE : IEditor.COLOR_NORMAL);
+            label.setBorder(new EmptyBorder(15, 2, 15, 7));
+            label.setVerticalAlignment(SwingConstants.CENTER);
 
-        classSupplier = list::getSelectedValue;
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
+            Class<?> entityClass = (Class<?>) node.getUserObject();
+            EntityDefinition entityDef = entityClass.getAnnotation(EntityDefinition.class);
+
+            if (value.equals(tree.getModel().getRoot())) {
+                //
+            } else if (entityClass.isAnnotationPresent(ClassCatalog.Domain.class)) {
+                label.setIcon(ICON_FOLDER);
+                label.setText(Language.get(entityClass, "domain@name"));
+            } else {
+                label.setIcon(entityDef != null && !entityDef.icon().isEmpty() ?
+                            ImageUtils.resize(ImageUtils.getByPath(entityDef.icon()), SIZE, SIZE) :
+                            ICON_UNKNOWN
+                );
+                if (entityDef != null && !entityDef.title().isEmpty()) {
+                    label.setText(Language.get(entityClass, entityDef.title()));
+                } else {
+                    label.setText(MessageFormat.format("<{0}>", entityClass.getTypeName()));
+                    label.setForeground(IEditor.COLOR_INVALID);
+                }
+            }
+            label.setBackground(selected ?
+                    UIManager.getDefaults().getColor("Tree.selectionBackground") :
+                    UIManager.getDefaults().getColor("Tree.background")
+            );
+            return label;
+        });
+
+        classSupplier = () -> {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) classTree.getLastSelectedPathComponent();
+            if (node != null) {
+                Class<?> entityClass = (Class<?>) node.getUserObject();
+                return entityClass.asSubclass(Entity.class);
+            }
+            return null;
+        };
+
         selector = new Dialog(
-                null,
-                ICON_CATALOG,
-                Language.get("title"),
-                content,
-                event -> {
-                    if (event.getID() != Dialog.OK) {
-                        list.clearSelection();
-                    }
-                },
-                acceptBtn, Dialog.Default.BTN_CANCEL.newInstance()
+            Dialog.findNearestWindow(),
+            ICON_CATALOG,
+            Language.get("title"),
+            new JPanel(new BorderLayout()) {{
+                setBorder(new EmptyBorder(5, 5, 5, 5));
+                add(new JScrollPane(classTree), BorderLayout.CENTER);
+                setPreferredSize(new Dimension(
+                        Math.max(getPreferredSize().width + 50, 350),
+                        250
+                ));
+            }},
+            event -> {
+                if (event.getID() != Dialog.OK) {
+                    classTree.clearSelection();
+                }
+            },
+            acceptBtn,
+            Dialog.Default.BTN_CANCEL.newInstance()
         ) {
             @Override
             public void setVisible(boolean visible) {
-                if (visible) list.clearSelection();
+                if (visible) classTree.clearSelection();
                 super.setVisible(visible);
             }
         };
-        acceptBtn.setEnabled(!list.isSelectionEmpty());
     }
 
     final Class<? extends Entity> select() {
