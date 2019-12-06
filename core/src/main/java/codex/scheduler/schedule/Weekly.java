@@ -46,6 +46,14 @@ public class Weekly extends Schedule {
                     public IEditorFactory<codex.type.Map<Integer, Boolean>, Map<Integer, Boolean>> editorFactory() {
                         return WeekEditor::new;
                     }
+
+                    @Override
+                    public String getQualifiedValue(Map<Integer, Boolean> val) {
+                        return MessageFormat.format("[{0}]", val.entrySet().stream()
+                                .filter(Map.Entry::getValue)
+                                .map(entry -> DAY_NAMES[entry.getKey()])
+                                .collect(Collectors.joining(",")));
+                    }
                 },
                 true
         ) {
