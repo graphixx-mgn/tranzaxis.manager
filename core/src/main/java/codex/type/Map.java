@@ -7,7 +7,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
-public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<java.util.Map<K, V>>>/*, Map<K, V>*/ {
+public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<java.util.Map<K, V>>> {
 
     private final Class<? extends ISerializableType<K, ? extends IMask<K>>> keyClass;
     private final Class<? extends ISerializableType<V, ? extends IMask<V>>> valClass;
