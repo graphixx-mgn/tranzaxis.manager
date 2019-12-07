@@ -611,7 +611,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     "delete", null,
                     IMAGE_REMOVE, 
                     Language.get(SelectorPresentation.class, "command@delete"),
-                    (entity) -> true,
+                    entity -> entity.getID() != null,
                     KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0)
             );
         }
