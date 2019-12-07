@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
  */
 
 @EntityCommand.Definition(parentCommand = EntityCommand.class)
-public abstract class EntityCommand<V extends Entity> implements ICommand<V, List<V>>, Iconified {
+public abstract class EntityCommand<V extends Entity> implements ICommand<V, Collection<V>>, Iconified {
     
     private static final ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
 
@@ -67,7 +67,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     private final String    hint;
     private final ImageIcon icon;
     private final String    title;
-    private List<V>   context = new LinkedList<>();
+    private Collection<V>   context = new LinkedList<>();
     private Predicate<V> available;
     private final List<ICommandListener<V>> listeners = new LinkedList<>();
     private Supplier<PropertyHolder[]>      provider  = () -> new PropertyHolder[]{};
@@ -207,7 +207,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
     }
 
     @Override
-    public final void setContext(List<V> context) {
+    public final void setContext(Collection<V> context) {
         this.context.forEach((contextItem) -> contextItem.model.removeModelListener(modelListener));
         this.context = context;
         new LinkedList<>(listeners).forEach((listener) -> listener.contextChanged(context));
@@ -215,9 +215,9 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Lis
         activate();
     }
     
-    public final void setContext(V context) {
-        setContext(Collections.singletonList(context));
-    }
+//    public final void setContext(V context) {
+//        setContext(Collections.singletonList(context));
+//    }
 
     /**
      * Текст вопроса, отображаемого пользователю для подтверждения перед исполнением команды.

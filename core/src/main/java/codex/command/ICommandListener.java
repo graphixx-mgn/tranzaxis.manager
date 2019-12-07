@@ -1,6 +1,7 @@
 package codex.command;
 
 import javax.swing.*;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -13,7 +14,7 @@ public interface ICommandListener<T> {
      * Событие смены контекста команды.
      * @param context Новый контекст.
      */
-    default void contextChanged(List<T> context) {}
+    default void contextChanged(Collection<T> context) {}
 
     /**
      * Событие смены статуса активности команды.

@@ -167,7 +167,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         systemCommands.forEach((command, ctxKind) -> {
             switch (ctxKind) {
                 case Parent:
-                    command.setContext(entity); break;
+                    command.setContext(Collections.singletonList(entity)); break;
                 default:
                     context.forEach((contextItem) -> contextItem.removeNodeListener(this));
                     command.setContext(context);

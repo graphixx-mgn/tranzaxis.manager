@@ -5,6 +5,7 @@ import codex.editor.AbstractEditor;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.model.Access;
+import codex.model.Catalog;
 import codex.model.Entity;
 import codex.model.PolyMorph;
 import javax.swing.*;
@@ -81,10 +82,8 @@ public final class EditorPresentation extends JPanel {
      * Актуализация состояния доступности команд.
      */
     private void activateCommands() {
-        systemCommands.forEach(sysCommand -> sysCommand.setContext(context.get()));
-        contextCommands.forEach(command -> {
-            command.setContext(context.get());
-        });
+        systemCommands.forEach(sysCommand -> sysCommand.setContext(Collections.singletonList(context.get())));
+        contextCommands.forEach(ctxCommand -> ctxCommand.setContext(Collections.singletonList(context.get())));
     }
 
     private List<EntityCommand<Entity>> getSystemCommands() {

@@ -22,6 +22,7 @@ import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Path2D;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.swing.Box;
@@ -105,7 +106,7 @@ final class LaunchShortcut extends LaunchButton implements IModelListener, INode
                     
                     List<Entity> prevContext = command.getContext();
                     try {
-                        command.setContext(entity);
+                        command.setContext(Collections.singletonList(entity));
                         try {
                             final Map<String, IComplexType> params = command.getParameters();
                             Logger.getLogger().debug("Perform command [{0}]. Context: {1}", command.getName(), entity);
@@ -188,7 +189,7 @@ final class LaunchShortcut extends LaunchButton implements IModelListener, INode
             EntityCommand<Entity> command = entity.getCommand(cmdName);
             List<Entity> prevContext = command.getContext();
             try {
-                command.setContext(entity);
+                command.setContext(Collections.singletonList(entity));
                 newStatus = command.isActive() ? Status.AVAILABLE : Status.DISABLED;
             } finally {
                 command.setContext(prevContext);

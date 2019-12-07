@@ -18,6 +18,7 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.function.Function;
 import manager.commands.database.CheckDatabase;
@@ -100,7 +101,7 @@ public class Database extends Entity {
         super.setParent(parent);
         if (parent != null) {
             CheckDatabase check = getCommand(CheckDatabase.class);
-            check.setContext(this);
+            check.setContext(Collections.singletonList(this));
         }
     }
     
