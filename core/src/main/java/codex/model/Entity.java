@@ -27,7 +27,6 @@ import codex.task.ITaskListener;
 import codex.type.*;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import org.atteo.classindex.ClassIndex;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -541,7 +540,13 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 }},
                 event -> result.set(event.getID() == Dialog.OK),
                 buttonSet
-        ).setVisible(true);
+        ){
+            @Override
+            public Dimension getPreferredSize() {
+                Dimension defSize = super.getPreferredSize();
+                return new Dimension(Math.max(defSize.width, 400), defSize.height);
+            }
+        }.setVisible(true);
         return result.get();
     }
 
