@@ -25,15 +25,22 @@ import org.tmatesoft.svn.core.wc.ISVNEventHandler;
 import org.tmatesoft.svn.core.wc.SVNEvent;
 import org.tmatesoft.svn.core.wc.SVNEventAction;
 import org.tmatesoft.svn.core.wc.SVNRevision;
+import javax.swing.*;
 
 @EntityCommand.Definition(parentCommand = RefreshWC.class)
 public class UpdateWC extends EntityCommand<Offshoot> {
+
+    private static final ImageIcon COMMAND_ICON = ImageUtils.combine(
+            ImageUtils.getByPath("/images/folder.png"),
+            ImageUtils.resize(ImageUtils.getByPath("/images/up.png"), .7f),
+            SwingConstants.SOUTH_EAST
+    );
 
     public UpdateWC() {
         super(
                 "update",
                 Language.get("title"),
-                ImageUtils.getByPath("/images/update.png"),
+                COMMAND_ICON,
                 Language.get("desc"), 
                 (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Invalid)
         );

@@ -24,7 +24,7 @@ public class RunDesigner extends EntityCommand<Offshoot> {
                 Language.get("title"),
                 ImageUtils.getByPath("/images/designer.png"),
                 Language.get("desc"), 
-                (offshoot) -> offshoot.getWCStatus().equals(WCStatus.Successful)
+                (offshoot) -> offshoot.getWCStatus().isOperative()
         );
     }
 

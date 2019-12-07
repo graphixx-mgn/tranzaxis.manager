@@ -27,7 +27,7 @@ public class UpdateToRevision extends EntityCommand<Offshoot> {
     private final static String PARAM_REVISION = "revision";
 
     private final static ImageIcon ICON_COMMAND = ImageUtils.combine(
-            ImageUtils.getByPath("/images/update.png"),
+            ImageUtils.getByPath("/images/folder.png"),
             ImageUtils.createBadge("R.", Color.decode("#3399FF"), Color.WHITE),
             SwingConstants.SOUTH_EAST
     );

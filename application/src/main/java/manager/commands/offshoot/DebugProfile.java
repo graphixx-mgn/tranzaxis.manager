@@ -61,7 +61,7 @@ public class DebugProfile extends EntityCommand<Offshoot> {
                 Language.get("title"),
                 ImageUtils.getByPath("/images/debugger.png"),
                 Language.get("title"),
-                (offshoot) -> offshoot.getWCStatus().equals(WCStatus.Successful)
+                (offshoot) -> offshoot.getWCStatus().isOperative()
         );
 
         // Parameters
@@ -71,9 +71,9 @@ public class DebugProfile extends EntityCommand<Offshoot> {
                 return !(isRequired() && isEmpty());
             }
         };
-        PropertyHolder propStatus = new PropertyHolder<>(PARAM_STATUS, new AnyType() {
+        PropertyHolder<AnyType, Object> propStatus = new PropertyHolder<>(PARAM_STATUS, new AnyType() {
             @Override
-            public IEditorFactory editorFactory() {
+            public IEditorFactory<AnyType, Object> editorFactory() {
                 return TextView::new;
             }
         }, false);
@@ -163,7 +163,7 @@ public class DebugProfile extends EntityCommand<Offshoot> {
         }
     }
 
-    private final List<String> getProfiles(Preferences  node) {
+    private List<String> getProfiles(Preferences  node) {
         if (node != null) {
             final String[] profs = node.get(PROP_NAME_PROFILES, DEFAULT_PROFILE_NAME).split("\\*");
             return Arrays.asList(profs);

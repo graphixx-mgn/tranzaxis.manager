@@ -14,7 +14,19 @@ import manager.nodes.Offshoot;
 import manager.type.WCStatus;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 
+import javax.swing.*;
+
 public class RefreshWC extends EntityCommand<Offshoot> {
+
+    private static final ImageIcon COMMAND_ICON = ImageUtils.combine(
+            ImageUtils.combine(
+                ImageUtils.getByPath("/images/folder.png"),
+                ImageUtils.resize(ImageUtils.getByPath("/images/build.png"), .7f),
+                SwingConstants.SOUTH_EAST
+            ),
+            ImageUtils.resize(ImageUtils.getByPath("/images/up.png"), .7f),
+            SwingConstants.SOUTH_WEST
+    );
 
     private static final String PARAM_CLEAN = "clean";
 
@@ -22,9 +34,9 @@ public class RefreshWC extends EntityCommand<Offshoot> {
         super(
                 "refresh",
                 Language.get("title"),
-                ImageUtils.getByPath("/images/rebuild.png"),
+                COMMAND_ICON,
                 Language.get("desc"), 
-                (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Invalid)
+                (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Invalid) && !offshoot.getWCStatus().equals(WCStatus.Erroneous)
         );
         setParameters(
                 new PropertyHolder<>(PARAM_CLEAN, new Bool(Boolean.FALSE), true)

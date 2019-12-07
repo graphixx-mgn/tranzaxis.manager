@@ -13,6 +13,7 @@ import manager.commands.offshoot.build.BuildSourceTask;
 import manager.commands.offshoot.build.BuildingNotifier;
 import manager.nodes.Offshoot;
 import manager.type.WCStatus;
+import javax.swing.*;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.rmi.AlreadyBoundException;
@@ -22,6 +23,11 @@ import java.util.Map;
 @EntityCommand.Definition(parentCommand = RefreshWC.class)
 public class BuildWC extends EntityCommand<Offshoot> {
 
+    private static final ImageIcon COMMAND_ICON = ImageUtils.combine(
+            ImageUtils.getByPath("/images/folder.png"),
+            ImageUtils.resize(ImageUtils.getByPath("/images/build.png"), .7f),
+            SwingConstants.SOUTH_EAST
+    );
     private static final String PARAM_CLEAN = "clean";
 
     private static BuildingNotifier BUILD_NOTIFIER;
@@ -55,7 +61,7 @@ public class BuildWC extends EntityCommand<Offshoot> {
         super(
                 "build",
                 Language.get("title"),
-                ImageUtils.getByPath("/images/build.png"),
+                COMMAND_ICON,
                 Language.get("desc"), 
                 (offshoot) -> offshoot.getWCStatus().equals(WCStatus.Successful)
         );
