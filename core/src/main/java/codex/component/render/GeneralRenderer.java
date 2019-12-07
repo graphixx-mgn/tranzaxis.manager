@@ -137,7 +137,7 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                         entity.model.getProperty(propName).isEmpty() ? null : value,
                         entity.model.getProperty(propName).getPlaceholder()
                 );
-                if (entity.model.getProperty(propName).isEmpty()) {
+                if (entity.model.getProperty(propName).isEmpty() || (entity.getMode() & INode.MODE_ENABLED) != INode.MODE_ENABLED) {
                     fgColor = Color.decode("#999999");
                 }
                 if (isEntityInvalid) {
