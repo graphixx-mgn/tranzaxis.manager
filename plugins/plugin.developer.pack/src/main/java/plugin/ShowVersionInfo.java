@@ -98,8 +98,8 @@ public class ShowVersionInfo extends CommandPlugin<Offshoot> {
                     ));
 
                     paramModel.addProperty(PROP_RELEASE_INFO, new codex.type.Map<>(
-                            Str.class,
-                            new EntityRef<ReleaseInfo>(ReleaseInfo.class){}.getClass(),
+                            new Str(),
+                            new EntityRef<>(ReleaseInfo.class),
                             getReleaseInfos(branch)
                     ), false);
                 } else {
