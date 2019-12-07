@@ -3,6 +3,7 @@ package manager.commands.offshoot;
 import codex.command.EntityCommand;
 import codex.log.Logger;
 import codex.task.AbstractTask;
+import codex.task.GroupTask;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -15,7 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
-import javax.swing.SwingUtilities;
 import manager.nodes.Offshoot;
 import manager.svn.SVN;
 import manager.type.WCStatus;
@@ -45,8 +45,16 @@ public class UpdateWC extends EntityCommand<Offshoot> {
     }
 
     @Override
-    public void execute(Offshoot offshoot, Map<String, IComplexType> map) {
-        executeTask(offshoot, new UpdateTask(offshoot, SVNRevision.HEAD), false);
+    public void execute(Offshoot context, Map<String, IComplexType> map) {
+        executeTask(
+                context,
+                new GroupTask<>(
+                        Language.get("title") + ": "+(context).getLocalPath(),
+                        new UpdateWC.UpdateTask(context, SVNRevision.HEAD),
+                        context.new CheckConflicts()
+                ),
+                false
+        );
     }
     
     public static class UpdateTask extends AbstractTask<Void> {
@@ -119,6 +127,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                     AtomicInteger deleted  = new AtomicInteger(0);
                     AtomicInteger restored = new AtomicInteger(0);
                     AtomicInteger changed  = new AtomicInteger(0);
+                    AtomicInteger skipped  = new AtomicInteger(0);
 
                     long total = changes.size();
                     SVN.update(repoUrl, wcPath, revision, authMgr, new ISVNEventHandler() {
@@ -144,6 +153,10 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                                             changed.addAndGet(1);
                                         } else if (action == SVNEventAction.RESTORE) {
                                             restored.addAndGet(1);
+                                        } else if (action == SVNEventAction.SKIP_CONFLICTED) {
+                                            skipped.addAndGet(1);
+                                        } else {
+                                            System.err.println(action);
                                         }
                                     } else {
                                         if (event.getFile().isFile()) System.out.println(event);
@@ -171,8 +184,9 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                             (deleted.get()  == 0 ? "" : " * Deleted:  {4}\n")+
                             (restored.get() == 0 ? "" : " * Restored: {5}\n")+
                             (changed.get()  == 0 ? "" : " * Changed:  {6}\n")+
-                                                        " * Total:    {7}", 
-                            wcPath, strR1, strR2, added.get(), deleted.get(), restored.get(), changed.get(), loaded.get()
+                            (skipped.get()  == 0 ? "" : " * Skipped:  {7}\n")+
+                                                        " * Total:    {8}",
+                            wcPath, strR1, strR2, added.get(), deleted.get(), restored.get(), changed.get(), skipped.get(), loaded.get()
                     );
                 } else {
                     Logger.getLogger().info("UPDATE [{0}] finished. working copy already actual", wcPath);
@@ -195,15 +209,14 @@ public class UpdateWC extends EntityCommand<Offshoot> {
 
         @Override
         public void finished(Void res) {
-            SwingUtilities.invokeLater(() -> {
-                offshoot.model.updateDynamicProps();
-                offshoot.setWCLoaded(offshoot.getWCStatus().equals(WCStatus.Successful));
-                try {
-                    offshoot.model.commit(false);
-                } catch (Exception e) {
-                    //
-                }
-            });
+            offshoot.model.updateDynamicProps();
+            WCStatus status = offshoot.getWCStatus();
+            offshoot.setWCLoaded(status.equals(WCStatus.Successful));
+            try {
+                offshoot.model.commit(false);
+            } catch (Exception e) {
+                //
+            }
         }
     
     }

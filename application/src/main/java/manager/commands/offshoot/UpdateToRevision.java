@@ -6,6 +6,7 @@ import codex.mask.IMask;
 import codex.supplier.RowSelector;
 import codex.model.ParamModel;
 import codex.property.PropertyHolder;
+import codex.task.GroupTask;
 import codex.type.IComplexType;
 import codex.type.Int;
 import codex.utils.ImageUtils;
@@ -75,9 +76,11 @@ public class UpdateToRevision extends EntityCommand<Offshoot> {
     public void execute(Offshoot context, Map<String, IComplexType> params) {
         executeTask(
                 context,
-                new UpdateWC.UpdateTask(context, SVNRevision.create(
-                        ((Int) params.get(PARAM_REVISION)).getValue()
-                )),
+                new GroupTask<>(
+                        Language.get("title") + ": "+(context).getLocalPath(),
+                        new UpdateWC.UpdateTask(context, SVNRevision.create(((Int) params.get(PARAM_REVISION)).getValue())),
+                        context.new CheckConflicts()
+                ),
                 false
         );
     }

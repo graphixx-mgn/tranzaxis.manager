@@ -37,15 +37,16 @@ public class RefreshWC extends EntityCommand<Offshoot> {
     }
 
     @Override
-    public void execute(Offshoot offshoot, Map<String, IComplexType> map) {
-        if (!offshoot.getRepository().isRepositoryOnline(true)) return;
+    public void execute(Offshoot context, Map<String, IComplexType> map) {
+        if (!context.getRepository().isRepositoryOnline(true)) return;
         executeTask(
-                offshoot, 
+                context,
                 new GroupTask<>(
-                        Language.get("title") + ": "+(offshoot).getLocalPath(),
-                        new UpdateWC.UpdateTask(offshoot, SVNRevision.HEAD),
-                        new BuildKernelTask(offshoot),
-                        new BuildSourceTask(offshoot, map.get(PARAM_CLEAN).getValue() == Boolean.TRUE)
+                        Language.get("title") + ": "+(context).getLocalPath(),
+                        new UpdateWC.UpdateTask(context, SVNRevision.HEAD),
+                        context.new CheckConflicts(),
+                        new BuildKernelTask(context),
+                        new BuildSourceTask(context, map.get(PARAM_CLEAN).getValue() == Boolean.TRUE)
                 ), 
                 false
         );

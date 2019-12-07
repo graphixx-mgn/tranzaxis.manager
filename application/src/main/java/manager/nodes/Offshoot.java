@@ -17,6 +17,16 @@ import codex.type.EntityRef;
 import codex.type.Enum;
 import codex.type.Str;
 import codex.utils.ImageUtils;
+import codex.utils.Language;
+import manager.commands.offshoot.*;
+import manager.svn.SVN;
+import manager.type.BuildStatus;
+import manager.type.WCStatus;
+import org.apache.commons.io.FileDeleteStrategy;
+import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
+import org.tmatesoft.svn.core.wc.*;
+import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -28,16 +38,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import codex.utils.Language;
-import manager.commands.offshoot.*;
-import manager.svn.SVN;
-import manager.type.BuildStatus;
-import manager.type.WCStatus;
-import org.apache.commons.io.FileDeleteStrategy;
-import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
-import org.tmatesoft.svn.core.wc.*;
-import javax.swing.*;
 
 public class Offshoot extends BinarySource {
 
@@ -63,25 +63,14 @@ public class Offshoot extends BinarySource {
         // Properties
         model.addDynamicProp(PROP_WC_STATUS, new Enum<>(WCStatus.Absent), Access.Edit, () -> {
             if (this.getOwner() != null && new File(getLocalPath()).exists()) {
-                new Thread(() -> {
-                    if (this.getOwner() != null) {
-                        try {
-                            getLock().acquire();
-                            setWCStatus(getWorkingCopyStatus());
-                        } catch (InterruptedException ignore) {
-                            //
-                        } finally {
-                            getLock().release();
-                        }
-                    }
-                }).start();
-                return WCStatus.Unknown;
+                return getWorkingCopyStatus();
             } else {
                 return WCStatus.Absent;
             }
         });
         model.addDynamicProp(PROP_WC_REVISION, new Str(null), null, () -> {
-            if (getWCStatus() != WCStatus.Absent) {
+            WCStatus status = getWCStatus();
+            if (status.isOperative() || status.equals(WCStatus.Unknown)) {
                 SVNRevision revision = getWorkingCopyRevision(false);
                 Date date = getWorkingCopyRevisionDate(false);
                 if (!SVNRevision.UNDEFINED.equals(revision) && date != null) {
@@ -95,12 +84,23 @@ public class Offshoot extends BinarySource {
         PropertyHolder<Bool, Boolean> propLoaded = new PropertyHolder<Bool, Boolean>(PROP_WC_LOADED, new Bool(null), false) {
             @Override
             public boolean isValid() {
-                return !(getID() == null && !getWCStatus().equals(WCStatus.Absent));
+                return (getID() == null) == getWCStatus().equals(WCStatus.Absent);
             }
         };
         model.addUserProp(propLoaded, Access.Any);
     }
-    
+
+    @Override
+    public void setParent(INode parent) {
+        super.setParent(parent);
+        if (parent != null) {
+            WCStatus status = getWCStatus();
+            if (status.isOperative()) {
+                checkConflicts();
+            }
+        }
+    }
+
     public final String getVersion() {
         return getPID();
     }
@@ -114,13 +114,22 @@ public class Offshoot extends BinarySource {
         setMode(wcStatus.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED);
         return wcStatus;
     }
+
+    private void checkConflicts() {
+        CheckConflicts checkTask = new CheckConflicts();
+        ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).enqueueTask(checkTask);
+    }
+
+    public final void setWCLoaded(boolean value) {
+        model.setValue(PROP_WC_LOADED, value);
+    }
     
-    public final boolean isWCLoaded() {
+    final boolean isWCLoaded() {
         return model.getValue(PROP_WC_LOADED) == Boolean.TRUE;
     }
     
     @SuppressWarnings("unchecked")
-    public final BuildStatus getBuiltStatus() {
+    final BuildStatus getBuiltStatus() {
         List<String> value = (List<String>) model.getValue(PROP_WC_BUILT);
         if (value != null) {
             BuildStatus status = new BuildStatus();
@@ -130,14 +139,8 @@ public class Offshoot extends BinarySource {
         return null;
     }
     
-    public final Offshoot setBuiltStatus(BuildStatus value) {
+    public final void setBuiltStatus(BuildStatus value) {
         model.setValue(PROP_WC_BUILT, value);
-        return this;
-    }
-    
-    public final Offshoot setWCLoaded(boolean value) {
-        model.setValue(PROP_WC_LOADED, value);
-        return this;
     }
 
     @Override
@@ -159,7 +162,7 @@ public class Offshoot extends BinarySource {
         }
     }
     
-    public final WCStatus getWorkingCopyStatus() {
+    private WCStatus getWorkingCopyStatus() {
         String wcPath = getLocalPath();
         final File localDir = new File(wcPath);
         if (!localDir.exists()) {
@@ -170,40 +173,13 @@ public class Offshoot extends BinarySource {
             ISVNAuthenticationManager authMgr = getRepository().getAuthManager();
             SVNInfo info = SVN.info(wcPath, false, authMgr);
             if (
-                    info == null || 
-                    info.getCommittedDate() == null || 
+                    info == null ||
+                    info.getCommittedDate() == null ||
                     info.getCommittedRevision() == null ||
                     info.getCommittedRevision() == SVNRevision.UNDEFINED
             ) {
                 return WCStatus.Interrupted;
             } else {
-                List<SVNStatus> statusList = SVN.status(wcPath, false, info.getCommittedRevision(), authMgr);
-                List<File> conflictList = statusList.stream()
-                        .filter(svnStatus -> {
-                            if (svnStatus.getPropertiesStatus() == SVNStatusType.STATUS_CONFLICTED) {
-                                try {
-                                    SVN.resolve(svnStatus.getFile(), getRepository().getAuthManager());
-                                } catch (SVNException e) {
-                                    e.printStackTrace();
-                                }
-                                Logger.getLogger().info("Property conflicts in ''{0}'' has been automatically resolved", svnStatus.getFile());
-                                return false;
-                            }
-                            return svnStatus.getContentsStatus() == SVNStatusType.STATUS_CONFLICTED;
-                        })
-                        .map(SVNStatus::getFile)
-                        .collect(Collectors.toList());
-                if (!conflictList.isEmpty()) {
-                    Logger.getLogger().warn(
-                            "Working copy ''{0}/{1}'' has file conflicts:\n{2}",
-                            getRepository().getTitle(),
-                            getTitle(),
-                            conflictList.stream()
-                                .map(file -> MessageFormat.format(" * {0}", file.getAbsolutePath().replace(getLocalPath(), "")))
-                                .collect(Collectors.joining("\n"))
-                    );
-                    return WCStatus.Erroneous;
-                }
                 return WCStatus.Successful;
             }
         }
@@ -270,6 +246,10 @@ public class Offshoot extends BinarySource {
         @Override
         public Void execute() throws Exception {
             String wcPath = Offshoot.this.getLocalPath();
+            if (!new File(wcPath).exists()) {
+                return null;
+            }
+
             Offshoot.this.setWCLoaded(false);
             Offshoot.this.model.commit(false);
 
@@ -329,5 +309,68 @@ public class Offshoot extends BinarySource {
         @Override
         public void finished(Void result) {}
     }
-    
+
+
+    public class CheckConflicts extends AbstractTask<WCStatus> {
+
+        public CheckConflicts() {
+            super(Language.get(Offshoot.class, "conflicts@task.title") + ": "+Offshoot.this.getLocalPath());
+        }
+
+        @Override
+        public WCStatus execute() {
+            boolean locked = islocked();
+            try {
+                if (!locked) getLock().acquire();
+                setWCStatus(WCStatus.Unknown);
+
+                List<SVNStatus> statusList = SVN.status(
+                        getLocalPath(), false, SVNRevision.WORKING,
+                        getRepository().getAuthManager()
+                );
+                List<File> conflictList = statusList.stream()
+                        .filter(svnStatus -> {
+                            if (svnStatus.getPropertiesStatus() == SVNStatusType.STATUS_CONFLICTED) {
+                                try {
+                                    SVN.resolve(svnStatus.getFile(), getRepository().getAuthManager());
+                                    Logger.getLogger().info("Property conflicts in ''{0}'' has been automatically resolved", svnStatus.getFile());
+                                } catch (SVNException e) {
+                                    Logger.getLogger().info("Property conflicts in ''{0}'' has not been resolved", svnStatus.getFile());
+                                    return true;
+                                }
+                                return false;
+                            }
+                            return svnStatus.getContentsStatus() == SVNStatusType.STATUS_CONFLICTED;
+                        })
+                        .map(SVNStatus::getFile)
+                        .collect(Collectors.toList());
+
+                if (!conflictList.isEmpty()) {
+                    Logger.getLogger().warn(
+                            "Working copy ''{0}/{1}'' has file conflicts:\n{2}",
+                            getRepository().getTitle(),
+                            getTitle(),
+                            conflictList.stream()
+                                .map(file -> MessageFormat.format(" * {0}", file.getAbsolutePath().replace(getLocalPath(), "")))
+                                .collect(Collectors.joining("\n"))
+                    );
+                    return WCStatus.Erroneous;
+                }
+            } catch (InterruptedException ignore) {
+                //
+            } finally {
+                if (!locked) getLock().release();
+            }
+            return null;
+        }
+
+        @Override
+        public void finished(WCStatus result) {
+            if (result != null) {
+                Offshoot.this.setWCStatus(result);
+            } else {
+                Offshoot.this.setWCStatus(getWorkingCopyStatus());
+            }
+        }
+    }
 }

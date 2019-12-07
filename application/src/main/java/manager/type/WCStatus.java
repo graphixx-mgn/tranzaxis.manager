@@ -9,7 +9,7 @@ public enum WCStatus implements Iconified {
 
     Unknown(ImageUtils.getByPath("/images/progress.png")),
 
-    Absent(ImageUtils.getByPath("/images/svn_none.png")),
+    Absent(ImageUtils.grayscale(ImageUtils.getByPath("/images/unavailable.png"))),
     Invalid(ImageUtils.getByPath("/images/svn_invalid.png")),
     Interrupted(ImageUtils.getByPath("/images/svn_interrupted.png")),
     Erroneous(ImageUtils.getByPath("/images/svn_erroneous.png")),
@@ -18,9 +18,13 @@ public enum WCStatus implements Iconified {
     private final String    title;
     private final ImageIcon icon;
     
-    private WCStatus(ImageIcon icon) {
+    WCStatus(ImageIcon icon) {
         this.title = Language.get(name().toLowerCase());
         this.icon  = icon;
+    }
+
+    public final boolean isOperative() {
+        return this.equals(Erroneous) || this.equals(Successful);
     }
 
     @Override
