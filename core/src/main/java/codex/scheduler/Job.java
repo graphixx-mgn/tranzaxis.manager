@@ -7,7 +7,7 @@ import codex.type.*;
 import javax.swing.*;
 import java.util.Date;
 
-@ClassCatalog.Definition(selectorProps = {Job.PROP_NEXT_SCHEDULE})
+//@ClassCatalog.Definition(selectorProps = {Job.PROP_NEXT_SCHEDULE})
 abstract class Job extends PolyMorph {
 
 //    private static final Iconified EMPTY = new Iconified() {
@@ -23,11 +23,11 @@ abstract class Job extends PolyMorph {
 //    };
 
     @PropertyDefinition(state = true)
-    final static String PROP_JOB_STATUS    = "status";
+    private final static String PROP_JOB_STATUS    = "status";
     @PropertyDefinition(state = true)
-    final static String PROP_JOB_FINISH    = "finish";
-    final static String PROP_JOB_RESULT    = "result";
-    final static String PROP_NEXT_SCHEDULE = "next";
+    private final static String PROP_JOB_FINISH    = "finish";
+    private final static String PROP_JOB_RESULT    = "result";
+    //private final static String PROP_NEXT_SCHEDULE = "next";
 
 //    private IModelListener scheduleListener = new IModelListener() {
 //        @Override
@@ -42,7 +42,7 @@ abstract class Job extends PolyMorph {
         super(owner, title);
 
         // Properties
-        model.addDynamicProp(PROP_NEXT_SCHEDULE, new AnyType(), Access.Edit, null);
+        //model.addDynamicProp(PROP_NEXT_SCHEDULE, new AnyType(), Access.Edit, null);
         model.addUserProp(PROP_JOB_STATUS, new Enum<>(JobScheduler.JobStatus.Undefined), false, Access.Any);
         model.addUserProp(PROP_JOB_FINISH, new DateTime(null), false, Access.Any);
 
@@ -84,7 +84,7 @@ abstract class Job extends PolyMorph {
 
     @Override
     public Class<? extends Entity> getChildClass() {
-        return Schedule.class;
+        return JobTrigger.class;
     }
 
     @Override
