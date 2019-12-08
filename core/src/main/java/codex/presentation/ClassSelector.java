@@ -13,6 +13,7 @@ import codex.utils.Language;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.TreeSelectionEvent;
+import javax.swing.plaf.basic.BasicTreeUI;
 import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -83,6 +84,13 @@ class ClassSelector {
     private ClassSelector(DefaultTreeModel classTreeModel) {
         JTree classTree = new JTree(classTreeModel);
         classTree.setRowHeight(SIZE+2);
+        classTree.setUI(new BasicTreeUI() {
+            @Override
+            protected void paintVerticalLine(Graphics g, JComponent c, int x, int top, int bottom) {}
+
+            @Override
+            protected void paintHorizontalLine(Graphics g, JComponent c, int y, int left, int right) {}
+        });
         classTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         classTree.setBorder(new EmptyBorder(-15, 5, 5, 5));
 
@@ -92,21 +100,13 @@ class ClassSelector {
         DialogButton acceptBtn = Dialog.Default.BTN_OK.newInstance();
         acceptBtn.setEnabled(false);
 
-        classTree.addTreeSelectionListener((TreeSelectionEvent event) -> SwingUtilities.invokeLater(() -> {
-            final DefaultMutableTreeNode node = (DefaultMutableTreeNode) classTree.getLastSelectedPathComponent();
-            if (node != null) {
-                Class<?> entityClass = (Class<?>) node.getUserObject();
-                if (entityClass.isAnnotationPresent(ClassCatalog.Domain.class)) {
-                    classTree.clearSelection();
-                    classTree.getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
-                }
-            }
-            acceptBtn.setEnabled(!classTree.getSelectionModel().isSelectionEmpty());
-        }));
+        classTree.addTreeSelectionListener((TreeSelectionEvent event) -> {
+            acceptBtn.setEnabled(isNodeSelectable((DefaultMutableTreeNode) classTree.getLastSelectedPathComponent()));
+        });
 
         classTree.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent event) {
-                if (event.getClickCount() == 2) {
+                if (event.getClickCount() == 2 && isNodeSelectable((DefaultMutableTreeNode) classTree.getLastSelectedPathComponent())) {
                     selector.setVisible(false);
                 }
             }
@@ -185,7 +185,11 @@ class ClassSelector {
         };
     }
 
-    final Class<? extends Entity> select() {
+    private boolean isNodeSelectable(DefaultMutableTreeNode node) {
+        return node != null && !((Class<?>) node.getUserObject()).isAnnotationPresent(ClassCatalog.Domain.class);
+    }
+
+    private Class<? extends Entity> select() {
         selector.setVisible(true);
         return classSupplier.get();
     }
