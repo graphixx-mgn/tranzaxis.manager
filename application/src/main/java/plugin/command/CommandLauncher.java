@@ -69,7 +69,7 @@ public final class CommandLauncher extends EntityGroupCommand<Entity> {
         }
 
         @Override
-        protected void executeCommand(EntityCommand<Entity> command) {
+        protected void executeCommand() {
             CommandLauncher.this.process();
         }
     }
