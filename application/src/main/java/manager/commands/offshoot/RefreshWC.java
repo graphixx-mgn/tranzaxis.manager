@@ -13,7 +13,6 @@ import manager.commands.offshoot.build.BuildSourceTask;
 import manager.nodes.Offshoot;
 import manager.type.WCStatus;
 import org.tmatesoft.svn.core.wc.SVNRevision;
-
 import javax.swing.*;
 
 public class RefreshWC extends EntityCommand<Offshoot> {
@@ -36,7 +35,7 @@ public class RefreshWC extends EntityCommand<Offshoot> {
                 Language.get("title"),
                 COMMAND_ICON,
                 Language.get("desc"), 
-                (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Invalid) && !offshoot.getWCStatus().equals(WCStatus.Erroneous)
+                (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Erroneous)
         );
         setParameters(
                 new PropertyHolder<>(PARAM_CLEAN, new Bool(Boolean.FALSE), true)

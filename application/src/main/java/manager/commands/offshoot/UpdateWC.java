@@ -42,7 +42,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                 Language.get("title"),
                 COMMAND_ICON,
                 Language.get("desc"), 
-                (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Invalid)
+                (offshoot) -> true
         );
     }
 
@@ -53,6 +53,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
 
     @Override
     public void execute(Offshoot context, Map<String, IComplexType> map) {
+        if (!context.getRepository().isRepositoryOnline(true)) return;
         executeTask(
                 context,
                 new GroupTask<>(
@@ -86,8 +87,6 @@ public class UpdateWC extends EntityCommand<Offshoot> {
 
         @Override
         public Void execute() throws Exception {
-            if (!offshoot.getRepository().isRepositoryOnline(true)) return null;
-
             String wcPath  = offshoot.getLocalPath();
             String repoUrl = offshoot.getRemotePath();
             SVNRevision R1 = offshoot.getWorkingCopyRevision(false);
@@ -103,10 +102,13 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                     @Override
                     public void handleEvent(SVNEvent event, double d) {
                         if (event.getErrorMessage() != null && event.getErrorMessage().getErrorCode() == SVNErrorCode.WC_CLEANUP_REQUIRED) {
+                            String desc = getDescription();
                             if (event.getExpectedAction() == SVNEventAction.RESOLVER_STARTING) {
+                                setProgress(0, Language.get(UpdateWC.class, "command@cleanup"));
                                 Logger.getLogger().info("UPDATE [{0}] perform automatic cleanup", wcPath);
                             } else {
                                 Logger.getLogger().info("UPDATE [{0}] continue after cleanup", wcPath);
+                                setProgress(0, desc);
                             }
                         }
                     }
