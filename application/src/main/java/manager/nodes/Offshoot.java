@@ -1,5 +1,8 @@
 package manager.nodes;
 
+import codex.command.EntityCommand;
+import codex.component.button.DialogButton;
+import codex.component.dialog.Dialog;
 import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
 import codex.log.Logger;
@@ -12,10 +15,8 @@ import codex.task.AbstractTask;
 import codex.task.ITask;
 import codex.task.ITaskExecutorService;
 import codex.task.ITaskListener;
-import codex.type.Bool;
-import codex.type.EntityRef;
+import codex.type.*;
 import codex.type.Enum;
-import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.commands.offshoot.*;
@@ -27,6 +28,9 @@ import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.wc.*;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -34,19 +38,21 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class Offshoot extends BinarySource {
 
     public final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm");
-    public final static ImageIcon ICON = ImageUtils.getByPath("/images/branch.png");
-    public final static String PROP_WC_STATUS   = "wcStatus";
-    public final static String PROP_WC_REVISION = "wcRevision";
-    public final static String PROP_WC_BUILT    = "built";
-    public final static String PROP_WC_LOADED   = "loaded";
+    private final static ImageIcon ICON = ImageUtils.getByPath("/images/branch.png");
+    private final static String PROP_WC_STATUS   = "wcStatus";
+    private final static String PROP_WC_REVISION = "wcRevision";
+    private final static String PROP_WC_BUILT    = "built";
+    private final static String PROP_WC_LOADED   = "loaded";
 
     static {
         CommandRegistry.getInstance().registerCommand(RefreshWC.class);
@@ -84,7 +90,7 @@ public class Offshoot extends BinarySource {
         PropertyHolder<Bool, Boolean> propLoaded = new PropertyHolder<Bool, Boolean>(PROP_WC_LOADED, new Bool(null), false) {
             @Override
             public boolean isValid() {
-                return (getID() == null) == getWCStatus().equals(WCStatus.Absent);
+                return !isInvalid();
             }
         };
         model.addUserProp(propLoaded, Access.Any);
@@ -101,8 +107,37 @@ public class Offshoot extends BinarySource {
         }
     }
 
+    @Override
+    protected void remove() {
+        ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).executeTask((this).new DeleteOffshoot() {
+            @Override
+            public void finished(Void result) {
+                SwingUtilities.invokeLater(() -> {
+                    if (!isCancelled() && Offshoot.this.getWorkingCopyStatus() == WCStatus.Absent) {
+                        Offshoot.super.remove();
+                    } else {
+                        Offshoot.this.model.read();
+                    }
+                });
+            }
+        });
+    }
+
+    @Override
+    protected List<EntityCommand<Entity>> getCommands(Entity entity) {
+        List<EntityCommand<Entity>> commands = super.getCommands(entity);
+        if (((Offshoot) entity).isInvalid()) {
+            commands.add(new FixOffshoot());
+        }
+        return commands;
+    }
+
     public final String getVersion() {
         return getPID();
+    }
+
+    private boolean isInvalid() {
+        return (getID() == null) != getWCStatus().equals(WCStatus.Absent);
     }
 
     public final void setWCStatus(WCStatus wcStatus) {
@@ -197,22 +232,6 @@ public class Offshoot extends BinarySource {
         ISVNAuthenticationManager authMgr = getRepository().getAuthManager();
         SVNInfo info = SVN.info(wcPath, remote, authMgr);
         return info == null ? null : info.getCommittedDate();
-    }
-
-    @Override
-    protected void remove() {
-        ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).executeTask((this).new DeleteOffshoot() {
-            @Override
-            public void finished(Void result) {
-                SwingUtilities.invokeLater(() -> {
-                    if (!isCancelled() && Offshoot.this.getWorkingCopyStatus() == WCStatus.Absent) {
-                        Offshoot.super.remove();
-                    } else {
-                        Offshoot.this.model.read();
-                    }
-                });
-            }
-        });
     }
 
     public class DeleteOffshoot extends AbstractTask<Void> {
@@ -371,6 +390,81 @@ public class Offshoot extends BinarySource {
             } else {
                 Offshoot.this.setWCStatus(getWorkingCopyStatus());
             }
+        }
+    }
+
+
+    public static class FixOffshoot extends EntityCommand<Entity> {
+
+        private final static ImageIcon ICON_MAINTAIN = ImageUtils.getByPath("/images/maintain.png");
+        private final static ImageIcon ICON_INFO     = ImageUtils.getByPath("/images/info.png");
+        private final static ImageIcon ICON_UPDATE   = ImageUtils.getByPath("/images/update.png");
+        private final static ImageIcon ICON_DELETE   = ImageUtils.getByPath("/images/minus.png");
+
+        private final static int CODE_REPAIR = 101;
+        private final static int CODE_DELETE = 102;
+
+        FixOffshoot() {
+            super(
+                    "fix offshoot",
+                    Language.get(Offshoot.class, "maintain@task.title"),
+                    ICON_MAINTAIN,
+                    Language.get(Offshoot.class, "maintain@task.title"),
+                    (offshoot) -> true
+            );
+        }
+
+        @Override
+        public void execute(Entity context, Map<String, IComplexType> params) {
+            Offshoot offshoot = (Offshoot) context;
+            String info = Language.get(
+                    Offshoot.class,
+                    offshoot.getID() != null ? "maintain@info.db" : "maintain@info.wc"
+            );
+            Dialog dialog = new Dialog(
+                    Dialog.findNearestWindow(),
+                    ICON_MAINTAIN,
+                    Language.get(Offshoot.class, "maintain@task.title"),
+                    new JPanel(new BorderLayout()) {{
+                        setBorder(new EmptyBorder(10, 15, 10, 15));
+                        add(new JLabel(info, ICON_INFO, SwingConstants.LEFT) {{
+                            setIconTextGap(15);
+                        }}, BorderLayout.CENTER);
+                    }},
+                    event -> {
+                        if (event.getID() == CODE_REPAIR) {
+                            repair(offshoot);
+                        } else if (event.getID() == CODE_DELETE) {
+                            delete(offshoot);
+                        }
+                    },
+                    new DialogButton(ICON_UPDATE, Language.get(Offshoot.class, "repair@title"), KeyEvent.VK_INSERT, CODE_REPAIR),
+                    new DialogButton(ICON_DELETE, Language.get(Offshoot.class, "delete@title"), KeyEvent.VK_DELETE, CODE_DELETE),
+                    Dialog.Default.BTN_CANCEL.newInstance()
+            );
+            dialog.setResizable(false);
+            dialog.setVisible(true);
+        }
+
+        private void repair(Offshoot offshoot) {
+            if (offshoot.getID() != null) {
+                offshoot.getCommand(UpdateWC.class).execute(offshoot, Collections.emptyMap());
+            } else {
+                try {
+                    offshoot.getLock().acquire();
+                    offshoot.setWCLoaded(offshoot.getWCStatus().equals(WCStatus.Successful));
+                    offshoot.model.commit(true);
+                    offshoot.model.updateDynamicProps();
+                } catch (Exception ignore) {
+                    //
+                } finally {
+                    offshoot.getLock().release();
+                }
+            }
+        }
+
+        private void delete(Offshoot offshoot) {
+            offshoot.remove();
         }
     }
 }
