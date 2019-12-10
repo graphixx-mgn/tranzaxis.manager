@@ -26,6 +26,7 @@ import org.tmatesoft.svn.core.auth.BasicAuthenticationManager;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.SVNAuthentication;
 import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
+import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
@@ -34,6 +35,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Repository extends Entity {
+
+    private final static ImageIcon ICON_ONLINE  = ImageUtils.getByPath("/images/repository.png");
+    private final static ImageIcon ICON_OFFLINE = ImageUtils.combine(
+            ICON_ONLINE,
+            ImageUtils.resize(ImageUtils.getByPath("/images/close.png"), .6f),
+            SwingConstants.SOUTH_EAST
+    );
 
     static final int ERR_AUTH_FAILED   = 170000;
     static final int ERR_NOT_AVAILABLE = 210000;
@@ -56,15 +64,15 @@ public class Repository extends Entity {
     }
 
     public Repository(EntityRef owner, String title) {
-        super(owner, ImageUtils.getByPath("/images/repository.png"), title, null);
+        super(owner, ICON_ONLINE, title, null);
         
-        PropertyHolder svnUser = new PropertyHolder(PROP_SVN_USER, new Str(null), true);
-        PropertyHolder svnPass = new PropertyHolder(PROP_SVN_PASS, new Str(null), true);
+        PropertyHolder<Str, String> svnUser = new PropertyHolder<>(PROP_SVN_USER, new Str(null), true);
+        PropertyHolder<Str, String> svnPass = new PropertyHolder<>(PROP_SVN_PASS, new Str(null), true);
         
         // Properties
         model.addUserProp(PROP_REPO_URL,  new Str(null).setMask(new RegexMask("svn(|\\+[\\w]+)://[\\w\\./\\d]+", "Invalid SVN url")), true, null);
         model.addUserProp(PROP_ARCHIVE,   new Bool(false), true, Access.Select);
-        model.addUserProp(PROP_AUTH_MODE, new Enum(SVNAuth.None), false, Access.Select);
+        model.addUserProp(PROP_AUTH_MODE, new Enum<>(SVNAuth.None), false, Access.Select);
         model.addUserProp(svnUser, Access.Select);
         model.addUserProp(svnPass, Access.Select);
         model.addUserProp(PROP_LOCKED,    new Bool(false), false, Access.Any);
@@ -91,7 +99,14 @@ public class Repository extends Entity {
                     svnPass.setRequired(getAuthMode(true) == SVNAuth.Password);
                     break;
                case PROP_LOCKED:
-                   lockEditors(Boolean.FALSE.equals(newValue));
+                    lockEditors(Boolean.FALSE.equals(newValue));
+                    SwingUtilities.invokeLater(() -> {
+                        if (Boolean.TRUE.equals(newValue)) {
+                            setIcon(isRepositoryOnline(false) ? ICON_ONLINE : ICON_OFFLINE);
+                        } else {
+                            setIcon(ImageUtils.getByPath("/images/repository.png"));
+                        }
+                    });
             }
         });
         
@@ -195,17 +210,21 @@ public class Repository extends Entity {
 
     private List<RepositoryBranch> getBranches() {
         List<RepositoryBranch> branches = new LinkedList<>();
-        try {
-            SVN.list(getRepoUrl(), getAuthManager()).forEach(svnDirEntry -> {
-                if (BRANCHES.containsKey(svnDirEntry.getName())) {
-                    branches.add(Entity.newInstance(
-                            BRANCHES.get(svnDirEntry.getName()),
-                            this.toRef(),
-                            null
-                    ));
-                }
-            });
-        } catch (SVNException e) {
+        if (isRepositoryOnline(false)) {
+            try {
+                SVN.list(getRepoUrl(), getAuthManager()).forEach(svnDirEntry -> {
+                    if (BRANCHES.containsKey(svnDirEntry.getName())) {
+                        branches.add(Entity.newInstance(
+                                BRANCHES.get(svnDirEntry.getName()),
+                                this.toRef(),
+                                null
+                        ));
+                    }
+                });
+            } catch (SVNException e) {
+                branches.addAll(getLocalBranches());
+            }
+        } else {
             branches.addAll(getLocalBranches());
         }
         return branches;
