@@ -3,6 +3,7 @@ package codex.command;
 import codex.mask.IMask;
 import codex.property.PropertyHolder;
 import codex.type.IComplexType;
+import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import java.util.LinkedList;
 import java.util.List;
@@ -10,8 +11,11 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
- * Абстрактная реализация команды редактора свойств {@link PropertyHolder}.
- * Используется для возможности производить различные действия над свойством.
+ * Абстрактная реализация команды редактора свойств {@link PropertyHolder} сущности.
+ * Используется для возможности производить различные действия над свойством: изменение значения свойства или выполнение
+ * каких-либо действий, используя значение свойства.
+ * @param <T> Прикладной тип, производный от {@link IComplexType}
+ * @param <V> Системный тип (Java), хранящийся внутри прикладного типа.
  */
 public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>>, V> implements ICommand<
         PropertyHolder<T, V>,
@@ -19,7 +23,7 @@ public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>
     > {
 
     /**
-     * Свойство связанное с данным редактором.
+     * Свойство связанное с редактором которому назначается данная команда.
      */
     protected PropertyHolder<T, V> context;
 
@@ -29,13 +33,12 @@ public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>
     private final List<ICommandListener<PropertyHolder<T, V>>> listeners = new LinkedList<>();
 
     /**
-     * Функция расчета доступности каманды.
+     * Стандартная функция расчета доступности каманды.
      */
     protected Function<PropertyHolder<T, V>, CommandStatus> activator = holder -> new CommandStatus(
             holder != null && (
                     available == null || available.test(holder)
-            ) &&
-            !holder.isInherited()
+            ) && !holder.isInherited()
     );
     
     /**
@@ -71,7 +74,14 @@ public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>
     public final void removeListener(ICommandListener<PropertyHolder<T, V>> listener) {
         listeners.remove(listener);
     }
-    
+
+    /**
+     * Вызывает функцию расчета состояния доступности команды и в зависимости от полученного объекта {@link CommandStatus}
+     * вызывает события:<br>
+     * * {@link ICommandListener#commandStatusChanged(boolean)}<br>
+     * * {@link ICommandListener#commandIconChanged(ImageIcon)}<br>
+     * для подписанных слушателей.
+     */
     @Override
     public final void activate() {
         CommandStatus status = activator.apply(getContext());
@@ -96,26 +106,52 @@ public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>
         return context;
     }
 
+    /**
+     * Возвращает тип команды. От типа команды зависит алгоритм активации команды.
+     */
     public Direction commandDirection() {
         return Direction.Consumer;
     }
 
+
+    /**
+     * Команда редактора всегда исполняется для единственного элемента контекста - свойства.
+     */
     @Override
     public final boolean multiContextAllowed() {
         return false;
     }
 
+
+    /**
+     * Возвращает иконку команды, которая будет показываться на кнопке запуска команды.
+     */
     @Override
     public final ImageIcon getIcon() {
         return icon;
     }
 
+    /**
+     * Возвращает текст подсказки команды, которая будет показана при наведении курсора мыши на кнопку запуска команды.
+     * Текст подсказки должен содержать пояснения назначения команды и/или выполняемых ею действий.
+     */
     public final String getHint() {
         return hint;
     }
 
-
+    /**
+     * Тип команды.
+     */
     public enum Direction {
-        Supplier, Consumer
+        /**
+         * Команда - поставщик значения для свойства, т.е. при её выполнении значение свойств может быть изменено.
+         * Соответственно, при изменении значения свойства нет необходимости в <b>автоматической</b> активации команды, которая
+         * может быть в общем случае длительной.
+         */
+        Supplier,
+        /**
+         * Команда - потребитель значения свойства, и при его изменении требуется обязательно пересчитать состояние команды.
+         */
+        Consumer
     }
 }

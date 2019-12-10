@@ -12,6 +12,8 @@ import codex.task.*;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.Language;
+import org.jetbrains.annotations.NotNull;
+
 import javax.swing.*;
 import java.lang.annotation.*;
 import java.util.*;
@@ -31,6 +33,12 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
     
     private static final ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
 
+    /**
+     * Аннотацию следует использовать для указания "иерархии" команд. Если у класса команды указана данная аннотация,
+     * то при постоении панели команд {@link codex.presentation.CommandPanel} в презентации сущности данная команда
+     * будет размещена в выпадающем меню указанной "родительской" команды. Таким образом производится группировка
+     * команд, схожих по назначению. В качестве "родительской" команды можно указывать наиболее часто используемую пользователем.
+     */
     @Inherited
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.RUNTIME)
@@ -73,7 +81,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
     private Supplier<PropertyHolder[]>      provider  = () -> new PropertyHolder[]{};
 
     /**
-     * Функция расчета доступности каманды.
+     * Стандартная функция расчета доступности каманды.
      */
     protected Function<List<V>, CommandStatus> activator = entities -> new CommandStatus(
         entities != null && entities.size() > 0 &&
@@ -162,11 +170,18 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
         return title;
     }
 
+    /**
+     * Возвращает иконку команды, которая будет показываться на кнопке запуска команды.
+     */
     @Override
     public final ImageIcon getIcon() {
         return icon;
     }
 
+    /**
+     * Возвращает текст подсказки команды, которая будет показана при наведении курсора мыши на кнопку запуска команды.
+     * Текст подсказки должен содержать пояснения назначения команды и/или выполняемых ею действий.
+     */
     public final String getHint() {
         return hint;
     }
@@ -177,7 +192,14 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
     public final KeyStroke getKey() {
         return key;
     }
-    
+
+    /**
+     * Вызывает функцию расчета состояния доступности команды и в зависимости от полученного объекта {@link CommandStatus}
+     * вызывает события:<br>
+     * * {@link ICommandListener#commandStatusChanged(boolean)}<br>
+     * * {@link ICommandListener#commandIconChanged(ImageIcon)}<br>
+     * для подписанных слушателей.
+     */
     @Override
     public final void activate() {
         CommandStatus status = activator.apply(getContext());
@@ -214,10 +236,6 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
         this.context.forEach((contextItem) -> contextItem.model.addModelListener(modelListener));
         activate();
     }
-    
-//    public final void setContext(V context) {
-//        setContext(Collections.singletonList(context));
-//    }
 
     /**
      * Текст вопроса, отображаемого пользователю для подтверждения перед исполнением команды.
@@ -237,18 +255,18 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
     }
     
     /**
-     * Установка списка пераметров команды.
+     * Установка списка пераметров команды. Перед вызовом команды, если параметры заданы, будет показан диалог
+     * для ввода их значений.
      * @param propHolders Список объектов {@link PropertyHolder} произвольной длины.
      */
-    protected EntityCommand setParameters(PropertyHolder... propHolders) {
+    protected void setParameters(PropertyHolder... propHolders) {
         if (propHolders != null && propHolders.length > 0) {
             provider = () -> propHolders;
         }
-        return this;
     }
 
     /**
-     * Получение вызов диалога заполнения параметров и возврат значений.
+     * Вызов диалога для заполнения параметров и возврат значений.
      */
     public final Map<String, IComplexType> getParameters() throws ParametersDialog.Canceled {
         if (provider.get().length > 0) {
@@ -263,10 +281,16 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
         }
     }
 
+    /**
+     * Фабричный метод создания кнопок "родительских" команд.
+     */
     public IGroupButtonFactory groupButtonFactory() {
         return GroupCommandButton::new;
     }
 
+    /**
+     * Запуск поцесса исполнения команды.
+     */
     protected void process() {
         List<V> context = getContext();
         if (context.isEmpty() && isActive()) {
@@ -292,14 +316,23 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
     public final void execute(V context) {
         throw new UnsupportedOperationException();
     }
-    
+
+    /**
+     * Метод исполнения команды, содержащий непосредственно код, реализующий назначение команды.
+     * Требуется перекрытие в классах-наследниках. Если контекстом команды является несколько сущностей, данный
+     * метод будет последовательно вызван для каждой из них.
+     * @param context Элемент набора объектов, установленных в качестве контекста команды.
+     * @param params Карта параметров команды, заполненная значениями, введенными пользователем.
+     */
     public abstract void execute(V context, Map<String, IComplexType> params);
     
     /**
-     * Исполнение длительной задачи над сущностью с блокировкой.
-     * @param context Сущность.
-     * @param task Задача.
-     * @param foreground Исполнить в модальном диалоге.
+     * Исполнение длительной задачи над сущностью с блокировкой. Вспомогательный метод, порождающий задачу, которая
+     * исполняется сервисом исплнения задач {@link ITaskExecutorService}.
+     * @param context Элемент набора объектов, установленных в качестве контекста команды.
+     * @param task Задача, коорая будет передана сервису.
+     * @param foreground Исполнить в модальном диалоге. Если FALSE - задача будет исполнена в фоновом режиме
+     * (см. {@link ITaskExecutorService#enqueueTask(ITask)}).
      */
     public final void executeTask(V context, ITask task, boolean foreground) {
         task.addListener(new ITaskListener() {
