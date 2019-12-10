@@ -12,6 +12,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 
+/**
+ * Класс реализует поведение кнопки главной в группе команд {@link EntityCommand}, связанных схожим поведением или
+ * назначением. Команды объединяются в двухуровневую иерархию при помощи аннотации {@link EntityCommand.Definition}.
+ * Кнопка групповой команды имеет дополнительный элемент для показа выпадающего меню со списком второстепенных команд.
+ */
 public final class GroupCommandButton extends CommandButton implements MouseListener, PopupMenuListener, IGroupCommandButton {
 
     private static final ImageIcon ARROW = ImageUtils.getByPath("/images/arrow.png");
@@ -19,7 +24,11 @@ public final class GroupCommandButton extends CommandButton implements MouseList
     private final JButton popup;
     private final JPopupMenu menu;
 
-    public GroupCommandButton(EntityCommand<Entity> command) {
+    /**
+     * Стандартный конструктор кнопки основной команды сущности.
+     * @param command Ссылка на вызываемую команду.
+     */
+    GroupCommandButton(EntityCommand<Entity> command) {
         super(command);
         button.addMouseListener(this);
         button.getModel().removeChangeListener(this);

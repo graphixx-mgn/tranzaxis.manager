@@ -2,7 +2,6 @@ package codex.command;
 
 import javax.swing.*;
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Интерфейс слушателя событий команды.

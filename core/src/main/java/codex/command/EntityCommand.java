@@ -12,8 +12,6 @@ import codex.task.*;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.Language;
-import org.jetbrains.annotations.NotNull;
-
 import javax.swing.*;
 import java.lang.annotation.*;
 import java.util.*;
