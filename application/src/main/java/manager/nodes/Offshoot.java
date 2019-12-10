@@ -368,7 +368,7 @@ public class Offshoot extends BinarySource {
                     Logger.getLogger().warn(
                             "Working copy ''{0}/{1}'' has file conflicts:\n{2}",
                             getRepository().getTitle(),
-                            getTitle(),
+                            Offshoot.this.getTitle(),
                             conflictList.stream()
                                 .map(file -> MessageFormat.format(" * {0}", file.getAbsolutePath().replace(getLocalPath(), "")))
                                 .collect(Collectors.joining("\n"))
