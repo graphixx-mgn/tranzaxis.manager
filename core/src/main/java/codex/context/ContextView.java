@@ -17,7 +17,12 @@ public class ContextView extends Catalog implements Iconified {
     private final Class<? extends IContext> contextClass;
 
     public ContextView(Class<? extends IContext> contextClass) {
-        super(null, null, contextClass.getAnnotation(IContext.Definition.class).id(), null);
+        super(
+                null,
+                null,
+                contextClass.getTypeName(),
+                null
+        );
         this.contextClass = contextClass;
         setTitle(contextClass.getAnnotation(IContext.Definition.class).name());
         setIcon(ImageUtils.getByPath(contextClass, contextClass.getAnnotation(IContext.Definition.class).icon()));

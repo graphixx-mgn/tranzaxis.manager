@@ -42,7 +42,7 @@ public abstract class ClassCatalog extends Entity {
                     .sorted(Comparator.comparing(Class::getTypeName))
                     .collect(Collectors.toList());
         } else {
-            return Collections.singletonList(childClass);
+            return Collections.nCopies(1, childClass);
         }
     }
 }

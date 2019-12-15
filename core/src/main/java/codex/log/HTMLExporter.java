@@ -125,10 +125,10 @@ class HTMLExporter {
                                 return contexts[contexts.length-1];
                         })
                         .distinct()
-                        .map(ctxID -> MessageFormat.format(
+                        .map(ctxClassName -> MessageFormat.format(
                                 Language.get("icon.ext"),
-                                ctxID,
-                                ImageUtils.toBase64(Logger.getContextRegistry().getContext(ctxID).getIcon())
+                                getContextName(ctxClassName),
+                                ImageUtils.toBase64(Logger.getContextRegistry().getContext(ctxClassName).getIcon())
                         )).collect(Collectors.joining("\n"))
 
         );
@@ -180,10 +180,10 @@ class HTMLExporter {
                             return contexts[contexts.length-1];
                         })
                         .distinct()
-                        .map(ctxID -> MessageFormat.format(
+                        .map(ctxClassName -> MessageFormat.format(
                                Language.get("filter@context.control"),
-                               ctxID,
-                               Logger.getContextRegistry().getContext(ctxID).getName()
+                               getContextName(ctxClassName),
+                               Logger.getContextRegistry().getContext(ctxClassName).getName()
                         )).collect(Collectors.joining("\n"))
         );
     }
@@ -204,7 +204,7 @@ class HTMLExporter {
                             Language.get("record"),
                             logRecord.get("LEVEL"),
                             logRecord.get("TIME"),
-                            contexts[contexts.length-1],
+                            getContextName(contexts[contexts.length-1]),
                             prepareMessage(logRecord)
                     );
                 })
@@ -228,6 +228,10 @@ class HTMLExporter {
                        record.get("STACK").replaceAll("\\n", "<br/>&nbsp;&nbsp;&nbsp;")
                ) : ""
         );
+    }
+
+    private static String getContextName(String className) {
+        return className.replaceAll("([.$])", "_");
     }
 
     private static String escape(String data) {

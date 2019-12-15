@@ -50,7 +50,7 @@ public class Logger extends org.apache.log4j.Logger {
             @Override
             public synchronized void doAppend(LoggingEvent event) {
                 String contexts = Logger.getMessageContexts().stream()
-                        .map(ctxClass -> CONTEXT_REGISTRY.getContext(ctxClass).id)
+                        .map(Class::getTypeName)
                         .collect(Collectors.joining(","));
                 super.doAppend(new LoggingEvent(
                         event.getFQNOfLoggerClass(),
@@ -168,11 +168,6 @@ public class Logger extends org.apache.log4j.Logger {
         private final Class<? extends IContext> clazz;
 
         private ContextInfo(Class<? extends IContext> contextClass) {
-//            Class<? extends IContext> targetClass = PolyMorph.class.isAssignableFrom(contextClass) ?
-//                    PolyMorph.getPolymorphClass(contextClass.asSubclass(PolyMorph.class)).asSubclass(IContext.class) :
-//                    contextClass;
-
-
             IContext.Definition contextDef = contextClass.getAnnotation(IContext.Definition.class);
 
             clazz = contextClass;
@@ -205,7 +200,7 @@ public class Logger extends org.apache.log4j.Logger {
         private Level getContextLevel() {
             String level = Service.getProperty(
                     LogManagementService.class,
-                    id
+                    clazz.getTypeName()
             );
             if (level != null) {
                 return Level.valueOf(level);
@@ -218,7 +213,7 @@ public class Logger extends org.apache.log4j.Logger {
 
 
     public static class ContextRegistry {
-        private final Map<String, ContextInfo> idMap = new HashMap<>();
+        private final Map<String, ContextInfo>                    nameMap = new HashMap<>();
         private final Map<Class<? extends IContext>, ContextInfo> classMap = new LinkedHashMap<>();
 
         private ContextRegistry() {
@@ -227,7 +222,7 @@ public class Logger extends org.apache.log4j.Logger {
                     .map(ContextInfo::new)
                     .sorted(Comparator.comparing(ctxInfo -> ctxInfo.clazz.getTypeName()))
                     .forEach(ctxInfo -> {
-                        idMap.putIfAbsent(ctxInfo.id, ctxInfo);
+                        nameMap.putIfAbsent(ctxInfo.clazz.getTypeName(), ctxInfo);
                         classMap.put(ctxInfo.clazz, ctxInfo);
                     });
         }
@@ -236,8 +231,8 @@ public class Logger extends org.apache.log4j.Logger {
             return classMap.get(contextClass);
         }
 
-        public ContextInfo getContext(String id) {
-            return idMap.get(id);
+        public ContextInfo getContext(String className) {
+            return nameMap.get(className);
         }
 
         public Collection<Class<? extends IContext>> getContexts() {

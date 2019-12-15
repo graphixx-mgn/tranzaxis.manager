@@ -98,9 +98,9 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
                 for (INode node : treeModel) {
                     final ContextView ctxView = (ContextView) node;
                     final Class<? extends IContext> contextClass = ctxView.getContextClass();
-                    final String contextId = Logger.getContextRegistry().getContext(contextClass).getId();
+                    final String propName = contextClass.getTypeName();
 
-                    Level prevLevel = (Level) model.getValue(contextId);
+                    Level prevLevel = (Level) model.getValue(propName);
                     ctxView.model.setValue(
                             ContextView.PROP_LEVEL,
                             Logger.isOption(ctxView.getContextClass()) ? prevLevel == Level.Debug : prevLevel
@@ -127,7 +127,7 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
         for (INode node : treeModel) {
             final ContextView ctxView = (ContextView) node;
             final Class<? extends IContext> contextClass = ctxView.getContextClass();
-            final String propName = Logger.getContextRegistry().getContext(contextClass).getId();
+            final String propName = contextClass.getTypeName();
 
             model.addUserProp(
                     propName,

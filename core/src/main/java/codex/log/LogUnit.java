@@ -134,8 +134,8 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                 }
                 if (column == 1) {
                     String[]  contexts = tableModel.getValueAt(row,2).toString().split(",", -1);
-                    String    lastContextId = contexts[contexts.length-1];
-                    ImageIcon ctxIcon = Logger.getContextRegistry().getContext(lastContextId).getIcon();
+                    String    ctxClassName = contexts[contexts.length-1];
+                    ImageIcon ctxIcon = Logger.getContextRegistry().getContext(ctxClassName).getIcon();
                     if (tableModel.getValueAt(row,4) == null || tableModel.getValueAt(row,4).equals("")) {
                         label.setIcon(ImageUtils.resize(ctxIcon, iconSize, iconSize));
                     } else {
@@ -287,8 +287,8 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                     if (rowAtPoint > -1) {
                         table.setRowSelectionInterval(rowAtPoint, rowAtPoint);
                         String[]  contexts = tableModel.getValueAt(rowAtPoint, 2).toString().split(",", -1);
-                        String    lastContextId = contexts[contexts.length-1];
-                        Logger.ContextInfo ctxInfo = Logger.getContextRegistry().getContext(lastContextId);
+                        String    ctxClassName = contexts[contexts.length-1];
+                        Logger.ContextInfo ctxInfo = Logger.getContextRegistry().getContext(ctxClassName);
 
                         hideContext.setText(MessageFormat.format(
                                 Language.get(LogUnit.class, "popup@hide"),
@@ -774,7 +774,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                                     .filter(ctxClass -> !hiddenContexts.contains(ctxClass))
                                     .map(ctxClass -> MessageFormat.format(
                                             "INSTR(CONTEXT, ''{0}'') = LENGTH(CONTEXT) - LENGTH(''{0}'') + 1",
-                                            Logger.getContextRegistry().getContext(ctxClass).getId()
+                                            ctxClass.getTypeName()
                                     ))
                             .collect(Collectors.joining(" OR "))
             );
