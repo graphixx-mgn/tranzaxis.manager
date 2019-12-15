@@ -39,7 +39,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     private final static Boolean      DEV_MODE  = "1".equals(java.lang.System.getProperty("showSysProps"));
     public  final static List<String> SYSPROPS  = Arrays.asList(ID, OWN, SEQ, PID, OVR);
 
-    private final DynamicResolver               dynamicResolver = new DynamicResolver();
+    private final DynamicResolver               dynamicResolver  = new DynamicResolver();
+    private final ReferenceTracker              referenceTracker = new ReferenceTracker();
     private final Map<String, String>           databaseValues;
     private final Map<String, Object>           initialValues   = new HashMap<>();
     private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
@@ -120,6 +121,14 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         
         addPropertyGroup("System properties", ID, SEQ, OWN, OVR);
         setPropUnique(EntityModel.PID);
+    }
+
+    Class<? extends Entity> getEntityClass() {
+        return entityClass;
+    }
+
+    Class<? extends Entity> getTableClass() {
+        return tableClass;
     }
 
     IConfigStoreService getConfigService() {
@@ -213,6 +222,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         if (databaseValues != null && databaseValues.get(name) != null) {
             propHolder.getPropValue().valueOf(databaseValues.get(name));
         }
+        referenceTracker.trackProperty(propHolder);
     }
     
     /**
@@ -229,6 +239,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         if (databaseValues != null && databaseValues.get(propHolder.getName()) != null) {
             propHolder.getPropValue().valueOf(databaseValues.get(propHolder.getName()));
         }
+        referenceTracker.trackProperty(propHolder);
     }
 
     /**
@@ -243,6 +254,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         if (databaseValues != null && databaseValues.get(name) != null) {
             getProperty(name).getPropValue().valueOf(databaseValues.get(name));
         }
+        referenceTracker.trackProperty(getProperty(name));
     }
 
     public final boolean hasExtraProps() {
@@ -449,8 +461,6 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
         return props;
     }
-
-
     
     /**
      * Возвращает признак отсуствия несохраненных изменений среди хранимых
@@ -467,6 +477,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         return getProperties(Access.Any).stream()
                 .filter((name) -> !dynamicProps.contains(name) && undoRegistry.exists(name))
                 .collect(Collectors.toList());
+    }
+
+    Collection<Reference> getReferences() {
+        return referenceTracker.getReferences();
     }
 
     /**
@@ -1045,6 +1059,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
     }
     
+
     private final class UniqueMask implements IMask<String> {
         
         private final String ERROR = Language.get(SelectorPresentation.class, "creator@pid.hint");
@@ -1070,6 +1085,224 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         @Override
         public boolean notNull() {
             return true;
+        }
+
+    }
+
+
+    static class Reference {
+        final EntityModel model;
+        final String      property;
+        final boolean     incoming;
+
+        Reference(EntityModel model, String property) {
+            this.model = model;
+            this.property = property;
+            this.incoming = !property.equals(EntityModel.OWN);
+        }
+
+        Entity getEntity() {
+            return model.getID() == null ? null : EntityRef.build(model.tableClass, model.getID()).getValue();
+        }
+
+        void unlink(Entity entity) {
+            if (incoming) {
+                model.referenceTracker.getHandler(property).clearValue(entity);
+            }
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Reference reference = (Reference) o;
+            return Objects.equals(model.getQualifiedName(), reference.model.getQualifiedName()) &&
+                   Objects.equals(property, reference.property);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(model.getQualifiedName(), property);
+        }
+    }
+
+
+    interface ITrackHandler<T extends ISerializableType<V, ? extends IMask<V>>, V> {
+        Collection<Entity> getValue(V value);
+        void clearValue(Entity value);
+    }
+
+
+    abstract class AbstractTrackHandler<T extends ISerializableType<V, ? extends IMask<V>>, V>
+            implements ITrackHandler<T, V>, IPropertyChangeListener
+    {
+        protected final PropertyHolder<T, V> propHolder;
+        AbstractTrackHandler(PropertyHolder<T, V> propHolder) {
+            this.propHolder = propHolder;
+            this.propHolder.addChangeListener(this);
+            if (getValue(propHolder.getPropValue().getValue()) != null) {
+                getValue(propHolder.getPropValue().getValue()).forEach(entity -> entity.model.referenceTracker.registerReference(
+                        new Reference(EntityModel.this, propHolder.getName())
+                ));
+            }
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public final void propertyChange(String name, Object oldValue, Object newValue) {
+            Collection<Entity> oldEntities = oldValue != null ? getValue((V) oldValue) : Collections.emptyList();
+            Collection<Entity> newEntities = newValue != null ? getValue((V) newValue) : Collections.emptyList();
+            oldEntities.forEach(entity -> {
+                if (!newEntities.contains(entity)) {
+                    entity.model.referenceTracker.unregisterReference(new Reference(EntityModel.this, name));
+                }
+            });
+            newEntities.forEach(entity -> {
+                if (!oldEntities.contains(entity)) {
+                    entity.model.referenceTracker.registerReference(new Reference(EntityModel.this, name));
+                }
+            });
+        }
+    }
+
+
+    class DefaultRefHandler extends AbstractTrackHandler<EntityRef<Entity>, Entity> {
+        DefaultRefHandler(PropertyHolder<EntityRef<Entity>, Entity> propertyHolder) {
+            super(propertyHolder);
+        }
+
+        @Override
+        public Collection<Entity> getValue(Entity value) {
+            return value == null ? null : Collections.singleton(value);
+        }
+
+        @Override
+        public void clearValue(Entity value) {
+            EntityModel.this.setValue(propHolder.getName(), null);
+            try {
+                EntityModel.this.commit(true, propHolder.getName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    class MapKeyRefHandler extends AbstractTrackHandler<codex.type.Map<Entity, Object>, Map<Entity, Object>> {
+
+        MapKeyRefHandler(PropertyHolder<codex.type.Map<Entity, Object>, Map<Entity, Object>> propHolder) {
+            super(propHolder);
+        }
+
+        @Override
+        public Collection<Entity> getValue(Map<Entity, Object> value) {
+            return value.keySet();
+        }
+
+        @Override
+        public void clearValue(Entity value) {
+            Map<Entity, Object> propValue = propHolder.getPropValue().getValue();
+            propValue.remove(value);
+            EntityModel.this.setValue(propHolder.getName(), propValue);
+            try {
+                EntityModel.this.commit(true, propHolder.getName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    class MapValRefHandler extends AbstractTrackHandler<codex.type.Map<Object, Entity>, Map<Object, Entity>> {
+
+        MapValRefHandler(PropertyHolder<codex.type.Map<Object, Entity>, Map<Object, Entity>> propHolder) {
+            super(propHolder);
+        }
+
+        @Override
+        public Collection<Entity> getValue(Map<Object, Entity> value) {
+            return value.values();
+        }
+
+        @Override
+        public void clearValue(Entity value) {
+            Map<Object, Entity> propValue = propHolder.getPropValue().getValue();
+            propValue.entrySet().removeIf(entry -> entry.getValue().equals(value));
+            EntityModel.this.setValue(propHolder.getName(), propValue);
+            try {
+                EntityModel.this.commit(true, propHolder.getName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    class ReferenceTracker {
+        final private Map<String, ITrackHandler> handlers = new HashMap<>();
+        final private List<Reference> references = new ArrayList<>();
+
+        @SuppressWarnings("unchecked")
+        void trackProperty(PropertyHolder propHolder) {
+            if (propHolder.getType().equals(EntityRef.class)) {
+                handlers.put(
+                        propHolder.getName(),
+                        new DefaultRefHandler((PropertyHolder<EntityRef<Entity>, Entity>) propHolder)
+                );
+            }
+            if (propHolder.getType().equals(codex.type.Map.class)) {
+                Class<? extends ISerializableType> keyClass = ((codex.type.Map) propHolder.getPropValue()).getKeyClass();
+                Class<? extends ISerializableType> valClass = ((codex.type.Map) propHolder.getPropValue()).getValClass();
+                if (keyClass.equals(EntityRef.class)) {
+                    handlers.put(
+                            propHolder.getName(),
+                            new MapKeyRefHandler((PropertyHolder<codex.type.Map<Entity, Object>, Map<Entity, Object>>) propHolder)
+                    );
+                }
+                if (valClass.equals(EntityRef.class)) {
+                    handlers.put(
+                            propHolder.getName(),
+                            new MapValRefHandler((PropertyHolder<codex.type.Map<Object, Entity>, Map<Object, Entity>>) propHolder)
+                    );
+                }
+            }
+        }
+
+        ITrackHandler getHandler(String propName) {
+            return handlers.get(propName);
+        }
+
+        void registerReference(Reference reference) {
+            synchronized (references) {
+                references.add(reference);
+                OrmContext.debug(
+                        "Registered {0} reference {1} <- {2}@{3}",
+                        reference.incoming ? "incoming" : "child",
+                        getQualifiedName(),
+                        reference.model.getQualifiedName(),
+                        reference.property
+                );
+            }
+        }
+
+        void unregisterReference(Reference reference) {
+            synchronized (references) {
+                references.remove(reference);
+                OrmContext.debug(
+                        "Unregistered {0} reference {1} <- {2}@{3}",
+                        reference.incoming ? "incoming" : "child",
+                        getQualifiedName(),
+                        reference.model.getQualifiedName(),
+                        reference.property
+                );
+            }
+        }
+
+        Collection<Reference> getReferences() {
+            synchronized (references) {
+                return references.stream()
+                        .filter(reference -> reference.model.getID() != null)
+                        .collect(Collectors.toList());
+            }
         }
 
     }

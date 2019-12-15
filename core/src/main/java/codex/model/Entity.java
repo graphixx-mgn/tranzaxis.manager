@@ -10,7 +10,6 @@ import codex.config.IConfigStoreService;
 import codex.editor.AbstractEditor;
 import codex.editor.BoolEditor;
 import codex.editor.IEditor;
-import codex.explorer.IExplorerAccessService;
 import codex.explorer.tree.AbstractNode;
 import codex.explorer.tree.INode;
 import codex.log.Logger;
@@ -351,7 +350,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     }
 
     final void remove(boolean cascade, boolean confirmation) {
-        Collection<IConfigStoreService.ForeignLink> links = findReferences(true);
+        Collection<EntityModel.Reference> links = findReferences(true);
+
         if (links.isEmpty()) {
             // Already confirmed in selector command or confirmation == false
             EntityModel.OrmContext.debug("Entity ''{0}'' does not have references", model.getQualifiedName());
@@ -372,24 +372,14 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     }
 
     protected void remove() {
-        Collection<IConfigStoreService.ForeignLink> links = findReferences(false);
+        Collection<EntityModel.Reference> links = findReferences(false);
         links.forEach(link -> {
-                    if (link.isIncoming) {
-                        Entity extRef = EntityRef.build(link.entryClass, link.entryID).getValue();
-                        extRef.model.getProperties(Access.Any).forEach(propName -> {
-                            if (this.equals(extRef.model.getValue(propName))) {
-                                extRef.model.setValue(propName, null);
-                                try {
-                                    extRef.model.commit(false, propName);
-                                } catch (Exception ignore) {
-                                    //
-                                }
-                            }
-                        });
-                    } else {
-                        EntityRef.build(link.entryClass, link.entryID).getValue().remove(true, false);
-                    }
-                });
+                if (link.incoming) {
+                    link.unlink(this);
+                } else {
+                    link.getEntity().remove(true, false);
+                }
+        });
 
         EntityModel.OrmContext.debug("Remove entity ''{0}''", model.getQualifiedName());
         if (model.remove(false)) {
@@ -403,15 +393,16 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         }
     }
 
-    private static boolean removalConfirmed(Entity entity, Collection<IConfigStoreService.ForeignLink> links, boolean removalAllowed) {
+    private static boolean removalConfirmed(Entity entity, Collection<EntityModel.Reference> links, boolean removalAllowed) {
         final AtomicBoolean result = new AtomicBoolean(false);
         final Collection<Entity> childEntities = links.stream()
-                .filter(link -> !link.isIncoming)
-                .map(link -> EntityRef.build(link.entryClass, link.entryID).getValue())
+                .filter(link -> !link.incoming)
+                .map(EntityModel.Reference::getEntity)
                 .collect(Collectors.toList());
         final Collection<Entity> extEntities = links.stream()
-                .filter(link -> link.isIncoming)
-                .map(link -> EntityRef.build(link.entryClass, link.entryID).getValue())
+                .filter(link -> link.incoming)
+                .map(EntityModel.Reference::getEntity)
+                .distinct()
                 .collect(Collectors.toList());
 
         PropertyHolder<Bool, Boolean> confirm = new PropertyHolder<>("cascade", new Bool(false), false);
@@ -497,7 +488,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                         if (!extEntities.isEmpty()) {
                             HTMLView view = new HTMLView() {
                                 {
-                                    setText("<html>"+entitiesTable(extEntities, false)+"</html>");
+                                    setText("<html>"+entitiesTable(extEntities, true)+"</html>");
                                     setFont(IEditor.FONT_VALUE.deriveFont((float) (IEditor.FONT_VALUE.getSize()*0.9)));
                                 }
                                 @Override
@@ -567,22 +558,19 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      * Внешняя ссылка - это поле типа EntityRef у другой сущности.
      * Внутренняя ссылка - это сущность, владельцем которой являетя эта сущность
      */
-    private Collection<IConfigStoreService.ForeignLink> findReferences(boolean traceResult) {
-        //TODO: вызов метода сразу после создания дочерних сущностей Polymorph владельца приводит к ошибке
+    private Collection<EntityModel.Reference> findReferences(boolean traceResult) {
         if (getID() == null) return Collections.emptyList();
-        Class<? extends Entity> tableClass = PolyMorph.class.isAssignableFrom(getClass()) ? PolyMorph.getPolymorphClass(getClass()) : getClass();
+        Collection<EntityModel.Reference> references = model.getReferences();
 
-        IConfigStoreService ICS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
-        List<IConfigStoreService.ForeignLink> links = ICS.findReferencedEntries(tableClass, getID());
-        links.removeIf(link -> {
-            if (link.isIncoming) {
+        references.removeIf(reference -> {
+            if (reference.incoming) {
                 return false;
             } else {
-                EntityRef ref = EntityRef.build(link.entryClass, link.entryID);
-                if (ref.getValue() != null && Entity.getDefinition(ref.getValue().getClass()).autoGenerated()) {
-                    List<IConfigStoreService.ForeignLink> depends = ICS.findReferencedEntries(link.entryClass, link.entryID);
-                    if (depends.isEmpty()) {
-                        EntityModel.OrmContext.debug("Skip auto generated independent entity ''{0}''", ref.getValue().model.getQualifiedName());
+                if (Entity.getDefinition(reference.model.getEntityClass()).autoGenerated() /*&& reference.model.getID() != null*/) {
+                    Entity refEntity = reference.getEntity();
+                    Collection<EntityModel.Reference> depends = refEntity.findReferences(false);
+                    if (depends.isEmpty() && traceResult) {
+                        EntityModel.OrmContext.debug("Skip auto generated independent entity ''{0}''", reference.model.getQualifiedName());
                     }
                     return depends.isEmpty();
                 } else {
@@ -590,22 +578,26 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 }
             }
         });
-        if (!links.isEmpty() && traceResult) {
+
+        if (!references.isEmpty() && traceResult) {
             EntityModel.OrmContext.debug(
                     "Entity ''{0}'' has references:\n{1}",
                     model.getQualifiedName(),
-                    links.stream()
-                            .map(link -> {
-                                Entity referenced = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class).getEntity(link.entryClass, link.entryID);
+                    references.stream()
+                            .map(reference -> {
+                                Entity refEntity = reference.getEntity();
                                 return MessageFormat.format(
-                                        "* {0}: {1}",
-                                        link.isIncoming ? "Incoming" : "Outgoing",
-                                        referenced != null ? referenced.getPathString() : link.entryPID
+                                        "* {0}: {1} ({2}@{3})",
+                                        reference.incoming ? "Incoming" : "Outgoing",
+                                        reference.model != null ? refEntity.getPathString() : refEntity.getTitle(),
+                                        reference.model.getQualifiedName(),
+                                        reference.property
+
                                 );
                             }).collect(Collectors.joining("\n"))
             );
         }
-        return links;
+        return references;
     }
 
     /**
@@ -628,7 +620,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      * Получение команды по имени.
      * Устаревший метод. Следует использовать метод {@link Entity#getCommand(Class)}.
      */
-    //TODO: Возможно уже не нужно
     @Deprecated
     public final EntityCommand getCommand(String name) {
         return getCommands().stream()
@@ -790,7 +781,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
 
     protected void onOpenPageView() {}
 
-    public static <E extends Entity> EntityDefinition getDefinition(Class<E> entityClass) {
+    static <E extends Entity> EntityDefinition getDefinition(Class<E> entityClass) {
         return entityClass.getAnnotation(EntityDefinition.class);
     }
     
@@ -946,7 +937,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
 
         @Override
         public void finished(Void result) {}
-
     }
     
 }
