@@ -745,8 +745,13 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         if (validate() && model.hasChanges()) {
             // Предлагаем сохранить
             MessageBox.show(
-                    MessageType.CONFIRMATION, null, 
-                    Language.get("error@unsavedprop"), 
+                    MessageType.CONFIRMATION, null,
+                    MessageFormat.format(
+                            Language.get("error@unsavedprop"),
+                            model.getChanges().stream()
+                                .map(propName -> "&nbsp;&bull;&nbsp;"+model.getProperty(propName).getTitle()+"<br>")
+                                .collect(Collectors.joining())
+                    ),
                     (event) -> {
                         if (event.getID() == Dialog.OK) {
                             try {
