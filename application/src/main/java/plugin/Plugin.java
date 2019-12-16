@@ -38,12 +38,7 @@ public class Plugin extends Catalog {
     }
 
     public Plugin(PluginHandler pluginHandler) {
-        super(
-                null,
-                new ImageIcon(),
-                pluginHandler == null ? null : getId(pluginHandler),
-                null
-        );
+        super(null, null, pluginHandler == null ? null : getId(pluginHandler), null);
         this.pluginHandler = () -> pluginHandler;
 
         // Properties
