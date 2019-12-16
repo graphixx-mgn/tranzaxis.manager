@@ -117,7 +117,7 @@ public class SVN {
         final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
 
         try {
-            clientMgr.getStatusClient().doStatus(new File(path), revision, SVNDepth.INFINITY, remote, true, false, false, new ISVNStatusHandler() {
+            clientMgr.getStatusClient().doStatus(new File(path), revision, SVNDepth.INFINITY, remote, false, false, false, new ISVNStatusHandler() {
                 @Override
                 public void handleStatus(SVNStatus svnStatus) throws SVNException {
                     statuses.add(svnStatus);
@@ -145,8 +145,8 @@ public class SVN {
         return entries;
     }
     
-    public static List<Path> changes(String path, String url, SVNRevision revision, ISVNAuthenticationManager authMgr, ISVNEventHandler handler) throws SVNException {
-        List<Path> changes = new ArrayList<>();
+    public static List<SVNURL> changes(String path, String url, SVNRevision revision, ISVNAuthenticationManager authMgr, ISVNEventHandler handler) throws SVNException {
+        List<SVNURL> changes = new ArrayList<>();
         final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
         final File localDir = new File(path);
 
@@ -159,9 +159,8 @@ public class SVN {
                     if (handler != null) {
                         handler.checkCancelled();
                     }
-                    File file = new File(localDir, entry.getURL().getPath().replace(svnUrl.getPath(), ""));
                     if (entry.getKind() == SVNNodeKind.FILE) {
-                        changes.add(file.toPath());
+                        changes.add(entry.getURL());
                     }
                 });
             } else {
@@ -182,42 +181,14 @@ public class SVN {
                     );
                 }
                 try {
-                    SVNURL svnUrl = SVNURL.parseURIEncoded(url);
-                    statusClient.doStatus(localDir, SVNRevision.WORKING, SVNDepth.INFINITY, true, false, false, false, new ISVNStatusHandler() {
-                        @Override
-                        public void handleStatus(SVNStatus status) throws SVNException {
-                            if (handler != null) {
-                                handler.checkCancelled();
-                            }
-                            if (status.getCombinedNodeAndContentsStatus() != SVNStatusType.STATUS_NORMAL || status.getCombinedRemoteNodeAndContentsStatus() != SVNStatusType.STATUS_NONE) {
-                                if (status.getNodeStatus() != SVNStatusType.STATUS_UNVERSIONED && (status.getFile().isFile() || status.getKind() == SVNNodeKind.FILE || status.getRemoteKind() == SVNNodeKind.FILE)) {
-                                    File file = status.getFile() != null ? status.getFile() : new File(localDir, status.getURL().getPath().replace(svnUrl.getPath(), ""));
-                                    changes.add(file.toPath());
-                                }
-                            }
+                    statusClient.doStatus(localDir, revision, SVNDepth.INFINITY, true, false, false, false, status -> {
+                        if (handler != null) {
+                            handler.checkCancelled();
+                        }
+                        if (status.getNodeStatus() != SVNStatusType.STATUS_UNVERSIONED && (status.getKind() == SVNNodeKind.FILE || status.getRemoteKind() == SVNNodeKind.FILE)) {
+                            changes.add(status.getURL());
                         }
                     }, null);
-
-                    if (wcstatus.isVersioned()) {
-                        SVNRevision current = statusClient.doStatus(localDir, false).getRevision();
-                        final SvnDiffSummarize diff = new SvnOperationFactory().createDiffSummarize();
-                        diff.setSources(
-                                SvnTarget.fromFile(localDir, current),
-                                SvnTarget.fromURL(SVNURL.parseURIEncoded(url), revision)
-                        );
-                        diff.setRecurseIntoDeletedDirectories(true);
-                        diff.setReceiver((target, status) -> {
-                            if (handler != null) {
-                                handler.checkCancelled();
-                            }
-
-                            File file = new File(localDir, status.getUrl().getPath().replace(svnUrl.getPath(), ""));
-                            if (!changes.contains(file.toPath()) && status.getKind() == SVNNodeKind.FILE) {
-                                changes.add(file.toPath());
-                            }
-                        });
-                        diff.run();
-                    }
                 } catch (SVNCancelException e) {
                     // Do nothing
                 }
