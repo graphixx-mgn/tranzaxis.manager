@@ -28,6 +28,10 @@ public class Development extends RepositoryBranch {
         // Do not delete from tree
     }
 
+    private void detachForce(INode child) {
+        super.detach(child);
+    }
+
     @Override
     public void loadBranch() {
         getRepository().attach(this);
@@ -35,7 +39,7 @@ public class Development extends RepositoryBranch {
 
     @Override
     public void unloadBranch() {
-        new LinkedList<>(childrenList()).forEach(this::detach);
+        new LinkedList<>(childrenList()).forEach(this::detachForce);
         getRepository().detach(this);
     }
 
@@ -53,7 +57,6 @@ public class Development extends RepositoryBranch {
     public final List<String> getJvmDesigner() {
         return (List<String>) model.getValue(PROP_JVM_DESIGNER);
     }
-
 
     public static <E extends Entity> void deleteInstance(E entity, boolean cascade, boolean confirmation) {
         Entity.deleteInstance(entity, true, true);
