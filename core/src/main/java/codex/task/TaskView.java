@@ -11,6 +11,8 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
 
 /**
  * Реализация виджета задачи для отображения в мониторе.
@@ -74,6 +76,19 @@ public class TaskView extends AbstractTaskView {
             });
             controls.add(pause, BorderLayout.CENTER);
         }
+
+        addAncestorListener(new AncestorListener() {
+            @Override
+            public void ancestorAdded(AncestorEvent event) {
+                progressChanged(task, task.getProgress(), task.getDescription());
+            }
+
+            @Override
+            public void ancestorRemoved(AncestorEvent event) {}
+
+            @Override
+            public void ancestorMoved(AncestorEvent event) {}
+        });
         
         add(title,    BorderLayout.CENTER);
         add(controls, BorderLayout.EAST);
@@ -105,34 +120,36 @@ public class TaskView extends AbstractTaskView {
     
     @Override
     public void progressChanged(ITask task, int percent, String description) {
-        SwingUtilities.invokeLater(() -> {
-            progress.setValue(task.getStatus() == Status.FINISHED ? 100 : task.getProgress());
-            boolean isInfinitive = task.getStatus() == Status.STARTED && task.getProgress() == 0;
+        if (isDisplayable()) {
+            SwingUtilities.invokeLater(() -> {
+                progress.setValue(task.getStatus() == Status.FINISHED ? 100 : task.getProgress());
+                boolean isInfinitive = task.getStatus() == Status.STARTED && task.getProgress() == 0;
 
-            if (task.getStatus() == Status.PAUSED) {
-                updater.stop();
-                progress.setString(Status.PAUSED.toString());
-            } else if (!progress.isIndeterminate() && isInfinitive) {
-                updater.start();
-            } else if (progress.isIndeterminate() && !isInfinitive) {
-                updater.stop();
-            } else if (!isInfinitive && !task.getStatus().isFinal()) {
-                progress.setString(null);
-            }
-            if (task.getStatus() == Status.FINISHED || task.getStatus() == Status.FINISHED) {
-                progress.setString(formatDuration(((AbstractTask) task).getDuration()));
-            }
-            progress.setIndeterminate(isInfinitive);
+                if (task.getStatus() == Status.PAUSED) {
+                    updater.stop();
+                    progress.setString(Status.PAUSED.toString());
+                } else if (!progress.isIndeterminate() && isInfinitive) {
+                    updater.start();
+                } else if (progress.isIndeterminate() && !isInfinitive) {
+                    updater.stop();
+                } else if (!isInfinitive && !task.getStatus().isFinal()) {
+                    progress.setString(null);
+                }
+                if (task.getStatus() == Status.FINISHED || task.getStatus() == Status.FINISHED) {
+                    progress.setString(formatDuration(((AbstractTask) task).getDuration()));
+                }
+                progress.setIndeterminate(isInfinitive);
 
-            progress.setForeground(
-                    progress.isIndeterminate() ? StripedProgressBarUI.PROGRESS_INFINITE :
-                            task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
-                                    task.getStatus() == Status.FAILED ? PROGRESS_ABORTED :
-                                            (task.getStatus() == Status.CANCELLED || task.getStatus() == Status.PAUSED) ? PROGRESS_CANCELED :
-                                                    StripedProgressBarUI.PROGRESS_NORMAL
-            );
-            status.setText(task.getDescription());
-        });
+                progress.setForeground(
+                        progress.isIndeterminate() ? StripedProgressBarUI.PROGRESS_INFINITE :
+                                task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
+                                        task.getStatus() == Status.FAILED ? PROGRESS_ABORTED :
+                                                (task.getStatus() == Status.CANCELLED || task.getStatus() == Status.PAUSED) ? PROGRESS_CANCELED :
+                                                        StripedProgressBarUI.PROGRESS_NORMAL
+                );
+                status.setText(task.getDescription());
+            });
+        }
     }
     
     private final static long ONE_SECOND = 1000;
