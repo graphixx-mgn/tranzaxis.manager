@@ -5,9 +5,7 @@ import codex.component.messagebox.MessageType;
 import codex.config.IConfigStoreService;
 import codex.explorer.tree.INode;
 import codex.mask.RegexMask;
-import codex.model.Access;
-import codex.model.CommandRegistry;
-import codex.model.Entity;
+import codex.model.*;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.*;
@@ -52,6 +50,7 @@ public class Repository extends Entity {
     public final static String PROP_SVN_USER  = "svnUser";
     public final static String PROP_SVN_PASS  = "svnPass";
     public final static String PROP_LOCKED    = "locked";
+    public final static String PROP_ONLINE    = "online";
 
     private final static String REPO_CONFIG_FILE = "config/repository.xml";
     private final static Map<String, Class<? extends RepositoryBranch>> BRANCHES = new HashMap<>();
@@ -76,6 +75,13 @@ public class Repository extends Entity {
         model.addUserProp(svnUser, Access.Select);
         model.addUserProp(svnPass, Access.Select);
         model.addUserProp(PROP_LOCKED,    new Bool(false), false, Access.Any);
+        model.addDynamicProp(PROP_ONLINE, new Bool(null), Access.Any, () -> {
+            try {
+                return SVN.checkConnection(getRepoUrl(), getAuthManager());
+            } catch (SVNException | IOException e) {
+                return false;
+            }
+        }, PROP_LOCKED);
         
         // Property settings
         model.setPropUnique(PROP_REPO_URL);
@@ -98,25 +104,24 @@ public class Repository extends Entity {
             }
         });
         model.addChangeListener((name, oldValue, newValue) -> {
-           switch (name) {
+            switch (name) {
                 case PROP_AUTH_MODE:
                     model.getEditor(PROP_SVN_USER).setVisible(getAuthMode(true) == SVNAuth.Password);
                     model.getEditor(PROP_SVN_PASS).setVisible(getAuthMode(true) == SVNAuth.Password);
                     svnUser.setRequired(getAuthMode(true) == SVNAuth.Password);
                     svnPass.setRequired(getAuthMode(true) == SVNAuth.Password);
                     break;
-               case PROP_LOCKED:
+                case PROP_LOCKED:
                     lockEditors(Boolean.FALSE.equals(newValue));
-                    SwingUtilities.invokeLater(() -> {
-                        if (Boolean.TRUE.equals(newValue)) {
-                            setIcon(isRepositoryOnline(false) ? ICON_ONLINE : ICON_OFFLINE);
-                        } else {
-                            setIcon(ImageUtils.getByPath("/images/repository.png"));
-                        }
-                    });
+                    model.updateDynamicProps(PROP_ONLINE);
+                    if (Boolean.TRUE.equals(isLocked(true))) {
+                        setIcon(isRepositoryOnline(false) ? ICON_ONLINE : ICON_OFFLINE);
+                    } else {
+                        setIcon(ImageUtils.getByPath("/images/repository.png"));
+                    }
             }
         });
-        
+
         setMode((isLocked(false) && getChildCount() > 0 ? INode.MODE_ENABLED : INode.MODE_NONE) + INode.MODE_SELECTABLE);
     }
 
@@ -246,16 +251,18 @@ public class Repository extends Entity {
     }
 
     public boolean isRepositoryOnline(boolean showDialog) {
-        try {
-            return SVN.checkConnection(getRepoUrl(), getAuthManager());
-        } catch (SVNException | IOException e) {
-            if (showDialog) {
+        if (showDialog) {
+            try {
+                return SVN.checkConnection(getRepoUrl(), getAuthManager());
+            } catch (SVNException | IOException e) {
                 MessageBox.show(
                         MessageType.WARNING,
                         formatErrorMessage(MessageFormat.format(Language.get(Repository.class, "fail@connect"), getPID()), e)
                 );
+                return false;
             }
-            return false;
+        } else {
+            return Boolean.TRUE.equals(model.getValue(PROP_ONLINE));
         }
     }
 
