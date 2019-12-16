@@ -1,5 +1,97 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <versions current="2.2.2" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="2.3.0" date="2019-12-17">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена ошибка перерисовки виджета исполняющейся задачи в модальном диалоге.
+                    Ошибка происходила если изменение GUI порождалось не из потока EDT (Event Dispatch Thread).
+                    Ошибка приводила к зависанию модального диалога и неработоспособности приложения.</description>
+            </change>
+            <change scope="CORE" type="Change">
+                <description>Переработаны сервис и модуль исполнения задач.
+                    Сервис работает независимо от модуля, который только отображает происходящие в сервисе процессы.</description>
+            </change>
+            <change scope="CORE" type="Change">
+                <description>Изменение алгоритма сериализации/десериализации значений типа Map.</description>
+            </change>
+            <change scope="CORE" type="Change">
+                <description>Переработана реализация типа Map и его редактора.</description>
+            </change>
+            <change scope="CORE" type="Feature">
+                <description>Редакторы внешних инстанций отображают их сетевые сервисы.</description>
+            </change>
+            <change scope="CORE" type="Feature">
+                <description>Реализован механизм отображения уведомлений о событиях модуля.
+                    При наличии событий иконка на вкладке модуля дополняется бейджем с количеством событий.</description>
+            </change>
+            <change scope="CORE" type="Feature">
+                <description>Поддержка типа данных DateTime.</description>
+            </change>
+            <change scope="CORE" type="Feature">
+                <description>Переработан сервис и модуль логирования:
+                    * Все события имеют контексты вызова.
+                    * Уровень вывода событий каждого контекста настраивается в настройках сервиса.
+                    * Сервис записывает события в базу данных (SQLite).
+                    * Модуль представляет собой инструмент просмотра сообщений, хранящихся в базе данных.
+                    * Время хранения логов (дней) задается в настройках сервиса
+                </description>
+            </change>
+            <change scope="CORE" type="Feature">
+                <description>Поддержка возможности создавать объекты разных классов (единого класса-предка) в одном каталоге дерева проводника.
+                    При этом в отдельном диалоге предлагается выбрать конкретный класс-реализацию.</description>
+            </change>
+            <change scope="CORE" type="Feature">
+                <description>Поддержка каскадного удаления объектов конфигурации. При наличии ссылок, в диалоге показывается полная информация.</description>
+            </change>
+            <change scope="CORE" type="Feature">
+                <description>Реализована автоматическая подстройка ширины столбцов селекторов для обеспечения наилучшего вида.</description>
+            </change>
+            <change scope="CORE" type="Feature">
+                <description>Новый модуль планировщика задач. В составе модуля реализованы 3 типа триггеров времени:
+                    * Таймер - Исполняет задание с периодичностью в N часов или минут.
+                    * Ежедневно - Исполняет задание ежедневно в указанное время.
+                    * Еженедельно - Исполняет задание в определенные дни недели вуказанное время.
+                </description>
+            </change>
+            <change scope="CORE" type="Feature">
+                <description>Динамическое отслеживание связей сущностей между собой.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Исправлена ошибка NPE при заведении новой сущности 'Environment' когда ссылка на БД еще не сохранена.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Исправлен алгоритм определения наличия обновления плагинов.</description>
+            </change>
+            <change scope="APP" type="Bugfix">
+                <description>Исправлено отображение пустого окна ошибки (без текста) при попытке загрузить репозиторий к которому нет доступа.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Косметическое изменение диалогов отображения истории версий приложения и плагинов.
+                    Теперь информация представлена в виде таблиц HTML.
+                </description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Поддержка истории версий пакетов плагинов.
+                    Поле редактора "Версия" содержит команду просмотра истории изменений. Аналогичная команда добавлена в редактор обновления пакета плагинов, но в окне отображаются только изменения по отношению к устоновленной версии пакета.
+                </description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Модуль плагинов уведомляет пользователя об имеющихся обновлениях.
+                </description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>При загрузке рабочих копий репозитория выполняется задача проверки каталого копии на наличие конфликтов.
+                    * При наличии конфликтов файлов запрещена компиляция.
+                    * Конфликты свойств автоматически разрешаются (use theirs), это необходимо для корректного обновления копии.
+                </description>
+            </change>
+            <change scope="API" type="Change">
+                <description>Изменен прототип конструктора типа Map.
+                    Теперь он принимает значения по умолчанию для ключа и значения. Эти значения могут иметь маски ввода, которые учитываются при добавлении элемента в редакторе.
+                </description>
+            </change>
+        </changelog>
+    </version>
     <version number="2.2.2" date="2019-07-01">
         <changelog>
             <change scope="API" type="Change">

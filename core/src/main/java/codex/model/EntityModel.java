@@ -480,7 +480,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
 
     Collection<Reference> getReferences() {
-        return referenceTracker.getReferences();
+        return referenceTracker.getReferences().stream()
+                .sorted(Comparator.comparing(o -> o.model.entityClass.getTypeName()))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -872,7 +874,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
 
 
-    final class DynamicResolver {
+    private final class DynamicResolver {
 
         final Map<String, List<String>>   resolveMap      = new HashMap<>();
         final Map<String, Supplier>       valueProviders  = new HashMap<>();
@@ -1090,15 +1092,27 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
 
 
-    static class Reference {
-        final EntityModel model;
-        final String      property;
-        final boolean     incoming;
+    private enum RefStatus {
+        Temporal, Permanent
+    }
+
+
+    class Reference implements IPropertyChangeListener, IModelListener {
+        final EntityModel  model;
+        final String       property;
+        final boolean      incoming;
+        volatile RefStatus status = RefStatus.Temporal;
 
         Reference(EntityModel model, String property) {
             this.model = model;
             this.property = property;
             this.incoming = !property.equals(EntityModel.OWN);
+            if (model.getID() != null) {
+                setStatus(RefStatus.Permanent);
+            } else {
+                model.addChangeListener(Reference.this);
+            }
+            model.addModelListener(Reference.this);
         }
 
         Entity getEntity() {
@@ -1108,6 +1122,29 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         void unlink(Entity entity) {
             if (incoming) {
                 model.referenceTracker.getHandler(property).clearValue(entity);
+            }
+        }
+
+        void discard() {
+            model.removeChangeListener(Reference.this);
+            model.removeModelListener(Reference.this);
+            OrmContext.debug(
+                    "Unregistered {0} reference {1} <- {2}",
+                    incoming ? "incoming" : "child",
+                    getQualifiedName(),
+                    Reference.this
+            );
+        }
+
+        synchronized void setStatus(RefStatus status) {
+            this.status = status;
+            if (status.equals(RefStatus.Permanent)) {
+                OrmContext.debug(
+                        "Registered {0} reference {1} <- {2}",
+                        incoming ? "incoming" : "child",
+                        getQualifiedName(),
+                        Reference.this
+                );
             }
         }
 
@@ -1124,6 +1161,23 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         public int hashCode() {
             return Objects.hash(model.getQualifiedName(), property);
         }
+
+        @Override
+        public String toString() {
+            return MessageFormat.format("{0}@{1}", model.getQualifiedName(), property);
+        }
+
+        @Override
+        public void propertyChange(String name, Object oldValue, Object newValue) {
+            if (name.equals(EntityModel.ID)) {
+                setStatus(newValue != null ? RefStatus.Permanent: RefStatus.Temporal);
+            }
+        }
+
+        @Override
+        public void modelDeleted(EntityModel deleted) {
+            referenceTracker.unregisterReference(this.model, this.property);
+        }
     }
 
 
@@ -1133,7 +1187,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
 
 
-    abstract class AbstractTrackHandler<T extends ISerializableType<V, ? extends IMask<V>>, V>
+    private abstract class AbstractTrackHandler<T extends ISerializableType<V, ? extends IMask<V>>, V>
             implements ITrackHandler<T, V>, IPropertyChangeListener
     {
         protected final PropertyHolder<T, V> propHolder;
@@ -1142,7 +1196,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             this.propHolder.addChangeListener(this);
             if (getValue(propHolder.getPropValue().getValue()) != null) {
                 getValue(propHolder.getPropValue().getValue()).forEach(entity -> entity.model.referenceTracker.registerReference(
-                        new Reference(EntityModel.this, propHolder.getName())
+                        EntityModel.this, propHolder.getName()
                 ));
             }
         }
@@ -1154,19 +1208,19 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             Collection<Entity> newEntities = newValue != null ? getValue((V) newValue) : Collections.emptyList();
             oldEntities.forEach(entity -> {
                 if (!newEntities.contains(entity)) {
-                    entity.model.referenceTracker.unregisterReference(new Reference(EntityModel.this, name));
+                    entity.model.referenceTracker.unregisterReference(EntityModel.this, name);
                 }
             });
             newEntities.forEach(entity -> {
                 if (!oldEntities.contains(entity)) {
-                    entity.model.referenceTracker.registerReference(new Reference(EntityModel.this, name));
+                    entity.model.referenceTracker.registerReference(EntityModel.this, name);
                 }
             });
         }
     }
 
 
-    class DefaultRefHandler extends AbstractTrackHandler<EntityRef<Entity>, Entity> {
+    private class DefaultRefHandler extends AbstractTrackHandler<EntityRef<Entity>, Entity> {
         DefaultRefHandler(PropertyHolder<EntityRef<Entity>, Entity> propertyHolder) {
             super(propertyHolder);
         }
@@ -1187,7 +1241,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
     }
 
-    class MapKeyRefHandler extends AbstractTrackHandler<codex.type.Map<Entity, Object>, Map<Entity, Object>> {
+    private class MapKeyRefHandler extends AbstractTrackHandler<codex.type.Map<Entity, Object>, Map<Entity, Object>> {
 
         MapKeyRefHandler(PropertyHolder<codex.type.Map<Entity, Object>, Map<Entity, Object>> propHolder) {
             super(propHolder);
@@ -1212,7 +1266,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
 
 
-    class MapValRefHandler extends AbstractTrackHandler<codex.type.Map<Object, Entity>, Map<Object, Entity>> {
+    private class MapValRefHandler extends AbstractTrackHandler<codex.type.Map<Object, Entity>, Map<Object, Entity>> {
 
         MapValRefHandler(PropertyHolder<codex.type.Map<Object, Entity>, Map<Object, Entity>> propHolder) {
             super(propHolder);
@@ -1237,7 +1291,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     }
 
 
-    class ReferenceTracker {
+    private class ReferenceTracker {
         final private Map<String, ITrackHandler> handlers = new HashMap<>();
         final private List<Reference> references = new ArrayList<>();
 
@@ -1271,37 +1325,33 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             return handlers.get(propName);
         }
 
-        void registerReference(Reference reference) {
+        void registerReference(EntityModel model, String property) {
             synchronized (references) {
-                references.add(reference);
-                OrmContext.debug(
-                        "Registered {0} reference {1} <- {2}@{3}",
-                        reference.incoming ? "incoming" : "child",
-                        getQualifiedName(),
-                        reference.model.getQualifiedName(),
-                        reference.property
-                );
+                references.add(new Reference(model, property));
             }
         }
 
-        void unregisterReference(Reference reference) {
+        void unregisterReference(EntityModel model, String property) {
+            findReference(model, property)
+                    .ifPresent(reference -> {
+                        reference.discard();
+                        references.remove(reference);
+                    });
+        }
+
+        Optional<Reference> findReference(EntityModel model, String property) {
             synchronized (references) {
-                references.remove(reference);
-                OrmContext.debug(
-                        "Unregistered {0} reference {1} <- {2}@{3}",
-                        reference.incoming ? "incoming" : "child",
-                        getQualifiedName(),
-                        reference.model.getQualifiedName(),
-                        reference.property
-                );
+                return references.stream()
+                        .filter(reference -> Objects.hash(model.getQualifiedName(), property) == reference.hashCode())
+                        .findFirst();
             }
         }
 
         Collection<Reference> getReferences() {
             synchronized (references) {
                 return references.stream()
-                        .filter(reference -> reference.model.getID() != null)
-                        .collect(Collectors.toList());
+                       .filter(reference -> reference.status.equals(RefStatus.Permanent))
+                       .collect(Collectors.toList());
             }
         }
 
