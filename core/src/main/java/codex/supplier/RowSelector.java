@@ -183,7 +183,7 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
                 for (int column = 0; column < tableModel.getColumnCount(); column++) {
                     rowData.put(
                             tableModel.getColumnName(column),
-                            tableModel.getValueAt(selectedRow, column).toString()
+                            (String) tableModel.getValueAt(selectedRow, column)
                     );
                 }
                 if (!descPane.isVisible()) {
@@ -386,7 +386,7 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
     private List<String> getRowValues(int row) {
         List<String> rowValues = new LinkedList<>();
         for (int col = 0; col < tableModel.getColumnCount(); col++) {
-            rowValues.add(tableModel.getValueAt(row, col).toString());
+            rowValues.add((String) tableModel.getValueAt(row, col));
         }
         return rowValues;
     }
@@ -394,7 +394,7 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
 
     private class BackToInitial extends EditorCommand<Str, String> {
 
-        public BackToInitial() {
+        private BackToInitial() {
             super(
                     ImageUtils.resize(ICON_REVERT, 18, 18),
                     null,
