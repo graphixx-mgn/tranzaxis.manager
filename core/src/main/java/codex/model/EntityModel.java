@@ -614,7 +614,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             synchronized (this) {
                 processAutoReferences(true, null);
 
-                Predicate<String> equalFilter = (propName) -> !getProperty(propName).getOwnPropValue().toString().equals(dbValues.get(propName));
+                Predicate<String> equalFilter = (propName) -> !Objects.equals(getProperty(propName).getOwnPropValue().toString(), dbValues.get(propName));
                 Predicate<String> morphFilter = PolyMorph.class.isAssignableFrom(entityClass) ?
                         (propName) -> !PolyMorph.getExternalProperties(this).contains(propName) :
                         (propName) -> true;

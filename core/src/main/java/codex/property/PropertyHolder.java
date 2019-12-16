@@ -10,6 +10,7 @@ import codex.utils.Language;
 import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 /** 
  * Класс реализует модель свойства сущности {@link AbstractModel}.
@@ -170,11 +171,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
                 this.value.setValue(value);
             }
         }
-        if (
-                (prevValue == null && getOwnPropValue().getValue() != null) || 
-                (prevValue != null && getOwnPropValue().getValue() == null) ||
-                (prevValue != null && getOwnPropValue().getValue() != null && !prevValue.equals(getOwnPropValue().getValue()))
-        ) {
+        if (!Objects.equals(prevValue, getOwnPropValue().getValue())) {
             fireChangeEvent(prevValue, getOwnPropValue().getValue());
         }
     }

@@ -93,7 +93,7 @@ public class EntityRef<E extends Entity> implements ISerializableType<E, IRefMas
 
     @Override
     public String toString() {
-        return entityInstance != null && entityInstance.getID() != null ? entityInstance.getID().toString() : "";
+        return entityInstance != null && entityInstance.getID() != null ? entityInstance.getID().toString() : null;
     }
 
     @Override

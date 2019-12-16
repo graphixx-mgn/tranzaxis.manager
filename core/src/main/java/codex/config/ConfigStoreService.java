@@ -340,8 +340,8 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 List<String> keys = new ArrayList<>(properties.keySet());
                 for (Map.Entry<String, IComplexType> entry : properties.entrySet()) {
                     update.setString(
-                            keys.indexOf(entry.getKey())+1, 
-                            entry.getValue().toString().isEmpty() ? null : entry.getValue().toString()
+                            keys.indexOf(entry.getKey())+1,
+                            entry.getValue().toString() == null || entry.getValue().toString().isEmpty() ? null : entry.getValue().toString()
                     );
                 }
                 update.setInt(properties.size()+1, ID);

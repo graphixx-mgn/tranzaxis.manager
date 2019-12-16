@@ -73,10 +73,17 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
         model.addChangeListener((name, oldValue, newValue) -> {
             if (!name.equals(PROP_IMPL_PARAM)) {
                 this.propertyChange(name, oldValue, newValue);
+
+                Map<String, String> parameters = getParameters(true);
+                String serializedValue = model.getProperty(name).getPropValue().toString();
+                if (!Objects.equals(serializedValue, parameters.get(name))) {
+                    parameters.put(name, model.getProperty(name).getPropValue().toString());
+                    setParameters(parameters);
+                }
             }
         });
 
-        model.addUserProp(PROP_IMPL_CLASS, new Str(null), false, Access.Select);
+        model.addUserProp(PROP_IMPL_CLASS, new Str(null), false, Access.Any);
         final Class<? extends Entity> implClass = getPolymorphClass(getClass()).equals(getClass()) ? getImplClass() : getClass();
         final EntityDefinition entityDef = Entity.getDefinition(implClass);
         setIcon(ImageUtils.getByPath(entityDef.icon()));
@@ -88,14 +95,11 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
                 false
         );
 
-        model.addUserProp(propertiesHolder, Access.Select);
+        model.addUserProp(propertiesHolder, Access.Any);
 
         // Property settings
         model.setValue(PROP_IMPL_CLASS, getClass().getTypeName());
         model.addModelListener(this);
-
-        model.getEditor(PROP_IMPL_CLASS).setVisible(false);
-        model.getEditor(PROP_IMPL_PARAM).setVisible(false);
     }
 
     @SuppressWarnings("unchecked")
@@ -108,22 +112,6 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
 
     private void setParameters(Map<String, String> params) {
         model.setValue(PROP_IMPL_PARAM, params);
-    }
-
-    @Override
-    public void modelChanged(EntityModel model, List<String> changes) {
-        changes.stream()
-                .filter(propName -> !PolyMorph.SYSPROPS.contains(propName))
-                .filter(propName -> !EntityModel.SYSPROPS.contains(propName))
-                .filter(propName -> !propName.equals(EntityModel.THIS))
-                .forEach(propName -> {
-                    Map<String, String> parameters = getParameters(true);
-                    String serializedValue = model.getProperty(propName).getPropValue().toString();
-                    if (!serializedValue.equals(parameters.get(propName))) {
-                        parameters.put(propName, model.getProperty(propName).getPropValue().toString());
-                        setParameters(parameters);
-                    }
-                });
     }
 
     @Override
