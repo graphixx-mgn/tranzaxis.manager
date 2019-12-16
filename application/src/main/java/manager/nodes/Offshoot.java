@@ -464,7 +464,7 @@ public class Offshoot extends BinarySource {
         }
 
         private void delete(Offshoot offshoot) {
-            offshoot.remove();
+            deleteInstance(offshoot, true, true);
         }
     }
 }
