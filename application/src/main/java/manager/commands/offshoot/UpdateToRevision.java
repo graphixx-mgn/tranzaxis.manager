@@ -38,7 +38,9 @@ public class UpdateToRevision extends EntityCommand<Offshoot> {
                 Language.get("title"),
                 ICON_COMMAND,
                 Language.get("title"),
-                (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Invalid)
+                (offshoot) ->
+                        !offshoot.getWCStatus().equals(WCStatus.Invalid)  &&
+                        offshoot.getRepository().isRepositoryOnline(false)
         );
 
         setParameters(

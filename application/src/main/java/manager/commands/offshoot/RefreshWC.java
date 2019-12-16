@@ -35,7 +35,9 @@ public class RefreshWC extends EntityCommand<Offshoot> {
                 Language.get("title"),
                 COMMAND_ICON,
                 Language.get("desc"), 
-                (offshoot) -> !offshoot.getWCStatus().equals(WCStatus.Erroneous)
+                (offshoot) ->
+                        !offshoot.getWCStatus().equals(WCStatus.Erroneous) &&
+                        offshoot.getRepository().isRepositoryOnline(false)
         );
         setParameters(
                 new PropertyHolder<>(PARAM_CLEAN, new Bool(Boolean.FALSE), true)

@@ -9,7 +9,6 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.io.File;
 import java.nio.channels.ClosedChannelException;
-import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
@@ -21,10 +20,7 @@ import manager.svn.SVN;
 import manager.type.WCStatus;
 import org.tmatesoft.svn.core.*;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
-import org.tmatesoft.svn.core.wc.ISVNEventHandler;
-import org.tmatesoft.svn.core.wc.SVNEvent;
-import org.tmatesoft.svn.core.wc.SVNEventAction;
-import org.tmatesoft.svn.core.wc.SVNRevision;
+import org.tmatesoft.svn.core.wc.*;
 import javax.swing.*;
 
 @EntityCommand.Definition(parentCommand = RefreshWC.class)
@@ -42,7 +38,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                 Language.get("title"),
                 COMMAND_ICON,
                 Language.get("desc"), 
-                (offshoot) -> true
+                (offshoot) -> offshoot.getRepository().isRepositoryOnline(false)
         );
     }
 
@@ -97,38 +93,40 @@ public class UpdateWC extends EntityCommand<Offshoot> {
             ISVNAuthenticationManager authMgr = offshoot.getRepository().getAuthManager();
 
             setProgress(0, Language.get(UpdateWC.class, "command@calc"));
-            try {
-                List<Path> changes = SVN.changes(wcPath, repoUrl, revision, authMgr, new ISVNEventHandler() {
-                    @Override
-                    public void handleEvent(SVNEvent event, double d) {
-                        if (event.getErrorMessage() != null && event.getErrorMessage().getErrorCode() == SVNErrorCode.WC_CLEANUP_REQUIRED) {
-                            String desc = getDescription();
-                            if (event.getExpectedAction() == SVNEventAction.RESOLVER_STARTING) {
-                                setProgress(0, Language.get(UpdateWC.class, "command@cleanup"));
-                                Logger.getLogger().info("UPDATE [{0}] perform automatic cleanup", wcPath);
-                            } else {
-                                Logger.getLogger().info("UPDATE [{0}] continue after cleanup", wcPath);
-                                setProgress(0, desc);
-                            }
-                        }
-                    }
 
-                    @Override
-                    public void checkCancelled() throws SVNCancelException {
-                        checkPaused();
-                        if (UpdateTask.this.isCancelled()) {
-                            throw new SVNCancelException();
+            List<SVNURL> changes = SVN.changes(wcPath, repoUrl, revision, authMgr, new ISVNEventHandler() {
+                @Override
+                public void handleEvent(SVNEvent event, double d) {
+                    if (event.getErrorMessage() != null && event.getErrorMessage().getErrorCode() == SVNErrorCode.WC_CLEANUP_REQUIRED) {
+                        String desc = getDescription();
+                        if (event.getExpectedAction() == SVNEventAction.RESOLVER_STARTING) {
+                            setProgress(0, Language.get(UpdateWC.class, "command@cleanup"));
+                            Logger.getLogger().info("UPDATE [{0}] perform automatic cleanup", wcPath);
+                        } else {
+                            Logger.getLogger().info("UPDATE [{0}] continue after cleanup", wcPath);
+                            setProgress(0, desc);
                         }
                     }
-                });
+                }
+
+                @Override
+                public void checkCancelled() throws SVNCancelException {
+                    checkPaused();
+                    if (UpdateTask.this.isCancelled()) {
+                        throw new SVNCancelException();
+                    }
+                }
+            });
+
+            try {
                 if (changes.size() > 0) {
                     Logger.getLogger().debug("Found changes of branch ''{0}'': {1}", wcPath, changes.size());
 
                     offshoot.setWCLoaded(false);
                     offshoot.model.commit(false);
-                    
+
                     Logger.getLogger().info(
-                            "UPDATE [{0}] started", 
+                            "UPDATE [{0}] started",
                             wcPath
                     );
                     AtomicInteger loaded   = new AtomicInteger(0);
@@ -143,7 +141,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                             @Override
                             public void handleEvent(SVNEvent event, double d) {
                                 if (event.getAction() != SVNEventAction.UPDATE_STARTED && event.getAction() != SVNEventAction.UPDATE_COMPLETED) {
-                                    if (changes.contains(event.getFile().toPath())) {
+                                    if (event.getNodeKind() == SVNNodeKind.FILE) {
                                         loaded.addAndGet(1);
                                         int percent = (int) (loaded.get() * 100 / total);
                                         setProgress(
@@ -154,6 +152,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                                                 )
                                         );
                                         SVNEventAction action = event.getAction();
+
                                         if (action == SVNEventAction.UPDATE_ADD || action == SVNEventAction.UPDATE_SHADOWED_ADD) {
                                             added.addAndGet(1);
                                         } else if (action == SVNEventAction.UPDATE_DELETE || action == SVNEventAction.UPDATE_SHADOWED_DELETE) {
@@ -167,8 +166,6 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                                         } else {
                                             System.err.println(action);
                                         }
-                                    } else {
-                                        if (event.getFile().isFile()) System.out.println(event);
                                     }
                                 }
                             }
