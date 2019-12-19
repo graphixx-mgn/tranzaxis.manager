@@ -694,16 +694,12 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
+    @SuppressWarnings("unchecked")
     public final void propertyChange(String name, Object oldValue, Object newValue) {
         if (!ISerializableType.class.isAssignableFrom(model.getPropertyType(name))) return;
 
-        if (
-                (oldValue == null && newValue != null) ||
-                (oldValue != null && newValue == null) ||
-                (oldValue != null && !oldValue.equals(newValue))
-        ) {
+        if (!Objects.equals(oldValue, newValue)) {
             EntityModel.OrmContext.debug(
                     "Property ''{0}@{1}'' has been changed: {2} -> {3}",
                     model.getQualifiedName(), name,

@@ -43,11 +43,16 @@ class ClassSelector {
         if (classCatalog.size() == 0) {
             MessageBox.show(MessageType.WARNING, Language.get(ClassSelector.class, "empty"));
             return null;
-        } else if (classCatalog.size() == 1) {
-            return classCatalog.get(0);
-        } else {
+        } else if (classCatalog.size() > 1 || ClassCatalog.class.isAssignableFrom(classCatalog.get(0))) {
             return new ClassSelector(buildTree(classCatalog)).select();
+        } else {
+            return classCatalog.get(0);
         }
+//        } else if (classCatalog.size() == 1) {
+//            return classCatalog.get(0);
+//        } else {
+//            return new ClassSelector(buildTree(classCatalog)).select();
+//        }
     }
 
     private static DefaultTreeModel buildTree(List<Class<? extends Entity>> classCatalog) {
