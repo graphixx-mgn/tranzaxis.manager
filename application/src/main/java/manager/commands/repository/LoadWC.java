@@ -7,7 +7,9 @@ import codex.component.messagebox.MessageType;
 import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.model.Catalog;
+import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
+import codex.task.ITaskExecutorService;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -55,7 +57,12 @@ public class LoadWC extends EntityCommand<Repository> {
     
     public void load(Repository repository) {
         repository.setLocked(true);
-        executeTask(repository, new LoadTask(repository), !getContext().isEmpty());
+        ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
+        if (!getContext().isEmpty()) {
+            TES.executeTask(new LoadTask(repository));
+        } else {
+            TES.enqueueTask(new LoadTask(repository));
+        }
     }
     
     private void unload(Repository repository) {

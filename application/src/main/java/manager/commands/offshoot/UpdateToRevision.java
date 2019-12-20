@@ -7,10 +7,13 @@ import codex.supplier.RowSelector;
 import codex.model.ParamModel;
 import codex.property.PropertyHolder;
 import codex.task.GroupTask;
+import codex.task.ITask;
 import codex.type.IComplexType;
 import codex.type.Int;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import manager.commands.offshoot.build.BuildKernelTask;
+import manager.commands.offshoot.build.BuildSourceTask;
 import manager.commands.offshoot.revision.RevisionSupplier;
 import manager.nodes.Offshoot;
 import manager.type.WCStatus;
@@ -75,15 +78,14 @@ public class UpdateToRevision extends EntityCommand<Offshoot> {
     }
 
     @Override
-    public void execute(Offshoot context, Map<String, IComplexType> params) {
-        executeTask(
-                context,
-                new GroupTask<>(
-                        Language.get("title") + ": "+(context).getLocalPath(),
-                        new UpdateWC.UpdateTask(context, SVNRevision.create(((Int) params.get(PARAM_REVISION)).getValue())),
-                        context.new CheckConflicts()
-                ),
-                false
+    public ITask getTask(Offshoot context, Map<String, IComplexType> params) {
+        return new GroupTask<>(
+                Language.get("title") + ": "+(context).getLocalPath(),
+                new UpdateWC.UpdateTask(context, SVNRevision.create(((Int) params.get(PARAM_REVISION)).getValue())),
+                context.new CheckConflicts()
         );
     }
+
+    @Override
+    public void execute(Offshoot context, Map<String, IComplexType> params) {}
 }

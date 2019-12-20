@@ -3,6 +3,7 @@ package manager.commands.offshoot;
 import codex.command.EntityCommand;
 import codex.property.PropertyHolder;
 import codex.task.GroupTask;
+import codex.task.ITask;
 import codex.type.Bool;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
@@ -50,19 +51,17 @@ public class RefreshWC extends EntityCommand<Offshoot> {
     }
 
     @Override
-    public void execute(Offshoot context, Map<String, IComplexType> map) {
-        if (!context.getRepository().isRepositoryOnline(true)) return;
-        executeTask(
-                context,
-                new GroupTask<>(
-                        Language.get("title") + ": "+(context).getLocalPath(),
-                        new UpdateWC.UpdateTask(context, SVNRevision.HEAD),
-                        context.new CheckConflicts(),
-                        new BuildKernelTask(context),
-                        new BuildSourceTask(context, map.get(PARAM_CLEAN).getValue() == Boolean.TRUE)
-                ), 
-                false
+    public ITask getTask(Offshoot context, Map<String, IComplexType> params) {
+        return new GroupTask<>(
+                Language.get("title") + ": "+(context).getLocalPath(),
+                new UpdateWC.UpdateTask(context, SVNRevision.HEAD),
+                context.new CheckConflicts(),
+                new BuildKernelTask(context),
+                new BuildSourceTask(context, params.get(PARAM_CLEAN).getValue() == Boolean.TRUE)
         );
     }
+
+    @Override
+    public void execute(Offshoot context, Map<String, IComplexType> map) {}
     
 }

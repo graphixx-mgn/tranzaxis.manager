@@ -4,6 +4,7 @@ import codex.command.EntityCommand;
 import codex.log.Logger;
 import codex.task.AbstractTask;
 import codex.task.GroupTask;
+import codex.task.ITask;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -48,18 +49,16 @@ public class UpdateWC extends EntityCommand<Offshoot> {
     }
 
     @Override
-    public void execute(Offshoot context, Map<String, IComplexType> map) {
-        if (!context.getRepository().isRepositoryOnline(true)) return;
-        executeTask(
-                context,
-                new GroupTask<>(
-                        Language.get("title") + ": "+(context).getLocalPath(),
-                        new UpdateWC.UpdateTask(context, SVNRevision.HEAD),
-                        context.new CheckConflicts()
-                ),
-                false
+    public ITask getTask(Offshoot context, Map<String, IComplexType> params) {
+        return new GroupTask<>(
+                Language.get("title") + ": "+(context).getLocalPath(),
+                new UpdateWC.UpdateTask(context, SVNRevision.HEAD),
+                context.new CheckConflicts()
         );
     }
+
+    @Override
+    public void execute(Offshoot context, Map<String, IComplexType> map) {}
     
     public static class UpdateTask extends AbstractTask<Void> {
 

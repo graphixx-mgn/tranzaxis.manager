@@ -4,6 +4,7 @@ import codex.command.EntityCommand;
 import codex.log.Logger;
 import codex.property.PropertyHolder;
 import codex.task.GroupTask;
+import codex.task.ITask;
 import codex.type.Bool;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
@@ -74,17 +75,16 @@ public class BuildWC extends EntityCommand<Offshoot> {
     public boolean multiContextAllowed() {
         return true;
     }
-    
+
     @Override
-    public void execute(Offshoot offshoot, Map<String, IComplexType> map) {
-        executeTask(
-                offshoot,
-                new GroupTask<>(
-                        Language.get("title") + ": '"+(offshoot).getLocalPath()+"'",
-                        new BuildKernelTask(offshoot),
-                        new BuildSourceTask(offshoot, map.get(PARAM_CLEAN).getValue() == Boolean.TRUE)
-                ),
-                false
+    public ITask getTask(Offshoot context, Map<String, IComplexType> map) {
+        return new GroupTask<>(
+                Language.get("title") + ": '"+(context).getLocalPath()+"'",
+                new BuildKernelTask(context),
+                new BuildSourceTask(context, map.get(PARAM_CLEAN).getValue() == Boolean.TRUE)
         );
     }
+
+    @Override
+    public void execute(Offshoot offshoot, Map<String, IComplexType> map) {}
 }
