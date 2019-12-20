@@ -96,13 +96,13 @@ public class Repository extends Entity {
         
         // Handlers
         lockEditors(!isLocked(false));
-        SwingUtilities.invokeLater(() -> {
+        new Thread(() -> {
             if (isLocked(false)) {
                 setIcon(isRepositoryOnline(false) ? ICON_ONLINE : ICON_OFFLINE);
             } else {
                 setIcon(ImageUtils.getByPath("/images/repository.png"));
             }
-        });
+        }).start();
         model.addChangeListener((name, oldValue, newValue) -> {
             switch (name) {
                 case PROP_AUTH_MODE:
