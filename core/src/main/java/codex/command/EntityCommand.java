@@ -301,7 +301,14 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
                         "Perform command [{0}]. Context: {1}",
                         getName(),
                         context.stream().map(entity -> entity.model.getQualifiedName()).collect(Collectors.toList()));
-                context.forEach(entity -> execute(entity, params));
+                context.forEach(entity -> {
+                    ITask task = getTask(entity, params);
+                    if (task != null) {
+                        executeTask(entity, task);
+                    } else {
+                        execute(entity, params);
+                    }
+                });
             } catch (ParametersDialog.Canceled e) {
                 // Do not call command
             }
@@ -323,17 +330,25 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
      * @param params Карта параметров команды, заполненная значениями, введенными пользователем.
      */
     public abstract void execute(V context, Map<String, IComplexType> params);
-    
+
+    /**
+     * Реализация логики команды в виде задачи. Если команда перекрывает данный метод, будет запущен метод
+     * {@link EntityCommand#executeTask(Entity, ITask)}.
+     * @param context Контекстная сущность
+     */
+    public ITask getTask(V context, Map<String, IComplexType> params) {
+        return null;
+    }
+
     /**
      * Исполнение длительной задачи над сущностью с блокировкой. Вспомогательный метод, порождающий задачу, которая
-     * исполняется сервисом исплнения задач {@link ITaskExecutorService}.
+     * исполняется сервисом выполнения задач {@link ITaskExecutorService}.
      * @param context Элемент набора объектов, установленных в качестве контекста команды.
      * @param task Задача, коорая будет передана сервису.
-     * @param foreground Исполнить в модальном диалоге. Если FALSE - задача будет исполнена в фоновом режиме
      * (см. {@link ITaskExecutorService#enqueueTask(ITask)}).
      */
-    public final void executeTask(V context, ITask task, boolean foreground) {
-        task.addListener(new ITaskListener() {
+    private void executeTask(V context, ITask task) {
+        ITaskListener lockHandler = new ITaskListener() {
             @Override
             public void beforeExecute(ITask task) {
                 if (context != null && !context.islocked()) {
@@ -344,16 +359,16 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
                     }
                 }
             }
-            
+
             @Override
             public void afterExecute(ITask task) {
                 if (context != null) {
                     context.getLock().release();
                 }
             }
-        });
-
-        if (foreground) {
+        };
+        task.addListener(lockHandler);
+        if (!getContext().isEmpty()) {
             TES.executeTask(task);
         } else {
             TES.enqueueTask(task);
