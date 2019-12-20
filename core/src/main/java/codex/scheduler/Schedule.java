@@ -169,7 +169,6 @@ public abstract class Schedule extends JobTrigger implements ITaskListener {
     @Override
     public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
         if (nextStatus.isFinal()) {
-            task.removeListener(this);
             setLastTime(getNextTime());
 
             Date nextTime = calcTime();
