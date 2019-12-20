@@ -125,7 +125,6 @@ final class TaskMonitor extends JPopupMenu implements ITaskMonitor {
         task.removeListener(this);
         if (taskViews.containsKey(task)) {
             taskViewList.remove(taskViews.remove(task));
-            task.removeListener(this);
             if (isVisible()) {
                 repaint();
                 setVisible(!taskViews.isEmpty());

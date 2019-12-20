@@ -70,7 +70,6 @@ public class TaskView extends AbstractTaskView {
                 public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
                     if (nextStatus.isFinal()) {
                         SwingUtilities.invokeLater(() -> pause.setEnabled(false));
-                        task.removeListener(this);
                     }
                 }
             });
@@ -113,9 +112,6 @@ public class TaskView extends AbstractTaskView {
             );
         });
         progressChanged(task, task.getProgress(), task.getDescription());
-        if (nextStatus.isFinal()) {
-            task.removeListener(this);
-        }
     }
     
     @Override

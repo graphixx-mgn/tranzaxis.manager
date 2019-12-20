@@ -26,7 +26,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
     private Integer percent = 0;
     private String  description;
     private final FutureTask<T> future;
-    private List<ITaskListener> listeners = new LinkedList<>();
+    private final List<ITaskListener> listeners = new LinkedList<>();
     private final Semaphore     semaphore = new Semaphore(1, true) {
         @Override
         public void release() {
@@ -68,11 +68,14 @@ public abstract class AbstractTask<T> implements ITask<T> {
                 Logger.getLogger().error(MessageFormat.format("Error on task ''{0}'' execution", getTitle()), e);
                 throw e;
             } finally {
+                synchronized (listeners) {
+                    listeners.clear();
+                }
                 TaskOutput.clearContext();
                 System.gc();
             }
             return null;
-        }) {       
+        }) {
             @Override
             protected void done() {
                 if (isCancelled() && status != Status.CANCELLED) {
