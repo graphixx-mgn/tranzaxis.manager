@@ -2,8 +2,7 @@ package codex.task;
 
 import codex.log.Logger;
 import java.text.MessageFormat;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.function.Consumer;
 
 /**
@@ -11,18 +10,22 @@ import java.util.function.Consumer;
  * последовательно.
  * @param <T> Тип результата возвращаемого методом {@link ITask#execute()}
  */
-public final class GroupTask<T> extends AbstractTask<T> {
+public final class GroupTask<T extends ITask> extends AbstractTask<T> {
     
-    private final List<ITask> sequence;
+    private final List<T> sequence;
 
     /**
      * Конструктор групповой задачи.
      * @param title Наименование группы задач , для показа в GUI. (cм. {@link TaskMonitor}).
      * @param tasks Список задач для последовательного исполнения.
      */
-    public GroupTask(String title, ITask... tasks) {
+    public GroupTask(String title, T... tasks) {
         super(title);
         sequence = Arrays.asList(tasks);
+    }
+
+    Collection<T> getSequence() {
+        return new ArrayList<>(sequence);
     }
 
     @Override
@@ -71,24 +74,28 @@ public final class GroupTask<T> extends AbstractTask<T> {
 
     @Override
     public AbstractTaskView createView(Consumer<ITask> cancelAction) {
-        return new GroupTaskView(getTitle(), this, sequence, (task) -> {
-            sequence.forEach((subTask) -> {
-                if (!subTask.getStatus().isFinal()) {
-                    subTask.cancel(true);
+        return new GroupTaskView<>(
+                getTitle(),
+                this,
+                sequence,
+                task -> {
+                    sequence.forEach((subTask) -> {
+                        if (!subTask.getStatus().isFinal()) {
+                            subTask.cancel(true);
+                        }
+                    });
+                    if (cancelAction != null) {
+                        cancelAction.accept(task);
+                    }
                 }
-            });
-            if (cancelAction != null) {
-                cancelAction.accept(task);
-            }
-        });
+        );
     }
     
     /**
      * Одновренное выставление статуса головной и дочерней задаче.
      */
-    void setStatus(AbstractTask child, Status status) {
+    private void setStatus(AbstractTask child, Status status) {
         setStatus(status);
         child.setStatus(status);
     }
-    
 }
