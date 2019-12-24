@@ -25,7 +25,7 @@ import javax.swing.border.TitledBorder;
  */
 final class GroupTaskView<T extends ITask> extends AbstractTaskView {
 
-    private final GroupTask<T> mainTask;
+    private final GroupTask    mainTask;
     private final JLabel       mainTitle;
     private final JProgressBar mainProgress;
     
@@ -39,7 +39,7 @@ final class GroupTaskView<T extends ITask> extends AbstractTaskView {
      * @param cancelAction Действие по нажатии кнопки отмены на виджете задачи 
      * для обработки в мониторе.
      */
-    GroupTaskView(String title, GroupTask<T> main, List<T> children, Consumer<ITask> cancelAction) {
+    GroupTaskView(String title, GroupTask main, List<T> children, Consumer<ITask> cancelAction) {
         super(new BorderLayout());
         setBackground(Color.WHITE);
         setBorder(new CompoundBorder(
@@ -100,7 +100,7 @@ final class GroupTaskView<T extends ITask> extends AbstractTaskView {
             final AbstractTaskView view;
             if (subTask instanceof GroupTask) {
                 view = new TaskView(subTask, null);
-                GroupTask<ITask> group = (GroupTask<ITask>) subTask;
+                GroupTask group = (GroupTask) subTask;
                 String summaryPattern  = Language.get(GroupTaskView.class, "desc@summary");
 
                 group.getSequence().forEach(inGroupTask -> {
@@ -146,18 +146,24 @@ final class GroupTaskView<T extends ITask> extends AbstractTaskView {
         
         main.addListener(new ITaskListener() {
 
+            {
+                statusChanged(main, main.getStatus(), main.getStatus());
+            }
+
             @Override
             public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
-                mainTitle.setIcon(mainTask.getStatus().getIcon());
-                mainProgress.setForeground(
-                    task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
-                        task.getStatus() == Status.FAILED ? PROGRESS_ABORTED :
-                            task.getStatus() == Status.CANCELLED ? PROGRESS_CANCELED :
-                                StripedProgressBarUI.PROGRESS_NORMAL
-                );
-                if (mainTask.getStatus() == Status.FINISHED) {
-                    mainProgress.setString(TaskView.formatDuration(mainTask.getDuration()));
-                }
+                SwingUtilities.invokeLater(() -> {
+                    mainTitle.setIcon(mainTask.getStatus().getIcon());
+                    mainProgress.setForeground(
+                            task.getStatus() == Status.FINISHED ? PROGRESS_FINISHED :
+                                    task.getStatus() == Status.FAILED ? PROGRESS_ABORTED :
+                                            task.getStatus() == Status.CANCELLED ? PROGRESS_CANCELED :
+                                                    StripedProgressBarUI.PROGRESS_NORMAL
+                    );
+                    if (mainTask.getStatus() == Status.FINISHED) {
+                        mainProgress.setString(TaskView.formatDuration(mainTask.getDuration()));
+                    }
+                });
             }
         });
     }
@@ -182,7 +188,13 @@ final class GroupTaskView<T extends ITask> extends AbstractTaskView {
     @Override
     public void progressChanged(ITask task, int percent, String description) {
         int totalProgress = mainTask.getSequence().stream()
-                .mapToInt(subTask -> subTask.getStatus() == Status.FINISHED ? 100 : subTask.getProgress()).sum() / mainTask.getSequence().size();
+                .mapToInt(subTask -> {
+                    if (subTask.getStatus() == Status.FINISHED || (subTask.getStatus() == Status.FAILED && !mainTask.isStopOnError())) {
+                        return 100;
+                    } else {
+                         return subTask.getProgress();
+                    }
+                }).sum() / mainTask.getSequence().size();
         mainProgress.setValue(totalProgress);
         mainTask.setProgress(totalProgress, null);
     }
