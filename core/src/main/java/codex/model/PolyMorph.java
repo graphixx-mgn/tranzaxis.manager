@@ -4,6 +4,7 @@ import codex.command.EntityCommand;
 import codex.property.PropertyHolder;
 import codex.type.ArrStr;
 import codex.type.EntityRef;
+import codex.type.ISerializableType;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import java.util.*;
@@ -71,7 +72,7 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
 
         model.removeChangeListener(this);
         model.addChangeListener((name, oldValue, newValue) -> {
-            if (!name.equals(PROP_IMPL_PARAM)) {
+            if (!name.equals(PROP_IMPL_PARAM) && ISerializableType.class.isAssignableFrom(model.getPropertyType(name))) {
                 this.propertyChange(name, oldValue, newValue);
 
                 Map<String, String> parameters = getParameters(true);
