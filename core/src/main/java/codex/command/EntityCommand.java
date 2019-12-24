@@ -368,7 +368,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
             }
         };
         task.addListener(lockHandler);
-        if (!getContext().isEmpty()) {
+        if (!getContext().isEmpty() && getKind() == Kind.Admin) {
             TES.executeTask(task);
         } else {
             TES.enqueueTask(task);
