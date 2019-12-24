@@ -16,16 +16,21 @@ class DefaultMonitor implements ITaskMonitor {
     @Override
     public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
         synchronized (taskList) {
-            long running = taskList.stream().filter(queued -> !queued.getStatus().isFinal()).count();
-            long stopped = taskList.stream().filter(queued ->  queued.getStatus() == Status.FAILED).count();
+            if (!taskList.isEmpty()) {
+                long running = taskList.stream().filter(queued -> !queued.getStatus().isFinal()).count();
+                long stopped = taskList.stream().filter(queued -> queued.getStatus() == Status.FAILED).count();
 
-            if (running == 0) {
-                if (stopped == 0) {
-                    clearRegistry();
-                } else {
-                    new LinkedList<>(taskList).stream()
-                            .filter(queued -> queued.getStatus().equals(Status.FINISHED))
-                            .forEach(this::unregisterTask);
+                if (running == 0) {
+                    if (stopped == 0) {
+                        clearRegistry();
+                    } else {
+                        new LinkedList<>(taskList).stream()
+                                .filter(queued -> queued.getStatus().equals(Status.FINISHED))
+                                .forEach(this::unregisterTask);
+                        SwingUtilities.invokeLater(() -> taskDialog.pack());
+                    }
+                } else if (nextStatus == Status.CANCELLED) {
+                    unregisterTask(task);
                     SwingUtilities.invokeLater(() -> taskDialog.pack());
                 }
             }
@@ -65,13 +70,6 @@ class DefaultMonitor implements ITaskMonitor {
                 if (!ctxTask.getStatus().isFinal()) {
                     ctxTask.cancel(true);
                 }
-                unregisterTask(ctxTask);
-
-                synchronized (taskList) {
-                    if (!taskList.isEmpty()) {
-                        SwingUtilities.invokeLater(() -> taskDialog.pack());
-                    }
-                }
             });
 
             taskDialog.pack();
@@ -97,14 +95,17 @@ class DefaultMonitor implements ITaskMonitor {
         final List<ITask> tasks;
         synchronized (taskList) {
             tasks = new LinkedList<>(taskList);
+
+            tasks.forEach(ctxTask -> {
+                unregisterTask(ctxTask);
+                if (!ctxTask.getStatus().isFinal()) {
+                    ctxTask.cancel(true);
+                }
+            });
         }
-        tasks.forEach(ctxTask -> {
-            unregisterTask(ctxTask);
-            if (!ctxTask.getStatus().isFinal()) {
-                ctxTask.cancel(true);
-            }
+        SwingUtilities.invokeLater(() -> {
+            if (taskDialog != null) taskDialog.setVisible(false);
         });
-        SwingUtilities.invokeLater(() -> taskDialog.setVisible(false));
     }
 
     @Override
