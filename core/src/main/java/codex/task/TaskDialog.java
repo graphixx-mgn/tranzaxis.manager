@@ -26,6 +26,7 @@ class TaskDialog extends Dialog {
 
     private final Map<ITask, AbstractTaskView> taskViews = new HashMap<>();
     private final JPanel taskViewList;
+    private final boolean enableMovement;
 
     /**
      * Конструктор окна.
@@ -49,7 +50,9 @@ class TaskDialog extends Dialog {
                 ).toArray(DialogButton[]::new)
         );
         setResizable(false);
+
         this.handler = handler;
+        this.enableMovement = enableMovement;
 
         JPanel viewPort = new JPanel();
         viewPort.setLayout(new BorderLayout());
@@ -85,9 +88,11 @@ class TaskDialog extends Dialog {
                 } catch (Throwable e) {
                     //
                 }
-                getButton(Dialog.OK).setEnabled(
-                        taskViews.keySet().stream().anyMatch(ctxTask -> !ctxTask.getStatus().isFinal())
-                );
+                if (enableMovement) {
+                    getButton(Dialog.OK).setEnabled(
+                            taskViews.keySet().stream().anyMatch(ctxTask -> !ctxTask.getStatus().isFinal())
+                    );
+                }
             }
         }
     }
