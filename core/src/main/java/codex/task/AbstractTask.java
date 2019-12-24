@@ -6,11 +6,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 /**
@@ -21,13 +17,18 @@ import java.util.function.Consumer;
  */
 public abstract class AbstractTask<T> implements ITask<T> {
  
-    private final String title;
-    private Status  status;
-    private Integer percent = 0;
-    private String  description;
+    private Status        status;
+    private T             result;
+    private Throwable     error;
+
+    private LocalDateTime startTime, pauseTime, stopTime;
+    private Integer       percent = 0;
+    private String        description;
+
+    private final String        title;
     private final FutureTask<T> future;
     private final List<ITaskListener> listeners = new LinkedList<>();
-    private final Semaphore     semaphore = new Semaphore(1, true) {
+    private final Semaphore semaphore = new Semaphore(1, true) {
         @Override
         public void release() {
             if (availablePermits() == 0) {
@@ -36,57 +37,42 @@ public abstract class AbstractTask<T> implements ITask<T> {
             }
         }
     };
-    private LocalDateTime startTime, pauseTime, stopTime;
 
     /**
      * Конструктор задачи.
      * @param title Наименование задачи, для показа в GUI. (cм. {@link TaskMonitor}).
      */
     public AbstractTask(final String title) {
-        future = new FutureTask<T>(() -> {
+        future = new FutureTask<>(() -> {
             try {
-                TaskOutput.defineContext(this);
-                new LinkedList<>(listeners).forEach((listener) -> listener.beforeExecute(this));
-                T result;
+                onStart();
                 setStatus(Status.STARTED);
                 try {
                     result = execute();
-                } finally {
-                    new LinkedList<>(listeners).forEach((listener) -> listener.afterExecute(this));
+                } catch (InterruptedException e) {
+                    throw new CancelException();
                 }
                 setStatus(Status.FINISHED);
                 finished(result);
+                return result;
+
             } catch (CancelException e) {
-                if (isCancelled() && status != Status.CANCELLED) {
-                    setStatus(Status.CANCELLED);
-                }
-            } catch (InterruptedException e) {
-                //
+                setStatus(Status.CANCELLED);
+                throw e;
+
             } catch (Throwable e) {
                 setProgress(percent, MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
                 setStatus(Status.FAILED);
+                error = e;
                 Logger.getLogger().error(MessageFormat.format("Error on task ''{0}'' execution", getTitle()), e);
                 throw e;
+
             } finally {
-                synchronized (listeners) {
-                    listeners.clear();
-                }
-                TaskOutput.clearContext();
-                System.gc();
+                onFinish();
             }
-            return null;
-        }) {
-            @Override
-            protected void done() {
-                if (isCancelled() && status != Status.CANCELLED) {
-                    setStatus(Status.CANCELLED);
-                } else if (!isCancelled() && !isFailed()) {
-                    setStatus(Status.FINISHED);
-                }
-            }
-        };
+        });
         this.status = Status.PENDING;
-        this.title = title;
+        this.title  = title;
     }
 
     @Override
@@ -94,6 +80,64 @@ public abstract class AbstractTask<T> implements ITask<T> {
 
     @Override
     public abstract void finished(T result);
+
+    @Override
+    public final String getTitle() {
+        return title;
+    }
+
+    @Override
+    public final Status getStatus() {
+        return status;
+    }
+
+    public final T getResult() {
+        try {
+            return future.isDone() ? result : this.get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public final Throwable getError() {
+        return error;
+    }
+
+    /**
+     * Возвращает признак того что задача была завершена с ошибкой.
+     */
+    public final boolean isFailed() {
+        return status == Status.FAILED;
+    }
+
+    @Override
+    public final Integer getProgress() {
+        return percent;
+    }
+
+    @Override
+    public final String getDescription() {
+        if ((getStatus() == Status.STARTED && description != null) || getStatus() == Status.FAILED) {
+            return description;
+        } else {
+            return getStatus().getDescription();
+        }
+    }
+
+    void onStart() {
+        TaskOutput.defineContext(this);
+        new LinkedList<>(listeners).forEach((listener) -> listener.beforeExecute(this));
+    }
+
+    void onFinish() {
+        new LinkedList<>(listeners).forEach((listener) -> listener.afterExecute(this));
+        synchronized (listeners) {
+            listeners.clear();
+        }
+        TaskOutput.clearContext();
+        System.gc();
+    }
 
     /**
      * Метод отмены задачи.
@@ -106,13 +150,6 @@ public abstract class AbstractTask<T> implements ITask<T> {
             setPause(false);
         }
         return future.cancel(mayInterruptIfRunning);
-    }
-    
-    /**
-     * Возвращает признак того что задача была завершена с ошибкой.
-     */
-    public final boolean isFailed() {
-        return status == Status.FAILED;
     }
 
     /**
@@ -166,27 +203,13 @@ public abstract class AbstractTask<T> implements ITask<T> {
     }
 
     @Override
-    public final T get() throws InterruptedException, ExecutionException {
+    public T get() throws InterruptedException, ExecutionException {
         return future.get();
     }
 
     @Override
-    public final T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return future.get(timeout, unit);
-    }
-
-    @Override
-    public final String getTitle() {
-        return title;
-    }
-    
-    @Override
-    public final String getDescription() {
-        if ((getStatus() == Status.STARTED && description != null) || getStatus() == Status.FAILED) {
-            return description;
-        } else {
-            return getStatus().getDescription();
-        }
     }
 
     /**
@@ -203,14 +226,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
         }
         this.percent = percent;
         this.description = description;
-        new LinkedList<>(listeners).forEach((listener) -> {
-            listener.progressChanged(this, percent, description);
-        });
-    }
-    
-    @Override
-    public final Integer getProgress() {
-        return percent;
+        new LinkedList<>(listeners).forEach((listener) -> listener.progressChanged(this, percent, description));
     }
     
     /**
@@ -248,11 +264,6 @@ public abstract class AbstractTask<T> implements ITask<T> {
         this.status = state;
         new LinkedList<>(listeners).forEach((listener) -> listener.statusChanged(this, prevStatus, status));
     }
-    
-    @Override
-    public final Status getStatus() {
-        return status;
-    }
 
     /**
      * Запустить исполнение задачи. Вызывается сервисом исполнения задач в {@link TaskManager}.
@@ -280,5 +291,4 @@ public abstract class AbstractTask<T> implements ITask<T> {
     public final void removeListener(ITaskListener listener) {
         listeners.remove(listener);
     }
-
 }

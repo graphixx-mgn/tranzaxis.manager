@@ -1,76 +1,74 @@
 package codex.task;
 
-import codex.log.Logger;
-import java.text.MessageFormat;
 import java.util.*;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 /**
  * Реализация контейнера задач, выполнение которых должно происходить строго 
  * последовательно.
- * @param <T> Тип результата возвращаемого методом {@link ITask#execute()}
  */
-public final class GroupTask<T extends ITask> extends AbstractTask<T> {
+public final class GroupTask extends AbstractTask<List<ITask>> {
     
-    private final List<T> sequence;
+    private final List<ITask> sequence;
+    private final boolean stopOnError;
 
     /**
      * Конструктор групповой задачи.
      * @param title Наименование группы задач , для показа в GUI. (cм. {@link TaskMonitor}).
      * @param tasks Список задач для последовательного исполнения.
      */
-    public GroupTask(String title, T... tasks) {
-        super(title);
-        sequence = Arrays.asList(tasks);
+    public GroupTask(String title, ITask... tasks) {
+        this(title, true, tasks);
     }
 
-    Collection<T> getSequence() {
+    public GroupTask(String title, boolean stopOnError, ITask... tasks) {
+        super(title);
+        this.sequence = Arrays.asList(tasks);
+        this.stopOnError = stopOnError;
+    }
+
+    Collection<ITask> getSequence() {
         return new ArrayList<>(sequence);
     }
 
+    boolean isStopOnError() {
+        return stopOnError;
+    }
+
     @Override
-    public final T execute() throws Exception {
-        boolean aborted = false;
-        for (ITask task : sequence) {
-            if (aborted) {
-                task.cancel(true);
-            } else {
+    public final List<ITask> execute() throws Exception {
+        try {
+            for (ITask task : sequence) {
                 AbstractTask current = (AbstractTask) task;
                 try {
                     if (current.isPauseable()) {
                         current.checkPaused();
                     }
-                    current.setStatus(Status.STARTED);
-                    current.finished(current.execute());
-                    if (current.getStatus() != Status.CANCELLED) {
-                        current.setStatus(Status.FINISHED);
-                    } else {
-                        throw new CancelException();
-                    }
-                } catch (InterruptedException e) {
-                    setStatus(current, Status.CANCELLED);
-                    aborted = true;
-                } catch (CancelException e) {
-                    setStatus(Status.CANCELLED);
-                    aborted = true;
-                } catch (ExecuteException e) {
-                    current.setProgress(task.getProgress(), MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
-                    setStatus(current, Status.FAILED);
-                    Logger.getLogger().error(e.getDescription());
-                    aborted = true;
-                } catch (Exception e) {
-                    current.setProgress(task.getProgress(), MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
-                    setStatus(current, Status.FAILED);
-                    Logger.getLogger().warn("Error on task execution", e);
-                    aborted = true;
+                    Executors.newCachedThreadPool().submit(current);
+                    current.get();
+                } catch (CancellationException e) {
+                    throw new CancelException();
+
+                } catch (ExecutionException e) {
+                    if (stopOnError) throw new Exception(e);
                 }
             }
+        } finally {
+            sequence.forEach(subTask -> {
+                if (!subTask.getStatus().isFinal()) {
+                    subTask.cancel(true);
+                    ((AbstractTask) subTask).setStatus(Status.CANCELLED);
+                }
+            });
         }
-        return null;
+        return sequence;
     }
 
     @Override
-    public final void finished(T result) {}
+    public void finished(List<ITask> result) {}
 
     @Override
     public AbstractTaskView createView(Consumer<ITask> cancelAction) {
@@ -89,13 +87,5 @@ public final class GroupTask<T extends ITask> extends AbstractTask<T> {
                     }
                 }
         );
-    }
-    
-    /**
-     * Одновренное выставление статуса головной и дочерней задаче.
-     */
-    private void setStatus(AbstractTask child, Status status) {
-        setStatus(status);
-        child.setStatus(status);
     }
 }
