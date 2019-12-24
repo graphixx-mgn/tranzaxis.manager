@@ -152,7 +152,7 @@ public class Offshoot extends BinarySource {
 
     private void checkConflicts() {
         CheckConflicts checkTask = new CheckConflicts();
-        ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).enqueueTask(checkTask);
+        ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).quietTask(checkTask);
     }
 
     public final void setWCLoaded(boolean value) {
