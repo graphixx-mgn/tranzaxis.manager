@@ -3,6 +3,7 @@ package manager.commands.offshoot;
 import codex.command.EntityCommand;
 import codex.log.Logger;
 import codex.task.AbstractTask;
+import codex.task.CancelException;
 import codex.task.GroupTask;
 import codex.task.ITask;
 import codex.type.IComplexType;
@@ -50,7 +51,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
 
     @Override
     public ITask getTask(Offshoot context, Map<String, IComplexType> params) {
-        return new GroupTask<>(
+        return new GroupTask(
                 Language.get("title") + ": "+(context).getLocalPath(),
                 new UpdateWC.UpdateTask(context, SVNRevision.HEAD),
                 context.new CheckConflicts()
@@ -97,13 +98,12 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                 @Override
                 public void handleEvent(SVNEvent event, double d) {
                     if (event.getErrorMessage() != null && event.getErrorMessage().getErrorCode() == SVNErrorCode.WC_CLEANUP_REQUIRED) {
-                        String desc = getDescription();
                         if (event.getExpectedAction() == SVNEventAction.RESOLVER_STARTING) {
                             setProgress(0, Language.get(UpdateWC.class, "command@cleanup"));
                             Logger.getLogger().info("UPDATE [{0}] perform automatic cleanup", wcPath);
                         } else {
                             Logger.getLogger().info("UPDATE [{0}] continue after cleanup", wcPath);
-                            setProgress(0, desc);
+                            setProgress(0, Language.get(UpdateWC.class, "command@calc"));
                         }
                     }
                 }
@@ -204,6 +204,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                 if (rootCause.isPresent()) {
                     if (rootCause.get() instanceof SVNCancelException || rootCause.get() instanceof ClosedChannelException) {
                         Logger.getLogger().info("UPDATE [{0}] canceled", wcPath);
+                        throw new CancelException();
                     } else {
                         throw e;
                     }

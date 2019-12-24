@@ -78,7 +78,7 @@ public class BuildWC extends EntityCommand<Offshoot> {
 
     @Override
     public ITask getTask(Offshoot context, Map<String, IComplexType> map) {
-        return new GroupTask<>(
+        return new GroupTask(
                 Language.get("title") + ": '"+(context).getLocalPath()+"'",
                 new BuildKernelTask(context),
                 new BuildSourceTask(context, map.get(PARAM_CLEAN).getValue() == Boolean.TRUE)

@@ -52,7 +52,7 @@ public class RefreshWC extends EntityCommand<Offshoot> {
 
     @Override
     public ITask getTask(Offshoot context, Map<String, IComplexType> params) {
-        return new GroupTask<>(
+        return new GroupTask(
                 Language.get("title") + ": "+(context).getLocalPath(),
                 new UpdateWC.UpdateTask(context, SVNRevision.HEAD),
                 context.new CheckConflicts(),

@@ -79,7 +79,7 @@ public class UpdateToRevision extends EntityCommand<Offshoot> {
 
     @Override
     public ITask getTask(Offshoot context, Map<String, IComplexType> params) {
-        return new GroupTask<>(
+        return new GroupTask(
                 Language.get("title") + ": "+(context).getLocalPath(),
                 new UpdateWC.UpdateTask(context, SVNRevision.create(((Int) params.get(PARAM_REVISION)).getValue())),
                 context.new CheckConflicts()
