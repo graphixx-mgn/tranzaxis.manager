@@ -84,9 +84,10 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
     protected Function<List<V>, CommandStatus> activator = entities -> new CommandStatus(
         entities != null && entities.size() > 0 &&
               !(entities.size() > 1 && !multiContextAllowed()) && (
-                      available == null || entities.stream().allMatch(available)
-              ) &&
-              entities.stream().noneMatch(AbstractNode::islocked)
+                    available == null || entities.stream().allMatch(available)
+              ) && (
+                    entities.stream().noneMatch(AbstractNode::islocked) || !disableWithContext()
+              )
     );
 
     private final IModelListener modelListener = new IModelListener() {

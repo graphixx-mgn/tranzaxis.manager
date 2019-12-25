@@ -371,6 +371,11 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             editor.setResizable(false);
             editor.setVisible(true);
         }
+
+        @Override
+        public boolean disableWithContext() {
+            return false;
+        }
     }
     
     class CloneEntity extends EntityCommand<Entity> {
