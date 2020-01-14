@@ -168,8 +168,10 @@ public class BuildKernelTask extends AbstractTask<Void> {
                 //
             }
             String message = MessageFormat.format(
-                    "BUILD KERNEL [{0}] failed. Total time: {1}",
-                    offshoot.getLocalPath(), DateUtils.formatElapsedTime(getDuration())
+                    "Build kernel [{0}/{1}] failed. Total time: {2}",
+                    offshoot.getRepository().getPID(),
+                    offshoot.getPID(),
+                    DateUtils.formatElapsedTime(getDuration())
             );
             throw new ExecuteException(
                     MessageFormat.format(
@@ -185,9 +187,11 @@ public class BuildKernelTask extends AbstractTask<Void> {
     @Override
     public void finished(Void t) {
         Logger.getLogger().info(MessageFormat.format(
-                "BUILD KERNEL [{0}] {2}. Total time: {1}",
-                offshoot.getLocalPath(), DateUtils.formatElapsedTime(getDuration()),
-                isCancelled() ? "canceled" : "finished"
+                "Build kernel [{0}/{1}] {2}. Total time: {3}",
+                offshoot.getRepository().getPID(),
+                offshoot.getPID(),
+                isCancelled() ? "canceled" : "finished",
+                DateUtils.formatElapsedTime(getDuration())
         ));
     }
 }

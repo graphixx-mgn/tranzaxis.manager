@@ -333,7 +333,7 @@ public class Offshoot extends BinarySource {
     public class CheckConflicts extends AbstractTask<WCStatus> {
 
         public CheckConflicts() {
-            super(Language.get(Offshoot.class, "conflicts@task.title") + ": "+Offshoot.this.getLocalPath());
+            super(Language.get(Offshoot.class, "conflicts@task.title"));
         }
 
         @Override

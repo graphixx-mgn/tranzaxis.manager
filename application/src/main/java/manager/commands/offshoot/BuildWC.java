@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.rmi.AlreadyBoundException;
 import java.rmi.registry.LocateRegistry;
+import java.text.MessageFormat;
 import java.util.Map;
 
 @EntityCommand.Definition(parentCommand = RefreshWC.class)
@@ -79,7 +80,12 @@ public class BuildWC extends EntityCommand<Offshoot> {
     @Override
     public ITask getTask(Offshoot context, Map<String, IComplexType> map) {
         return new GroupTask(
-                Language.get("title") + ": '"+(context).getLocalPath()+"'",
+                MessageFormat.format(
+                        "{0}: ''{1}/{2}''",
+                        Language.get("title"),
+                        context.getRepository().getPID(),
+                        context.getPID()
+                ),
                 new BuildKernelTask(context),
                 new BuildSourceTask(context, map.get(PARAM_CLEAN).getValue() == Boolean.TRUE)
         );

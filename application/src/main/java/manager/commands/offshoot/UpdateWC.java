@@ -52,7 +52,12 @@ public class UpdateWC extends EntityCommand<Offshoot> {
     @Override
     public ITask getTask(Offshoot context, Map<String, IComplexType> params) {
         return new GroupTask(
-                Language.get("title") + ": "+(context).getLocalPath(),
+                MessageFormat.format(
+                        "{0}: ''{1}/{2}''",
+                        Language.get("title"),
+                        context.getRepository().getPID(),
+                        context.getPID()
+                ),
                 new UpdateWC.UpdateTask(context, SVNRevision.HEAD),
                 context.new CheckConflicts()
         );
@@ -69,7 +74,6 @@ public class UpdateWC extends EntityCommand<Offshoot> {
         UpdateTask(Offshoot offshoot, SVNRevision revision) {
             super(MessageFormat.format(
                     Language.get(UpdateWC.class, "task@title"),
-                    offshoot.getLocalPath(),
                     revision
             ));
             this.offshoot = offshoot;
@@ -100,9 +104,17 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                     if (event.getErrorMessage() != null && event.getErrorMessage().getErrorCode() == SVNErrorCode.WC_CLEANUP_REQUIRED) {
                         if (event.getExpectedAction() == SVNEventAction.RESOLVER_STARTING) {
                             setProgress(0, Language.get(UpdateWC.class, "command@cleanup"));
-                            Logger.getLogger().info("UPDATE [{0}] perform automatic cleanup", wcPath);
+                            Logger.getLogger().info(
+                                    "Perform automatic cleanup repository [{0}/{1}]",
+                                    offshoot.getRepository().getPID(),
+                                    offshoot.getPID()
+                            );
                         } else {
-                            Logger.getLogger().info("UPDATE [{0}] continue after cleanup", wcPath);
+                            Logger.getLogger().info(
+                                    "Continue update [{0}/{1}] after cleanup",
+                                    offshoot.getRepository().getPID(),
+                                    offshoot.getPID()
+                            );
                             setProgress(0, Language.get(UpdateWC.class, "command@calc"));
                         }
                     }
@@ -125,8 +137,9 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                     offshoot.model.commit(false);
 
                     Logger.getLogger().info(
-                            "UPDATE [{0}] started",
-                            wcPath
+                            "Update [{0}/{1}] started",
+                            offshoot.getRepository().getPID(),
+                            offshoot.getPID()
                     );
                     AtomicInteger loaded   = new AtomicInteger(0);
                     AtomicInteger added    = new AtomicInteger(0);
@@ -184,17 +197,29 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                             Offshoot.DATE_FORMAT.format(offshoot.getWorkingCopyRevisionDate(false))
                     );
                     Logger.getLogger().info(
-                            "UPDATE [{0}] finished\nRevision: {1} -> {2}\n"+
-                            (added.get()    == 0 ? "" : " * Added:    {3}\n")+
-                            (deleted.get()  == 0 ? "" : " * Deleted:  {4}\n")+
-                            (restored.get() == 0 ? "" : " * Restored: {5}\n")+
-                            (changed.get()  == 0 ? "" : " * Changed:  {6}\n")+
-                            (skipped.get()  == 0 ? "" : " * Skipped:  {7}\n")+
-                                                        " * Total:    {8}",
-                            wcPath, strR1, strR2, added.get(), deleted.get(), restored.get(), changed.get(), skipped.get(), loaded.get()
+                            "Update [{0}/{1}] finished\nRevision: {2} -> {3}\n"+
+                            (added.get()    == 0 ? "" : " * Added:    {4}\n")+
+                            (deleted.get()  == 0 ? "" : " * Deleted:  {5}\n")+
+                            (restored.get() == 0 ? "" : " * Restored: {6}\n")+
+                            (changed.get()  == 0 ? "" : " * Changed:  {7}\n")+
+                            (skipped.get()  == 0 ? "" : " * Skipped:  {8}\n")+
+                                                        " * Total:    {9}",
+                            offshoot.getRepository().getPID(),
+                            offshoot.getPID(),
+                            strR1, strR2,
+                            added.get(),
+                            deleted.get(),
+                            restored.get(),
+                            changed.get(),
+                            skipped.get(),
+                            loaded.get()
                     );
                 } else {
-                    Logger.getLogger().info("UPDATE [{0}] finished. working copy already actual", wcPath);
+                    Logger.getLogger().info(
+                            "Update [{0}/{1}] finished. working copy already actual",
+                            offshoot.getRepository().getPID(),
+                            offshoot.getPID()
+                    );
                 }
             } catch (SVNException e) {
                 Optional<Throwable> rootCause = Stream
@@ -203,7 +228,10 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                         .findFirst();
                 if (rootCause.isPresent()) {
                     if (rootCause.get() instanceof SVNCancelException || rootCause.get() instanceof ClosedChannelException) {
-                        Logger.getLogger().info("UPDATE [{0}] canceled", wcPath);
+                        Logger.getLogger().info(
+                                "Update [{0}/{1}] canceled", offshoot.getRepository().getPID(),
+                                offshoot.getPID()
+                        );
                         throw new CancelException();
                     } else {
                         throw e;

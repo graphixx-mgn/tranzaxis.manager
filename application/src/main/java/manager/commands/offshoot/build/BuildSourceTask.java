@@ -173,13 +173,19 @@ public class BuildSourceTask extends AbstractTask<Error> {
             } catch (Exception e) {
                 //
             }
-            String message = MessageFormat.format(
-                    "BUILD SOURCE [{0}] failed. Total time: {1}",
-                    offshoot.getLocalPath(), DateUtils.formatElapsedTime(getDuration())
-            );
             throw new ExecuteException(
-                    message,
-                    message.concat("\n").concat(Logger.stackTraceToString(errorRef.get()))
+                    MessageFormat.format(
+                            "Build modules [{0}/{1}] failed due to exception: {2}",
+                            offshoot.getRepository().getPID(),
+                            offshoot.getPID(),
+                            errorRef.get().getMessage()
+                    ),
+                    MessageFormat.format(
+                            "Build modules [{0}/{1}] failed due to exception:\n{2}",
+                            offshoot.getRepository().getPID(),
+                            offshoot.getPID(),
+                            Logger.stackTraceToString(errorRef.get())
+                    )
             );
         }
         if (eventsList.stream().anyMatch(event -> event.getSeverity() == RadixProblem.ESeverity.ERROR)) {
@@ -187,10 +193,11 @@ public class BuildSourceTask extends AbstractTask<Error> {
             eventsList.stream()
                     .filter(event -> event.getSeverity() == RadixProblem.ESeverity.ERROR)
                     .forEach(event -> {
-                        if (!errorIndex.containsKey(event.getDefId())) {
-                            errorIndex.put(event.getDefId(), new LinkedList<>());
+                        String def = event.getName()+" ("+event.getDefId()+")";
+                        if (!errorIndex.containsKey(def)) {
+                            errorIndex.put(def, new LinkedList<>());
                         }
-                        errorIndex.get(event.getDefId()).add(event.getMessage());
+                        errorIndex.get(def).add(event.getMessage());
                     });
             offshoot.setBuiltStatus(new BuildStatus(offshoot.getWorkingCopyRevision(false).getNumber(), true));
             try {
@@ -198,19 +205,23 @@ public class BuildSourceTask extends AbstractTask<Error> {
             } catch (Exception e) {
                 //
             }
-            String message = MessageFormat.format(
-                    "BUILD SOURCE [{0}] failed. Total time: {1}. Errors: {2}",
-                    offshoot.getLocalPath(), DateUtils.formatElapsedTime(getDuration()), getErrorsCount()
-            );
             throw new ExecuteException(
-                    message,
-                    message.concat("\n").concat(
+                    MessageFormat.format(
+                            "Build modules [{0}/{1}] failed due to compilation errors.",
+                            offshoot.getRepository().getPID(),
+                            offshoot.getPID()
+                    ),
+                    MessageFormat.format(
+                            "Build modules [{0}/{1}] failed due to compilation errors.\nNumber of errors: {2}\n{3}",
+                            offshoot.getRepository().getPID(),
+                            offshoot.getPID(),
+                            getErrorsCount(),
                             errorIndex.entrySet().stream()
                                     .map(entry -> MessageFormat.format(
                                             "[{0}]\n{1}",
                                             entry.getKey(),
                                             entry.getValue().stream()
-                                                .map(" - "::concat)
+                                                    .map(" - "::concat)
                                                     .collect(Collectors.joining("\n"))
                                     ))
                                     .collect(Collectors.joining("\n"))
@@ -231,9 +242,11 @@ public class BuildSourceTask extends AbstractTask<Error> {
             }
         }
         Logger.getLogger().info(MessageFormat.format(
-                "BUILD SOURCE [{0}] {2}. Total time: {1}",
-                offshoot.getLocalPath(), DateUtils.formatElapsedTime(getDuration()),
-                isCancelled() ? "canceled" : "finished"
+                "Build modules [{0}/{1}] {2}. Total time: {3}",
+                offshoot.getRepository().getPID(),
+                offshoot.getPID(),
+                isCancelled() ? "canceled" : "finished",
+                DateUtils.formatElapsedTime(getDuration())
         ));
     }
 

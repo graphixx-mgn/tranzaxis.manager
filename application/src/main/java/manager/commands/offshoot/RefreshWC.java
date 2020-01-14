@@ -8,6 +8,7 @@ import codex.type.Bool;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import java.text.MessageFormat;
 import java.util.Map;
 import manager.commands.offshoot.build.BuildKernelTask;
 import manager.commands.offshoot.build.BuildSourceTask;
@@ -53,7 +54,12 @@ public class RefreshWC extends EntityCommand<Offshoot> {
     @Override
     public ITask getTask(Offshoot context, Map<String, IComplexType> params) {
         return new GroupTask(
-                Language.get("title") + ": "+(context).getLocalPath(),
+                MessageFormat.format(
+                        "{0}: ''{1}/{2}''",
+                        Language.get("title"),
+                        context.getRepository().getPID(),
+                        context.getPID()
+                ),
                 new UpdateWC.UpdateTask(context, SVNRevision.HEAD),
                 context.new CheckConflicts(),
                 new BuildKernelTask(context),
