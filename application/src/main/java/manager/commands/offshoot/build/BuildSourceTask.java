@@ -55,7 +55,11 @@ public class BuildSourceTask extends AbstractTask<Error> {
     };
 
     public BuildSourceTask(Offshoot offshoot, boolean clean) {
-        super(Language.get(BuildWC.class, "command@sources"));
+        super(MessageFormat.format(
+                Language.get(BuildWC.class, "command@sources"),
+                offshoot.getRepository().getPID(),
+                offshoot.getPID()
+        ));
         this.offshoot = offshoot;
         this.clean    = clean;
     }
@@ -123,7 +127,6 @@ public class BuildSourceTask extends AbstractTask<Error> {
                 CompilerEvent event = new CompilerEvent(severity, defId, name, icon, message);
                 synchronized (eventsList) {
                     eventsList.add(event);
-                    //eventsTreeModel.addEvent(event);
                 }
                 setProgress(getProgress(), getDescription());
             }
@@ -173,20 +176,9 @@ public class BuildSourceTask extends AbstractTask<Error> {
             } catch (Exception e) {
                 //
             }
-            throw new ExecuteException(
-                    MessageFormat.format(
-                            "Build modules [{0}/{1}] failed due to exception: {2}",
-                            offshoot.getRepository().getPID(),
-                            offshoot.getPID(),
-                            errorRef.get().getMessage()
-                    ),
-                    MessageFormat.format(
-                            "Build modules [{0}/{1}] failed due to exception:\n{2}",
-                            offshoot.getRepository().getPID(),
-                            offshoot.getPID(),
-                            Logger.stackTraceToString(errorRef.get())
-                    )
-            );
+            Exception err = new Exception(errorRef.get().getMessage());
+            err.setStackTrace(errorRef.get().getStackTrace());
+            throw err;
         }
         if (eventsList.stream().anyMatch(event -> event.getSeverity() == RadixProblem.ESeverity.ERROR)) {
             Map<String, List<String>> errorIndex = new HashMap<>();
@@ -206,11 +198,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
                 //
             }
             throw new ExecuteException(
-                    MessageFormat.format(
-                            "Build modules [{0}/{1}] failed due to compilation errors.",
-                            offshoot.getRepository().getPID(),
-                            offshoot.getPID()
-                    ),
+                    Language.get(BuildWC.class, "modules@errors"),
                     MessageFormat.format(
                             "Build modules [{0}/{1}] failed due to compilation errors.\nNumber of errors: {2}\n{3}",
                             offshoot.getRepository().getPID(),

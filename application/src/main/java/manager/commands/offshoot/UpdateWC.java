@@ -74,6 +74,8 @@ public class UpdateWC extends EntityCommand<Offshoot> {
         UpdateTask(Offshoot offshoot, SVNRevision revision) {
             super(MessageFormat.format(
                     Language.get(UpdateWC.class, "task@title"),
+                    offshoot.getRepository().getPID(),
+                    offshoot.getPID(),
                     revision
             ));
             this.offshoot = offshoot;

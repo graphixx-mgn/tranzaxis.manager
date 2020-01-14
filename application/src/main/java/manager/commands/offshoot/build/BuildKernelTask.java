@@ -29,7 +29,11 @@ public class BuildKernelTask extends AbstractTask<Void> {
     });
 
     public BuildKernelTask(Offshoot offshoot) {
-        super(Language.get(BuildWC.class, "command@kernel"));
+        super(MessageFormat.format(
+                Language.get(BuildWC.class, "command@kernel"),
+                offshoot.getRepository().getPID(),
+                offshoot.getPID()
+        ));
         this.offshoot = offshoot;
     }
 

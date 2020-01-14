@@ -333,7 +333,11 @@ public class Offshoot extends BinarySource {
     public class CheckConflicts extends AbstractTask<WCStatus> {
 
         public CheckConflicts() {
-            super(Language.get(Offshoot.class, "conflicts@task.title"));
+            super(MessageFormat.format(
+                    Language.get(Offshoot.class, "conflicts@task.title"),
+                    Offshoot.this.getRepository().getPID(),
+                    Offshoot.this.getPID()
+            ));
         }
 
         @Override
