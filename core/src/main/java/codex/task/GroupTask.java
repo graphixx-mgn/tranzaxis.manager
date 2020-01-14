@@ -1,9 +1,10 @@
 package codex.task;
 
+import codex.service.ServiceRegistry;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 /**
@@ -47,13 +48,16 @@ public final class GroupTask extends AbstractTask<List<ITask>> {
                     if (current.isPauseable()) {
                         current.checkPaused();
                     }
-                    Executors.newCachedThreadPool().submit(current);
+                    ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).quietTask(current);
                     current.get();
                 } catch (CancellationException e) {
                     throw new CancelException();
 
                 } catch (ExecutionException e) {
-                    if (stopOnError) throw new Exception(e);
+                    if (stopOnError) throw new ExecuteException(
+                            e.getCause().getMessage(),
+                            MessageFormat.format("Subtask ''{0}'' failed: {1}", current.getTitle(), e.getCause().getMessage())
+                    );
                 }
             }
         } finally {

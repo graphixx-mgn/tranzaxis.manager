@@ -64,7 +64,11 @@ public abstract class AbstractTask<T> implements ITask<T> {
                 setProgress(percent, MessageFormat.format(Status.FAILED.getDescription(), e.getLocalizedMessage()));
                 setStatus(Status.FAILED);
                 error = e;
-                Logger.getLogger().error(MessageFormat.format("Error on task ''{0}'' execution", getTitle()), e);
+                if (e instanceof ExecuteException) {
+                    Logger.getLogger().error(((ExecuteException) e).getDescription());
+                } else {
+                    Logger.getLogger().error(MessageFormat.format("Error on task ''{0}'' execution", getTitle()), e);
+                }
                 throw e;
 
             } finally {
