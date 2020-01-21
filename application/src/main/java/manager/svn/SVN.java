@@ -5,13 +5,11 @@ import codex.log.Logger;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import java.util.logging.Level;
-
 import org.tmatesoft.svn.core.*;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
@@ -19,9 +17,6 @@ import org.tmatesoft.svn.core.internal.wc.DefaultSVNOptions;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.svn.core.wc.*;
-import org.tmatesoft.svn.core.wc2.SvnDiffSummarize;
-import org.tmatesoft.svn.core.wc2.SvnOperationFactory;
-import org.tmatesoft.svn.core.wc2.SvnTarget;
 import org.tmatesoft.svn.util.SVNDebugLog;
 import org.tmatesoft.svn.util.SVNDebugLogAdapter;
 import org.tmatesoft.svn.util.SVNLogType;
@@ -150,6 +145,12 @@ public class SVN {
         final SVNClientManager clientMgr = SVNClientManager.newInstance(new DefaultSVNOptions(), authMgr);
         final File localDir = new File(path);
 
+        Predicate<SVNStatus> updateable = status ->
+                status.getNodeStatus() != SVNStatusType.STATUS_UNVERSIONED &&
+                status.getCombinedRemoteNodeAndContentsStatus() != SVNStatusType.STATUS_NONE && (
+                        status.getKind() == SVNNodeKind.FILE ||
+                        status.getRemoteKind() == SVNNodeKind.FILE
+                );
         try {
             if (!SVNWCUtil.isVersionedDirectory(localDir)) {
                 // Checkout
@@ -185,7 +186,7 @@ public class SVN {
                         if (handler != null) {
                             handler.checkCancelled();
                         }
-                        if (status.getNodeStatus() != SVNStatusType.STATUS_UNVERSIONED && (status.getKind() == SVNNodeKind.FILE || status.getRemoteKind() == SVNNodeKind.FILE)) {
+                        if (updateable.test(status)) {
                             changes.add(status.getURL());
                         }
                     }, null);
