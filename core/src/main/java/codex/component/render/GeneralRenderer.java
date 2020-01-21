@@ -209,23 +209,32 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
 
                 ImageIcon icon = entity.getIcon();
                 if (icon != null) {
+                    if (entity.isLoading()) {
+                        icon = ImageUtils.combine(
+                                icon,
+                                ImageUtils.resize(ImageUtils.getByPath("/images/wait.png"), 0.8f),
+                                SwingConstants.SOUTH_EAST
+                        );
+                    }
+
                     int iconSize  = tree.getRowHeight()-2;
                     icon = ImageUtils.resize(icon, iconSize, iconSize);
                     setDisabledIcon(ImageUtils.grayscale(icon));
                     setIcon(icon);
                 }
 
+                boolean enabled = (entity.getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED;
+
                 boolean selected =
                         tree.getSelectionModel().getLeadSelectionPath() != null &&
                         tree.getSelectionModel().getLeadSelectionPath().getLastPathComponent() == value;
 
-                setForeground(selected ? Color.WHITE : IEditor.COLOR_NORMAL);
+                setForeground(selected ? Color.WHITE : enabled ? IEditor.COLOR_NORMAL : IEditor.COLOR_DISABLED);
                 setBackground(selected ?
                         UIManager.getDefaults().getColor("Tree.selectionBackground") :
                         UIManager.getDefaults().getColor("Tree.background")
                 );
                 setBorder(new EmptyBorder(15, 2, 15, 7));
-                setEnabled((entity.getMode() & INode.MODE_ENABLED) == INode.MODE_ENABLED);
             }};
         } else {
             return new DefaultTreeCellRenderer().getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);

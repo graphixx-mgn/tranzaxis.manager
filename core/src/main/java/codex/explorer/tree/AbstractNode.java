@@ -39,7 +39,11 @@ public abstract class AbstractNode implements INode {
     public final int getMode() {
         return mode;
     }
-    
+
+    public final boolean isLoading() {
+        return (getMode() & INode.MODE_LOADING) == INode.MODE_LOADING;
+    }
+
     @Override
     public final void setMode(int mode) {
         if (this.mode != mode) {

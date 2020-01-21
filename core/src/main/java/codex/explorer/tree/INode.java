@@ -26,6 +26,11 @@ public interface INode extends TreeNode {
      * Узел может быть выбран.
      */
     public static final int MODE_SELECTABLE = 2;
+
+    /**
+     * Узел в данный момент загружается
+     */
+    public static final int MODE_LOADING    = 4;
     
     /**
      * Возвращает режим отображения узла. 

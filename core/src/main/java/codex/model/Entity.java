@@ -276,31 +276,16 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         childrenPIDs.entrySet().removeIf(entry -> entry.getValue().isEmpty());
 
         if (!childrenPIDs.isEmpty()) {
-            ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).quietTask(new LoadChildren(childrenPIDs) {
-                private int mode = getMode();
-                {
-                    addListener(new ITaskListener() {
-                        @Override
-                        public void beforeExecute(ITask task) {
-                            try {
-                                if (!islocked()) {
-                                    mode = getMode();
-                                    setMode(MODE_NONE);
-                                    getLock().acquire();
-                                }
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    });
-                }
-
+            ITask loadChildren = new LoadChildren(childrenPIDs);
+            final int prevMode = getMode();
+            loadChildren.addListener(new ITaskListener() {
                 @Override
-                public void finished(Void result) {
-                    getLock().release();
-                    setMode(mode);
+                public void afterExecute(ITask task) {
+                    setMode(prevMode);
                 }
             });
+            ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).quietTask(loadChildren);
+            setMode(MODE_LOADING);
         }
     }
 
