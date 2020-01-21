@@ -109,18 +109,7 @@ public class Offshoot extends BinarySource {
 
     @Override
     protected void remove() {
-        ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).executeTask((this).new DeleteOffshoot() {
-            @Override
-            public void finished(Void result) {
-                SwingUtilities.invokeLater(() -> {
-                    if (!isCancelled() && Offshoot.this.getWorkingCopyStatus() == WCStatus.Absent) {
-                        Offshoot.super.remove();
-                    } else {
-                        Offshoot.this.model.read();
-                    }
-                });
-            }
-        });
+        ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).executeTask((this).new DeleteOffshoot());
     }
 
     @Override
@@ -326,7 +315,15 @@ public class Offshoot extends BinarySource {
         }
 
         @Override
-        public void finished(Void result) {}
+        public void finished(Void result) {
+            SwingUtilities.invokeLater(() -> {
+                if (!isCancelled() && Offshoot.this.getWorkingCopyStatus() == WCStatus.Absent) {
+                    Offshoot.super.remove();
+                } else {
+                    Offshoot.this.model.read();
+                }
+            });
+        }
     }
 
 
