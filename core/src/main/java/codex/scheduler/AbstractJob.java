@@ -29,11 +29,12 @@ public abstract class AbstractJob extends Job {
         Collection<ITask> task = getTasks();
         ITask scheduleTask = new GroupTask(
                 MessageFormat.format(Language.get(Job.class, "task@title"), getTitle()),
+                false,
                 task.toArray(new ITask[]{})
         );
 
         if (listener != null) {
-            task.forEach(subTask -> subTask.addListener(listener));
+            scheduleTask.addListener(listener);
         }
 
         new Thread(() -> {
