@@ -12,6 +12,7 @@ import org.atteo.classindex.ClassIndex;
 import javax.swing.*;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -165,16 +166,28 @@ public class Logger extends org.apache.log4j.Logger {
         private final String    name;
         private final ImageIcon icon;
         private       Level     level;
+
+        private final ContextInfo parent;
         private final Class<? extends IContext> clazz;
 
-        private ContextInfo(Class<? extends IContext> contextClass) {
-            IContext.Definition contextDef = contextClass.getAnnotation(IContext.Definition.class);
+        private static ContextInfo getInstance(Class<? extends IContext> contextClass) {
+            try {
+                return new ContextInfo(contextClass);
+            } catch (Exception e) {
+                return null;
+            }
+        }
 
-            clazz = contextClass;
-            id    = contextDef.id();
-            name  = contextDef.name();
-            icon  = ImageUtils.getByPath(contextDef.icon());
-            level = getContextLevel();
+        private ContextInfo(Class<? extends IContext> contextClass) throws Exception {
+            Class<? extends IContext.IContextProvider> ctxProvider = contextClass.getAnnotation(LoggingSource.class).ctxProvider();
+            IContext.Definition contextDef = ctxProvider.newInstance().getDefinition(contextClass);
+
+            id     = contextDef.id();
+            name   = contextDef.name();
+            icon   = ImageUtils.getByPath(contextClass, contextDef.icon());
+            clazz  = contextClass;
+            level  = getContextLevel();
+            parent = contextClass != contextDef.parent() ? ContextInfo.getInstance(contextDef.parent()) : null;
         }
 
         public String getId() {
@@ -197,6 +210,10 @@ public class Logger extends org.apache.log4j.Logger {
             return level;
         }
 
+        public ContextInfo getParent() {
+            return parent;
+        }
+
         private Level getContextLevel() {
             String level = Service.getProperty(
                     LogManagementService.class,
@@ -217,9 +234,12 @@ public class Logger extends org.apache.log4j.Logger {
         private final Map<Class<? extends IContext>, ContextInfo> classMap = new LinkedHashMap<>();
 
         private ContextRegistry() {
+            ClassIndex.getSubclasses(IContext.class).forEach(aClass -> System.err.println(aClass+" / "+Modifier.isAbstract(aClass.getModifiers())));
             StreamSupport.stream(ClassIndex.getSubclasses(IContext.class).spliterator(),false)
+                    .filter(ctxClass -> !Modifier.isInterface(ctxClass.getModifiers()))
                     .map(Logger::resolveContextClass)
-                    .map(ContextInfo::new)
+                    .map(ContextInfo::getInstance)
+                    .filter(Objects::nonNull)
                     .sorted(Comparator.comparing(ctxInfo -> ctxInfo.clazz.getTypeName()))
                     .forEach(ctxInfo -> {
                         nameMap.putIfAbsent(ctxInfo.clazz.getTypeName(), ctxInfo);
@@ -235,8 +255,17 @@ public class Logger extends org.apache.log4j.Logger {
             return nameMap.get(className);
         }
 
-        public Collection<Class<? extends IContext>> getContexts() {
-            return classMap.keySet();
+        public Collection<ContextInfo> getContexts() {
+            return classMap.values();
+        }
+
+        public void registerContext(Class<? extends IContext> contextClass) throws Exception {
+            ContextInfo ctxInfo = ContextInfo.getInstance(contextClass);
+            if (ctxInfo != null) {
+                nameMap.putIfAbsent(ctxInfo.clazz.getTypeName(), ctxInfo);
+                classMap.put(ctxInfo.clazz, ctxInfo);
+                LMS.getSettings().addContext(new ContextInfo(contextClass));
+            }
         }
     }
 }

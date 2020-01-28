@@ -161,24 +161,25 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
         model.updateDynamicProps(PROP_DB_FILE);
     }
 
-    private void fillContext(Collection<Class<? extends IContext>> contexts) {
-        for (Class<? extends IContext> context : contexts) {
-            if (!ILogManagementService.class.isAssignableFrom(context)) {
+    private void fillContext(Collection<Logger.ContextInfo> contexts) {
+        for (Logger.ContextInfo context : contexts) {
+            if (!ILogManagementService.class.isAssignableFrom(context.getClazz())) {
                 addContext(context);
             }
         }
     }
 
-    private ContextView addContext(Class<? extends IContext> contextClass) {
+    ContextView addContext(Logger.ContextInfo contextInfo) {
         Stream<ContextView> added = StreamSupport.stream(treeModel.spliterator(), false)
                 .map(iNode -> (ContextView) iNode);
-        return added.filter(ctx -> ctx.getContextClass() == contextClass).findFirst().orElseGet(() -> {
-            ContextView parent  = addContext(contextClass.getAnnotation(IContext.Definition.class).parent());
-            ContextView context = new ContextView(contextClass);
+        return added.filter(ctx -> ctx.getContextClass() == contextInfo.getClazz()).findFirst().orElseGet(() -> {
+            ContextView parent  = addContext(contextInfo.getParent());
+            ContextView context = new ContextView(contextInfo.getClazz());
             parent.attach(context);
             return context;
         });
     }
+
 
     private class StorageLimit extends EditorCommand<Str, String> {
 

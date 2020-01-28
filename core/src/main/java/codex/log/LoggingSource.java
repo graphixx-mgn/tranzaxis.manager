@@ -1,5 +1,6 @@
 package codex.log;
 
+import codex.context.IContext;
 import org.atteo.classindex.IndexAnnotated;
 import java.lang.annotation.*;
 
@@ -9,4 +10,5 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface LoggingSource {
     boolean debugOption() default false;
+    Class<? extends IContext.IContextProvider> ctxProvider() default IContext.DefaultContextProvider.class;
 }
