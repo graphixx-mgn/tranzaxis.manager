@@ -17,4 +17,14 @@ public interface IContext {
         String icon() default "";
         Class<? extends IContext> parent() default RootContext.class;
     }
+
+    interface IContextProvider {
+        Definition getDefinition(Class<? extends IContext> contextClass);
+    }
+
+    final class DefaultContextProvider implements IContextProvider {
+        public Definition getDefinition(Class<? extends IContext> contextClass) {
+            return contextClass.getAnnotation(Definition.class);
+        }
+    }
 }

@@ -8,7 +8,6 @@ import codex.model.Entity;
 import codex.type.Bool;
 import codex.type.Enum;
 import codex.type.Iconified;
-import codex.utils.ImageUtils;
 import java.util.Objects;
 
 public class ContextView extends Catalog implements Iconified {
@@ -24,11 +23,12 @@ public class ContextView extends Catalog implements Iconified {
                 null
         );
         this.contextClass = contextClass;
-        setTitle(contextClass.getAnnotation(IContext.Definition.class).name());
-        setIcon(ImageUtils.getByPath(contextClass, contextClass.getAnnotation(IContext.Definition.class).icon()));
+        Logger.ContextInfo ctxInfo = Logger.getContextRegistry().getContext(contextClass);
+        setTitle(ctxInfo.getName());
+        setIcon(ctxInfo.getIcon());
 
         boolean isOption = contextClass.getAnnotation(LoggingSource.class).debugOption();
-        Level   ctxLevel = Logger.getContextRegistry().getContext(contextClass).getLevel();
+        Level   ctxLevel = ctxInfo.getLevel();
         model.addDynamicProp(
                 PROP_LEVEL,
                 isOption ? new Bool(ctxLevel == Level.Debug) : new Enum<>(ctxLevel),
