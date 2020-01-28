@@ -2,6 +2,7 @@ package plugin;
 
 import codex.database.IDatabaseAccessService;
 import codex.explorer.tree.NodeTreeModel;
+import codex.log.Logger;
 import codex.model.Catalog;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
@@ -53,6 +54,7 @@ public class InstanceView extends Catalog {
         Integer  instance = getEnvironment().getInstanceId();
 
         Entity ics = Entity.newInstance(getChildClass(), getOwner().toRef(), String.valueOf(instance));
+        Logger.getLogger().debug("Attach ISC SAP: {0}, service={1}", ics, InstanceControlService.class.getAnnotation(Unit.class).serviceUri());
         attach(ics);
 
         try (ResultSet rs = DAS.select(
@@ -67,6 +69,7 @@ public class InstanceView extends Catalog {
                 Class<? extends AbstractInstanceUnit> unitClass = getUnitClass(uri);
                 AbstractInstanceUnit unit = Entity.newInstance(unitClass, getOwner().toRef(), id);
                 if (unit.getUsed()) {
+                    Logger.getLogger().debug("Attach unit SAP: {0}, service={1}", unit, uri);
                     ics.attach(unit);
                 }
             }

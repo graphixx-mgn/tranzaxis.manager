@@ -5,6 +5,7 @@ import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.editor.IEditor;
 import codex.explorer.tree.NodeTreeModel;
+import codex.log.Logger;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.model.IModelListener;
@@ -22,7 +23,6 @@ import manager.nodes.Environment;
 import plugin.command.CommandPlugin;
 import type.NetInterface;
 import units.InstanceControlService;
-import javax.swing.FocusManager;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -76,6 +76,7 @@ public class SAPConfig extends CommandPlugin<Environment> {
                     if (event.getID() == Dialog.OK) {
                         commit();
                     }
+
                 },
                 btnSubmit,
                 btnCancel
@@ -122,7 +123,7 @@ public class SAPConfig extends CommandPlugin<Environment> {
                 Arrays.stream(selectorTreeTable.getSelectedRows()).forEach(row -> {
                     AccessPoint accessPoint = (AccessPoint) model.getEntityForRow(row);
 
-                    String address = changeHost(accessPoint.getAddress(), iface.toString());
+                    String address = changeHost(accessPoint.getAddress(true), iface.toString());
                     accessPoint.setAddress(address);
                     selectorTreeTable.revalidate();
                     selectorTreeTable.repaint();
@@ -154,7 +155,18 @@ public class SAPConfig extends CommandPlugin<Environment> {
             StreamSupport.stream(treeModel.spliterator(), false)
                     .map(iNode -> (AccessPoint) iNode)
                     .filter(accessPoint -> accessPoint.model.hasChanges())
-                    .forEach(AccessPoint::saveSettings);
+                    .peek(accessPoint -> Logger.getLogger().info(
+                            "Update address for access point ''{0}/{1}'': {2} => {3}",
+                            environment,
+                            accessPoint,
+                            accessPoint.getAddress(false),
+                            accessPoint.getAddress(true)
+                    ))
+                    .forEach(accessPoint -> {
+                        accessPoint.saveSettings();
+                        // Remove object to drop from cache
+                        accessPoint.model.remove();
+                    });
         });
     }
 

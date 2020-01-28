@@ -2,7 +2,6 @@ package type;
 
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
-
 import javax.swing.*;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -39,7 +38,7 @@ public class NetInterface implements Iconified {
         this.iface = iface;
     }
 
-    public InetAddress getAddress() {
+    private InetAddress getAddress() {
         return Collections.list(iface.getInetAddresses()).stream()
                 .filter(inetAddress -> inetAddress instanceof Inet4Address)
                 .findFirst().orElse(null);

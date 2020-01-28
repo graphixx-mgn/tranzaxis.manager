@@ -20,7 +20,7 @@ public class AccessPoint extends Catalog {
         this(owner, null, title);
     }
 
-    public AccessPoint(EntityRef owner, ImageIcon icon, String title) {
+    AccessPoint(EntityRef owner, ImageIcon icon, String title) {
         super(owner, icon, title, null);
         AccessPointSettings settings = loadSettings();
         if (settings.title != null) {
@@ -52,8 +52,8 @@ public class AccessPoint extends Catalog {
 
     protected void saveSettings() {}
 
-    final String getAddress() {
-        return (String) model.getUnsavedValue(PROP_ADDR);
+    final String getAddress(boolean unsaved) {
+        return (String) (unsaved ? model.getUnsavedValue(PROP_ADDR) : model.getValue(PROP_ADDR));
     }
 
     final Boolean getUsed() {
@@ -64,12 +64,12 @@ public class AccessPoint extends Catalog {
         model.setValue(PROP_ADDR, address);
     }
 
-    public class AccessPointSettings {
+    class AccessPointSettings {
         String  title;
         String  address;
         Boolean used;
 
-        public AccessPointSettings(String title, String address, Boolean used) {
+        AccessPointSettings(String title, String address, Boolean used) {
             this.title = title;
             this.address = address;
             this.used = Boolean.TRUE.equals(used);

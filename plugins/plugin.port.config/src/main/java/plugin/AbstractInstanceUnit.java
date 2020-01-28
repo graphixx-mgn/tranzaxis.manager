@@ -65,7 +65,7 @@ public class AbstractInstanceUnit extends AccessPoint {
             DAS.update(
                     database.getConnectionID(false),
                     saveSettingsQuery(),
-                    getAddress(),
+                    getAddress(true),
                     Integer.valueOf(getPID())
             );
         } catch (SQLException e) {
