@@ -72,7 +72,15 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
 
         model.removeChangeListener(this);
         model.addChangeListener((name, oldValue, newValue) -> {
-            if (!name.equals(PROP_IMPL_PARAM) && ISerializableType.class.isAssignableFrom(model.getPropertyType(name))) {
+            if (!PolyMorph.SYSPROPS.contains(name)) {
+                this.propertyChange(name, oldValue, newValue);
+            }
+            if (
+                    !PolyMorph.SYSPROPS.contains(name) &&
+                    ISerializableType.class.isAssignableFrom(model.getPropertyType(name)) &&
+                    !EntityModel.SYSPROPS.contains(name) &&
+                    !model.isPropertyDynamic(name)
+            ) {
                 this.propertyChange(name, oldValue, newValue);
 
                 Map<String, String> parameters = getParameters(true);
@@ -127,8 +135,8 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
                         commands.add((EntityCommand<Entity>) entityCommand);
                     });
                     return commands;
-                })
-                .flatMap(Collection::stream)
+               })
+               .flatMap(Collection::stream)
                .collect(Collectors.toList());
     }
 
