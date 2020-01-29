@@ -13,6 +13,7 @@ import codex.editor.IEditor;
 import codex.explorer.tree.AbstractNode;
 import codex.explorer.tree.INode;
 import codex.log.Logger;
+import codex.presentation.AncestorAdapter;
 import codex.presentation.EditorPage;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
@@ -32,7 +33,6 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.AncestorEvent;
-import javax.swing.event.AncestorListener;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Constructor;
@@ -633,17 +633,13 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     public final EditorPage getEditorPage() {
         if (editorPage == null) {
             editorPage = new EditorPage(model);
-            editorPage.addAncestorListener(new AncestorListener() {
+            editorPage.addAncestorListener(new AncestorAdapter() {
                 @Override
                 public void ancestorAdded(AncestorEvent event) {
-                    onOpenPageView();
+                    if (event.getAncestor() == getEditorPresentation() || event.getAncestor() instanceof Dialog) {
+                        onOpenPageView();
+                    }
                 }
-
-                @Override
-                public void ancestorRemoved(AncestorEvent event) {}
-
-                @Override
-                public void ancestorMoved(AncestorEvent event) {}
             });
         }
         return editorPage;

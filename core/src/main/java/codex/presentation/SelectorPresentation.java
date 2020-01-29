@@ -4,8 +4,6 @@ import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
-import codex.component.messagebox.MessageBox;
-import codex.component.messagebox.MessageType;
 import codex.explorer.browser.BrowseMode;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
@@ -17,13 +15,13 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.*;
 import javax.swing.border.*;
+import javax.swing.event.AncestorEvent;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.*;
@@ -125,7 +123,14 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 tableModel.addEntity(newEntity);
             }
         });
-        SwingUtilities.invokeLater(this::refresh);
+        addAncestorListener(new AncestorAdapter() {
+            @Override
+            public void ancestorAdded(AncestorEvent event) {
+                if (event.getAncestor() != event.getComponent()) {
+                    refresh();
+                }
+            }
+        });
     }
 
     /**

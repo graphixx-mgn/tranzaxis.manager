@@ -6,8 +6,8 @@ import codex.presentation.SelectorPresentation;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import javax.swing.*;
+import javax.swing.border.LineBorder;
 import java.awt.*;
-
 
 public final class TabbedMode extends BrowseMode<JTabbedPane> {
 
@@ -26,16 +26,19 @@ public final class TabbedMode extends BrowseMode<JTabbedPane> {
 
         SelectorPresentation selectorPresentation = node.getSelectorPresentation();
         if (selectorPresentation != null) {
-            selectorPresentation.refresh();
+            selectorPresentation.setBorder(new LineBorder(Color.GREEN, 1));
             container.insertTab(
                     IComplexType.coalesce(getDescription(getClassHierarchy(node), "group@title"), SELECTOR_TITLE),
                     TabKind.Selector.icon,
-                    selectorPresentation,
+                    new JPanel(new BorderLayout()) {{
+                        add(selectorPresentation, BorderLayout.CENTER);
+                    }},
                     null, container.getTabCount()
             );
         }
         EditorPresentation editorPresentation = node.getEditorPresentation();
         if (editorPresentation != null) {
+            editorPresentation.setBorder(new LineBorder(Color.RED, 1));
             container.insertTab(
                     EDITOR_TITLE,
                     TabKind.Editor.icon,
@@ -44,7 +47,6 @@ public final class TabbedMode extends BrowseMode<JTabbedPane> {
                     }},
                     null, container.getTabCount()
             );
-            editorPresentation.refresh();
         }
     }
 

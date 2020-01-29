@@ -41,12 +41,11 @@ public final class EmbeddedMode extends BrowseMode<JPanel> {
 
         EditorPresentation editorPresentation = node.getEditorPresentation();
         if (editorPresentation != null) {
-            editorPresentation.refresh();
             editorPanel.add(editorPresentation);
+            editorPresentation.refresh();
         }
         SelectorPresentation selectorPresentation = node.getSelectorPresentation();
         if (selectorPresentation != null) {
-
             if (!((Entity) node).model.getProperties(Access.Edit).isEmpty()) {
                 selectorPresentation.setBorder(new CompoundBorder(
                         new EmptyBorder(0, 5, 3, 5),

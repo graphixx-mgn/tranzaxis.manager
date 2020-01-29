@@ -7,6 +7,8 @@ import codex.explorer.tree.INodeListener;
 import codex.model.Access;
 import codex.model.Entity;
 import javax.swing.*;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
@@ -48,13 +50,26 @@ public final class EditorPresentation extends JPanel {
                 activateCommands();
             }
         });
+        addAncestorListener(new AncestorAdapter() {
+            @Override
+            public void ancestorAdded(AncestorEvent event) {
+                if (event.getAncestor() != event.getComponent()) {
+                    refresh();
+                }
+            }
+        });
+        add(context.get().getEditorPage(), BorderLayout.CENTER);
     }
 
     /**
      * Обновление презентации и панели команд.
      */
     public final void refresh() {
-        add(context.get().getEditorPage(), BorderLayout.CENTER);
+        EditorPage page = context.get().getEditorPage();
+        AncestorEvent event = new AncestorEvent(page, AncestorEvent.ANCESTOR_ADDED, this, this.getParent());
+        for (AncestorListener listener : page.getAncestorListeners()) {
+            listener.ancestorAdded(event);
+        }
         updateCommands();
         activateCommands();
     }
