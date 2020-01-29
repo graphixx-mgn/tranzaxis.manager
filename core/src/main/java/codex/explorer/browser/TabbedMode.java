@@ -26,7 +26,6 @@ public final class TabbedMode extends BrowseMode<JTabbedPane> {
 
         SelectorPresentation selectorPresentation = node.getSelectorPresentation();
         if (selectorPresentation != null) {
-            selectorPresentation.setBorder(new LineBorder(Color.GREEN, 1));
             container.insertTab(
                     IComplexType.coalesce(getDescription(getClassHierarchy(node), "group@title"), SELECTOR_TITLE),
                     TabKind.Selector.icon,
@@ -38,7 +37,6 @@ public final class TabbedMode extends BrowseMode<JTabbedPane> {
         }
         EditorPresentation editorPresentation = node.getEditorPresentation();
         if (editorPresentation != null) {
-            editorPresentation.setBorder(new LineBorder(Color.RED, 1));
             container.insertTab(
                     EDITOR_TITLE,
                     TabKind.Editor.icon,
