@@ -636,7 +636,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             editorPage.addAncestorListener(new AncestorAdapter() {
                 @Override
                 public void ancestorAdded(AncestorEvent event) {
-                    if (event.getAncestor() == getEditorPresentation() || event.getAncestor() instanceof Dialog) {
+                    if (event.getAncestor() instanceof Dialog || Objects.equals(event.getAncestor(), editorPresentation)) {
                         onOpenPageView();
                     }
                 }
