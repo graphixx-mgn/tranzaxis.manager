@@ -58,6 +58,7 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
 
         // Editor settings
         model.getEditor(PROP_DB_SIZE).addCommand(new StorageLimit());
+        EditorPage editorPage = getEditorPage();
 
         // Build context tree
         fillContext(Logger.getContextRegistry().getContexts());
@@ -82,7 +83,6 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
                 Language.get("context@tree")
         ));
 
-        EditorPage editorPage = getEditorPage();
         GridBagConstraints gbc = new GridBagConstraints() {{
             insets = new Insets(5, 10, 5, 10);
             fill = GridBagConstraints.HORIZONTAL;
@@ -122,27 +122,6 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
                 }
             }
         });
-
-        // Listeners
-        for (INode node : treeModel) {
-            final ContextView ctxView = (ContextView) node;
-            final Class<? extends IContext> contextClass = ctxView.getContextClass();
-            final String propName = contextClass.getTypeName();
-
-            model.addUserProp(
-                    propName,
-                    new Enum<>(Logger.getContextRegistry().getContext(contextClass).getLevel()),
-                    false,
-                    Access.Select
-            );
-
-            ctxView.model.addChangeListener((name, oldValue, newValue) -> {
-                Level newLevel =
-                      newValue instanceof Level ? (Level) newValue :
-                      Boolean.TRUE.equals(newValue) ? Level.Debug : Level.Off;
-                model.setValue(propName, newLevel);
-            });
-        }
     }
 
     @Override
@@ -176,6 +155,20 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
             ContextView parent  = addContext(contextInfo.getParent());
             ContextView context = new ContextView(contextInfo.getClazz());
             parent.attach(context);
+
+            final String propName = contextInfo.getClazz().getTypeName();
+            model.addUserProp(
+                    propName,
+                    new Enum<>(contextInfo.getLevel()),
+                    false,
+                    Access.Select
+            );
+            context.model.addChangeListener((name, oldValue, newValue) -> {
+                Level newLevel =
+                      newValue instanceof Level ? (Level) newValue :
+                      Boolean.TRUE.equals(newValue) ? Level.Debug : Level.Off;
+                model.setValue(propName, newLevel);
+            });
             return context;
         });
     }

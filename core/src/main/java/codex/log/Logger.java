@@ -234,7 +234,6 @@ public class Logger extends org.apache.log4j.Logger {
         private final Map<Class<? extends IContext>, ContextInfo> classMap = new LinkedHashMap<>();
 
         private ContextRegistry() {
-            ClassIndex.getSubclasses(IContext.class).forEach(aClass -> System.err.println(aClass+" / "+Modifier.isAbstract(aClass.getModifiers())));
             StreamSupport.stream(ClassIndex.getSubclasses(IContext.class).spliterator(),false)
                     .filter(ctxClass -> !Modifier.isInterface(ctxClass.getModifiers()))
                     .map(Logger::resolveContextClass)
