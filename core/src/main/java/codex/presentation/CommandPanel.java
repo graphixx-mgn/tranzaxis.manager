@@ -82,6 +82,7 @@ public final class CommandPanel extends Box {
             });
         }
         separator.setVisible(systemCommandsPanel.getComponentCount() > 0 && contextCommandsPanel.getComponentCount() > 0);
+        setVisible(systemCommandsPanel.getComponentCount() + contextCommandsPanel.getComponentCount() > 0);
         commandPanel.revalidate();
         commandPanel.repaint();
     }
