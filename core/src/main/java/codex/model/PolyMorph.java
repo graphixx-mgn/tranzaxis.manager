@@ -95,7 +95,7 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
         model.addUserProp(PROP_IMPL_CLASS, new Str(null), false, Access.Any);
         final Class<? extends Entity> implClass = getPolymorphClass(getClass()).equals(getClass()) ? getImplClass() : getClass();
         final EntityDefinition entityDef = Entity.getDefinition(implClass);
-        setIcon(ImageUtils.getByPath(entityDef.icon()));
+        setIcon(ImageUtils.getByPath(implClass, entityDef.icon()));
 
         // Child object's properties map
         PropertyHolder<codex.type.Map<String, String>, Map<String, String>> propertiesHolder = new PropertyHolder<>(
