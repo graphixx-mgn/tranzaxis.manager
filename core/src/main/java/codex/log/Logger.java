@@ -135,10 +135,13 @@ public class Logger extends org.apache.log4j.Logger {
     }
 
     private static Class<? extends IContext> resolveContextClass(Class<? extends IContext> contextClass) {
-        Class<? extends IContext> targetClass = PolyMorph.class.isAssignableFrom(contextClass) ?
-                PolyMorph.getPolymorphClass(contextClass.asSubclass(PolyMorph.class)).asSubclass(IContext.class) :
-                contextClass;
-
+        Class<? extends IContext> targetClass;
+        if (PolyMorph.class.isAssignableFrom(contextClass)) {
+            Class<? extends PolyMorph> rootClass = PolyMorph.getPolymorphClass(contextClass.asSubclass(PolyMorph.class));
+            targetClass = IContext.class.isAssignableFrom(rootClass) ? rootClass.asSubclass(IContext.class) : contextClass;
+        } else {
+            targetClass = contextClass;
+        }
         if (targetClass.isAnonymousClass() && IContext.class.isAssignableFrom(targetClass.getSuperclass())) {
             return targetClass.getSuperclass().asSubclass(IContext.class);
         } else {
