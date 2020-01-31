@@ -16,7 +16,7 @@ import java.util.Stack;
 import java.util.prefs.Preferences;
 
 @ClassCatalog.Definition(selectorProps = {Service.PROP_VIEW})
-public class Service<S extends IService> extends PolyMorph implements ICatalog {
+public abstract class Service<S extends IService> extends PolyMorph implements ICatalog {
 
     private final static ImageIcon ICON_STARTED = ImageUtils.getByPath("/images/start.png");
     private final static ImageIcon ICON_STOPPED = ImageUtils.getByPath("/images/stop.png");
