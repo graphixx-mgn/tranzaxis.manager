@@ -269,6 +269,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
         return Access.Extra.equals(restrictions.get(propName));
     }
+
+    public final void addStaticProp(PropertyHolder<? extends IComplexType, ?> propHolder, Access restriction) {
+        addProperty(propHolder, restriction);
+        dynamicProps.add(propHolder.getName());
+    }
     
     /**
      * Добавление динамического (не хранимого) свойства в сущность.
