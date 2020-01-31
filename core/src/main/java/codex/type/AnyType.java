@@ -14,6 +14,12 @@ public class AnyType implements IComplexType<Object, IMask<Object>> {
 
     private Object value;
 
+    public AnyType() {}
+
+    public AnyType(Object value) {
+        setValue(value);
+    }
+
     @Override
     public Object getValue() {
         return value;
