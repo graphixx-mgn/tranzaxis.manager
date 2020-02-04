@@ -38,7 +38,6 @@ public final class EditorPresentation extends JPanel {
         context = () -> entity;
 
         commandPanel = new CommandPanel(Collections.emptyList());
-        add(commandPanel, BorderLayout.NORTH);
 
         entity.addNodeListener(new INodeListener() {
             @Override
@@ -58,6 +57,10 @@ public final class EditorPresentation extends JPanel {
                 }
             }
         });
+
+        updateCommands();
+        activateCommands();
+        add(commandPanel, BorderLayout.NORTH);
         add(context.get().getEditorPage(), BorderLayout.CENTER);
     }
 

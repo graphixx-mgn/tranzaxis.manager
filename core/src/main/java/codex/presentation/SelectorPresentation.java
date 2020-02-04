@@ -43,7 +43,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     private final static ImageIcon IMAGE_CLONE  = ImageUtils.getByPath("/images/clone.png");
     private final static ImageIcon IMAGE_REMOVE = ImageUtils.getByPath("/images/minus.png");
 
-    private final Class<? extends Entity> entityClass;
     private final Entity                  entity;
     private final SelectorTableModel      tableModel;
     private final JTable                  table;
@@ -59,14 +58,12 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     public SelectorPresentation(Entity entity) {
         super(new BorderLayout());
         this.entity = entity;
-        entityClass = entity.getChildClass();
-
-        commandPanel = new CommandPanel(Collections.emptyList());
-        add(commandPanel, BorderLayout.NORTH);
         
         tableModel = new SelectorTableModel(entity);
         table = new SelectorTable(tableModel);
         table.getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        commandPanel = new CommandPanel(Collections.emptyList());
         
         if (entity.allowModifyChild()) {
             table.setDragEnabled(true);
@@ -87,6 +84,10 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 new EmptyBorder(0, 5, 5, 5), 
                 new MatteBorder(1, 1, 1, 1, Color.GRAY)
         ));
+
+        updateCommands();
+        activateCommands();
+        add(commandPanel, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
 
         table.getSelectionModel().addListSelectionListener(this);
