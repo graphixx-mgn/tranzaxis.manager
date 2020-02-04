@@ -7,21 +7,18 @@ import codex.explorer.tree.INode;
 import codex.explorer.tree.Navigator;
 import codex.explorer.tree.NodeTreeModel;
 import codex.log.Logger;
+import codex.presentation.AncestorAdapter;
 import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
 import codex.utils.Caller;
 import codex.utils.Language;
-import org.apache.log4j.lf5.viewer.categoryexplorer.TreeModelAdapter;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.util.Locale;
-import javax.swing.JComponent;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
+import javax.swing.*;
+import javax.swing.event.AncestorEvent;
 import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeExpansionListener;
-import javax.swing.event.TreeModelEvent;
 import javax.swing.tree.TreePath;
 
 /**
@@ -55,9 +52,7 @@ public final class ExplorerUnit extends AbstractUnit {
         Logger.getLogger().debug("Initialize unit: Explorer ({0})", Language.get(parentUnitClass, "unit.title", Locale.US));
         this.browser   = new Browser(mode);
         this.navigator = new Navigator();
-        this.navigator.addNavigateListener((TreePath path) -> {
-            this.browser.browse((INode) path.getLastPathComponent());
-        });
+        this.navigator.addNavigateListener((TreePath path) -> this.browser.browse((INode) path.getLastPathComponent()));
     }
     
     public void setModel(NodeTreeModel treeModel) {
@@ -85,44 +80,42 @@ public final class ExplorerUnit extends AbstractUnit {
         rightPanel.add(browsePanel, BorderLayout.CENTER);
         splitPanel.setRightComponent(rightPanel);
 
-        navigator.addTreeExpansionListener(new TreeExpansionListener() {
-            @Override
-            public void treeExpanded(TreeExpansionEvent event) {
-                resizeNavigationPane();
-            }
-
-            @Override
-            public void treeCollapsed(TreeExpansionEvent event) {}
-        });
-        navigator.getModel().addTreeModelListener(new TreeModelAdapter() {
-            @Override
-            public void treeNodesInserted(TreeModelEvent e) {
-                resizeNavigationPane();
-            }
-
-            @Override
-            public void treeNodesChanged(TreeModelEvent e) {
-                resizeNavigationPane();
-            }
-        });
+        Adjuster adjuster = new Adjuster();
+        navigator.addAncestorListener(adjuster);
+        navigator.addTreeExpansionListener(adjuster);
 
         return splitPanel;
-    }
-
-    private void resizeNavigationPane() {
-        int dividerPos = splitPanel.getDividerLocation();
-        int navWidth   = navigator.getPreferredScrollableViewportSize().width + 20;
-        if (navWidth > dividerPos) {
-            splitPanel.setDividerLocation(navWidth);
-        }
     }
 
     @Override
     public void viewportBound() {
         navigatePanel.setViewportView(navigator);
         browsePanel.add(browser, BorderLayout.CENTER);
-        resizeNavigationPane();
         navigator.expandRow(0);
     }
-    
+
+
+    private class Adjuster extends AncestorAdapter implements TreeExpansionListener {
+
+        @Override
+        public void ancestorAdded(AncestorEvent e) {
+            resizeNavigationPane();
+        }
+
+        @Override
+        public void treeExpanded(TreeExpansionEvent event) {
+            resizeNavigationPane();
+        }
+
+        @Override
+        public void treeCollapsed(TreeExpansionEvent event) {}
+
+        private void resizeNavigationPane() {
+            int dividerPos = splitPanel.getDividerLocation();
+            int navWidth   = navigator.getPreferredScrollableViewportSize().width + 20;
+            if (navWidth > dividerPos) {
+                splitPanel.setDividerLocation(navWidth);
+            }
+        }
+    }
 }
