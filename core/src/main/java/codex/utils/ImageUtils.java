@@ -293,5 +293,14 @@ public class ImageUtils {
             return src.substring(src.indexOf("base64,") + 7);
         }
     }
+
+    public static String hexColor(Color color) {
+        StringBuilder hex = new StringBuilder(Integer.toHexString(color.getRGB() & 0xffffff));
+        while (hex.length() < 6){
+            hex.insert(0, "0");
+        }
+        hex.insert(0, "#");
+        return hex.toString();
+    }
     
 }
