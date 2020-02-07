@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<versions current="1.0.1" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="1.0.1" date="2020-02-07">
+        <changelog>
+            <change scope="APP" type="Feature">
+                <description>Шаблон плагина "Команда сущности": начальная версия.</description>
+            </change>
+            <change scope="APP" type="Feature">
+                <description>Шаблон плагина "Задание планировщика": начальная версия.</description>
+            </change>
+        </changelog>
+    </version>
+</versions>
