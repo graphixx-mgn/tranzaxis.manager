@@ -1,19 +1,15 @@
 package codex.instance;
 
-import codex.config.ConfigStoreService;
 import codex.context.IContext;
 import codex.log.Level;
 import codex.log.Logger;
 import codex.log.LoggingSource;
-import codex.service.ServiceRegistry;
 import codex.xml.EchoDocument;
-import com.sun.javafx.PlatformUtil;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.lang.reflect.Method;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -160,26 +156,7 @@ class LookupServer {
     }
 
     private static String getUserName() {
-        try {
-            String className  = null;
-            String methodName = "getUsername";
-            if (PlatformUtil.isWindows()) {
-                className = "com.sun.security.auth.module.NTSystem";
-                methodName = "getName";
-            } else if (PlatformUtil.isUnix()) {
-                className = "com.sun.security.auth.module.UnixSystem";
-            }
-
-            if (className != null) {
-                Class<?> c = Class.forName(className);
-                Method method = c.getDeclaredMethod( methodName );
-                Object o = c.newInstance();
-                return (String) method.invoke(o);
-            }
-            return null;
-        } catch (ReflectiveOperationException e) {
-            return null;
-        }
+        return System.getenv().get("USERNAME");
     }
     
     /**

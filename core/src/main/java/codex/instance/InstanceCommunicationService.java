@@ -30,17 +30,13 @@ public final class InstanceCommunicationService extends AbstractService<Communic
         protected void linkInstance(Instance instance) {
             super.linkInstance(instance);
             Logger.getLogger().debug("Link remote instance {0}", instance);
-            new LinkedList<>(listeners).forEach((listener) -> {
-                listener.instanceLinked(instance);
-            });
+            new LinkedList<>(listeners).forEach((listener) -> listener.instanceLinked(instance));
         }
         @Override
         protected void unlinkInstance(Instance instance) {
             super.unlinkInstance(instance);
             Logger.getLogger().debug("Unlink remote instance {0}", instance);
-            new LinkedList<>(listeners).forEach((listener) -> {
-                listener.instanceUnlinked(instance);
-            });
+            new LinkedList<>(listeners).forEach((listener) -> listener.instanceUnlinked(instance));
         }
     };
     
@@ -65,25 +61,17 @@ public final class InstanceCommunicationService extends AbstractService<Communic
                 }).collect(Collectors.joining("\n"))
         );
         lookupServer.start();
-        
-        ServiceLoader<IRemoteService> services = ServiceLoader.load(IRemoteService.class);
-        Iterator<IRemoteService> iterator = services.iterator();
-        while (iterator.hasNext()) {
-            try {
-                IRemoteService service = iterator.next();
-                Logger.getLogger().debug("Register remote service: ''{0}''", service.getTitle());
-                rmiRegistry.rebind(service.getClass().getCanonicalName(), service);
-                getSettings().attach(((AbstractRemoteService) service).getConfiguration());
-            } catch (RemoteException e) {
-                // Do nothing
-            } catch (ServiceConfigurationError e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof ServiceNotLoadedException) {
-                    Logger.getLogger().warn("{0}", cause.getMessage());
-                } else {
-                    Logger.getLogger().warn("Remote service ''{0}'' registration error", cause);
-                }
-            }
+    }
+
+    @Override
+    public void registerRemoteService(Class<? extends IRemoteService> remoteServiceClass) {
+        try {
+            IRemoteService service = remoteServiceClass.getConstructor().newInstance();
+            rmiRegistry.rebind(service.getClass().getCanonicalName(), service);
+            getSettings().attach(((AbstractRemoteService) service).getConfiguration());
+            Logger.getLogger().debug("Registered remote service: ''{0}''", service.getTitle());
+        } catch (Exception e) {
+            Logger.getLogger().warn("Unable to register remote service", e);
         }
     }
 
