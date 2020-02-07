@@ -26,9 +26,9 @@
 
     <profiles>
         <profile>
-            <id>build plugin templates</id>
+            <id>Build plugin templates</id>
             <modules>
-                <module>template.command</module>
+                <module>templates</module>
             </modules>
         </profile>
     </profiles>
