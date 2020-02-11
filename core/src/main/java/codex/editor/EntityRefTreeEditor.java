@@ -185,7 +185,7 @@ public class EntityRefTreeEditor extends AbstractEditor<EntityRef<Entity>, Entit
             Entity rootEAS = EAS.getRoot();
 
             NodeTreeModel treeModel = new NodeTreeModel(new EntityProxy(rootEAS));
-            Supplier<Stream<INode>> treeStream = () -> ((EntityProxy) treeModel.getRoot()).flattened();
+            Supplier<Stream<INode>> treeStream = () -> treeModel.getRoot().flattened();
 
             getValues().forEach((entity) -> {
                 List<Entity> path = entity.getPath().stream()

@@ -24,6 +24,11 @@ public final class NodeTreeModel extends DefaultTreeModel implements Iterable<IN
     }
 
     @Override
+    public INode getRoot() {
+        return (INode) super.getRoot();
+    }
+
+    @Override
     public void childInserted(INode parentNode, INode childNode) {
         nodesWereInserted(
                 parentNode,
@@ -56,7 +61,7 @@ public final class NodeTreeModel extends DefaultTreeModel implements Iterable<IN
 
     @Override
     public void modelRestored(EntityModel model, List<String> changes) {
-        ((INode) getRoot()).flattened()
+        getRoot().flattened()
                 .filter((node) -> ((Entity) node).model == model)
                 .findFirst()
                 .ifPresent(this::nodeChanged);
@@ -64,7 +69,7 @@ public final class NodeTreeModel extends DefaultTreeModel implements Iterable<IN
 
     @Override
     public void modelSaved(EntityModel model, List<String> changes) {
-        ((INode) getRoot()).flattened()
+        getRoot().flattened()
                 .filter((node) -> ((Entity) node).model == model)
                 .findFirst()
                 .ifPresent(this::nodeChanged);
@@ -105,7 +110,5 @@ public final class NodeTreeModel extends DefaultTreeModel implements Iterable<IN
         public INode next() {
             return iterator.next();
         }
-    
     }
-
 }

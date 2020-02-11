@@ -48,7 +48,7 @@ public class InstanceUnit extends AbstractUnit {
         ServiceRegistry.getInstance().addRegistryListener(IInstanceDispatcher.class, service -> {
             IInstanceDispatcher dispatcher = (IInstanceDispatcher) service;
             dispatcher.getInstances().forEach((instance) -> {
-                INode root = (INode) instancesTree.getRoot();
+                INode root = instancesTree.getRoot();
                 root.attach(new RemoteHost(instance));
                 if (root.getChildCount() > 0) {
                     explorer.getViewport();
@@ -59,7 +59,7 @@ public class InstanceUnit extends AbstractUnit {
             dispatcher.addInstanceListener(new IInstanceListener() {
                 @Override
                 public void instanceLinked(Instance instance) {
-                    INode root = (INode) instancesTree.getRoot();
+                    INode root = instancesTree.getRoot();
                     root.attach(new RemoteHost(instance));
                     if (root.getChildCount() > 0) {
                         explorer.getViewport();
@@ -69,7 +69,7 @@ public class InstanceUnit extends AbstractUnit {
 
                 @Override
                 public void instanceUnlinked(Instance instance) {
-                    INode root = (INode) instancesTree.getRoot();
+                    INode root = instancesTree.getRoot();
                     getViews().stream()
                             .filter((view) -> view.getInstance().equals(instance))
                             .forEach(root::detach);
@@ -89,7 +89,7 @@ public class InstanceUnit extends AbstractUnit {
     }
     
     private List<RemoteHost> getViews() {
-        return ((INode) instancesTree.getRoot()).childrenList().stream()
+        return instancesTree.getRoot().childrenList().stream()
                 .map((node) -> (RemoteHost) node)
                 .collect(Collectors.toList());
     }
