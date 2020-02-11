@@ -40,11 +40,7 @@ class LookupServer {
     // Контексты
     @LoggingSource(debugOption = true)
     @IContext.Definition(id = "ICS.Net", name = "Network server events", icon = "/images/network.png", parent = InstanceCommunicationService.class)
-    private static class NetContext implements IContext {
-        static void debug(String message, Object... params) {
-            Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
-        }
-    }
+    private static class NetContext implements IContext {}
 
     /**
      * Конструктор сервера.
@@ -120,7 +116,7 @@ class LookupServer {
         datagramPacket.getAddress().getHostName();
         try {
             for (InetAddress address : InstanceCommunicationService.IFACE_ADDRS.values()) {
-                NetContext.debug("Send multicast request packet to interface: {0}", address.getHostAddress());
+                Logger.getContextLogger(NetContext.class).debug("Send multicast request packet to interface: {0}", address.getHostAddress());
                 mcastSenderSocket.setInterface(address);
                 mcastSenderSocket.send(datagramPacket);
             }
@@ -177,7 +173,7 @@ class LookupServer {
         new Thread(() -> {
             try (Socket socket = new Socket()) {
                 socket.connect(new InetSocketAddress(instance.address, instance.kcaPort), 1000);
-                NetContext.debug(
+                Logger.getContextLogger(NetContext.class).debug(
                         "{0} connection established: {1}:{2}",
                         forward ? "Forward" : "Backward",
                         instance.address,
@@ -187,7 +183,7 @@ class LookupServer {
                 
                 if (forward) {
                     PrintWriter out = new PrintWriter(socket.getOutputStream());
-                    NetContext.debug("Send response packet to instance: {0}", instance);
+                    Logger.getContextLogger(NetContext.class).debug("Send response packet to instance: {0}", instance);
                     out.println(new String(prepareEcho()));
                     out.flush();
                 }
@@ -224,7 +220,7 @@ class LookupServer {
                     if (input != null && !input.isEmpty()) {
                         try {
                             EchoDocument echoRqDoc = EchoDocument.Factory.parse(input);
-                            NetContext.debug(
+                            Logger.getContextLogger(NetContext.class).debug(
                                     "Received response packet from {0}\n({1})\nData: {2}",
                                     echoRqDoc.getEcho().getHost(),
                                     clientSocket.getRemoteSocketAddress(),
@@ -291,7 +287,7 @@ class LookupServer {
                         EchoDocument echoRqDoc = EchoDocument.Factory.parse(
                             new ByteArrayInputStream(packet.getData(), 0, packet.getLength())
                         );
-                        NetContext.debug(
+                        Logger.getContextLogger(NetContext.class).debug(
                                 "Received request packet from {0}\n({1})\nData: {2}",
                                 echoRqDoc.getEcho().getHost(),
                                 packet.getSocketAddress(),

@@ -53,20 +53,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     // Контексты
     @LoggingSource()
     @IContext.Definition(id = "OEM", name = "Object entity model", icon = "/images/model.png")
-    static class OrmContext implements IContext {
-        static void debug(String message, Object... params) {
-            Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
-        }
-        static void log(Level level, String message) {
-            Logger.getLogger().log(level, message);
-        }
-        static void log(Level level, String message, Object... params) {
-            Logger.getLogger().log(level, MessageFormat.format(message, params));
-        }
-        static void error(String message, Throwable exception) {
-            Logger.getLogger().error(message, exception);
-        }
-    }
+    static class OrmContext implements IContext {}
     
     EntityModel(EntityRef owner, Class<? extends Entity> entityClass, String PID) {
         this.entityClass = entityClass;
@@ -503,7 +490,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      */
     public final void commit(boolean showError) throws Exception {
         if (!getChanges().isEmpty()) {
-            OrmContext.debug("Perform full commit model {0} {1}", getQualifiedName(), getChanges());
+            Logger.getContextLogger(OrmContext.class).debug("Perform full commit model {0} {1}", getQualifiedName(), getChanges());
             commit(showError, getChanges());
         }
     }
@@ -521,7 +508,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 updateProps.add(PolyMorph.PROP_IMPL_PARAM);
             }
             if (!updateProps.isEmpty()) {
-                OrmContext.debug("Perform partial commit model {0} {1}", getQualifiedName(), updateProps);
+                Logger.getContextLogger(OrmContext.class).debug("Perform partial commit model {0} {1}", getQualifiedName(), updateProps);
                 commit(showError, updateProps);
             }
         }
@@ -530,13 +517,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     private void commit(boolean showError, List<String> propNames) throws Exception {
         if (!propNames.isEmpty()) {
             if (getID() == null) {
-                OrmContext.debug("Insert model to database {0}", getQualifiedName());
+                Logger.getContextLogger(OrmContext.class).debug("Insert model to database {0}", getQualifiedName());
                 if (!create(showError)) {
                     return;
                 }
             }
             if (maintenance(showError)) {
-                OrmContext.debug("Update model in database {0}", getQualifiedName());
+                Logger.getContextLogger(OrmContext.class).debug("Update model in database {0}", getQualifiedName());
                 update(showError, propNames);
             }
         }
@@ -549,7 +536,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
     public final void rollback() {
         List<String> changes = getChanges();
         if (!changes.isEmpty()) {
-            OrmContext.debug("Perform rollback model {0}", getQualifiedName());
+            Logger.getContextLogger(OrmContext.class).debug("Perform rollback model {0}", getQualifiedName());
             changes.forEach((name) -> {
                 if (undoRegistry.exists(name)) {
                     getProperty(name).setValue(undoRegistry.previous(name));
@@ -570,7 +557,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     .filter(propName -> Arrays.asList(propNames).contains(propName))
                     .collect(Collectors.toList());
             if (!changes.isEmpty()) {
-                OrmContext.debug("Perform partial rollback model {0} {1}", getQualifiedName(), changes);
+                Logger.getContextLogger(OrmContext.class).debug("Perform partial rollback model {0} {1}", getQualifiedName(), changes);
                 changes.forEach((name) -> getProperty(name).setValue(undoRegistry.previous(name)));
                 new LinkedList<>(modelListeners).forEach((listener) -> listener.modelRestored(this, changes));
             }
@@ -606,7 +593,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 return true;
             }
         } catch (Exception e) {
-            OrmContext.error("Unable initialize model in database", e);
+            Logger.getContextLogger(OrmContext.class).error("Unable initialize model in database", e);
             if (showError) {
                 MessageBox.show(
                         MessageType.ERROR, 
@@ -657,7 +644,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
             });
             return true;
         } catch (Exception e) {
-            OrmContext.error("Unable update model properties to database", e);
+            Logger.getContextLogger(OrmContext.class).error("Unable update model properties to database", e);
             if (showError) {
                 MessageBox.show(
                         MessageType.ERROR, 
@@ -692,7 +679,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     Entity owner = entity.getOwner();
                     boolean exists = getConfigService().isInstanceExists(entity.getClass(), entity.getPID(), owner == null ? null : owner.getID());
                     if (!exists) {
-                        OrmContext.debug(
+                        Logger.getContextLogger(OrmContext.class).debug(
                                 "Perform automatic entity creation: {0}",
                                 entity.model.getQualifiedName()
                         );
@@ -703,7 +690,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                                 owner == null ? null : owner.getID()
                         ).forEach(entity.model::setValue);
                     } else {
-                        OrmContext.debug(
+                        Logger.getContextLogger(OrmContext.class).debug(
                                 "Skip automatic entity creation: {0} [Already exists]",
                                 entity.model.getQualifiedName()
                         );
@@ -716,13 +703,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     Entity owner = entity.getOwner();
                     boolean exists = getConfigService().isInstanceExists(entity.getClass(), entity.getPID(), owner == null ? null : owner.getID());
                     if (exists) {
-                        OrmContext.debug(
+                        Logger.getContextLogger(OrmContext.class).debug(
                                 "Perform automatic entities deletion: {0}",
                                 entity.model.getQualifiedName()
                         );
                         entity.remove(false, false);
                     } else {
-                        OrmContext.debug(
+                        Logger.getContextLogger(OrmContext.class).debug(
                                 "Skip automatic entity deletion: {0} [Already deleted]",
                                 entity.model.getQualifiedName()
                         );
@@ -770,7 +757,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * Удаление данных модели из БД.
      */
     boolean remove(boolean readAfter) {
-        OrmContext.debug("Perform removal model {0}", getQualifiedName());
+        Logger.getContextLogger(OrmContext.class).debug("Perform removal model {0}", getQualifiedName());
         try {
             synchronized (this) {
                 try {
@@ -778,7 +765,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                         if (!link.isIncoming) {
                             EntityRef ref = EntityRef.build(link.entryClass, link.entryID);
                             if (ref.getValue() != null && Entity.getDefinition(ref.getValue().getClass()).autoGenerated() && getConfigService().findReferencedEntries(ref.getEntityClass(), ref.getId()).isEmpty()) {
-                                OrmContext.debug("Cascade removal dependent model {0}", ref.getValue().model.getQualifiedName());
+                                Logger.getContextLogger(OrmContext.class).debug("Cascade removal dependent model {0}", ref.getValue().model.getQualifiedName());
                                 ref.getValue().model.remove(false);
                             }
                         }
@@ -786,7 +773,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     getConfigService().removeClassInstance(tableClass, getID());
                     processAutoReferences(false, getProperties(Access.Any));
                 } catch (Exception e) {
-                    OrmContext.error("Unable delete model from database", e);
+                    Logger.getContextLogger(OrmContext.class).error("Unable delete model from database", e);
                     throw e;
                 } finally {
                     if (readAfter) {
@@ -825,12 +812,12 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 ));
 
         if (!extraProps.isEmpty() || !absentProps.isEmpty()) {
-            OrmContext.debug("Perform maintenance class catalog {0}", tableClass.getSimpleName());
+            Logger.getContextLogger(OrmContext.class).debug("Perform maintenance class catalog {0}", tableClass.getSimpleName());
             try {
                 getConfigService().maintainClassCatalog(tableClass, extraProps, absentProps);
                 return true;
             } catch (Exception e) {
-                OrmContext.error("Unable to maintain class catalog", e);
+                Logger.getContextLogger(OrmContext.class).error("Unable to maintain class catalog", e);
                 if (showError) {
                     MessageBox.show(
                             MessageType.ERROR, 
@@ -1005,7 +992,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     .collect(Collectors.toList());
 
             if (filtered.size() == 1) {
-                OrmContext.debug("Perform update ''{0}'' dynamic property: {1}", getQualifiedName(), filtered.get(0));
+                Logger.getContextLogger(OrmContext.class).debug("Perform update ''{0}'' dynamic property: {1}", getQualifiedName(), filtered.get(0));
                 getProperty(filtered.get(0)).setValue(dynamicResolver.valueProviders.get(filtered.get(0)).get());
             } else if (filtered.size() > 1) {
                 Map<String, List<String>> updatePlan = buildUpdatePlan(filtered);
@@ -1029,7 +1016,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                                 Map.Entry::getValue
                             ));
 
-                OrmContext.debug(
+                Logger.getContextLogger(OrmContext.class).debug(
                         "Perform update ''{0}'' dynamic properties: {1} by resolving plan\n"
                                 + "Independent : {2}\n"
                                 + "Dependencies: {3}",
@@ -1061,7 +1048,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     }
                 });
                 if (!dependencies.isEmpty()) {
-                    OrmContext.debug(
+                    Logger.getContextLogger(OrmContext.class).debug(
                             "Perform forced update orphaned dynamic properties: {0}", 
                             dependencies.keySet()
                     );
@@ -1156,7 +1143,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         void discard() {
             model.removeChangeListener(Reference.this);
             model.removeModelListener(Reference.this);
-            OrmContext.debug(
+            Logger.getContextLogger(OrmContext.class).debug(
                     "Unregistered {0} reference {1} <- {2}",
                     incoming ? "incoming" : "child",
                     getQualifiedName(),
@@ -1167,7 +1154,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         synchronized void setStatus(RefStatus status) {
             this.status = status;
             if (status.equals(RefStatus.Permanent)) {
-                OrmContext.debug(
+                Logger.getContextLogger(OrmContext.class).debug(
                         "Registered {0} reference {1} <- {2}",
                         incoming ? "incoming" : "child",
                         getQualifiedName(),

@@ -36,11 +36,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
 
     @LoggingSource(debugOption = true)
     @IContext.Definition(id = "DAS.Sql", name = "Preview SQL queries", icon = "/images/command.png", parent = OracleAccessService.class)
-    private static class QueryContext implements IContext {
-        static void debug(String message, Object... params) {
-            Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
-        }
-    }
+    private static class QueryContext implements IContext {}
     
     private OracleAccessService() {}
     
@@ -82,7 +78,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
     public ResultSet select(Integer connectionID, String query, Object... params) throws SQLException {
         try {
             final RowSet rowSet = prepareSet(connectionID);
-            QueryContext.debug(
+            Logger.getContextLogger(QueryContext.class).debug(
                     "Select query: {0} (connection #{1})",
                     IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
             );
@@ -108,7 +104,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
 
     @Override
     public synchronized void update(Integer connectionID, String query, Object... params) throws SQLException {
-        QueryContext.debug(
+        Logger.getContextLogger(QueryContext.class).debug(
                 "Update query: {0} (connection #{1})",
                 IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
         );
