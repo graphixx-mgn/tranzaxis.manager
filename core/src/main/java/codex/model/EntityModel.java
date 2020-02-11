@@ -269,11 +269,6 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
         return Access.Extra.equals(restrictions.get(propName));
     }
-
-    public final void addStaticProp(PropertyHolder<? extends IComplexType, ?> propHolder, Access restriction) {
-        addProperty(propHolder, restriction);
-        dynamicProps.add(propHolder.getName());
-    }
     
     /**
      * Добавление динамического (не хранимого) свойства в сущность.
@@ -295,7 +290,20 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
         dynamicProps.add(name);
     }
-    
+
+    @SuppressWarnings("unchecked")
+    public final void addDynamicProp(String name, String title, String desc, IComplexType value, Access restriction, Supplier valueProvider, String... baseProps) {
+        if (valueProvider != null) {
+            addProperty(
+                    dynamicResolver.newProperty(name, title, desc, value, valueProvider, baseProps),
+                    restriction
+            );
+        } else {
+            addProperty(new PropertyHolder<>(name, title, desc, value, false), restriction);
+        }
+        dynamicProps.add(name);
+    }
+
     /**
      * Обновление всех динамических свойств модели.
      */
@@ -523,14 +531,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         if (!propNames.isEmpty()) {
             if (getID() == null) {
                 OrmContext.debug("Insert model to database {0}", getQualifiedName());
-                if (create(showError)) {
-                    update(showError, getChanges() /* +SEQ */);
+                if (!create(showError)) {
+                    return;
                 }
-            } else {
-                if (maintenance(showError)) {
-                    OrmContext.debug("Update model in database {0}", getQualifiedName());
-                    update(showError, propNames);
-                }
+            }
+            if (maintenance(showError)) {
+                OrmContext.debug("Update model in database {0}", getQualifiedName());
+                update(showError, propNames);
             }
         }
     }
@@ -585,16 +592,17 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         return propDefinitions;
     }
     
-    protected boolean create(boolean showError) throws Exception {
+    @SuppressWarnings("unchecked")
+    public boolean create(boolean showError) throws Exception {
         Integer ownerId = getOwner() == null ? null : getOwner().getID();
         try {
             synchronized (this) {
                 getConfigService().initClassInstance(
                         tableClass,
-                        (String) getProperty(PID).getPropValue().getValue(), 
+                        (String) getProperty(PID).getPropValue().getValue(),
                         getPropDefinitions(this),
                         ownerId
-                ).forEach(this::setValue);
+                ).forEach((propName, generatedVal) -> getProperty(propName).getPropValue().setValue(generatedVal));
                 return true;
             }
         } catch (Exception e) {
@@ -885,11 +893,26 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         final Map<String, Supplier>       valueProviders  = new HashMap<>();
         final Map<String, PropertyHolder> propertyHolders = new HashMap<>();
 
-        @SuppressWarnings("unchecked")
         PropertyHolder newProperty(String name, IComplexType value, Supplier valueProvider, String... baseProps) {
+            return newProperty(
+                    name,
+                    EntityModel.SYSPROPS.contains(name) ?
+                            Language.get(EntityModel.class, name+PropertyHolder.PROP_NAME_SUFFIX) :
+                            Language.lookup(name+PropertyHolder.PROP_NAME_SUFFIX),
+                    EntityModel.SYSPROPS.contains(name) ?
+                            Language.get(EntityModel.class, name+PropertyHolder.PROP_DESC_SUFFIX) :
+                            Language.lookup(name+PropertyHolder.PROP_DESC_SUFFIX),
+                    value,
+                    valueProvider,
+                    baseProps
+            );
+        }
+
+        @SuppressWarnings("unchecked")
+        PropertyHolder newProperty(String name, String title, String desc, IComplexType value, Supplier valueProvider, String... baseProps) {
             valueProviders.put(name, valueProvider);
 
-            propertyHolders.put(name, new PropertyHolder(name, value, false) {
+            propertyHolders.put(name, new PropertyHolder(name, title, desc, value, false) {
                 private boolean initiated = false;
 
                 @Override
