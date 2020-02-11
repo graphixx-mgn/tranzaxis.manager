@@ -1,10 +1,8 @@
 package codex.database;
 
 import codex.context.IContext;
-import codex.log.Level;
 import codex.log.Logger;
 import java.sql.*;
-import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;

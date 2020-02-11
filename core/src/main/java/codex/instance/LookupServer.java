@@ -1,7 +1,6 @@
 package codex.instance;
 
 import codex.context.IContext;
-import codex.log.Level;
 import codex.log.Logger;
 import codex.log.LoggingSource;
 import codex.xml.EchoDocument;
@@ -16,7 +15,6 @@ import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.xmlbeans.XmlException;

@@ -6,7 +6,6 @@ import codex.component.messagebox.MessageType;
 import codex.config.IConfigStoreService;
 import codex.context.IContext;
 import codex.editor.IEditor;
-import codex.log.Level;
 import codex.log.Logger;
 import codex.log.LoggingSource;
 import codex.mask.IMask;
