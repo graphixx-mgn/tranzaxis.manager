@@ -1,5 +1,6 @@
 package codex.context;
 
+import codex.log.Logger;
 import codex.utils.Caller;
 import java.util.Collections;
 import java.util.List;
@@ -20,7 +21,7 @@ public class ServiceCallContext {
         List<Class> callStack = Caller.getInstance().getClassStack();
         Collections.reverse(callStack);
         return Stream.concat(
-                Stream.of(RootContext.class),
+                Stream.of(Logger.getRootContext()),
                 callStack.stream()
                         .map(aClass -> {
                             Class<?> parentClass = aClass;

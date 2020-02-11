@@ -1,6 +1,7 @@
 package codex.log;
 
 import codex.context.IContext;
+import codex.context.RootContext;
 import codex.context.ServiceCallContext;
 import codex.model.PolyMorph;
 import codex.service.Service;
@@ -12,7 +13,10 @@ import org.atteo.classindex.ClassIndex;
 import javax.swing.*;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -25,7 +29,8 @@ public class Logger extends org.apache.log4j.Logger {
     final static ImageIcon ERROR = ImageUtils.getByPath("/images/stop.png");
     final static ImageIcon OFF   = ImageUtils.getByPath("/images/unavailable.png");
 
-    static final LoggerFactory FACTORY = new LoggerFactory();
+    private static final ThreadLocal<Class <? extends IContext>> ROOT_CONTEXT = new ThreadLocal<>();
+    private static final LoggerFactory FACTORY = new LoggerFactory();
     private static final LogManagementService LMS = new LogManagementService();
 
     private static final long sessionStartTimestamp = System.currentTimeMillis();
@@ -36,13 +41,14 @@ public class Logger extends org.apache.log4j.Logger {
         ServiceRegistry.getInstance().registerService(LMS);
     }
 
-    private final DatabaseAppender dbAppender = new DatabaseAppender() {
-        @Override
-        public void append(LoggingEvent event) {
-            super.append(event);
-            new LinkedList<>(listeners).forEach(listener -> listener.eventAppended(event));
-        }
-    };
+    public static Class <? extends IContext> getRootContext() {
+        return ROOT_CONTEXT.get() != null ? ROOT_CONTEXT.get() : RootContext.class;
+    }
+
+    private static void setRootContext(Class <? extends IContext> rootContext) {
+        ROOT_CONTEXT.set(rootContext);
+    }
+
     private final List<IAppendListener> listeners = new LinkedList<>();
     
     Logger(String name) {
@@ -67,12 +73,35 @@ public class Logger extends org.apache.log4j.Logger {
                 ));
             }
         };
-        asyncAppender.addAppender(dbAppender);
+        asyncAppender.addAppender(new DatabaseAppender() {
+            @Override
+            public void append(LoggingEvent event) {
+                super.append(event);
+                new LinkedList<>(listeners).forEach(listener -> listener.eventAppended(event));
+            }
+        });
         Logger.getRootLogger().addAppender(asyncAppender);
     }
 
     public static org.apache.log4j.Logger getLogger(String name) {
         return org.apache.log4j.Logger.getLogger(name, FACTORY);
+    }
+
+    public static ILogManagementService getContextLogger(Class <? extends IContext> rootContext) {
+        InvocationHandler handler = (proxy, method, args) -> {
+            try {
+                setRootContext(rootContext);
+                return method.invoke(getLogger(), args);
+            } finally {
+                setRootContext(null);
+            }
+        };
+        Object proxy = Proxy.newProxyInstance(
+                ILogManagementService.class.getClassLoader(),
+                new Class<?>[] {ILogManagementService.class},
+                handler
+        );
+        return (ILogManagementService) proxy;
     }
 
     public static ILogManagementService getLogger() {
@@ -181,6 +210,14 @@ public class Logger extends org.apache.log4j.Logger {
             }
         }
 
+        private ContextInfo(String className) {
+            id     = "<?>";
+            name   = MessageFormat.format("[{0}]", className);
+            icon   = ImageUtils.getByPath("/images/question.png");
+            parent = null;
+            clazz  = null;
+        }
+
         private ContextInfo(Class<? extends IContext> contextClass) throws Exception {
             Class<? extends IContext.IContextProvider> ctxProvider = contextClass.getAnnotation(LoggingSource.class).ctxProvider();
             IContext.Definition contextDef = ctxProvider.newInstance().getDefinition(contextClass);
@@ -254,20 +291,29 @@ public class Logger extends org.apache.log4j.Logger {
         }
 
         public ContextInfo getContext(String className) {
-            return nameMap.get(className);
+            return nameMap.containsKey(className) ? nameMap.get(className) : new ContextInfo(className);
         }
 
-        public Collection<ContextInfo> getContexts() {
+        Collection<ContextInfo> getContexts() {
             return classMap.values();
         }
 
-        public void registerContext(Class<? extends IContext> contextClass) throws Exception {
+        public final void registerContext(Class<? extends IContext> contextClass) throws Exception {
             ContextInfo ctxInfo = ContextInfo.getInstance(contextClass);
             if (ctxInfo != null) {
                 nameMap.putIfAbsent(ctxInfo.clazz.getTypeName(), ctxInfo);
                 classMap.put(ctxInfo.clazz, ctxInfo);
                 LMS.getSettings().addContext(new ContextInfo(contextClass));
             }
+        }
+
+        public final void unregisterContext(Class<? extends IContext> contextClass) throws Exception {
+//            ContextInfo ctxInfo = ContextInfo.getInstance(contextClass);
+//            if (ctxInfo != null) {
+//                nameMap.remove(ctxInfo.clazz.getTypeName());
+//                classMap.remove(ctxInfo.clazz);
+//                LMS.getSettings().
+//            }
         }
     }
 }
