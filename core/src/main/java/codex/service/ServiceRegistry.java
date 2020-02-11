@@ -1,9 +1,7 @@
 package codex.service;
 
 import codex.log.Logger;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.concurrent.*;
@@ -37,23 +35,14 @@ public final class ServiceRegistry {
             }
         });
     }
-    
-    private Constructor<MethodHandles.Lookup> lookup;
+
     private final Map<Class<? extends IService>, IService> registry = new ConcurrentHashMap<>();
     private final Map<Class<? extends IService>, List<IRegistryListener>> listeners = new ConcurrentHashMap<>();
     
     private ServiceCatalog serviceCatalog;
     
     private ServiceRegistry() {
-        try {
-            Logger.getLogger().debug("Initialize Service Registry");
-            lookup = MethodHandles.Lookup.class.getDeclaredConstructor(Class.class, Integer.TYPE);
-            if (!lookup.isAccessible()) {
-                lookup.setAccessible(true);
-            }
-        } catch (NoSuchMethodException e) {
-            Logger.getLogger().error("Unable to start Service Registry", e);
-        }
+        Logger.getLogger().debug("Initialize Service Registry");
     }
 
     /**
@@ -74,7 +63,7 @@ public final class ServiceRegistry {
     private void registerService(IService service, boolean startImmediately) {
         Class<? extends IService> serviceInterface = IService.getServiceInterface(service.getClass());
         if (!registry.containsKey(serviceInterface)) {
-            registry.put(serviceInterface, createServiceProxy(serviceInterface, service));
+            registry.put(serviceInterface, service);
             Logger.getLogger().debug("Service Registry: register service ''{0}''", service.getTitle());
             if (startImmediately) {
                 service.startService();
@@ -154,45 +143,32 @@ public final class ServiceRegistry {
         return !serviceControl.isPresent() || serviceControl.get().isEnabled();
     }
 
-    @SuppressWarnings("unchecked")
+    //@SuppressWarnings("unchecked")
     private <T extends IService> T createServicePreloader(Class<T> serviceInterface) {
-        return (T) Proxy.newProxyInstance(
+        InvocationHandler handler = (proxy, method, args) -> {
+            if (registry.containsKey(serviceInterface)) {
+                IService service = registry.get(serviceInterface);
+                return method.invoke(service, args);
+            } else {
+                Exception exception = new Exception();
+                Logger.getLogger().warn(
+                        "Called not registered service ''{0}''\nMethod: {1}({2})\nLocation: {3}",
+                        serviceInterface.getTypeName(),
+                        method.getName(),
+                        Arrays.stream(method.getParameterTypes())
+                                .map((param) -> "<".concat(param.getSimpleName()).concat(">"))
+                                .collect(Collectors.joining(", ")),
+                        exception.getStackTrace()[2]
+                );
+                return null;
+            }
+        };
+        Object proxy = Proxy.newProxyInstance(
                 serviceInterface.getClassLoader(),
-                new Class[]{ serviceInterface },
-                (Object proxy, Method method, Object[] arguments) -> {
-                    if (isEnabled(serviceInterface)) {
-                        if (registry.containsKey(serviceInterface)) {
-                            IService service = registry.get(serviceInterface);
-                            return method.invoke(service, arguments);
-                        }
-                        if (!method.getName().equals("getTitle")) {
-                            T preloader = (T) proxy;
-                            Logger.getLogger().warn(
-                                    "Called not registered service ''{0}''\nService call: {1}({2})",
-                                    preloader.getTitle(),
-                                    method.getName(),
-                                    Arrays.stream(method.getParameterTypes())
-                                            .map((param) -> "<".concat(param.getSimpleName()).concat(">"))
-                                            .collect(Collectors.joining(", "))
-                            );
-                        }
-                    }
-                    return lookup.newInstance(serviceInterface,
-                            MethodHandles.Lookup.PRIVATE
-                    )
-                        .unreflectSpecial(method, method.getDeclaringClass())
-                        .bindTo(proxy)
-                        .invokeWithArguments(arguments);
-                }
+                new Class<?>[] {serviceInterface},
+                handler
         );
-    }
-
-    private IService createServiceProxy(Class<? extends IService> serviceInterface, IService service) {
-        return (IService) Proxy.newProxyInstance(
-                serviceInterface.getClassLoader(),
-                new Class[]{ serviceInterface },
-                (Object proxy, Method method, Object[] arguments) -> method.invoke(service, arguments)
-        );
+        return serviceInterface.cast(proxy);
     }
 
     @FunctionalInterface
