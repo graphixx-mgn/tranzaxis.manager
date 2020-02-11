@@ -29,7 +29,7 @@ public class Logger extends org.apache.log4j.Logger {
     final static ImageIcon ERROR = ImageUtils.getByPath("/images/stop.png");
     final static ImageIcon OFF   = ImageUtils.getByPath("/images/unavailable.png");
 
-    private static final ThreadLocal<Class <? extends IContext>> ROOT_CONTEXT = new ThreadLocal<>();
+    private static final ThreadLocal<Class <? extends IContext>> CALL_CONTEXT = new ThreadLocal<>();
     private static final LoggerFactory FACTORY = new LoggerFactory();
     private static final LogManagementService LMS = new LogManagementService();
 
@@ -41,12 +41,12 @@ public class Logger extends org.apache.log4j.Logger {
         ServiceRegistry.getInstance().registerService(LMS);
     }
 
-    public static Class <? extends IContext> getRootContext() {
-        return ROOT_CONTEXT.get() != null ? ROOT_CONTEXT.get() : RootContext.class;
+    public static Class <? extends IContext> getCallContext() {
+        return CALL_CONTEXT.get() != null ? CALL_CONTEXT.get() : RootContext.class;
     }
 
-    private static void setRootContext(Class <? extends IContext> rootContext) {
-        ROOT_CONTEXT.set(rootContext);
+    private static void setCallContext(Class <? extends IContext> rootContext) {
+        CALL_CONTEXT.set(rootContext);
     }
 
     private final List<IAppendListener> listeners = new LinkedList<>();
@@ -90,10 +90,10 @@ public class Logger extends org.apache.log4j.Logger {
     public static ILogManagementService getContextLogger(Class <? extends IContext> rootContext) {
         InvocationHandler handler = (proxy, method, args) -> {
             try {
-                setRootContext(rootContext);
+                setCallContext(rootContext);
                 return method.invoke(getLogger(), args);
             } finally {
-                setRootContext(null);
+                setCallContext(null);
             }
         };
         Object proxy = Proxy.newProxyInstance(

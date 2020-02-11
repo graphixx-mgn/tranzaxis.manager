@@ -20,8 +20,8 @@ public class ServiceCallContext {
     private static Stream<Class<? extends IContext>> getContextStream() {
         List<Class> callStack = Caller.getInstance().getClassStack();
         Collections.reverse(callStack);
-        return Stream.concat(
-                Stream.of(Logger.getRootContext()),
+        Stream<Class<? extends IContext>> callStream = Stream.concat(
+                Stream.of(RootContext.class),
                 callStack.stream()
                         .map(aClass -> {
                             Class<?> parentClass = aClass;
@@ -34,6 +34,10 @@ public class ServiceCallContext {
                         .distinct()
                         .map(aClass -> (Class<? extends IContext>) aClass.asSubclass(IContext.class))
         );
+        if (Logger.getCallContext() != null) {
+            callStream = Stream.concat(callStream, Stream.of(Logger.getCallContext()));
+        }
+        return callStream;
     }
 
 }
