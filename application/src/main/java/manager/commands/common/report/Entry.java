@@ -166,7 +166,7 @@ public class Entry extends Catalog {
     }
 
 
-    private class DeleteEntry extends EntityCommand<Entry> {
+    private static class DeleteEntry extends EntityCommand<Entry> {
 
         DeleteEntry() {
             super(

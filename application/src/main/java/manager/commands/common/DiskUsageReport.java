@@ -63,6 +63,12 @@ public class DiskUsageReport extends EntityCommand<Common> {
 
     class BuildStructure extends AbstractTask<List<RepoView>> {
 
+        private final Map<String, Repository> REPO_INDEX = CAS.readCatalogEntries(Repository.class).stream()
+                .collect(Collectors.toMap(
+                        repoRef -> Repository.urlToDirName(repoRef.getValue().getRepoUrl()),
+                        EntityRef::getValue
+                ));
+
         BuildStructure() {
             super(Language.get(DiskUsageReport.class, "task@structure"));
         }
@@ -96,25 +102,17 @@ public class DiskUsageReport extends EntityCommand<Common> {
         }
 
         List<Entry> getBranchEntries(File workDir, Class<? extends RepositoryBranch> branchClass) {
-            final File localDir = new File(workDir, branchClass.getAnnotation(RepositoryBranch.Branch.class).localDir());
-            Map<String, Repository> REPO_INDEX = CAS.readCatalogEntries(null, Repository.class)
-                    .entrySet().stream()
-                    .map((entry) -> EntityRef.build(Repository.class, entry.getKey()).getValue()).collect(Collectors.toMap(
-                            entry -> Repository.urlToDirName(entry.getRepoUrl()),
-                            entry -> entry
-                    ));
-
-            if (localDir.exists()) {
-                return Stream.of(IComplexType.coalesce(localDir.listFiles(), new File[]{}))
-                        .map(file -> {
-                            if (REPO_INDEX.containsKey(file.getName())) {
-                                final File repoDir = file;
-                                final Repository repository = REPO_INDEX.get(repoDir.getName());
+            final File branchDir = new File(workDir, branchClass.getAnnotation(RepositoryBranch.Branch.class).localDir());
+            if (branchDir.exists()) {
+                return Stream.of(IComplexType.coalesce(branchDir.listFiles(), new File[]{}))
+                        .map(fileEntry -> {
+                            if (REPO_INDEX.containsKey(fileEntry.getName())) {
+                                final Repository repository = REPO_INDEX.get(fileEntry.getName());
                                 final RepositoryBranch branch = Entity.newInstance(branchClass, repository.toRef(), null);
-
-                                Collection<String> PIDs = branch.getChildrenPIDs().get(branch.getChildClass());
-
-                                return Stream.of(IComplexType.coalesce(repoDir.listFiles(), new File[]{}))
+                                List<String> PIDs = CAS.readCatalogEntries(repository.getID(), branch.getChildClass()).stream()
+                                        .map(entityRef -> entityRef.getValue().getPID())
+                                        .collect(Collectors.toList());
+                                return Stream.of(IComplexType.coalesce(fileEntry.listFiles(), new File[]{}))
                                         .map(repoBoundFile -> {
                                             if (repoBoundFile.isFile()) {
                                                 return new FileEntry(repository.toRef(), repoBoundFile.getAbsolutePath());
@@ -131,10 +129,10 @@ public class DiskUsageReport extends EntityCommand<Common> {
                                         })
                                         .collect(Collectors.toList());
                             } else {
-                                if (file.isDirectory()) {
-                                    return Collections.singletonList(new DirEntry(null, file.getAbsolutePath()));
+                                if (fileEntry.isDirectory()) {
+                                    return Collections.singletonList(new DirEntry(null, fileEntry.getAbsolutePath()));
                                 } else {
-                                    return Collections.singletonList(new FileEntry(null, file.getAbsolutePath()));
+                                    return Collections.singletonList(new FileEntry(null, fileEntry.getAbsolutePath()));
                                 }
                             }
                         })
