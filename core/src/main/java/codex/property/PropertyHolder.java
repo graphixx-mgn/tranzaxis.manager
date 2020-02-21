@@ -67,7 +67,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
             throw new IllegalStateException("Invalid value: NULL value is not supported");
         }
         this.name    = name;
-        this.title   = Language.NOT_FOUND.equals(title) ? MessageFormat.format("<{0}>", name) : title;
+        this.title   = Language.NOT_FOUND.equals(title) ? MessageFormat.format("[{0}]", name) : title;
         this.desc    = Language.NOT_FOUND.equals(desc)  ? null : desc;
         this.require = require;
         this.value   = value;
