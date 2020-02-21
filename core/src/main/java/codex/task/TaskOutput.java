@@ -1,15 +1,13 @@
 package codex.task;
 
+import codex.component.panel.HTMLView;
 import codex.log.Level;
+import codex.utils.ImageUtils;
 import javax.swing.*;
-import javax.swing.border.CompoundBorder;
-import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultCaret;
-import javax.swing.text.Style;
-import javax.swing.text.StyleConstants;
+import javax.swing.text.*;
 import javax.swing.text.html.HTMLDocument;
+import javax.swing.text.html.HTMLEditorKit;
 import java.awt.*;
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -18,8 +16,14 @@ import java.util.Map;
 
 public class TaskOutput extends JPanel {
 
-    private static final ThreadLocal<ITask>     CONTEXT = new ThreadLocal<>();
+    private static final ThreadLocal<ITask>     CONTEXT = new InheritableThreadLocal<>();
     private static final Map<ITask, TaskOutput> OUTPUT_MAP = new HashMap<>();
+    private static final Map<Level, Color>      COLOR_MAP = new HashMap<Level, Color>(){{
+        put(Level.Debug, Color.GRAY);
+        put(Level.Info,  Color.BLACK);
+        put(Level.Warn,  Color.decode("#AA3333"));
+        put(Level.Error, Color.decode("#FF3333"));
+    }};
 
     public static TaskOutput createOutput(ITask task) {
         if (!OUTPUT_MAP.containsKey(task)) {
@@ -39,28 +43,30 @@ public class TaskOutput extends JPanel {
     public static void put(Level level, String message, Object... params) {
         ITask context = CONTEXT.get();
         TaskOutput output = OUTPUT_MAP.get(context);
-        if (output == null || !output.isShowing()) {
+        if (output == null) {
             return;
         }
         SwingUtilities.invokeLater(() -> {
-            Style style = output.pane.getStyle(level.toString());
-            Color color = StyleConstants.getForeground(style);
-            String hex  = "#"+Integer.toHexString(color.getRGB()).substring(2);
-            HTMLDocument doc = (HTMLDocument) output.pane.getStyledDocument();
+            String colorCode = ImageUtils.hexColor(COLOR_MAP.get(level));
+
+            HTMLEditorKit kit = (HTMLEditorKit) output.pane.getEditorKit();
+            HTMLDocument  doc = (HTMLDocument) output.pane.getDocument();
             try {
-                doc.insertAfterEnd(doc.getCharacterElement(
-                        doc.getLength()),
+                kit.insertHTML(
+                        doc,
+                        doc.getLength(),
                         MessageFormat.format(
                                 "<span><font color=\"{0}\">{1}</font></span><br>",
-                                hex,
+                                colorCode,
                                 MessageFormat.format(
                                         message.replaceAll(" ", "&nbsp;").replace("\r\n", "<br>"),
                                         params
                                 )
-                        )
+                        ),
+                        0, 0, null
                 );
             } catch (BadLocationException | IOException e) {
-                //
+                e.printStackTrace();
             }
         });
     }
@@ -73,21 +79,16 @@ public class TaskOutput extends JPanel {
         CONTEXT.set(null);
     }
 
-    private final JTextPane pane = new JTextPane() {{
-        setEditable(false);
-        setPreferredSize(new Dimension(450, 150));
-        setContentType("text/html");
+    private final HTMLView pane = new HTMLView() {{
+        setDocument(new HTMLDocument());
+        setOpaque(true);
         setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
+        setBackground(UIManager.getDefaults().getColor("TextPane.background"));
         ((DefaultCaret) getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
     }};
 
     private TaskOutput() {
         super(new BorderLayout());
-        registerStyle(Level.Debug, Color.GRAY);
-        registerStyle(Level.Info,  Color.BLACK);
-        registerStyle(Level.Warn,  Color.decode("#AA3333"));
-        registerStyle(Level.Error, Color.decode("#FF3333"));
 
         JScrollPane scrollPane = new JScrollPane();
         scrollPane.setLayout(new ScrollPaneLayout());
@@ -96,11 +97,5 @@ public class TaskOutput extends JPanel {
         scrollPane.getViewport().add(pane);
         scrollPane.setBorder(new LineBorder(Color.LIGHT_GRAY, 1));
         add(scrollPane, BorderLayout.CENTER);
-    }
-
-    private void registerStyle(Level level, Color color) {
-        Style style = this.pane.addStyle(level.toString(),  null);
-        style.addAttribute("level", level);
-        StyleConstants.setForeground(style, color);
     }
 }
