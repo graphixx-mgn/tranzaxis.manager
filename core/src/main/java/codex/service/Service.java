@@ -11,8 +11,11 @@ import java.lang.reflect.GenericDeclaration;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Stack;
+import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
 @ClassCatalog.Definition(selectorProps = {Service.PROP_VIEW})
@@ -31,15 +34,28 @@ public abstract class Service<S extends IService> extends PolyMorph implements I
         getPreferences(serviceClass).put(propName, value);
     }
 
+    public static <S extends IService> String getProperty(Class<S> serviceClass, String propName) {
+        return getPreferences(serviceClass).get(propName, null);
+    }
+
+    private static <S extends IService> void dropProperty(Class<S> serviceClass, String propName) {
+        getPreferences(serviceClass).remove(propName);
+    }
+
+    private static <S extends IService> List<String> getProperties(Class<S> serviceClass) {
+        try {
+            return Arrays.asList(getPreferences(serviceClass).keys());
+        } catch (BackingStoreException e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+    }
+
     private static <S extends IService> Preferences getPreferences(Class<S> serviceClass) {
         return Preferences.userRoot()
                 .node(APP_CATALOG)
                 .node(SRV_CATALOG)
                 .node(IService.getServiceInterface(serviceClass).getTypeName());
-    }
-
-    public static <S extends IService> String getProperty(Class<S> serviceClass, String propName) {
-        return getPreferences(serviceClass).get(propName, null);
     }
 
     private volatile S service;
@@ -84,6 +100,11 @@ public abstract class Service<S extends IService> extends PolyMorph implements I
                                 propName,
                                 model.getProperty(propName).getOwnPropValue().toString()
                         ));
+                getProperties(getService().getClass()).forEach(propName -> {
+                    if (!model.hasProperty(propName)) {
+                        dropProperty(getService().getClass(), propName);
+                    }
+                });
             }
         });
     }
