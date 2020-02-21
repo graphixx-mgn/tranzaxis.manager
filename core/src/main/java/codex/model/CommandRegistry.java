@@ -25,7 +25,9 @@ public final class CommandRegistry {
             REGISTRY.put(entityClass, new LinkedList<>());
         }
         EntityCommand<? extends Entity> command = getCommandInstance(commandClass);
-        REGISTRY.get(entityClass).add(command);
+        if (command != null) {
+            REGISTRY.get(entityClass).add(command);
+        }
         return command;
     }
 
@@ -34,7 +36,9 @@ public final class CommandRegistry {
             REGISTRY.put(entityClass, new LinkedList<>());
         }
         EntityCommand<? extends Entity> command = getCommandInstance(commandClass);
-        REGISTRY.get(entityClass).add(command);
+        if (command != null) {
+            REGISTRY.get(entityClass).add(command);
+        }
         return command;
     }
 
@@ -73,7 +77,7 @@ public final class CommandRegistry {
 
     private static EntityCommand<? extends Entity> getCommandInstance(Class<? extends EntityCommand<? extends Entity>> commandClass) {
         if (commandClass.isMemberClass() && !Modifier.isStatic(commandClass.getModifiers())) {
-            Logger.getLogger().warn("In is not possible to register non-static inner command class [{0}]");
+            Logger.getLogger().warn("In is not possible to register non-static inner command class [{0}]", commandClass);
             return null;
         }
         try {
