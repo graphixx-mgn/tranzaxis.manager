@@ -62,11 +62,7 @@ public class RunExplorer extends EntityCommand<Environment> {
         public Void execute() throws Exception {
             BinarySource source = env.getBinaries();
             final ProcessBuilder builder = new ProcessBuilder(env.getExplorerCommand(true));
-            builder.redirectInput(ProcessBuilder.Redirect.INHERIT);
-            builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-            builder.redirectError(ProcessBuilder.Redirect.INHERIT);
-
-            File logDir = new File(source.getLocalPath()+File.separator+"logs");
+            final File logDir = new File(source.getLocalPath()+File.separator+"logs");
             if (!logDir.exists()) {
                 logDir.mkdirs();
             }
