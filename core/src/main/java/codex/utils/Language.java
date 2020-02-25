@@ -1,8 +1,22 @@
 package codex.utils;
 
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
+import codex.log.Logger;
+import codex.model.Access;
+import codex.model.EntityDefinition;
+import codex.model.EntityModel;
+import codex.model.IModelListener;
 import codex.property.PropertyHolder;
+import codex.service.AbstractService;
+import codex.service.IService;
+import codex.service.Service;
+import codex.type.EntityRef;
+import codex.type.Enum;
+import codex.type.Iconified;
 import com.github.plural4j.Plural;
 import org.apache.commons.io.IOUtils;
+import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -117,5 +131,94 @@ public class Language {
             default:   return new Plural(Plural.ENGLISH, PLURAL_FORMS.get(getLocale()));
         }
     }
-    
+
+
+    interface ITranslateService extends IService {}
+
+
+    public static class TranslateService extends AbstractService<TranslateServiceOptions> implements ITranslateService {
+
+        static {
+            String langAsStr = Service.getProperty(TranslateService.class, TranslateServiceOptions.PROP_GUI_LANG);
+            if (langAsStr != null) {
+                SupportedLang language = SupportedLang.valueOf(langAsStr);
+                java.lang.System.setProperty("user.language", language.locale.getLanguage());
+                java.lang.System.setProperty("user.country",  language.locale.getCountry());
+            }
+            java.util.Locale guiLocale = Language.getLocale();
+            Logger.getLogger().debug("" +
+                    "GUI locale: Language: {0}, Country: {1}",
+                    guiLocale.getDisplayLanguage(),
+                    guiLocale.getDisplayCountry()
+            );
+        }
+
+        @Override
+        public String getTitle() {
+            return "Interface Translation Service";
+        }
+    }
+
+    @EntityDefinition(icon = "/images/language.png")
+    public static class TranslateServiceOptions extends Service<TranslateService> {
+        final static String PROP_GUI_LANG = "guiLang";
+
+        public TranslateServiceOptions(EntityRef owner, String title) {
+            super(owner, title);
+            model.addUserProp(PROP_GUI_LANG, new Enum<>(SupportedLang.valueOf(Language.getLocale())), false, Access.Select);
+
+            model.addModelListener(new IModelListener() {
+                @Override
+                public void modelSaved(EntityModel model, List<String> changes) {
+                    if (changes.contains(PROP_GUI_LANG)) {
+                        SwingUtilities.invokeLater(() -> MessageBox.show(
+                                MessageType.INFORMATION,
+                                Language.get(TranslateServiceOptions.class, "guiLang.notify")
+                        ));
+                    }
+                }
+            });
+        }
+    }
+
+
+    private enum SupportedLang implements Iconified {
+
+        Russian("Русский", ImageUtils.getByPath("/images/rus.png"), new java.util.Locale("ru", "RU")),
+        English("English", ImageUtils.getByPath("/images/eng.png"), new java.util.Locale("en", "US"));
+
+        private final String    title;
+        private final ImageIcon icon;
+        private final java.util.Locale locale;
+
+        SupportedLang(String title, ImageIcon icon, java.util.Locale locale) {
+            this.title  = title;
+            this.icon   = icon;
+            this.locale = locale;
+        }
+
+        @Override
+        public ImageIcon getIcon() {
+            return icon;
+        }
+
+        public java.util.Locale getLocale() {
+            return locale;
+        }
+
+        @Override
+        public String toString() {
+            return title;
+        }
+
+        public static SupportedLang valueOf(java.util.Locale locale) {
+            for (SupportedLang lang : EnumSet.allOf(SupportedLang.class)) {
+                if (lang.locale.getLanguage().equals(locale.getLanguage())) {
+                    return lang;
+                }
+            }
+            return English;
+        }
+
+    }
 }

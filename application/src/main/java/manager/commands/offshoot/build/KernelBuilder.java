@@ -10,10 +10,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.StringJoiner;
 import java.util.UUID;
-import java.util.prefs.Preferences;
-import manager.Manager;
 import manager.commands.offshoot.BuildWC;
-import manager.type.Locale;
 import manager.xml.FilelistDocument;
 import manager.xml.ProjectDocument;
 import manager.xml.PropertyDocument;
@@ -33,12 +30,6 @@ import org.radixware.kernel.common.repository.Layer;
 public class KernelBuilder {
     
     public static void main(String[] args) throws Exception {
-        Preferences prefs = Preferences.userRoot().node(Manager.class.getSimpleName());
-        if (prefs.get("guiLang", null) != null) {
-            Locale localeEnum = Locale.valueOf(prefs.get("guiLang", null));
-            System.setProperty("user.language", localeEnum.getLocale().getLanguage());
-            System.setProperty("user.country",  localeEnum.getLocale().getCountry());
-        }
 
         Integer port = Integer.valueOf(System.getProperty("port"));
         UUID    uuid = UUID.fromString(System.getProperty("uuid"));

@@ -12,12 +12,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.prefs.Preferences;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import manager.Manager;
-import manager.type.Locale;
 import org.radixware.kernel.common.builder.BuildActionExecutor;
 import org.radixware.kernel.common.builder.RadixObjectsProcessor;
 import org.radixware.kernel.common.builder.api.IBuildEnvironment;
@@ -105,12 +102,6 @@ public class SourceBuilder {
     }
     
     public static void main(String[] args12) throws Exception {
-        Preferences prefs = Preferences.userRoot().node(Manager.class.getSimpleName());
-        if (prefs.get("guiLang", null) != null) {
-            Locale localeEnum = Locale.valueOf(prefs.get("guiLang", null));
-            java.lang.System.setProperty("user.language", localeEnum.getLocale().getLanguage());
-            java.lang.System.setProperty("user.country",  localeEnum.getLocale().getCountry());
-        }
         
         Integer port  = Integer.valueOf(System.getProperty("port"));
         UUID    uuid  = UUID.fromString(System.getProperty("uuid"));
