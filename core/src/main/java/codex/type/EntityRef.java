@@ -5,6 +5,7 @@ import codex.editor.EntityRefEditor;
 import codex.editor.IEditorFactory;
 import codex.mask.IRefMask;
 import codex.model.Entity;
+import codex.model.EntityModel;
 import codex.service.ServiceRegistry;
 import java.util.Map;
 
@@ -130,12 +131,15 @@ public class EntityRef<E extends Entity> implements ISerializableType<E, IRefMas
             Map<String, String> dbValues = CAS.readClassInstance(entityClass, entityId);
             
             EntityRef<E> ownerRef = null;
-            try {
-                ownerRef = build((Class<E>) CAS.getOwnerClass(entityClass), dbValues.get("OWN"));
-            } catch (Exception e) {
-                //
+            if (dbValues.get(EntityModel.OWN) != null) {
+                try {
+                    ownerRef = build((Class<E>) CAS.getOwnerClass(entityClass), dbValues.get(EntityModel.OWN));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-            return (EntityRef<E>) Entity.newInstance(entityClass, ownerRef, dbValues.get("PID")).toRef();
+            E entity = Entity.newInstance(entityClass, ownerRef, dbValues.get(EntityModel.PID));
+            return entity == null ? null : (EntityRef<E>) entity.toRef();
         }
         return null;
     }
