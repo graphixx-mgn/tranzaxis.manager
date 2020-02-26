@@ -357,12 +357,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         if (!dynamicProps.contains(name)) {
             undoRegistry.put(name, oldValue, newValue);
         }
-        new LinkedList<>(changeListeners).forEach((listener) -> {
-            listener.propertyChange(name, oldValue, newValue);
-        });
-        new LinkedList<>(modelListeners).forEach((listener) -> {
-            listener.modelChanged(this, getChanges());
-        });
+        new LinkedList<>(changeListeners).forEach((listener) -> listener.propertyChange(name, oldValue, newValue));
+        new LinkedList<>(modelListeners).forEach((listener)  -> listener.modelChanged(this, getChanges()));
     }
 
     /**
@@ -727,9 +723,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         Map<String, String> dbValues;
         Integer ownerId = getOwner() == null ? null : getOwner().getID();
         if (getID() == null) {
-            dbValues = getConfigService().readClassInstance(entityClass, getPID(false), ownerId);
+            dbValues = getConfigService().readClassInstance(tableClass, getPID(false), ownerId);
         } else {
-            dbValues = getConfigService().readClassInstance(entityClass, getID());
+            dbValues = getConfigService().readClassInstance(tableClass, getID());
         }
         List<String> userProps = getProperties(Access.Any).stream()
                 .filter((propName) -> !isPropertyDynamic(propName) || SYSPROPS.contains(propName))
@@ -1089,8 +1085,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         public boolean verify(String value) {
             Integer ownerId = getOwner() == null ? null : getOwner().getID();
             return value != null &&
-                   getConfigService().readCatalogEntries(ownerId, entityClass).keySet().stream()
-                         .noneMatch((ID) -> value.equals(getConfigService().readClassInstance(entityClass, ID).get(propName)) && !ID.equals(getID()));
+                   getConfigService().readCatalogEntries(ownerId, entityClass).stream().noneMatch(entityRef ->
+                           !entityRef.getId().equals(getID()) &&
+                           Objects.equals(entityRef.getValue().model.getProperty(propName).getOwnPropValue().toString(), value)
+                   );
         }
 
         @Override

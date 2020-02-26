@@ -271,12 +271,22 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         }
     }
 
-    public void loadChildren() {
-        Map<Class<? extends Entity>, Collection<String>> childrenPIDs = getChildrenPIDs();
-        childrenPIDs.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+    public final List<Class<? extends Entity>> getClassCatalog() {
+        List<Class<? extends Entity>> classCatalog = ClassCatalog.getClassCatalog(this);
+        classCatalog.removeIf(aClass -> {
+            if (PolyMorph.class.isAssignableFrom(aClass)) {
+                return !PolyMorph.getPolymorphClass(aClass).equals(aClass);
+            } else {
+                return Modifier.isAbstract(aClass.getModifiers());
+            }
+        });
+        return classCatalog;
+    }
 
-        if (!childrenPIDs.isEmpty()) {
-            ITask loadChildren = new LoadChildren(childrenPIDs);
+    public void loadChildren() {
+        List<Class<? extends Entity>> classCatalog = getClassCatalog();
+        if (!classCatalog.isEmpty()) {
+            ITask loadChildren = new LoadChildren();
             final int prevMode = getMode();
             loadChildren.addListener(new ITaskListener() {
                 @Override
@@ -287,18 +297,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).quietTask(loadChildren);
             setMode(MODE_LOADING);
         }
-    }
-
-    protected Map<Class<? extends Entity>, Collection<String>> getChildrenPIDs() {
-        Entity owner = ICatalog.class.isAssignableFrom(this.getClass()) ? this.getOwner() : this;
-        return ClassCatalog.getClassCatalog(this).stream()
-                .collect(Collectors.toMap(
-                        catalogClass -> catalogClass,
-                        catalogClass -> {
-                            Integer ownerId = owner == null ? null : owner.getID();
-                            return model.getConfigService().readCatalogEntries(ownerId, catalogClass).values();
-                        }
-                ));
     }
 
     public boolean isOverridable() {
@@ -720,13 +718,22 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      */
     public final boolean close() {
         if (validate() && model.hasChanges()) {
+            model.getChanges().forEach(s -> {
+                System.err.println(MessageFormat.format(
+                        "&nbsp;&bull;&nbsp;{0}<br>",
+                        IComplexType.coalesce(model.getProperty(s).getTitle(), s)
+                ));
+            });
             // Предлагаем сохранить
             MessageBox.show(
                     MessageType.CONFIRMATION, null,
                     MessageFormat.format(
                             Language.get("error@unsavedprop"),
                             model.getChanges().stream()
-                                .map(propName -> "&nbsp;&bull;&nbsp;"+model.getProperty(propName).getTitle()+"<br>")
+                                .map(propName -> MessageFormat.format(
+                                        "&nbsp;&bull;&nbsp;{0}<br>",
+                                        IComplexType.coalesce(model.getProperty(propName).getTitle(), propName)
+                                ))
                                 .collect(Collectors.joining())
                     ),
                     (event) -> {
@@ -808,9 +815,14 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                         entityClass, PID, owner == null ? null : owner.getId()
                 );
                 try {
-                    implClass = (Class<E>) Class.forName(dbValues.get(PolyMorph.PROP_IMPL_CLASS));
-                } catch (ClassNotFoundException ignore) {
-                    //
+                    implClass = (Class<E>) ClassCatalog.forName(dbValues.get(PolyMorph.PROP_IMPL_CLASS));
+                } catch (ClassNotFoundException e) {
+                    Logger.getLogger().warn(
+                            "Unable to create entity [{0}/{1}]: Class ''{0}'' not found yet",
+                            dbValues.get(PolyMorph.PROP_IMPL_CLASS),
+                            PID
+                    );
+                    return null;
                 }
             }
 
@@ -819,42 +831,43 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                     owner == null ? null : owner.getId(),
                     PID != null ? PID : Language.get(entityClass, "title", new java.util.Locale("en", "US"))
             );
-            if (found == null) {
-                try {
-                    Constructor<E> ctor = implClass.getDeclaredConstructor(EntityRef.class, String.class);
-                    ctor.setAccessible(true);
-                    final E created = ctor.newInstance(owner, PID);
-                    if (created.getPID() == null) {
-                        created.model.addModelListener(new IModelListener() {
-                            @Override
-                            public void modelSaved(EntityModel model, List<String> changes) {
-                                if (changes.contains(EntityModel.PID)) {
-                                    CACHE.cache(created, created.getPID(), owner == null ? null : owner.getId());
-                                }
-                            }
-                        });
-                    } else if (Language.NOT_FOUND.equals(created.getPID())) {
-                        throw new IllegalStateException(MessageFormat.format(
-                                "Localization string 'title' not defined for class ''{0}''", implClass
-                        ));
-                    }
-                    return created;
-                } catch (InvocationTargetException | ExceptionInInitializerError | InstantiationException | IllegalAccessException e) {
-                    Throwable exception = e;
-                    do {
-                        Logger.getLogger().error(
-                                MessageFormat.format("Unable instantiate entity ''{0}'' / [Class: {1}]", PID, implClass.getCanonicalName()), exception
-                        );
-                    } while ((exception = exception.getCause()) != null);
-                } catch (NoSuchMethodException e) {
-                    Logger.getLogger().error(
-                            "Entity ''{0}'' does not have universal constructor (EntityRef<owner>, String<PID>)",
-                            implClass.getCanonicalName()
-                    );
-                }
+            if (found != null) {
+                //noinspection unchecked
+                return (E) found;
             }
-            //noinspection unchecked
-            return (E) found;
+            try {
+                Constructor<E> ctor = implClass.getDeclaredConstructor(EntityRef.class, String.class);
+                ctor.setAccessible(true);
+                final E created = ctor.newInstance(owner, PID);
+                if (created.getPID() == null) {
+                    created.model.addModelListener(new IModelListener() {
+                        @Override
+                        public void modelSaved(EntityModel model, List<String> changes) {
+                            if (changes.contains(EntityModel.PID)) {
+                                CACHE.cache(created, created.getPID(), owner == null ? null : owner.getId());
+                            }
+                        }
+                    });
+                } else if (Language.NOT_FOUND.equals(created.getPID())) {
+                    throw new IllegalStateException(MessageFormat.format(
+                            "Localization string 'title' not defined for class ''{0}''", implClass
+                    ));
+                }
+                return created;
+            } catch (InvocationTargetException | ExceptionInInitializerError | InstantiationException | IllegalAccessException e) {
+                Throwable exception = e;
+                do {
+                    Logger.getLogger().error(
+                            MessageFormat.format("Unable instantiate entity ''{0}'' / [Class: {1}]", PID, implClass.getCanonicalName()), exception
+                    );
+                } while ((exception = exception.getCause()) != null);
+            } catch (NoSuchMethodException e) {
+                Logger.getLogger().error(
+                        "Entity ''{0}'' does not have universal constructor (EntityRef<owner>, String<PID>)",
+                        implClass.getCanonicalName()
+                );
+            }
+            return null;
         }
     }
 
@@ -881,41 +894,24 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     }
 
 
-    private class LoadChildren extends AbstractTask<Void> {
+    public class LoadChildren extends AbstractTask<Void> {
 
-        private final Map<Class<? extends Entity>, Collection<String>> childrenPIDs;
-
-        LoadChildren(Map<Class<? extends Entity>, Collection<String>> childrenPIDs) {
+        LoadChildren() {
             super(MessageFormat.format(
                     Language.get(Catalog.class, "task@load"),
                     getParent() != null ? Entity.this.getPathString() : Entity.this.getPID()
             ));
-            this.childrenPIDs = childrenPIDs;
         }
 
         @Override
         public Void execute() {
             EntityRef ownerRef = Entity.findOwner(Entity.this);
-
-            childrenPIDs.forEach((catalogClass, PIDs) -> PIDs.forEach(PID -> {
-                final Class<? extends Entity> implClass;
-
-                if (PolyMorph.class.isAssignableFrom(catalogClass)) {
-                    Map<String, String> dbValues = model.getConfigService().readClassInstance(catalogClass, PID, ownerRef == null ? null : ownerRef.getId());
-                    try {
-                        implClass = Class.forName(dbValues.get(PolyMorph.PROP_IMPL_CLASS)).asSubclass(Entity.class);
-                    } catch (ClassNotFoundException e) {
-                        return;
-                    }
-                } else {
-                    implClass = catalogClass;
-                }
-
-                Entity instance = Entity.newInstance(implClass, ownerRef, PID);
-                if (!childrenList().contains(instance)) {
-                    attach(instance);
-                }
-            }));
+            getClassCatalog().forEach(catalogClass -> model.getConfigService().readCatalogEntries(ownerRef == null ? null : ownerRef.getId(), catalogClass)
+                    .forEach(entityRef -> {
+                        if (entityRef != null && !childrenList().contains(entityRef.getValue())) {
+                            attach(entityRef.getValue());
+                        }
+                    }));
             return null;
         }
 
