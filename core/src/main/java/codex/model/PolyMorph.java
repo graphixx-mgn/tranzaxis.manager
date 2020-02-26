@@ -81,8 +81,6 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
                     !EntityModel.SYSPROPS.contains(name) &&
                     !model.isPropertyDynamic(name)
             ) {
-                this.propertyChange(name, oldValue, newValue);
-
                 Map<String, String> parameters = getParameters(true);
                 String serializedValue = model.getProperty(name).getPropValue().toString();
                 if (!Objects.equals(serializedValue, parameters.get(name))) {
@@ -120,6 +118,7 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
     }
 
     private void setParameters(Map<String, String> params) {
+        params.keySet().removeIf(propName -> !model.hasProperty(propName));
         model.setValue(PROP_IMPL_PARAM, params);
     }
 
