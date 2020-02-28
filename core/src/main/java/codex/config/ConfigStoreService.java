@@ -4,6 +4,7 @@ import codex.context.IContext;
 import codex.database.IDatabaseAccessService;
 import codex.log.*;
 import codex.model.Entity;
+import codex.model.EntityModel;
 import codex.service.AbstractService;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
@@ -20,7 +21,7 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.stream.Collectors;
-import org.sqlite.JDBC;
+import org.sqlite.*;
 import org.sqlite.core.Codes;
 
 /**
@@ -35,33 +36,15 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     // Контексты
     @LoggingSource(debugOption = true)
     @IContext.Definition(id = "CAS.Dmp", name = "Show tables information", icon = "/images/dump.png", parent = ConfigStoreService.class)
-    private static class DumpContext implements IContext {
-        static void debug(String message, Object... params) {
-            Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
-        }
-        static boolean allowed() {
-            return Logger.contextAllowed(Collections.singletonList(DumpContext.class), Level.Debug);
-        }
-    }
+    private static class DumpContext implements IContext {}
 
     @LoggingSource(debugOption = true)
     @IContext.Definition(id = "CAS.Ddl", name = "Table structure changes", icon = "/images/maintenance.png", parent = ConfigStoreService.class)
-    private static class DdlContext implements IContext {
-        static void debug(String message, Object... params) {
-            Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
-        }
-        static void error(String message, Throwable exception) {
-            Logger.getLogger().error(message, exception);
-        }
-    }
+    private static class DdlContext implements IContext {}
 
     @LoggingSource(debugOption = true)
     @IContext.Definition(id = "CAS.Sql", name = "Preview SQL queries", icon = "/images/command.png", parent = ConfigStoreService.class)
-    private static class QueryContext implements IContext {
-        static void debug(String message, Object... params) {
-            Logger.getLogger().log(Level.Debug, MessageFormat.format(message, params));
-        }
-    }
+    private static class QueryContext implements IContext {}
 
 
     /**
@@ -77,11 +60,11 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             DriverManager.registerDriver(new JDBC());
             connection = DriverManager.getConnection("jdbc:sqlite:"+ configFile.getPath());
 
-            // Use int order to do not save session changes
-            /*connection = DriverManager.getConnection("jdbc:sqlite:");
-            try(Statement stat = connection.createStatement()) {
-                stat.executeUpdate("restore from "+configFile.getPath());
-            }*/
+            // Use in order to do not save session changes
+//            connection = DriverManager.getConnection("jdbc:sqlite:");
+//            try(Statement stat = connection.createStatement()) {
+//                stat.executeUpdate("restore from "+configFile.getPath());
+//            }
 
             connection.createStatement().executeUpdate("PRAGMA foreign_keys = ON");
             if (connection != null) {
@@ -113,7 +96,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     @Override
     public void startService() {
         super.startService();
-        DumpContext.debug(
+        Logger.getContextLogger(DumpContext.class).debug(
                 "Table structure dump:\n{0}",
                 tableRegistry.values().stream().map((tableInfo) -> {
                     return MessageFormat.format("[{0}]\n", tableInfo.name).concat(tableInfo.toString());
@@ -125,11 +108,11 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     private synchronized void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {
         final String className = clazz.getSimpleName().toUpperCase();
         Map<String, String> columns = new LinkedHashMap<String, String>() {{
-            put("ID",  "INTEGER PRIMARY KEY AUTOINCREMENT");
-            put("SEQ", "INTEGER NOT NULL");
-            put("PID", "TEXT NOT NULL");
-            put("OWN", getColumnDefinition(propDefinition.get("OWN"), false));
-            put("OVR", "TEXT");
+            put(EntityModel.ID,  "INTEGER PRIMARY KEY AUTOINCREMENT");
+            put(EntityModel.SEQ, "INTEGER NOT NULL");
+            put(EntityModel.PID, "TEXT NOT NULL");
+            put(EntityModel.OWN, getColumnDefinition(propDefinition.get(EntityModel.OWN), false));
+            put(EntityModel.OVR, "TEXT");
         }};
         for (Map.Entry<String, IComplexType> entry : propDefinition.entrySet()) {
             if (!columns.containsKey(entry.getKey())) {
@@ -155,7 +138,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         String triggerBI = generateTriggerCode(className, TriggerKind.Before_Insert);
         String triggerBU = generateTriggerCode(className, TriggerKind.Before_Update);
 
-        QueryContext.debug(
+        Logger.getContextLogger(QueryContext.class).debug(
             "Create table queries:\n{0}",
             "[1] ".concat(createSQL)
                   .concat("\n[2] ").concat(indexSQL)
@@ -185,19 +168,21 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             if (!tableRegistry.containsKey(className)) {
                 tableRegistry.put(className, new TableInfo(className));
             }
-            DdlContext.debug(
+
+            boolean dumpContextAllowed = Logger.contextAllowed(Collections.singletonList(DumpContext.class), Level.Debug);
+            Logger.getContextLogger(DdlContext.class).debug(
             "Created class catalog {0} => {1}: {2}{3}",
                     clazz.getCanonicalName(),
                     className,
                     tableRegistry.get(className).columnInfos.stream()
                             .map((columnInfo) -> columnInfo.name)
                             .collect(Collectors.joining(",")),
-                    DumpContext.allowed() ? "\n".concat(tableRegistry.get(className).toString()) : ""
+                    dumpContextAllowed ? "\n".concat(tableRegistry.get(className).toString()) : ""
             );
             connection.releaseSavepoint(savepoint);
             connection.commit();
         } catch (SQLException e) {
-            DdlContext.error(MessageFormat.format("Unable to create class catalog ''{0}''", className), e);
+            Logger.getContextLogger(DdlContext.class).error(MessageFormat.format("Unable to create class catalog ''{0}''", className), e);
             try {
                 Logger.getLogger().warn("Perform rollback");
                 connection.rollback(savepoint);
@@ -207,7 +192,15 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             throw e;
         }
     }
-    
+
+    @Override
+    public Connection getConnection() throws SQLException {
+        File configFile = new File(System.getProperty("user.home") + getOption("file"));
+        SQLiteConfig config = new SQLiteConfig();
+        config.setReadOnly(true);
+        return DriverManager.getConnection("jdbc:sqlite:"+ configFile.getPath(), config.toProperties());
+    }
+
     @Override
     public synchronized Map<String, Integer> initClassInstance(Class clazz, String PID, Map<String, IComplexType> propDefinition, Integer ownerId) throws Exception {        
         final String className = clazz.getSimpleName().toUpperCase();
@@ -215,7 +208,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         if (!tableRegistry.containsKey(className)) {
             buildClassCatalog(clazz, propDefinition);
         } else {
-            Map<String, IComplexType> invalidReferencies = propDefinition.entrySet().stream()
+            Map<String, IComplexType> invalidReferences = propDefinition.entrySet().stream()
                     .filter((entry) -> {
                         return 
                                 entry.getValue() instanceof EntityRef &&
@@ -228,16 +221,17 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                     ));
             List<String> deleteProps = tableRegistry.get(className).columnInfos.stream()
                     .filter((columnInfo) -> {
-                        return 
-                                !propDefinition.keySet().contains(columnInfo.name) ||
-                                invalidReferencies.keySet().contains(columnInfo.name);
+                        return !EntityModel.SYSPROPS.contains(columnInfo.name) && (
+                                    !propDefinition.keySet().contains(columnInfo.name) ||
+                                     invalidReferences.keySet().contains(columnInfo.name)
+                        );
                     })
                     .map((columnInfo) -> columnInfo.name)
                     .collect(Collectors.toList());
             Map<String, IComplexType> addedProps = propDefinition.entrySet().stream()
                     .filter((entry) -> {
-                        return 
-                                invalidReferencies.keySet().contains(entry.getKey()) ||
+                        return
+                                invalidReferences.keySet().contains(entry.getKey()) ||
                                 tableRegistry.get(className).columnInfos.stream().noneMatch((columnInfo) -> columnInfo.name.equals(entry.getKey()));
                     }).collect(Collectors.toMap(
                             Map.Entry::getKey,
@@ -252,7 +246,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 "INSERT INTO {0} ([SEQ], [PID], [OWN]) VALUES ((SELECT IFNULL(MAX([SEQ]), 0)+1 FROM {0}), ?, ?)", className
         );
 
-        QueryContext.debug(
+        Logger.getContextLogger(QueryContext.class).debug(
                 "Insert query: {0}",
                 IDatabaseAccessService.prepareTraceSQL(
                         MessageFormat.format("INSERT INTO {0} ([PID], [OWN]) VALUES (?, ?)", className),
@@ -263,7 +257,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         
         Savepoint savepoint = connection.setSavepoint(className);
         try (
-            PreparedStatement insert = connection.prepareStatement(insertSQL, new String[] {"ID"});
+            PreparedStatement insert = connection.prepareStatement(insertSQL, new String[] {EntityModel.ID});
         ) {
             insert.setString(1, PID);
             if (ownerId == null) {
@@ -283,14 +277,14 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                     Logger.getLogger().debug(MessageFormat.format(
                             "Created new catalog {0} entry: #{1}-{2}", className, updateRS.getInt(1), PID
                     ));
-                    keys.put("ID", updateRS.getInt(1));
+                    keys.put(EntityModel.ID, updateRS.getInt(1));
                     try (PreparedStatement read = connection.prepareStatement(
                             MessageFormat.format("SELECT SEQ FROM {0} WHERE ID = ?", className)
                     )) {
                         read.setInt(1, updateRS.getInt(1));
                         try (ResultSet readRS = read.executeQuery()) {
                             if (readRS.next()) {
-                                keys.put("SEQ", readRS.getInt(1));
+                                keys.put(EntityModel.SEQ, readRS.getInt(1));
                             }
                         }
                     }
@@ -328,7 +322,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                             .collect(Collectors.joining(",\n\t"))
             );
 
-            QueryContext.debug(
+            Logger.getContextLogger(QueryContext.class).debug(
                     "Update query: {0}",
                     IDatabaseAccessService.prepareTraceSQL(updateSQL, properties.values().toArray(), ID)
             );
@@ -433,17 +427,18 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         }
         return rowData;
     }
-    
+
     @Override
-    public Map<Integer, String> readCatalogEntries(Integer ownerId, Class clazz) { 
-        Map<Integer, String> rows = new LinkedHashMap<>();
-        final String className = clazz.getSimpleName().toUpperCase();
+    public <E extends Entity> List<EntityRef<E>> readCatalogEntries(Integer ownerId, Class<E> entityClass) {
+        final List<EntityRef<E>> references = new LinkedList<>();
+        final String className  = entityClass.getSimpleName().toUpperCase();
+
         if (tableRegistry.containsKey(className)) {
             final String selectSQL;
             if (ownerId != null) {
-                selectSQL = MessageFormat.format("SELECT [ID], [PID] FROM {0} WHERE [OWN] = ? ORDER BY [SEQ]", className);
+                selectSQL = MessageFormat.format("SELECT [ID] FROM {0} WHERE [OWN] = ? ORDER BY [SEQ]", className);
             } else {
-                selectSQL = MessageFormat.format("SELECT [ID], [PID] FROM {0} WHERE [OWN] IS NULL ORDER BY [SEQ]", className);
+                selectSQL = MessageFormat.format("SELECT [ID] FROM {0} WHERE [OWN] IS NULL ORDER BY [SEQ]", className);
             }
             try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
                 select.setFetchSize(10);
@@ -452,7 +447,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 }
                 try (ResultSet selectRS = select.executeQuery()) {
                     while (selectRS.next()) {
-                        rows.put(selectRS.getInt(1), selectRS.getString(2));
+                        references.add(EntityRef.build(entityClass, selectRS.getInt(1)));
                     }
                 } catch (SQLException e) {
                     Logger.getLogger().error("Unable to read catalog", e);
@@ -461,9 +456,32 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 Logger.getLogger().error("Unable to read catalog", e);
             }
         }
-        return rows;
+        return references;
     }
-    
+
+    @Override
+    public <E extends Entity> List<EntityRef<E>> readCatalogEntries(Class<E> entityClass) {
+        final List<EntityRef<E>> references = new LinkedList<>();
+        final String className  = entityClass.getSimpleName().toUpperCase();
+
+        if (tableRegistry.containsKey(className)) {
+            final String selectSQL = MessageFormat.format("SELECT [ID] FROM {0} ORDER BY [SEQ]", className);
+            try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
+                select.setFetchSize(10);
+                try (ResultSet selectRS = select.executeQuery()) {
+                    while (selectRS.next()) {
+                        references.add(EntityRef.build(entityClass, selectRS.getInt(1)));
+                    }
+                } catch (SQLException e) {
+                    Logger.getLogger().error("Unable to read catalog", e);
+                }
+            } catch (SQLException e) {
+                Logger.getLogger().error("Unable to read catalog", e);
+            }
+        }
+        return references;
+    }
+
     @Override
     public List<ForeignLink> findReferencedEntries(Class clazz, Integer ID) {        
         List<ForeignLink> links = new LinkedList<>();
@@ -471,12 +489,9 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         
         tableRegistry.values().stream()
                 .filter((tableInfo) -> {
-                    return 
+                    return
                             !tableInfo.name.equals(className) &&
-                            tableInfo.refInfos.stream()
-                                .anyMatch((refInfo) -> {
-                                        return refInfo.pkTable.equals(className);
-                                });
+                            tableInfo.refInfos.stream().anyMatch((refInfo) -> refInfo.pkTable.equals(className));
                 }).forEach((tableInfo) -> {
                     String fkColumnName = tableInfo.refInfos.stream()
                             .filter((refInfo) -> refInfo.pkTable.equals(className))
@@ -500,7 +515,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                                             entityClass,
                                             selectRS.getInt(2),
                                             selectRS.getString(3),
-                                            !fkColumnName.toUpperCase().equals("OWN"))
+                                            !fkColumnName.toUpperCase().equals(EntityModel.OWN))
                                     );
                                 } catch (ClassNotFoundException e) {
                                     Logger.getLogger().warn("Class '{0}' is not found", entityClassName);
@@ -515,10 +530,10 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     @Override
     public  synchronized void removeClassInstance(Class clazz, Integer ID) throws Exception {        
         final String className = clazz.getSimpleName().toUpperCase();
-        String PID = readClassInstance(clazz, ID).get("PID");
+        String PID = readClassInstance(clazz, ID).get(EntityModel.PID);
         final String deleteSQL = MessageFormat.format("DELETE FROM {0} WHERE [ID] = ?", className);
 
-        QueryContext.debug(
+        Logger.getContextLogger(QueryContext.class).debug(
                 "Delete query: {0}",
                 IDatabaseAccessService.prepareTraceSQL(deleteSQL, ID)
         );
@@ -552,11 +567,11 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         final String className = clazz.getSimpleName().toUpperCase();
         if (!tableRegistry.containsKey(className)) {
             buildClassCatalog(clazz, new HashMap<String, IComplexType>() {{
-                put("OWN", new EntityRef<>(null));
+                put(EntityModel.OWN, new EntityRef<>(null));
             }});
         }
         Optional<ReferenceInfo> ownReference = tableRegistry.get(className).refInfos.stream()
-                .filter((refInfo) -> "OWN".equals(refInfo.fkColumn))
+                .filter((refInfo) -> EntityModel.OWN.equals(refInfo.fkColumn))
                 .findFirst();
         if (ownReference.isPresent()) {
             return getCatalogClass(ownReference.get().pkTable);
@@ -573,19 +588,24 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         final List<String> added    = new LinkedList<>();
         final List<String> deleted  = new LinkedList<>();
         final List<String> modified = new LinkedList<>();
-        
-        if (unusedProperties != null && !unusedProperties.isEmpty()) {
+
+        boolean needRebuild =
+                !unusedProperties.isEmpty() ||
+                tableRegistry.get(className).columnInfos.stream()
+                        .anyMatch(columnInfo -> newProperties.containsKey(columnInfo.name));
+
+        if (needRebuild) {
             Map<String, String> columns = new LinkedHashMap<>();
             for (ColumnInfo columnInfo : tableRegistry.get(className).columnInfos) {
                 if (!columns.containsKey(columnInfo.name)) {
-                    if (unusedProperties.contains(columnInfo.name) && !newProperties.keySet().contains(columnInfo.name)) {
+                    if (unusedProperties.contains(columnInfo.name)) {
                         deleted.add(columnInfo.name);
-                    } else if (unusedProperties.contains(columnInfo.name) && newProperties.keySet().contains(columnInfo.name)) {
+                    } else if (newProperties.containsKey(columnInfo.name)) {
                         columns.put(
-                                columnInfo.name, 
+                                columnInfo.name,
                                 getColumnDefinition(
                                         newProperties.get(columnInfo.name),
-                                        !columnInfo.name.equals("OWN")
+                                        !columnInfo.name.equals(EntityModel.OWN)
                                 )
                         );
                         modified.add(columnInfo.name);
@@ -612,10 +632,10 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                         .map((entry) -> String.format(nameFormat, "["+entry.getKey()+"]").concat(entry.getValue()))
                         .collect(Collectors.joining(",\n\t"))
             ));
-            
+
             try (
                 PreparedStatement select = connection.prepareStatement(MessageFormat.format("SELECT * FROM {0}", className));
-                ResultSet rs = select.executeQuery();
+                ResultSet rs = select.executeQuery()
             ) {
                 if (rs.next()) {
                     queries.add(MessageFormat.format("INSERT INTO {0} ({1}) SELECT {1} FROM {2}",
@@ -641,9 +661,6 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                     "CREATE UNIQUE INDEX IF NOT EXISTS IDX_{0}_PID_OWN ON {0} (PID, OWN)",
                     className
             ));
-            queries.add(generateTriggerCode(className, TriggerKind.Before_Insert));
-            queries.add(generateTriggerCode(className, TriggerKind.Before_Update));
-            
         } else {
             Map<String, String> columns = new LinkedHashMap<>();
             for (Map.Entry<String, IComplexType> entry : newProperties.entrySet()) {
@@ -661,14 +678,17 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                     }).collect(Collectors.toList()));
         }
 
-        QueryContext.debug(
+        queries.add(generateTriggerCode(className, TriggerKind.Before_Insert));
+        queries.add(generateTriggerCode(className, TriggerKind.Before_Update));
+
+        Logger.getContextLogger(QueryContext.class).debug(
                 "Alter table queries:\n{0}",
                 queries.stream()
                     .map((query) -> "[".concat(Integer.toString(queries.indexOf(query)+1).concat("] ").concat(query)))
                     .collect(Collectors.joining("\n"))
         );
         
-        if (unusedProperties != null && !unusedProperties.isEmpty()) {
+        if (needRebuild) {
             connection.setAutoCommit(true);
             connection.createStatement().executeUpdate("PRAGMA foreign_keys = OFF");
             connection.setAutoCommit(false);
@@ -692,7 +712,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             }
             throw e;
         } finally {
-            if (unusedProperties != null && !unusedProperties.isEmpty()) {
+            if (needRebuild) {
                 connection.setAutoCommit(true);
                 connection.createStatement().executeUpdate("PRAGMA foreign_keys = ON");
                 connection.setAutoCommit(false);
@@ -718,58 +738,16 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                     deleted
             ));
         }
-
         tableRegistry.put(className, new TableInfo(className));
-        DdlContext.debug(
+
+        boolean dumpContextAllowed = Logger.contextAllowed(Collections.singletonList(DumpContext.class), Level.Debug);
+        Logger.getContextLogger(DdlContext.class).debug(
         "Catalog {0} maintenance complete:\n{1}{2}",
                 className,
                 joiner.toString(),
-                DumpContext.allowed() ? "\n".concat(tableRegistry.get(className).toString()) : ""
+                dumpContextAllowed ? "\n".concat(tableRegistry.get(className).toString()) : ""
         );
     }
-
-//    @Override
-//    public Map<String, Class<? extends Entity>> getClassCatalogs() throws Exception {
-//        Map<String, Class<? extends Entity>> classes = new LinkedHashMap<>();
-//        String selectSQL = "SELECT * FROM CLASSDEF";
-//        try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
-//            try (ResultSet selectRS = select.executeQuery()) {
-//                while (selectRS.next()) {
-//                    try {
-//                        classes.put(
-//                                selectRS.getString(1),
-//                                Class.forName(selectRS.getString(2)).asSubclass(Entity.class)
-//                        );
-//                    } catch (ClassNotFoundException e) {
-//                        //
-//                    }
-//                }
-//            }
-//        }
-//        return classes;
-//    }
-
-//    List<Integer> readCatalogIDs(Class clazz) {
-//        List<Integer> IDs = new LinkedList<>();
-//
-//        final String className = clazz.getSimpleName().toUpperCase();
-//        if (tableRegistry.containsKey(className)) {
-//            final String selectSQL  = MessageFormat.format("SELECT ID FROM {0} ORDER BY SEQ", className);;
-//            try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
-//                select.setFetchSize(10);
-//                try (ResultSet selectRS = select.executeQuery()) {
-//                    while (selectRS.next()) {
-//                        IDs.add(selectRS.getInt(1));
-//                    }
-//                } catch (SQLException e) {
-//                    Logger.getLogger().error("Unable to read catalog", e);
-//                }
-//            } catch (SQLException e) {
-//                Logger.getLogger().error("Unable to read catalog", e);
-//            }
-//        }
-//        return IDs;
-//    }
 
 //    public void exportConfiguration(Exporter exporter) {
 //        try {
@@ -805,7 +783,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             statement.execute(createSQL);
             connection.commit();
         } catch (SQLException e) {
-            DdlContext.error("Unable to create class definition table", e);
+            Logger.getContextLogger(DdlContext.class).error("Unable to create class definition table", e);
         }
     }
 
@@ -849,7 +827,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 connection.releaseSavepoint(savepoint);
                 connection.commit();
 
-                DdlContext.debug(
+                Logger.getContextLogger(DdlContext.class).debug(
                         "Class definition maintenance complete:\nObsolete classes: {0}\nObsolete tables:  {1}",
                         classNotExists,
                         tableNotExists
@@ -865,7 +843,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                 throw e;
             }
         } catch (SQLException e) {
-            DdlContext.error("Unable to read class definitions", e);
+            Logger.getContextLogger(DdlContext.class).error("Unable to read class definitions", e);
         }
     }
     
@@ -890,7 +868,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             if ((refClazz = ((EntityRef) propVal).getEntityClass()) != null) {
                 if (!tableRegistry.containsKey(refClazz.getSimpleName().toUpperCase())) {
                     buildClassCatalog(refClazz, new HashMap<String, IComplexType>() {{
-                        put("OWN", new EntityRef<>(null));
+                        put(EntityModel.OWN, new EntityRef<>(null));
                     }});
                 }
                 joiner.add(
@@ -912,7 +890,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     
     private String generateTriggerCode(String tableName, TriggerKind kind) {
         return MessageFormat.format(
-                "CREATE TRIGGER {0}_{2}_CHECK_OWN\n" +
+                "CREATE TRIGGER IF NOT EXISTS {0}_{2}_CHECK_OWN\n" +
                 "   {1} ON {2}\n" +
                 "   WHEN NEW.OWN IS NULL\n" +
                 "   BEGIN\n" +
@@ -1022,11 +1000,11 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             }
         }
         
-        final List<String> getTriggerNames(String tableName) {
+        final List<String> getTriggerNames() {
             List<String> names = new LinkedList<>();
             try (PreparedStatement select = connection.prepareStatement("SELECT NAME FROM sqlite_master WHERE TYPE = ? AND TBL_NAME = ?")) {
                 select.setString(1, "trigger");
-                select.setString(2, tableName);
+                select.setString(2, name);
                 try (ResultSet rs = select.executeQuery()) {
                     while (rs.next()) {
                         names.add(rs.getString("NAME"));
@@ -1067,10 +1045,10 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                                 .concat(" (").concat(String.join(", ", indexInfo.columns)).concat(")")).collect(Collectors.joining("\n"))
                 ));
             }
-            if (!getTriggerNames(name).isEmpty()) {
+            if (!getTriggerNames().isEmpty()) {
                 builder.append(MessageFormat.format(
                         "\nTriggers:\n{0}", 
-                        getTriggerNames(name).stream()
+                        getTriggerNames().stream()
                                 .map(" * "::concat)
                                 .collect(Collectors.joining("\n"))
                 ));

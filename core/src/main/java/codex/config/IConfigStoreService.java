@@ -3,7 +3,10 @@ package codex.config;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.service.IService;
+import codex.type.EntityRef;
 import codex.type.IComplexType;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.*;
 
@@ -11,6 +14,10 @@ import java.util.*;
  * Интерфейс сервиса загрузки и сохранения данных модели {@link EntityModel}.
  */
 public interface IConfigStoreService extends IService {
+
+    default Connection getConnection() throws SQLException {
+        return null;
+    }
     
     /**
      * Создать пустую запись в каталоге для модели сушности по её уникальному ключу.
@@ -71,10 +78,14 @@ public interface IConfigStoreService extends IService {
     /**
      * Получить список (ID, PID) всех записей каталога.
      * @param ownerId Идентификатор владельца сущности.
-     * @param clazz Класс сущности.
+     * @param entityClass Класс сущности.
      */
-    default Map<Integer, String> readCatalogEntries(Integer ownerId, Class clazz) {
-        return Collections.emptyMap();
+    default <E extends Entity> List<EntityRef<E>> readCatalogEntries(Integer ownerId, Class<E> entityClass) {
+        return Collections.emptyList();
+    }
+
+    default <E extends Entity> List<EntityRef<E>> readCatalogEntries(Class<E> entityClass) {
+        return Collections.emptyList();
     }
     
     /**
