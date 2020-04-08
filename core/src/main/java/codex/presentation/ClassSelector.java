@@ -69,9 +69,9 @@ class ClassSelector {
                 final Class<? extends ClassCatalog.IDomain>[] domains = ctlClass.getAnnotation(ClassCatalog.Domains.class).value();
 
                 for (Class<? extends ClassCatalog.IDomain> domain : domains) {
-                    String domainName = Language.get(domain, "title");
+                    String domainName = Language.get(domain, "domain@name");
                     Node nextNode = Collections.list((Enumeration<Node>) currentNode.children()).stream()
-                            .filter(childNode -> domainName.equals(childNode.getUserObject()))
+                            .filter(childNode -> domainName.equals(childNode.toString()))
                             .findFirst()
                             .orElse(new DirNode(domainName));
                     if (nextNode.getParent() == null) {
