@@ -2,6 +2,7 @@ package codex.scheduler.schedule;
 
 import codex.mask.DateFormat;
 import codex.model.Access;
+import codex.model.ClassCatalog;
 import codex.model.EntityDefinition;
 import codex.scheduler.Schedule;
 import codex.type.DateTime;
@@ -12,6 +13,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
+@ClassCatalog.Domains({Schedule.class})
 @EntityDefinition(title = "class@title", icon="/images/daily.png")
 public class Daily extends Schedule {
 

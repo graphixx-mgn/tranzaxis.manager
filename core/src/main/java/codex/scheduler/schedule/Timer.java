@@ -1,6 +1,7 @@
 package codex.scheduler.schedule;
 
 import codex.model.Access;
+import codex.model.ClassCatalog;
 import codex.model.EntityDefinition;
 import codex.scheduler.Schedule;
 import codex.type.EntityRef;
@@ -11,6 +12,7 @@ import java.text.MessageFormat;
 import java.util.Calendar;
 import java.util.Date;
 
+@ClassCatalog.Domains({Schedule.class})
 @EntityDefinition(title = "class@title", icon="/images/timer.png")
 public class Timer extends Schedule {
 

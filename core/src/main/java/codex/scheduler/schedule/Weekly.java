@@ -5,6 +5,7 @@ import codex.editor.AbstractEditor;
 import codex.editor.IEditorFactory;
 import codex.mask.DateFormat;
 import codex.model.Access;
+import codex.model.ClassCatalog;
 import codex.model.EntityDefinition;
 import codex.property.PropertyHolder;
 import codex.scheduler.Schedule;
@@ -24,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@ClassCatalog.Domains({Schedule.class})
 @EntityDefinition(title = "class@title", icon="/images/weekly.png")
 public class Weekly extends Schedule {
 

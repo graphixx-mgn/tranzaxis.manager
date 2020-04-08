@@ -18,8 +18,7 @@ import java.util.*;
 import java.util.Timer;
 import java.util.function.Predicate;
 
-@ClassCatalog.Domain()
-public abstract class Schedule extends JobTrigger implements ITaskListener {
+public abstract class Schedule extends JobTrigger implements ITaskListener, ClassCatalog.IDomain {
 
     private static final ImageIcon IMAGE_NEXT_RUN = ImageUtils.getByPath("/images/next.png");
     private static final String NOT_CONFIGURED    = Language.get("title@unknown");
