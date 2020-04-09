@@ -5,7 +5,6 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.ImageIcon;
 
-
 public enum SVNAuth implements Iconified {
     
     None(Language.get("none"), ImageUtils.getByPath("/images/auth_none.png")),
@@ -15,7 +14,7 @@ public enum SVNAuth implements Iconified {
     private final String    title;
     private final ImageIcon icon;
     
-    private SVNAuth(String title, ImageIcon icon) {
+    SVNAuth(String title, ImageIcon icon) {
         this.title  = title;
         this.icon   = icon;
     }

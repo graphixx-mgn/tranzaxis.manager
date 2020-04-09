@@ -68,7 +68,7 @@ public class SVN {
         } else {
             try {
                 try (Socket socket = new Socket()) {
-                    socket.connect(new InetSocketAddress(host, port), 500);
+                    socket.connect(new InetSocketAddress(host, port), 1000);
                     SVNRepository repository = SVNRepositoryFactory.create(url);
                     try {
                         repository.setTunnelProvider(SVNWCUtil.createDefaultOptions(true));
