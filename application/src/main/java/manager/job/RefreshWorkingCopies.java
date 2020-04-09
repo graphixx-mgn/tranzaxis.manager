@@ -1,7 +1,9 @@
 package manager.job;
 
 import codex.mask.EntityFilter;
+import codex.model.ClassCatalog;
 import codex.model.EntityDefinition;
+import codex.scheduler.AbstractJob;
 import codex.task.ITask;
 import codex.type.Bool;
 import codex.type.EntityRef;
@@ -13,8 +15,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@ClassCatalog.Domains({IDevDomain.class})
 @EntityDefinition(title = "class@title", icon="/images/rebuild.png")
-public class RefreshWorkingCopies extends DevelopmentJob {
+public class RefreshWorkingCopies extends AbstractJob {
 
     private static final String PROP_OFFSHOOT_LIST = "offshoots";
 
