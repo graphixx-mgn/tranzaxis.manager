@@ -18,9 +18,7 @@ public class ReleaseList extends RepositoryBranch {
 
     @Override
     public void loadBranch() {
-        getChildrenPIDs().get(getChildClass()).forEach((childPID) -> {
-            attach(Entity.newInstance(getChildClass(), getOwner().toRef(), childPID));
-        });
+        loadChildren();
     }
 
     @Override

@@ -20,10 +20,7 @@ import org.apache.xmlbeans.XmlException;
 import org.atteo.classindex.ClassIndex;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.auth.BasicAuthenticationManager;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
-import org.tmatesoft.svn.core.auth.SVNAuthentication;
-import org.tmatesoft.svn.core.auth.SVNPasswordAuthentication;
+import org.tmatesoft.svn.core.auth.*;
 import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,8 +54,10 @@ public class Repository extends Entity {
     private final static IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
 
     static {
-        ClassIndex.getSubclasses(RepositoryBranch.class).forEach(branchClass ->
-                BRANCHES.put(branchClass.getAnnotation(RepositoryBranch.Branch.class).remoteDir(), branchClass));
+        ClassIndex.getSubclasses(RepositoryBranch.class).forEach(branchClass -> BRANCHES.put(
+                branchClass.getAnnotation(RepositoryBranch.Branch.class).remoteDir(),
+                branchClass
+        ));
         CommandRegistry.getInstance().registerCommand(LoadWC.class);
     }
 
@@ -196,6 +195,9 @@ public class Repository extends Entity {
                             false
                     )
                 });
+//            case Certificate:
+//                SVNSSHAuthentication sshCredentials =
+//                        new SVNSSHAuthentication(Settings.name, keyFile, Settings.pass, 22, false, url, false);
             default:
                 return new BasicAuthenticationManager(new SVNAuthentication[] {});
         }
