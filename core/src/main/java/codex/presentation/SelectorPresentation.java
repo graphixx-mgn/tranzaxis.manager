@@ -123,6 +123,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 Entity newEntity = (Entity) childNode;
                 tableModel.addEntity(newEntity);
             }
+
+
         });
         addAncestorListener(new AncestorAdapter() {
             @Override
@@ -308,6 +310,24 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             final EntityModel childModel = newEntity.model;
             final List<String> overridableProps = newEntity.getOverrideProps(parentModel);
             addOverrideCommand(parentModel, childModel, overridableProps);
+
+            boolean hasProps = !childModel.getProperties(Access.Edit).isEmpty();
+
+            if (!hasProps) {
+                try {
+                    newEntity.model.commit(true);
+                    newEntity.setTitle(newEntity.getPID());
+                    context.attach(newEntity);
+
+                    table.getSelectionModel().setSelectionInterval(
+                            tableModel.getRowCount() - 1,
+                            tableModel.getRowCount() - 1
+                    );
+                } catch (Exception e) {
+                    newEntity.model.rollback();
+                }
+                return;
+            }
 
             final Dialog editor = new Dialog(
                     SwingUtilities.getWindowAncestor(SelectorPresentation.this),
