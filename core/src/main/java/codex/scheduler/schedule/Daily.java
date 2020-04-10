@@ -26,6 +26,7 @@ public class Daily extends Schedule {
         model.addUserProp(PROP_RUN_TIME, new DateTime().setMask(DateFormat.Time.newInstance()), true, Access.Select);
 
         model.addPropertyGroup(Language.get(Schedule.class, "group@kind"), PROP_RUN_TIME);
+        getLock().release();
     }
 
     private Date getRunTime() {

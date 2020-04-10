@@ -68,6 +68,7 @@ public class Weekly extends Schedule {
         model.addUserProp(PROP_RUN_TIME, new DateTime().setMask(DateFormat.Time.newInstance()), true, Access.Select);
 
         model.addPropertyGroup(Language.get(Schedule.class, "group@kind"), PROP_WEEK_DAYS, PROP_RUN_TIME);
+        getLock().release();
     }
 
     @SuppressWarnings("unchecked")

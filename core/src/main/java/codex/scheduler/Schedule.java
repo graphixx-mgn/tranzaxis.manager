@@ -10,6 +10,7 @@ import codex.task.ITaskListener;
 import codex.task.Status;
 import codex.type.DateTime;
 import codex.type.EntityRef;
+import codex.type.Enum;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -26,6 +27,7 @@ public abstract class Schedule extends JobTrigger implements ITaskListener, Clas
 
     private final static String PROP_LAST = "lastTime";
     private final static String PROP_NEXT = "nextTime";
+    private final static String PROP_PASS = "bypass";
 
     private final Predicate<String> isParameterProperty = propName -> GROUP_PARAMETERS.equals(model.getPropertyGroup(propName));
     private Timer timer;
@@ -36,6 +38,7 @@ public abstract class Schedule extends JobTrigger implements ITaskListener, Clas
         // Trigger time
         model.addUserProp(PROP_LAST, new DateTime(null), false, Access.Select);
         model.addUserProp(PROP_NEXT, new DateTime(null), false, null);
+        model.addUserProp(PROP_PASS, new Enum<>(OverdueAction.Postpone), false, Access.Select);
 
         // Property settings
         model.getEditor(PROP_LAST).setEditable(false);
@@ -52,15 +55,6 @@ public abstract class Schedule extends JobTrigger implements ITaskListener, Clas
                 if (changes.stream().anyMatch(isParameterProperty)) {
                     updateTitle();
                 }
-                if (getNextTime() != null && changes.contains(PROP_NEXT)) {
-                    Logger.getLogger().debug(
-                            "Init job schedule: [{0}/{1}]: {2}",
-                            getJob().getPID(),
-                            getTitle(),
-                            IDateMask.Format.Full.format(getNextTime())
-                    );
-                    schedule();
-                }
             }
             @Override
             public void modelDeleted(EntityModel model) {
@@ -68,30 +62,33 @@ public abstract class Schedule extends JobTrigger implements ITaskListener, Clas
                 reset();
             }
         });
+
         model.addChangeListener((name, oldValue, newValue) -> {
             if (isParameterProperty.test(name)) {
-                setNextTime(calcTime());
-            } else if (name.equals(PROP_NEXT)) {
-                reset();
+                schedule();
             }
         });
 
-        if (getNextTime() != null) {
-            if (getNextTime().before(new Date())) {
-                //TODO: Если сработали несколько триггеров - нужно перепланировать
-                createTimerTask().run();
-            } else {
-                Logger.getLogger().debug(
-                        "Init job schedule: [{0}/{1}]: {2}",
-                        getJob().getPID(),
-                        getTitle(),
-                        IDateMask.Format.Full.format(getNextTime())
-                );
-                schedule();
-            }
+        if (getNextTime() != null && getNextTime().before(new Date()) && getOverdueAction() == OverdueAction.Execute) {
+            createTimerTask().run();
+        } else {
+            try {
+                getLock().acquire();
+            } catch (InterruptedException ignore) {}
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    getLock().acquire();
+                    schedule();
+                    getLock().release();
+                } catch (InterruptedException ignore) {}
+            });
         }
 
         setPropertyRestriction(EntityModel.PID, Access.Any);
+    }
+
+    private OverdueAction getOverdueAction() {
+        return (OverdueAction) model.getValue(PROP_PASS);
     }
 
     private Date getNextTime() {
@@ -138,9 +135,17 @@ public abstract class Schedule extends JobTrigger implements ITaskListener, Clas
 
     private void schedule() {
         reset();
-        if (getNextTime() != null) {
+        Date nextTime = calcTime();
+        if (nextTime != null) {
+            setNextTime(nextTime);
+            Logger.getLogger().debug(
+                    "Plan job schedule [{0}/{1}] next execution time: {2}",
+                    getJob().getPID(),
+                    getTitle(),
+                    IDateMask.Format.Full.format(nextTime)
+            );
             timer = new Timer(true);
-            timer.schedule(createTimerTask(), getNextTime());
+            timer.schedule(createTimerTask(), nextTime);
         }
         setExtInfo(new Iconified() {
            @Override
@@ -169,20 +174,35 @@ public abstract class Schedule extends JobTrigger implements ITaskListener, Clas
     public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
         if (nextStatus.isFinal()) {
             setLastTime(getNextTime());
-
-            Date nextTime = calcTime();
-            setNextTime(nextTime);
-            Logger.getLogger().debug(
-                    "Plan job schedule [{0}/{1}] next execution time: {2}",
-                    getJob().getPID(),
-                    getTitle(),
-                    IDateMask.Format.Full.format(getNextTime())
-            );
+            schedule();
             try {
                 model.commit(false);
-            } catch (Exception ignore) {
-                //
-            }
+            } catch (Exception ignore) {}
         }
+    }
+
+    public enum OverdueAction implements Iconified {
+
+        Execute(ImageUtils.getByPath("/images/command.png")),
+        Postpone(ImageUtils.getByPath("/images/daily.png"));
+
+        private final String    title;
+        private final ImageIcon icon;
+
+        OverdueAction(ImageIcon icon) {
+            this.title = Language.get(Schedule.class, "action@"+name().toLowerCase());
+            this.icon  = icon;
+        }
+
+        @Override
+        public ImageIcon getIcon() {
+            return icon;
+        }
+
+        @Override
+        public String toString() {
+            return title;
+        }
+
     }
 }

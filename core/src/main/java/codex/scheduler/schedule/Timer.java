@@ -26,6 +26,7 @@ public class Timer extends Schedule {
         model.addUserProp(PROP_TIMER_DIM, new Enum<>(Dimension.Hour), true, Access.Select);
 
         model.addPropertyGroup(Language.get(Schedule.class, "group@kind"), PROP_TIMER_AMT, PROP_TIMER_DIM);
+        getLock().release();
     }
 
     private Integer getAmount() {
