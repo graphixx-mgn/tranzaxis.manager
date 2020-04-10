@@ -25,7 +25,7 @@ abstract class JobTrigger extends PolyMorph implements IContext {
         model.addDynamicProp(PROP_EXT_INFO, new AnyType(), Access.Edit, null);
     }
 
-    AbstractJob getJob() {
+    protected AbstractJob getJob() {
         return job;
     }
 
