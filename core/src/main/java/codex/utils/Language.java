@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 public class Language {
     
     public  static final String NOT_FOUND = "<not defined>";
-    private static final Map<Class, ResourceBundle> BUNDLES = new HashMap<>();
     private static final List<Class> EXCLUDES = Collections.synchronizedList(new ArrayList<>());
     
     /**
@@ -39,37 +38,26 @@ public class Language {
         List<Class> stack = Caller.getInstance().getClassStack().stream()
                 .filter(aClass -> aClass != Language.class)
                 .collect(Collectors.toList());
-        return getValue(stack.get(0), key, getLocale(), stack.get(0).getClassLoader());
+        return getValue(stack.get(0), key, getLocale());
     }
     
     /**
      * Получить строку по имени класса-владельца и ключу.
      */
     public static String get(Class callerClass, String key) {
-        return getValue(callerClass, key, getLocale(), callerClass.getClassLoader());
+        return getValue(callerClass, key, getLocale());
     }
     
     public static String get(Class callerClass, String key, Locale locale) {
-        return getValue(callerClass, key, locale, callerClass.getClassLoader());
+        return getValue(callerClass, key, locale);
     }
 
-    private static String getValue(Class callerClass, String key, Locale locale, ClassLoader classLoader) {
-        ResourceBundle bundle;
-        if (BUNDLES.containsKey(callerClass) && BUNDLES.get(callerClass).getLocale() == locale) {
-            bundle = BUNDLES.get(callerClass);
-        } else {
-            try {
-                String className = callerClass.getSimpleName().replaceAll(".*[\\.\\$](\\w+)", "$1");
-                bundle = ResourceBundle.getBundle("locale/"+className, locale, classLoader);
-                if (!BUNDLES.containsKey(callerClass) && getLocale() == locale) {
-                    BUNDLES.put(callerClass, bundle);
-                }
-            } catch (MissingResourceException e) {
-                EXCLUDES.add(callerClass);
-                return NOT_FOUND;
-            }
+    private static String getValue(Class callerClass, String key, Locale locale) {
+        try {
+            return BundleCache.getBundle(callerClass, locale).getString(key);
+        } catch (Exception e) {
+            return NOT_FOUND;
         }
-        return bundle.containsKey(key) ? bundle.getString(key) : NOT_FOUND;
     }
     
     /**
@@ -81,33 +69,17 @@ public class Language {
             return NOT_FOUND;
         } else {
             List<Class> stack = Caller.getInstance().getClassStack().stream()
-                    .filter(aClass -> aClass != Language.class)
+                    .filter(aClass -> aClass != Language.class || !EXCLUDES.contains(aClass))
                     .collect(Collectors.toList());
-            try {
-                for (Class callerClass : stack) {
-                    if (EXCLUDES.contains(callerClass)) {
-                        continue;
-                    }
-                    if (BUNDLES.containsKey(callerClass) && BUNDLES.get(callerClass).containsKey(key)) {
-                        return BUNDLES.get(callerClass).getString(key);
-                    } else if (callerClass.getClassLoader() != null) {
-                        try {
-                            String className = callerClass.getSimpleName().replaceAll(".*[\\.\\$](\\w+)", "$1");
-                            ResourceBundle bundle = ResourceBundle.getBundle("locale/" + className, getLocale(), callerClass.getClassLoader());
-                            if (bundle.containsKey(key)) {
-                                BUNDLES.put(callerClass, bundle);
-                                return BUNDLES.get(callerClass).getString(key);
-                            }
-                        } catch (MissingResourceException e) {
-                            EXCLUDES.add(callerClass);
-                        }
-                    }
+            for (Class callerClass : stack) {
+                try {
+                    return BundleCache.getBundle(callerClass, getLocale()).getString(key);
+                } catch (Exception e) {
+                    EXCLUDES.add(callerClass);
                 }
-            } catch (Throwable e) {
-                e.printStackTrace();
             }
+            return NOT_FOUND;
         }
-        return NOT_FOUND;
     }
 
     public static Locale getLocale() {
@@ -133,6 +105,57 @@ public class Language {
     }
 
 
+    private static class BundleCache {
+        private static final Object lock = new Object();
+        private static final Map<Class, LocaleBundle> CACHE = new HashMap<>();
+
+        private static ResourceBundle getBundle(Class clazz, Locale locale) {
+            synchronized (lock) {
+                if (CACHE.containsKey(clazz)) {
+                    return CACHE.get(clazz).getBundle(locale);
+                } else {
+                    LocaleBundle bundle = new LocaleBundle(clazz);
+                    CACHE.put(clazz, bundle);
+                    return bundle.getBundle(locale);
+                }
+            }
+        }
+
+        static String getClassName(Class<?> clazz) {
+            return clazz.getTypeName().replaceAll(".*[.$](\\w+)", "$1");
+        }
+    }
+
+
+    private static class LocaleBundle {
+
+        private final Class  clazz;
+        private final String className;
+        private final Map<Locale, ResourceBundle> bundles = new HashMap<>();
+
+        LocaleBundle(Class clazz) {
+            this.clazz = clazz;
+            this.className = BundleCache.getClassName(clazz);
+
+            for (SupportedLang lang : SupportedLang.values()) {
+                bundles.put(lang.getLocale(), loadBundle(lang.getLocale()));
+            }
+        }
+
+        ResourceBundle getBundle(Locale locale) {
+            return bundles.get(locale);
+        }
+
+        private ResourceBundle loadBundle(Locale locale) {
+            return ResourceBundle.getBundle(
+                    "locale/".concat(className),
+                    locale,
+                    clazz.getClassLoader()
+            );
+        }
+    }
+
+
     interface ITranslateService extends IService {}
 
 
@@ -145,9 +168,14 @@ public class Language {
                 java.lang.System.setProperty("user.language", language.locale.getLanguage());
                 java.lang.System.setProperty("user.country",  language.locale.getCountry());
             }
+        }
+
+        @Override
+        public void startService() {
+            super.startService();
             java.util.Locale guiLocale = Language.getLocale();
             Logger.getLogger().debug("" +
-                    "GUI locale: Language: {0}, Country: {1}",
+                            "GUI locale: Language: {0}, Country: {1}",
                     guiLocale.getDisplayLanguage(),
                     guiLocale.getDisplayCountry()
             );
