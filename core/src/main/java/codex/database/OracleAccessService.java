@@ -92,7 +92,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
             return rowSet;
         } catch (SQLException e) {
             Logger.getLogger().error(
-                    "Unable to execute query: {0}{1}",
+                    "Unable to execute query: {0}\nQuery:{1}",
                     e.getMessage(),
                     IDatabaseAccessService.prepareTraceSQL(query, params)
             );
