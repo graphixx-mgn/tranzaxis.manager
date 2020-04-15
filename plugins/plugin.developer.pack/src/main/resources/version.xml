@@ -5,6 +5,9 @@
             <change scope="APP" type="Feature">
                 <description>Плагин "Информация о версии продукта": начальная версия.</description>
             </change>
+            <change scope="APP" type="Feature">
+                <description>Плагин "Удаление каталога": начальная версия.</description>
+            </change>
         </changelog>
     </version>
 </versions>
