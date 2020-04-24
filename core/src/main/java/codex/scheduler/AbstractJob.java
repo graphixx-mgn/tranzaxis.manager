@@ -25,7 +25,7 @@ public abstract class AbstractJob extends Job {
 
     protected abstract Collection<ITask> getTasks();
 
-    public final void executeJob(ITaskListener listener, boolean foreground) {
+    final void executeJob(ITaskListener listener, boolean foreground) {
         Collection<ITask> task = getTasks();
         ITask scheduleTask = new GroupTask(
                 MessageFormat.format(Language.get(Job.class, "task@title"), getTitle()),

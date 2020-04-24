@@ -58,7 +58,7 @@ public abstract class Schedule extends JobTrigger implements ITaskListener, Clas
             }
             @Override
             public void modelDeleted(EntityModel model) {
-                Logger.getLogger().debug("Purge job schedule: [{0}/{1}]", getJob().getPID(), getTitle());
+                Logger.getLogger().debug("Purge job schedule: [{0}/{1}]", getJobTitle(), getTitle());
                 reset();
             }
         });
@@ -140,14 +140,14 @@ public abstract class Schedule extends JobTrigger implements ITaskListener, Clas
             setNextTime(nextTime);
             Logger.getLogger().debug(
                     "Plan job schedule [{0}/{1}] next execution time: {2}",
-                    getJob().getPID(),
+                    getJobTitle(),
                     getTitle(),
                     IDateMask.Format.Full.format(nextTime)
             );
             timer = new Timer(true);
             timer.schedule(createTimerTask(), nextTime);
         }
-        setExtInfo(new Iconified() {
+        setExtInfo(nextTime == null ? null : new Iconified() {
            @Override
            public ImageIcon getIcon() {
                return IMAGE_NEXT_RUN;
@@ -158,14 +158,19 @@ public abstract class Schedule extends JobTrigger implements ITaskListener, Clas
                 return DateFormat.Full.newInstance().getFormat().format(getNextTime());
             }
         });
+        try {
+            model.commit(false);
+        } catch (Exception ignore) {}
     }
 
     private TimerTask createTimerTask() {
         return new TimerTask() {
             @Override
             public void run() {
-                Logger.getLogger().debug("Post job ''{0}'' for execution", getJob().getPID());
-                getJob().executeJob(Schedule.this, false);
+                Logger.getLogger().debug("Post job ''{0}'' for execution", getJobTitle());
+                if (!executeJob(Schedule.this)) {
+                    schedule();
+                }
             }
         };
     }
@@ -175,9 +180,6 @@ public abstract class Schedule extends JobTrigger implements ITaskListener, Clas
         if (nextStatus.isFinal()) {
             setLastTime(getNextTime());
             schedule();
-            try {
-                model.commit(false);
-            } catch (Exception ignore) {}
         }
     }
 

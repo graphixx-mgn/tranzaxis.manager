@@ -34,7 +34,7 @@ public class Startup extends Event {
         setPropertyRestriction(EntityModel.PID, Access.Any);
 
         if (getTitle() != null) {
-            getJob().executeJob(null, false);
+            executeJob();
         }
     }
 

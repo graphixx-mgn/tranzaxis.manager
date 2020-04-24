@@ -14,6 +14,7 @@ abstract class Job extends PolyMorph {
     @PropertyDefinition(state = true)
     private final static String PROP_JOB_FINISH    = "finish";
     private final static String PROP_JOB_RESULT    = "result";
+            final static String PROP_JOB_DISABLE   = "disable";
 
     Job(EntityRef owner, String title) {
         super(owner, title);
@@ -21,6 +22,7 @@ abstract class Job extends PolyMorph {
         // Properties
         model.addUserProp(PROP_JOB_STATUS, new Enum<>(JobScheduler.JobStatus.Undefined), false, Access.Any);
         model.addUserProp(PROP_JOB_FINISH, new DateTime(null), false, Access.Any);
+        model.addUserProp(PROP_JOB_DISABLE, new Bool(false), false, Access.Select);
 
         model.addDynamicProp(PROP_JOB_RESULT, new AnyType(), Access.Extra, () -> {
             return getJobStatus() == JobScheduler.JobStatus.Undefined ? null : new Iconified() {
@@ -51,6 +53,10 @@ abstract class Job extends PolyMorph {
 
     private JobScheduler.JobStatus getJobStatus() {
         return (JobScheduler.JobStatus) model.getUnsavedValue(PROP_JOB_STATUS);
+    }
+
+    protected boolean isDisabled() {
+        return model.getUnsavedValue(PROP_JOB_DISABLE) == Boolean.TRUE;
     }
 
     private Date getJobFinishTime() {
