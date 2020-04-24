@@ -55,6 +55,7 @@ public class Offshoot extends BinarySource {
     private final static String PROP_WC_LOADED   = "loaded";
 
     static {
+        CommandRegistry.getInstance().registerCommand(OpenDir.class);
         CommandRegistry.getInstance().registerCommand(RefreshWC.class);
         CommandRegistry.getInstance().registerCommand(UpdateWC.class);
         CommandRegistry.getInstance().registerCommand(UpdateToRevision.class);
