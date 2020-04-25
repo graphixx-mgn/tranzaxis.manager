@@ -4,9 +4,7 @@ import codex.command.EditorCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.context.ContextView;
-import codex.context.IContext;
 import codex.context.RootContext;
-import codex.explorer.tree.INode;
 import codex.explorer.tree.NodeTreeModel;
 import codex.model.*;
 import codex.presentation.EditorPage;
@@ -18,13 +16,14 @@ import codex.type.Enum;
 import codex.utils.FileUtils;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import org.apache.log4j.lf5.viewer.categoryexplorer.TreeModelAdapter;
 import javax.swing.*;
 import javax.swing.border.*;
+import javax.swing.event.TreeModelEvent;
 import java.awt.*;
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.Optional;
 import java.util.stream.StreamSupport;
 
 @EntityDefinition(icon = "/images/lamp.png")
@@ -37,8 +36,7 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
     final static String PROP_DB_SIZE = "dbSize";
     final static String PROP_DB_DAYS = "storeDays";
 
-    private final ContextView   root = new ContextView(RootContext.class);
-    private final NodeTreeModel treeModel = new NodeTreeModel(root);
+    private final NodeTreeModel treeModel = new NodeTreeModel(new ContextView(Logger.getContextRegistry().getContext(RootContext.class)));
 
     public LoggerServiceOptions(EntityRef owner, String title) {
         super(owner, title);
@@ -60,12 +58,18 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
         model.getEditor(PROP_DB_SIZE).addCommand(new StorageLimit());
         EditorPage editorPage = getEditorPage();
 
-        // Build context tree
-        fillContext(Logger.getContextRegistry().getContexts());
-
         // Embedded context tree selector
         SelectorTreeTable<ContextView> treeTable = new SelectorTreeTable<>((ContextView) treeModel.getRoot(), ContextView.class);
         treeTable.setPropertyEditable(ContextView.PROP_LEVEL);
+
+        treeModel.addTreeModelListener(new TreeModelAdapter() {
+            @Override
+            public void treeNodesInserted(TreeModelEvent event) {
+                if (event.getTreePath().getPathCount() == 1) {
+                    SwingUtilities.invokeLater(() -> treeTable.expandPath(event.getTreePath()));
+                }
+            }
+        });
 
         final JScrollPane scrollPane = new JScrollPane();
         scrollPane.getViewport().setBackground(Color.WHITE);
@@ -95,34 +99,34 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
         model.addModelListener(new IModelListener() {
             @Override
             public void modelRestored(EntityModel model, List<String> changes) {
-                for (INode node : treeModel) {
-                    final ContextView ctxView = (ContextView) node;
-                    final Class<? extends IContext> contextClass = ctxView.getContextClass();
-                    final String propName = contextClass.getTypeName();
-
-                    Level prevLevel = (Level) model.getValue(propName);
-                    ctxView.model.setValue(
-                            ContextView.PROP_LEVEL,
-                            Logger.isOption(ctxView.getContextClass()) ? prevLevel == Level.Debug : prevLevel
-                    );
-                }
+                changes.forEach(propName -> {
+                    Logger.ContextInfo ctxInfo = Logger.getContextRegistry().getContext(propName);
+                    if (ctxInfo != null) {
+                        ContextView ctxView = attachContext(ctxInfo);
+                        if (ctxView != null) {
+                            Level prevLevel = (Level) model.getValue(propName);
+                            ctxView.model.setValue(
+                                    ContextView.PROP_LEVEL,
+                                    Logger.isOption(ctxView.getContextClass()) ? prevLevel == Level.Debug : prevLevel
+                            );
+                        }
+                    }
+                });
             }
 
             @Override
             public void modelSaved(EntityModel model, List<String> changes) {
-                for (INode node : treeModel) {
-                    final ContextView ctxView = (ContextView) node;
-                    final Class<? extends IContext> contextClass = ctxView.getContextClass();
-
-                    Object newValue = ctxView.model.getValue(ContextView.PROP_LEVEL);
-                    Level  newLevel = newValue instanceof Level ? (Level) newValue :
-                                    Boolean.TRUE.equals(newValue) ? Level.Debug : Level.Off;
-
-                    Logger.setContextLevel(contextClass, newLevel);
-                }
+                changes.forEach(propName -> {
+                    Logger.ContextInfo ctxInfo = Logger.getContextRegistry().getContext(propName);
+                    if (ctxInfo != null) {
+                        Logger.setContextLevel(ctxInfo.getClazz(), (Level) model.getValue(propName));
+                    }
+                });
             }
         });
     }
+
+
 
     @Override
     public Class<? extends Entity> getChildClass() {
@@ -140,37 +144,42 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
         model.updateDynamicProps(PROP_DB_FILE);
     }
 
-    private void fillContext(Collection<Logger.ContextInfo> contexts) {
-        for (Logger.ContextInfo context : contexts) {
-            if (!ILogManagementService.class.isAssignableFrom(context.getClazz())) {
-                addContext(context);
+    ContextView attachContext(Logger.ContextInfo contextInfo) {
+        Optional<ContextView> ctxView = StreamSupport.stream(treeModel.spliterator(), false)
+                .map(iNode -> (ContextView) iNode)
+                .filter(contextView -> contextView.getContextClass() == contextInfo.getClazz())
+                .findFirst();
+        if (ctxView.isPresent()) {
+            return ctxView.get();
+        } else {
+            if (contextInfo.getParent() != null) {
+                ContextView parent = attachContext(contextInfo.getParent());
+                ContextView context = new ContextView(contextInfo);
+                parent.attach(context);
+
+                final String propName = contextInfo.getClazz().getTypeName();
+                if (!model.hasProperty(propName)) {
+                    model.addUserProp(propName, new Enum<>(contextInfo.getLevel()), false, Access.Select);
+                }
+                context.model.addChangeListener((name, oldValue, newValue) -> {
+                    Level newLevel = newValue instanceof Level ? (Level) newValue : Boolean.TRUE.equals(newValue) ? Level.Debug : Level.Off;
+                    model.setValue(propName, newLevel);
+                });
+                return context;
             }
         }
+        return null;
     }
 
-    ContextView addContext(Logger.ContextInfo contextInfo) {
-        Stream<ContextView> added = StreamSupport.stream(treeModel.spliterator(), false)
-                .map(iNode -> (ContextView) iNode);
-        return added.filter(ctx -> ctx.getContextClass() == contextInfo.getClazz()).findFirst().orElseGet(() -> {
-            ContextView parent  = addContext(contextInfo.getParent());
-            ContextView context = new ContextView(contextInfo.getClazz());
-            parent.attach(context);
-
-            final String propName = contextInfo.getClazz().getTypeName();
-            model.addUserProp(
-                    propName,
-                    new Enum<>(contextInfo.getLevel()),
-                    false,
-                    Access.Select
-            );
-            context.model.addChangeListener((name, oldValue, newValue) -> {
-                Level newLevel =
-                      newValue instanceof Level ? (Level) newValue :
-                      Boolean.TRUE.equals(newValue) ? Level.Debug : Level.Off;
-                model.setValue(propName, newLevel);
-            });
-            return context;
-        });
+    void detachContext(Logger.ContextInfo contextInfo) {
+        Optional<ContextView> ctxView = StreamSupport.stream(treeModel.spliterator(), false)
+                .map(iNode -> (ContextView) iNode)
+                .filter(contextView -> contextView.getContextClass() == contextInfo.getClazz())
+                .findFirst();
+        if (ctxView.isPresent()) {
+            ContextView parent = attachContext(contextInfo.getParent());
+            parent.detach(ctxView.get());
+        }
     }
 
 
@@ -208,9 +217,7 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
                         if (event.getID() == Dialog.OK) {
                             try {
                                 model.commit(true, PROP_DB_DAYS);
-                            } catch (Exception ignore) {
-                                ignore.printStackTrace();
-                            }
+                            } catch (Exception ignore) {}
                         } else {
                             model.rollback(PROP_DB_DAYS);
                         }

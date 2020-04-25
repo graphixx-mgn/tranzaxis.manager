@@ -3,8 +3,6 @@ package codex.log;
 import codex.context.IContext;
 import codex.notification.*;
 import codex.service.AbstractService;
-import codex.service.ServiceRegistry;
-import java.awt.*;
 import java.text.MessageFormat;
 
 @NotifySource(condition = NotifyCondition.ALWAYS)
@@ -13,17 +11,17 @@ public class LogManagementService extends AbstractService<LoggerServiceOptions> 
 
     @Override
     public void debug(String message, Object... params) {
-        log(Level.Debug, MessageFormat.format(message, params));
+        log(Level.Debug, format(message, params));
     }
 
     @Override
     public void info(String message, Object... params) {
-        log(Level.Info, MessageFormat.format(message, params));
+        log(Level.Info, format(message, params));
     }
 
     @Override
     public void warn(String message, Object... params) {
-        log(Level.Warn, MessageFormat.format(message, params));
+        log(Level.Warn, format(message, params));
     }
 
     @Override
@@ -33,26 +31,34 @@ public class LogManagementService extends AbstractService<LoggerServiceOptions> 
 
     @Override
     public void error(String message, Object... params) {
-        log(Level.Error, MessageFormat.format(message, params));
-        ServiceRegistry.getInstance().lookupService(INotificationService.class).sendMessage(TrayInformer.getInstance(), new Message(
-                TrayIcon.MessageType.ERROR,
-                Level.Error.toString(), message
-        ));
+        log(Level.Error, format(message, params));
+//        ServiceRegistry.getInstance().lookupService(INotificationService.class).sendMessage(TrayInformer.getInstance(), new Message(
+//                TrayIcon.MessageType.ERROR,
+//                Level.Error.toString(), message
+//        ));
     }
 
     @Override
     public void error(String message, Throwable exception) {
         logError(Level.Error, message, exception);
-        ServiceRegistry.getInstance().lookupService(INotificationService.class).sendMessage(TrayInformer.getInstance(), new Message(
-                TrayIcon.MessageType.ERROR,
-                Level.Error.toString(), exception.getMessage()
-        ));
+//        ServiceRegistry.getInstance().lookupService(INotificationService.class).sendMessage(TrayInformer.getInstance(), new Message(
+//                TrayIcon.MessageType.ERROR,
+//                Level.Error.toString(), exception.getMessage()
+//        ));
     }
 
     @Override
     public void log(Level level, String message) {
         if (Logger.contextAllowed(Logger.getMessageContexts(), level)) {
             Logger.getSysLogger().log(level.getSysLevel(), message);
+        }
+    }
+
+    private String format(String message, Object... params) {
+        if (params != null && params.length > 0) {
+            return MessageFormat.format(message, params);
+        } else {
+            return message;
         }
     }
 

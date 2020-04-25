@@ -16,7 +16,6 @@ import java.io.StringWriter;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
-import java.text.MessageFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -53,12 +52,18 @@ public class Logger extends org.apache.log4j.Logger {
     
     Logger(String name) {
         super(name);
+        final Map<String, String> properties = new HashMap<>();
         AsyncAppender asyncAppender = new AsyncAppender() {
             @Override
             public synchronized void doAppend(LoggingEvent event) {
                 String contexts = Logger.getMessageContexts().stream()
                         .map(Class::getTypeName)
                         .collect(Collectors.joining(","));
+                String context = Logger.getMessageLastContext().getTypeName();
+
+                properties.put("ctx", context);
+                properties.put("ctxlist", contexts);
+
                 super.doAppend(new LoggingEvent(
                         event.getFQNOfLoggerClass(),
                         event.getLogger(),
@@ -67,9 +72,9 @@ public class Logger extends org.apache.log4j.Logger {
                         event.getMessage().toString().replaceAll("\"", "'"),
                         event.getThreadName(),
                         event.getThrowableInformation(),
-                        contexts,
+                        null,
                         event.getLocationInformation(),
-                        null
+                        properties
                 ));
             }
         };
@@ -195,11 +200,11 @@ public class Logger extends org.apache.log4j.Logger {
 
     public static class ContextInfo {
         private final String    id;
-        private final String    name;
-        private final ImageIcon icon;
-        private       Level     level;
+        private String    name;
+        private ImageIcon icon;
+        private Level     level;
 
-        private final ContextInfo parent;
+        private ContextInfo parent;
         private final Class<? extends IContext> clazz;
 
         private static ContextInfo getInstance(Class<? extends IContext> contextClass) {
@@ -210,24 +215,15 @@ public class Logger extends org.apache.log4j.Logger {
             }
         }
 
-        private ContextInfo(String className) {
-            id     = "<?>";
-            name   = MessageFormat.format("[{0}]", className);
-            icon   = ImageUtils.getByPath("/images/question.png");
-            parent = null;
-            clazz  = null;
-        }
-
         private ContextInfo(Class<? extends IContext> contextClass) throws Exception {
             Class<? extends IContext.IContextProvider> ctxProvider = contextClass.getAnnotation(LoggingSource.class).ctxProvider();
             IContext.Definition contextDef = ctxProvider.newInstance().getDefinition(contextClass);
-
             id     = contextDef.id();
             name   = contextDef.name();
             icon   = ImageUtils.getByPath(contextClass, contextDef.icon());
+            parent = contextClass != contextDef.parent() ? ContextInfo.getInstance(contextDef.parent()) : null;
             clazz  = contextClass;
             level  = getContextLevel();
-            parent = contextClass != contextDef.parent() ? ContextInfo.getInstance(contextDef.parent()) : null;
         }
 
         public String getId() {
@@ -270,50 +266,50 @@ public class Logger extends org.apache.log4j.Logger {
 
 
     public static class ContextRegistry {
-        private final Map<String, ContextInfo>                    nameMap = new HashMap<>();
-        private final Map<Class<? extends IContext>, ContextInfo> classMap = new LinkedHashMap<>();
+        private final static Map<String, ContextInfo> CONTEXTS = new HashMap<>();
 
         private ContextRegistry() {
             StreamSupport.stream(ClassIndex.getSubclasses(IContext.class).spliterator(),false)
-                    .filter(ctxClass -> !Modifier.isInterface(ctxClass.getModifiers()))
+                    .filter(ctxClass -> !(
+                            Modifier.isInterface(ctxClass.getModifiers()) ||
+                            Modifier.isAbstract(ctxClass.getModifiers()) ||
+                            LogManagementService.class.equals(ctxClass)
+                    ))
                     .map(Logger::resolveContextClass)
                     .map(ContextInfo::getInstance)
-                    .filter(Objects::nonNull)
+                    .forEach(ctxInfo -> CONTEXTS.putIfAbsent(ctxInfo.clazz.getTypeName(), ctxInfo));
+            SwingUtilities.invokeLater(() -> CONTEXTS.values().stream()
                     .sorted(Comparator.comparing(ctxInfo -> ctxInfo.clazz.getTypeName()))
-                    .forEach(ctxInfo -> {
-                        nameMap.putIfAbsent(ctxInfo.clazz.getTypeName(), ctxInfo);
-                        classMap.put(ctxInfo.clazz, ctxInfo);
-                    });
+                    .forEach(ctxInfo -> LMS.getSettings().attachContext(ctxInfo))
+            );
         }
 
         public ContextInfo getContext(Class<? extends IContext> contextClass) {
-            return classMap.get(contextClass);
+            return CONTEXTS.get(contextClass.getTypeName());
         }
 
         public ContextInfo getContext(String className) {
-            return nameMap.containsKey(className) ? nameMap.get(className) : new ContextInfo(className);
+            return CONTEXTS.get(className);
         }
 
         Collection<ContextInfo> getContexts() {
-            return classMap.values();
+            return CONTEXTS.values();
         }
 
-        public final void registerContext(Class<? extends IContext> contextClass) throws Exception {
-            ContextInfo ctxInfo = ContextInfo.getInstance(contextClass);
-            if (ctxInfo != null) {
-                nameMap.putIfAbsent(ctxInfo.clazz.getTypeName(), ctxInfo);
-                classMap.put(ctxInfo.clazz, ctxInfo);
-                LMS.getSettings().addContext(new ContextInfo(contextClass));
+        public final void registerContext(Class<? extends IContext> contextClass) {
+            ContextInfo ctxInfo = CONTEXTS.containsKey(contextClass.getTypeName()) ?
+                    CONTEXTS.get(contextClass.getTypeName()) :
+                    ContextInfo.getInstance(contextClass);
+            CONTEXTS.put(ctxInfo.clazz.getTypeName(), ctxInfo);
+            LMS.getSettings().attachContext(ctxInfo);
+        }
+
+        public final void unregisterContext(Class<? extends IContext> contextClass) {
+            //TODO: Сохранять класс в БД при удалении чтобы можно было смотреть прошлый лог
+            if (CONTEXTS.containsKey(contextClass.getTypeName())) {
+                ContextInfo ctxInfo = CONTEXTS.remove(contextClass.getTypeName());
+                LMS.getSettings().detachContext(ctxInfo);
             }
-        }
-
-        public final void unregisterContext(Class<? extends IContext> contextClass) throws Exception {
-//            ContextInfo ctxInfo = ContextInfo.getInstance(contextClass);
-//            if (ctxInfo != null) {
-//                nameMap.remove(ctxInfo.clazz.getTypeName());
-//                classMap.remove(ctxInfo.clazz);
-//                LMS.getSettings().
-//            }
         }
     }
 }

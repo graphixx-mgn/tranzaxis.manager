@@ -48,7 +48,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
     private final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");
     private final static Pattern MULTILINE_PATTERN = Pattern.compile("\\n.*", Pattern.DOTALL);
 
-    private final static String QUERY = "SELECT * FROM EVENTLOG WHERE {0} ORDER BY TIME";
+    private final static String QUERY = Language.get(DatabaseAppender.class, "select");
 
     private final static Map<String, String> columnNames = new LinkedHashMap<String, String>(){{
         put("TIME",    Language.get(LogUnit.class,"column@time"));
@@ -72,6 +72,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
     );
     private final static ImageIcon IMAGE_HIDE     = ImageUtils.getByPath("/images/unavailable.png");
     private final static ImageIcon IMAGE_STACK    = ImageUtils.resize(ImageUtils.getByPath("/images/stack.png"), 0.7f);
+    private final static ImageIcon IMAGE_CTX_NONE = ImageUtils.getByPath("/images/question.png");
 
     private final static Color DEBUG_COLOR = Color.GRAY;
     private final static Color WARN_COLOR  = Color.decode("#AA3333");
@@ -133,9 +134,11 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                     label.setIcon(ImageUtils.resize(level.getIcon(), iconSize, iconSize));
                 }
                 if (column == 1) {
-                    String[]  contexts = tableModel.getValueAt(row,2).toString().split(",", -1);
-                    String    ctxClassName = contexts[contexts.length-1];
-                    ImageIcon ctxIcon = Logger.getContextRegistry().getContext(ctxClassName).getIcon();
+                    //String[]  contexts = tableModel.getValueAt(row,2).toString().split(",", -1);
+                    //String    ctxClassName = contexts[contexts.length-1];
+                    String ctxClassName = (String) tableModel.getValueAt(row,2);
+                    Logger.ContextInfo ctxInfo = Logger.getContextRegistry().getContext(ctxClassName);
+                    ImageIcon ctxIcon = ctxInfo != null ? ctxInfo.getIcon() : IMAGE_CTX_NONE;
                     if (tableModel.getValueAt(row,4) == null || tableModel.getValueAt(row,4).equals("")) {
                         label.setIcon(ImageUtils.resize(ctxIcon, iconSize, iconSize));
                     } else {
@@ -271,7 +274,14 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
         hideContext.addActionListener(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent event) {
-                contextFilter.hideContext((Class<? extends IContext>) ((JMenuItem) event.getSource()).getClientProperty("context"));
+                contextFilter.disableContext((Logger.ContextInfo) hideContext.getClientProperty("context"));
+            }
+        });
+        JMenuItem exceptContext = new JMenuItem();
+        exceptContext.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                contextFilter.disableContextsExcept((Logger.ContextInfo) exceptContext.getClientProperty("context"));
             }
         });
 
@@ -279,6 +289,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
         popupMenu.add(setToTime);
         popupMenu.addSeparator();
         popupMenu.add(hideContext);
+        popupMenu.add(exceptContext);
         popupMenu.addPopupMenuListener(new PopupMenuListener() {
             @Override
             public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
@@ -292,16 +303,21 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
 
                         hideContext.setText(MessageFormat.format(
                                 Language.get(LogUnit.class, "popup@hide"),
-                                new ContextView(ctxInfo.getClazz()).getTitle()
+                                ctxInfo.getName()
                         ));
                         hideContext.setIcon(ImageUtils.resize(
-                                ImageUtils.combine(
-                                        ctxInfo.getIcon(),
-                                        IMAGE_HIDE
-                                ),
+                                ImageUtils.combine(ctxInfo.getIcon(), IMAGE_HIDE),
                                 0.7f
                         ));
-                        hideContext.putClientProperty("context", ctxInfo.getClazz());
+                        hideContext.putClientProperty("context", ctxInfo);
+
+                        exceptContext.setText(MessageFormat.format(
+                                Language.get(LogUnit.class, "popup@show"),
+                                ctxInfo.getName()
+                        ));
+                        exceptContext.setIcon(ImageUtils.resize(ctxInfo.getIcon(), 0.7f));
+                        exceptContext.putClientProperty("context", ctxInfo);
+
                         popupMenu.pack();
                     }
                 });
@@ -751,8 +767,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
 
     private class ContextFilter extends Filter {
 
-        private Collection<Class<? extends IContext>> systemContexts = Logger.getContextRegistry().getContexts();
-        private List<Class<? extends IContext>> hiddenContexts = new LinkedList<>();
+        private Collection<Logger.ContextInfo> hiddenContexts = new LinkedList<>();
         private Container view = new JPanel() {{
             setLayout(new WrapLayout(FlowLayout.LEFT, 3, 3));
             setBorder(new TitledBorder(new LineBorder(Color.GRAY, 1), Language.get(LogUnit.class, "filter@context")));
@@ -767,37 +782,45 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
         @Override
         public String getConstraint() {
             return MessageFormat.format(
-                    "({0})",
-                    hiddenContexts.containsAll(systemContexts) ?
-                            "1=0" :
-                            systemContexts.stream()
-                                    .filter(ctxClass -> !hiddenContexts.contains(ctxClass))
-                                    .map(ctxClass -> MessageFormat.format(
-                                            "INSTR(CONTEXT, ''{0}'') = LENGTH(CONTEXT) - LENGTH(''{0}'') + 1",
-                                            ctxClass.getTypeName()
-                                    ))
-                            .collect(Collectors.joining(" OR "))
+                    "CONTEXT NOT IN ({0})",
+                    hiddenContexts.stream()
+                            .map(ctxInfo -> MessageFormat.format("''{0}''", ctxInfo.getClazz().getTypeName()))
+                            .collect(Collectors.joining(", "))
             );
         }
 
-        void hideContext(Class<? extends IContext> contextClass) {
-            hiddenContexts.add(contextClass);
+        void disableContext(Logger.ContextInfo ctxInfo) {
+            hiddenContexts.add(ctxInfo);
             view.setVisible(!hiddenContexts.isEmpty());
-            view.add(createContextLabel(contextClass));
+            view.add(createContextLabel(ctxInfo));
             view.revalidate();
             view.repaint();
             applyFilters();
         }
 
-        void showContext(Class<? extends IContext> contextClass) {
-            hiddenContexts.remove(contextClass);
+        void disableContextsExcept(Logger.ContextInfo ctxInfo) {
+            hiddenContexts.clear();
+            hiddenContexts.addAll(Logger.getContextRegistry().getContexts());
+            hiddenContexts.remove(ctxInfo);
+
+            view.removeAll();
+            view.setVisible(!hiddenContexts.isEmpty());
+            hiddenContexts.forEach(hiddenInfo -> view.add(createContextLabel(hiddenInfo)));
+
+            view.revalidate();
+            view.repaint();
+            applyFilters();
+        }
+
+        void enableContext(Logger.ContextInfo ctxInfo) {
+            hiddenContexts.remove(ctxInfo);
             view.setVisible(!hiddenContexts.isEmpty());
             view.revalidate();
             view.repaint();
             applyFilters();
         }
 
-        private JComponent createContextLabel(Class<? extends IContext> contextClass) {
+        private JComponent createContextLabel(Logger.ContextInfo ctxInfo) {
             return new Box(BoxLayout.LINE_AXIS) {{
                 add(new CloseButton() {{
                     setAlignmentY(Component.CENTER_ALIGNMENT);
@@ -806,14 +829,14 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                         @Override
                         public void actionPerformed(ActionEvent e) {
                             view.remove(getParent());
-                            showContext(contextClass);
+                            enableContext(ctxInfo);
                         }
                     });
                 }}, BorderLayout.NORTH);
 
                 add(new JLabel(
-                        new ContextView(contextClass).getTitle(),
-                        ImageUtils.resize(Logger.getContextRegistry().getContext(contextClass).getIcon(), 0.5f),
+                        new ContextView(ctxInfo).getTitle(),
+                        ImageUtils.resize(ctxInfo.getIcon(), 0.5f),
                         SwingConstants.LEFT
                 ) {{
                     setAlignmentY(Component.CENTER_ALIGNMENT);

@@ -7,7 +7,6 @@ import codex.utils.Language;
 import org.apache.log4j.EnhancedPatternLayout;
 import org.apache.log4j.jdbc.JDBCAppender;
 import org.sqlite.JDBC;
-
 import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,11 +20,11 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Properties;
 
-public class DatabaseAppender extends JDBCAppender {
+class DatabaseAppender extends JDBCAppender {
 
     private static final String PROP_FILE = "META-INF/options/LogManagementService.properties";
 
-    public DatabaseAppender() {
+    DatabaseAppender() {
         try (
             InputStream configPropStream  = Logger.class.getClassLoader().getResourceAsStream(PROP_FILE)
         ) {

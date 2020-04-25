@@ -13,22 +13,20 @@ import java.util.Objects;
 public class ContextView extends Catalog implements Iconified {
 
     public  final static String PROP_LEVEL = "level";
-    private final Class<? extends IContext> contextClass;
 
-    public ContextView(Class<? extends IContext> contextClass) {
+    private final Logger.ContextInfo contextInfo;
+
+    public ContextView(Logger.ContextInfo contextInfo) {
         super(
                 null,
-                null,
-                contextClass.getTypeName(),
+                contextInfo.getIcon(),
+                contextInfo.getName(),
                 null
         );
-        this.contextClass = contextClass;
-        Logger.ContextInfo ctxInfo = Logger.getContextRegistry().getContext(contextClass);
-        setTitle(ctxInfo.getName());
-        setIcon(ctxInfo.getIcon());
+        this.contextInfo = contextInfo;
 
-        boolean isOption = contextClass.getAnnotation(LoggingSource.class).debugOption();
-        Level   ctxLevel = ctxInfo.getLevel();
+        boolean isOption = contextInfo.getClazz().getAnnotation(LoggingSource.class).debugOption();
+        Level   ctxLevel = contextInfo.getLevel();
         model.addDynamicProp(
                 PROP_LEVEL,
                 isOption ? new Bool(ctxLevel == Level.Debug) : new Enum<>(ctxLevel),
@@ -37,7 +35,7 @@ public class ContextView extends Catalog implements Iconified {
     }
 
     public Class<? extends IContext> getContextClass() {
-        return contextClass;
+        return contextInfo.getClazz();
     }
 
     @Override
@@ -45,12 +43,12 @@ public class ContextView extends Catalog implements Iconified {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ContextView that = (ContextView) o;
-        return Objects.equals(contextClass, that.contextClass);
+        return Objects.equals(contextInfo, that.contextInfo);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(contextClass);
+        return Objects.hash(contextInfo);
     }
 
     @Override
