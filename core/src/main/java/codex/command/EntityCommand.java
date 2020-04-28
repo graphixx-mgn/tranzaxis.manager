@@ -348,7 +348,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
      * @param task Задача, коорая будет передана сервису.
      * (см. {@link ITaskExecutorService#enqueueTask(ITask)}).
      */
-    private void executeTask(V context, ITask task) {
+    protected void executeTask(V context, ITask task) {
         ITaskListener lockHandler = new ITaskListener() {
             @Override
             public void beforeExecute(ITask task) {

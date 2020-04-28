@@ -64,7 +64,9 @@ public class UpdateWC extends EntityCommand<Offshoot> {
     }
 
     @Override
-    public void execute(Offshoot context, Map<String, IComplexType> map) {}
+    public void execute(Offshoot context, Map<String, IComplexType> map) {
+        executeTask(context, getTask(context, map));
+    }
     
     public static class UpdateTask extends AbstractTask<Void> {
 
