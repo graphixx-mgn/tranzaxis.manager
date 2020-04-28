@@ -41,7 +41,7 @@
         <dependency>
             <groupId>org.tmatesoft.svnkit</groupId>
             <artifactId>svnkit</artifactId>
-            <version>1.9.3</version>
+            <version>1.10.1</version>
             <exclusions>
                 <exclusion>
                     <artifactId>jsch.agentproxy.core</artifactId>
@@ -64,12 +64,12 @@
         <dependency>
             <groupId>org.apache.xmlbeans</groupId>
             <artifactId>xmlbeans</artifactId>
-            <version>2.4.0</version>
+            <version>3.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.ant</groupId>
             <artifactId>ant</artifactId>
-            <version>1.10.5</version>
+            <version>1.10.7</version>
         </dependency>
         <dependency>
             <groupId>it.sauronsoftware</groupId>
@@ -80,7 +80,7 @@
         <dependency>
             <groupId>org.apache.xmlgraphics</groupId>
             <artifactId>batik-transcoder</artifactId>
-            <version>1.10</version>
+            <version>1.12</version>
             <exclusions>
                 <exclusion>
                     <groupId>xml-apis</groupId>
@@ -95,7 +95,7 @@
         <dependency>
             <groupId>org.atteo.classindex</groupId>
             <artifactId>classindex</artifactId>
-            <version>3.8</version>
+            <!--<version>3.8</version>-->
         </dependency>
     </dependencies>
 
@@ -104,7 +104,7 @@
         <plugins>
             <plugin>
                 <artifactId>maven-clean-plugin</artifactId>
-                <version>3.1.0</version>
+                <!--version>3.1.0</version-->
                 <configuration>
                     <excludeDefaultDirectories>true</excludeDefaultDirectories>
                     <filesets>

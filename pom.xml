@@ -9,6 +9,10 @@
     <packaging>pom</packaging>
     <version>1.0.0</version>
 
+    <prerequisites>
+        <maven>3.6.0</maven>
+    </prerequisites>
+
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
@@ -37,6 +41,26 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>Check plugin updates</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>versions-maven-plugin</artifactId>
+                        <version>2.7</version>
+                        <executions>
+                            <execution>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>display-plugin-updates</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
     <modules>
@@ -50,7 +74,12 @@
             <dependency>
                 <groupId>org.atteo.classindex</groupId>
                 <artifactId>classindex</artifactId>
-                <version>3.8</version>
+                <version>3.9</version>
+            </dependency>
+            <dependency>
+                <groupId>org.atteo.classindex</groupId>
+                <artifactId>classindex-transformer</artifactId>
+                <version>3.9</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -61,7 +90,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.1</version>
+                    <version>3.8.1</version>
                     <configuration>
                         <compilerArguments>
                             <bootclasspath>${sun.boot.class.path}${path.separator}${java.home}/lib/jfxrt.jar</bootclasspath>
@@ -104,14 +133,14 @@
                         <dependency>
                             <groupId>org.atteo.classindex</groupId>
                             <artifactId>classindex-transformer</artifactId>
-                            <version>3.8</version>
+                            <version>3.9</version>
                         </dependency>
                     </dependencies>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.1.0</version>
+                    <version>3.2.0</version>
                     <configuration>
                         <archive>
                             <manifest>
