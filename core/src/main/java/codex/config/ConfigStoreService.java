@@ -749,6 +749,11 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         );
     }
 
+    @Override
+    public boolean deleteConfirmRequired() {
+        return getSettings().isConfirmRequired();
+    }
+
 //    public void exportConfiguration(Exporter exporter) {
 //        try {
 //            exporter.loadEntities(getClassCatalogs().entrySet().stream()

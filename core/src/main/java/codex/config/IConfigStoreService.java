@@ -112,6 +112,8 @@ public interface IConfigStoreService extends IService {
      */
     default void maintainClassCatalog(Class clazz, List<String> unusedProperties, Map<String, IComplexType> newProperties) throws Exception {}
 
+    boolean deleteConfirmRequired();
+
     /**
      * Получение класса владельца сущности
      * @param clazz Класс сущности
