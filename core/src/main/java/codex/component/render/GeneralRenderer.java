@@ -10,6 +10,7 @@ import codex.property.PropertyState;
 import codex.type.*;
 import codex.type.Enum;
 import codex.utils.ImageUtils;
+import sun.swing.table.DefaultTableCellHeaderRenderer;
 import java.awt.Color;
 import java.awt.Component;
 import javax.swing.*;
@@ -28,6 +29,8 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
     
     private static final Boolean DEV_MODE = "1".equals(java.lang.System.getProperty("showHashes"));
     private static final ImageIcon ICON_ERROR = ImageUtils.getByPath("/images/red.png");
+    private static final ImageIcon ICON_ASC   = ImageUtils.rotate(ImageUtils.getByPath("/images/arrow.png"), 180);
+    private static final ImageIcon ICON_DESC  = ImageUtils.getByPath("/images/arrow.png");
     
     private static Color blend(Color c0, Color c1) {
         double totalAlpha = c0.getAlpha() + c1.getAlpha();
@@ -102,14 +105,26 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
         Class columnClass = table.getColumnClass(column);
         if (row == TableModelEvent.HEADER_ROW) {
-            TableHeaderRenderer cellHead = TableHeaderRenderer.getInstance();
+            TableHeaderRenderer cellHead = TableHeaderRenderer.newInstance();
             cellHead.setValue((String) value, null);
             cellHead.setBorder(new CompoundBorder(
                     new MatteBorder(0, 0, 1, column == table.getColumnCount()-1 ? 0 : 1, Color.GRAY),
                     new EmptyBorder(1, 6, 0, 6)
             ));
+            SortOrder sortOrder = DefaultTableCellHeaderRenderer.getColumnSortOrder(table, column);
+            if (sortOrder != null) {
+                switch(sortOrder) {
+                    case ASCENDING:
+                        cellHead.setIcon(ICON_ASC);
+                        break;
+                    case DESCENDING:
+                        cellHead.setIcon(ICON_DESC);
+                        break;
+                }
+            }
             return cellHead;
         } else {
+            int rowIdx = table.convertRowIndexToModel(row);
             CellRenderer cellBox;
             if (Bool.class.equals(columnClass) || (value != null && value.getClass() == Boolean.class)) {
                 cellBox = BoolCellRenderer.newInstance();
@@ -126,7 +141,7 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
             
             if (table.getModel() instanceof ISelectorTableModel) {
                 ISelectorTableModel selectorModel = (ISelectorTableModel) table.getModel();
-                Entity entity = selectorModel.getEntityForRow(row);
+                Entity entity = selectorModel.getEntityForRow(rowIdx);
                 String propName = entity.model.getProperties(Access.Select).get(column);
 
                 isEntityInvalid = !entity.model.isValid();
@@ -145,7 +160,7 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                     if (!entity.model.getProperty(propName).isEmpty()) {
                         fgColor = Color.decode("#DD0000");
                     }
-                } else if (entity.model.getChanges().contains(propName) && table.getModel().isCellEditable(row, column)) {
+                } else if (entity.model.getChanges().contains(propName) && table.getModel().isCellEditable(rowIdx, column)) {
                     bgColor = Color.decode("#BBFFBB");
                     fgColor = Color.decode("#213200");
                 }

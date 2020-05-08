@@ -4,11 +4,13 @@ import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
+import codex.config.IConfigStoreService;
 import codex.explorer.browser.BrowseMode;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.log.Logger;
 import codex.model.*;
+import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
@@ -18,6 +20,7 @@ import javax.swing.border.*;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.*;
 import java.lang.reflect.InvocationTargetException;
@@ -124,7 +127,17 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 tableModel.addEntity(newEntity);
             }
 
-
+//            @Override
+//            public void childReplaced(INode prevNode, INode nextNode) {
+//                Entity newEntity = (Entity) nextNode;
+//                int index = entity.getIndex(nextNode);
+//                tableModel.removeRow(index);
+//                tableModel.addEntity(newEntity);
+//
+//                int lastRow = tableModel.getRowCount() - 1;
+//                tableModel.moveRow();
+//                        //moveRow(lastRow, lastRow, entity.getIndex(nextNode));
+//            }
         });
         addAncestorListener(new AncestorAdapter() {
             @Override
@@ -277,6 +290,16 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     @Override
     public void childChanged(INode node) {
         activateCommands();
+    }
+
+    public void enableSorting() {
+        if (!entity.allowModifyChild()) {
+            table.setAutoCreateRowSorter(true);
+        }
+    }
+
+    public void setColumnRenderer(int column, TableCellRenderer renderer) {
+        table.getColumnModel().getColumn(column).setCellRenderer(renderer);
     }
 
     class CreateEntity extends EntityCommand<Entity> {
@@ -649,10 +672,10 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public String acquireConfirmation() {
-            return MessageFormat.format(
+            return ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).deleteConfirmRequired() ? MessageFormat.format(
                     Language.get(SelectorPresentation.class, getContext().size() == 1 ? "confirm@del.single" : "confirm@del.range"),
                     Entity.entitiesTable(getContext(), false)
-            );
+            ) : null;
         }
 
         @Override

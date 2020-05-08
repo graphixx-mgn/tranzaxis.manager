@@ -3,8 +3,10 @@ package codex.presentation;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.model.*;
+import codex.type.BigInt;
 import codex.type.Bool;
 import codex.type.IComplexType;
+import codex.type.Int;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -72,7 +74,13 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
 
     @Override
     public Class<?> getColumnClass(int column) {
-        return columnModel.get(column).type == Bool.class ? Bool.class : IComplexType.class;
+        if (columnModel.get(column).type == Bool.class) {
+            return Bool.class;
+        } else if (columnModel.get(column).type == Int.class || columnModel.get(column).type == BigInt.class) {
+            return Long.class;
+        } else {
+            return IComplexType.class;
+        }
     }
 
     @Override

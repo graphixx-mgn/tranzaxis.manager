@@ -36,6 +36,7 @@ public final class SelectorTable extends JTable implements IEditableTable {
 
         GeneralRenderer renderer = new GeneralRenderer<>();
         setDefaultRenderer(Bool.class, renderer);
+        setDefaultRenderer(Long.class, renderer);
         setDefaultRenderer(IComplexType.class, renderer);
         getTableHeader().setDefaultRenderer(renderer);
 

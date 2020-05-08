@@ -11,10 +11,8 @@ import javax.swing.SwingConstants;
  */
 final class TableHeaderRenderer extends JLabel implements ICellRenderer<String> {
 
-    private final static TableHeaderRenderer INSTANCE = new TableHeaderRenderer();
-    
-    public final static TableHeaderRenderer getInstance() {
-        return INSTANCE;
+    public static TableHeaderRenderer newInstance() {
+        return new TableHeaderRenderer();
     }
 
     private TableHeaderRenderer() {
