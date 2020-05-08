@@ -122,6 +122,10 @@ public class Dialog extends JDialog {
     transient Window     parent;
     private final JPanel contentPanel;
     protected Function<DialogButton, ActionListener> handler;
+
+    public Dialog(Window parent, ImageIcon icon, String title, JPanel content, ActionListener close) {
+        this(parent, icon, title, content, close, new DialogButton[] {});
+    }
     
     /**
      * Конструктор диалога с указанием шаблонов кнопок.
@@ -181,7 +185,7 @@ public class Dialog extends JDialog {
         };
 
         this.buttons = buttons;
-        int maxWidth = Arrays.stream(buttons).map((button) -> button.getPreferredSize().width).max(Integer::compareTo).get();
+        int maxWidth = buttons.length == 0 ? 0 : Arrays.stream(buttons).map((button) -> button.getPreferredSize().width).max(Integer::compareTo).get();
         InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = rootPane.getActionMap();
         for (DialogButton button : buttons) {
@@ -189,9 +193,7 @@ public class Dialog extends JDialog {
             buttonPanel.add(button);
 
             // Обрабочик нажатия мыши
-            button.addActionListener((e) -> {
-                handler.apply(button).actionPerformed(new ActionEvent(this, button.getID(), null));
-            });
+            button.addActionListener((e) -> handler.apply(button).actionPerformed(new ActionEvent(this, button.getID(), null)));
             if (button.getKeyCode() != null) {
                 // Обработчики нажатия кнопки клавиатуры
                 inputMap.put(button.getKeyCode(), button.getKeyCode());
@@ -206,7 +208,7 @@ public class Dialog extends JDialog {
         
         // Установка обработчика ESC если нет кнопки
         KeyStroke stroke = KeyStroke.getKeyStroke(Default.BTN_CANCEL.key, 0);
-        if (inputMap.allKeys().length == 0 || !Arrays.asList(inputMap.allKeys()).contains(stroke)) {
+        if (inputMap.allKeys() != null && (inputMap.allKeys().length == 0 || !Arrays.asList(inputMap.allKeys()).contains(stroke))) {
             inputMap.put(stroke, stroke);
             actionMap.put(stroke, new AbstractAction() {
                 @Override
