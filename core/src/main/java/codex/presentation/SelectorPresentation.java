@@ -77,7 +77,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         context = () -> Arrays
                 .stream(table.getSelectedRows())
                 .boxed()
-                .map(tableModel::getEntityForRow)
+                .map(row -> tableModel.getEntityForRow(table.convertRowIndexToModel(row)))
                 .collect(Collectors.toList());
         
         final JScrollPane scrollPane = new JScrollPane();
