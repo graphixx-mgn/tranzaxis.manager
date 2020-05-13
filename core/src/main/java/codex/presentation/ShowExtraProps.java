@@ -174,4 +174,8 @@ class ShowExtraProps extends EntityCommand<Entity> {
         }
     }
 
+    @Override
+    public boolean disableWithContext() {
+        return false;
+    }
 }
