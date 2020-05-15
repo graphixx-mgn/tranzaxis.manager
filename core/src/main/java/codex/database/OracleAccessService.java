@@ -35,6 +35,10 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
     @LoggingSource(debugOption = true)
     @IContext.Definition(id = "DAS.Sql", name = "Preview SQL queries", icon = "/images/command.png", parent = OracleAccessService.class)
     private static class QueryContext implements IContext {}
+
+    @LoggingSource(debugOption = true)
+    @IContext.Definition(id = "DAS.Ucp", name = "Connections pool status", icon = "/images/ucp.png", parent = OracleAccessService.class)
+    private static class UCPContext implements IContext {}
     
     private OracleAccessService() {}
     
@@ -56,8 +60,8 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
                     pds.setPassword(password);
 
                     pds.setInitialPoolSize(1);
-                    pds.setMinPoolSize(1);
-                    pds.setMaxPoolSize(5);
+                    pds.setMinPoolSize(5);
+                    pds.setMaxPoolSize(50);
 
                     urlToIdMap.put(PID, SEQ.incrementAndGet());
                     idToPoolMap.put(SEQ.get(), pds);
@@ -107,6 +111,14 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
                 IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
         );
         Connection connection = idToPoolMap.get(connectionID).getConnection();
+        PoolDataSource dataSource = (PoolDataSource) idToPoolMap.get(connectionID);
+        Logger.getContextLogger(UCPContext.class).debug(
+                "UCP usage state: busy={0}, avail={1}, max={2}",
+                dataSource.getBorrowedConnectionsCount(),
+                dataSource.getAvailableConnectionsCount(),
+                dataSource.getMaxPoolSize()
+        );
+
         connection.setAutoCommit(false);
         Savepoint savepoint = connection.setSavepoint();
 
@@ -141,8 +153,42 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
         }
     }
 
+    @Override
+    public PreparedStatement prepareStatement(Integer connectionID, String query, Object... params) throws SQLException {
+        Logger.getContextLogger(QueryContext.class).debug(
+                "Execute query: {0} (connection #{1})",
+                IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
+        );
+
+        Connection connection = idToPoolMap.get(connectionID).getConnection();
+        PoolDataSource dataSource = (PoolDataSource) idToPoolMap.get(connectionID);
+        Logger.getContextLogger(UCPContext.class).debug(
+                "UCP usage state: busy={0}, avail={1}, max={2}",
+                dataSource.getBorrowedConnectionsCount(),
+                dataSource.getAvailableConnectionsCount(),
+                dataSource.getMaxPoolSize()
+        );
+
+        PreparedStatement statement = connection.prepareStatement(query);
+        if (params != null) {
+            int paramIdx = 0;
+            for (Object param : params) {
+                paramIdx++;
+                statement.setObject(paramIdx, param);
+            }
+        }
+        return statement;
+    }
+
     private RowSet prepareSet(Integer connectionID) throws SQLException {
         Connection connection = idToPoolMap.get(connectionID).getConnection();
+        PoolDataSource dataSource = (PoolDataSource) idToPoolMap.get(connectionID);
+        Logger.getContextLogger(UCPContext.class).debug(
+                "UCP usage state: busy={0}, avail={1}, max={2}",
+                dataSource.getBorrowedConnectionsCount(),
+                dataSource.getAvailableConnectionsCount(),
+                dataSource.getMaxPoolSize()
+        );
         final RowSet rowSet = new OracleJDBCRowSet(connection);
         rowSet.addRowSetListener(new RowSetAdapter() {                
             @Override

@@ -42,6 +42,10 @@ public interface IDatabaseAccessService extends IService {
     }
 
     default void update(Integer connectionID, String query, Object... params) throws SQLException {}
+
+    default PreparedStatement prepareStatement(Integer connectionID, String query, Object... params) throws SQLException {
+        return null;
+    }
     
     @Override
     default String getTitle() {
@@ -54,7 +58,7 @@ public interface IDatabaseAccessService extends IService {
      * @param sql Текст запроса с заместителями (символы "?").
      * @param values Список параметров запроса.
      */
-    public static String prepareTraceSQL(String sql, Object... values) {
+    static String prepareTraceSQL(String sql, Object... values) {
         AtomicInteger index = new AtomicInteger(-1);
         Object[] flattened = flatten(values).toArray();
         String pattern = sql
