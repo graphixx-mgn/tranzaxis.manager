@@ -149,7 +149,11 @@ public final class MessageBox extends Dialog {
             pane.setOpaque(false);
             pane.setContentType("text/html");
             pane.setEditable(false);
-            pane.setText("<html>"+text.replaceAll("\n", "<br>")+"</html>");
+            if (text == null) {
+                pane.setText("");
+            } else {
+                pane.setText("<html>" + text.replaceAll("\n", "<br>") + "</html>");
+            }
             pane.setFont(IEditor.FONT_VALUE.deriveFont((float) (IEditor.FONT_VALUE.getSize()*0.9)));
             pane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
 
