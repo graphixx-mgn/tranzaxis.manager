@@ -180,6 +180,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
             }
         });
 
+        frame.setModalExclusionType(java.awt.Dialog.ModalExclusionType.APPLICATION_EXCLUDE);
         frame.setTitle(Language.get("title"));
         frame.setIconImage(ImageUtils.getByPath("/images/log.png").getImage());
         frame.getContentPane().setLayout(new BorderLayout());
