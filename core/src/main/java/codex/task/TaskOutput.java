@@ -9,6 +9,8 @@ import javax.swing.text.*;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
 import java.awt.*;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.HashMap;
@@ -56,12 +58,13 @@ public class TaskOutput extends JPanel {
                         doc,
                         doc.getLength(),
                         MessageFormat.format(
-                                "<span><font color=\"{0}\">{1}</font></span><br>",
+                                "<span><font color=\"{0}\">{1}</font></span>{2}",
                                 colorCode,
                                 MessageFormat.format(
                                         message.replaceAll(" ", "&nbsp;").replace("\r\n", "<br>"),
                                         params
-                                )
+                                ),
+                                doc.getLength() > 0 ? "<br>" : ""
                         ),
                         0, 0, null
                 );
@@ -85,6 +88,20 @@ public class TaskOutput extends JPanel {
         setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         setBackground(UIManager.getDefaults().getColor("TextPane.background"));
         ((DefaultCaret) getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+
+        getActionMap().put(DefaultEditorKit.copyAction, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Toolkit.getDefaultToolkit()
+                        .getSystemClipboard()
+                        .setContents(
+                                new StringSelection(
+                                        pane.getSelectedText().replaceAll("\\u00a0"," ")
+                                        ),
+                                null
+                        );
+            }
+        });
     }};
 
     private TaskOutput() {
