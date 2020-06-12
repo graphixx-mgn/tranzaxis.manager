@@ -27,7 +27,16 @@ public class TextView extends AbstractEditor<AnyType, Object> {
     public Box createEditor() {
         Font font = new Font("SansSerif", Font.PLAIN, (int) (UIManager.getDefaults().getFont("Label.font").getSize() * 1.1));
 
-        pane = new JTextPane();
+        pane = new JTextPane() {
+            @Override
+            public void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                super.paintComponent(g2);
+            }
+        };
         pane.setForeground(IEditor.COLOR_DISABLED);
         pane.setBackground(Color.decode("#F5F5F5"));
         pane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
