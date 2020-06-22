@@ -22,6 +22,7 @@
         <!-- Plugins -->
         <module>plugin.port.config</module>
         <module>plugin.developer.pack</module>
+        <module>plugin.dbatools.pack</module>
     </modules>
 
     <profiles>
