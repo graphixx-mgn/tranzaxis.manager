@@ -9,8 +9,10 @@ import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
@@ -41,9 +43,25 @@ public class ImageUtils {
 
     public static ImageIcon getByPath(Class callerClass, String path) {
         path = path.replaceFirst("^/", "");
-        URL resource = callerClass.getClassLoader().getResource(path);
-        if (resource != null) {
-            return new ImageIcon(resource);
+        URL classURL = ((URLClassLoader) callerClass.getClassLoader()).getURLs()[0];
+        URL imageURL = null;
+        try {
+            Enumeration<URL> resources = callerClass.getClassLoader().getResources(path);
+            while (resources.hasMoreElements()) {
+                URL nextURL = resources.nextElement();
+                if (nextURL.getFile().contains(classURL.getFile())) {
+                    imageURL = nextURL;
+                    break;
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (imageURL == null) {
+            imageURL = callerClass.getClassLoader().getResource(path);
+        }
+        if (imageURL != null) {
+            return new ImageIcon(imageURL);
         } else {
             Logger.getLogger().error("Image ''{0}'' not found", path);
             return new ImageIcon();
