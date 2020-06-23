@@ -97,7 +97,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
         } catch (SQLException e) {
             Logger.getLogger().error(
                     "Unable to execute query: {0}\nQuery:{1}",
-                    e.getMessage(),
+                    e.getMessage().trim(),
                     IDatabaseAccessService.prepareTraceSQL(query, params)
             );
             throw new SQLException(getCause(e).getMessage().trim());
