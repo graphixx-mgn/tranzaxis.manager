@@ -16,7 +16,7 @@
     <properties>
         <!-- Define author name -->
         <author>I.Gredyaev</author>
-        <build>true</build>
+        <build>false</build>
     </properties>
 
     <dependencies>
