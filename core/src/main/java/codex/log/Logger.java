@@ -16,11 +16,17 @@ import java.io.StringWriter;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class Logger extends org.apache.log4j.Logger {
+
+    // Контексты
+    @LoggingSource()
+    @IContext.Definition(id = "TODO", name = "TODO notification", icon = "/images/lamp.png", parent = LogManagementService.class)
+    private static class TodoContext implements IContext {}
 
     final static ImageIcon DEBUG = ImageUtils.getByPath("/images/debug.png");
     final static ImageIcon INFO  = ImageUtils.getByPath("/images/event.png");
@@ -117,6 +123,11 @@ public class Logger extends org.apache.log4j.Logger {
         return CONTEXT_REGISTRY;
     }
 
+    public static void todo(String message) {
+        Exception exception = new Exception();
+        Logger.getContextLogger(TodoContext.class).warn(MessageFormat.format("{0}\nLocation: {1}", message, exception.getStackTrace()[1]));
+    }
+
     void addAppendListener(IAppendListener listener){
         listeners.add(listener);
     }
@@ -133,6 +144,7 @@ public class Logger extends org.apache.log4j.Logger {
 
     public static boolean contextAllowed(List<Class<? extends IContext>> contexts, Level level) {
         for (Class<? extends IContext> ctx : contexts) {
+            if (CONTEXT_REGISTRY.getContext(ctx) == null) continue;
             if (!contextAllowed(ctx, level)) return false;
         }
         return true;
@@ -272,7 +284,7 @@ public class Logger extends org.apache.log4j.Logger {
             StreamSupport.stream(ClassIndex.getSubclasses(IContext.class).spliterator(),false)
                     .filter(ctxClass -> !(
                             Modifier.isInterface(ctxClass.getModifiers()) ||
-                            Modifier.isAbstract(ctxClass.getModifiers()) ||
+                            Modifier.isAbstract(ctxClass.getModifiers())  ||
                             LogManagementService.class.equals(ctxClass)
                     ))
                     .map(Logger::resolveContextClass)
@@ -280,6 +292,7 @@ public class Logger extends org.apache.log4j.Logger {
                     .forEach(ctxInfo -> CONTEXTS.putIfAbsent(ctxInfo.clazz.getTypeName(), ctxInfo));
             SwingUtilities.invokeLater(() -> CONTEXTS.values().stream()
                     .sorted(Comparator.comparing(ctxInfo -> ctxInfo.clazz.getTypeName()))
+                    .filter(contextInfo -> !contextInfo.getClazz().equals(TodoContext.class))
                     .forEach(ctxInfo -> LMS.getSettings().attachContext(ctxInfo))
             );
         }
