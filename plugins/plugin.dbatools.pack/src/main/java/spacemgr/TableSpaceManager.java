@@ -12,9 +12,8 @@ import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.task.AbstractTask;
 import codex.task.ITaskExecutorService;
-import codex.type.EntityRef;
-import codex.type.IComplexType;
-import codex.type.Str;
+import codex.type.*;
+import codex.type.Enum;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.nodes.Common;
@@ -22,12 +21,13 @@ import manager.nodes.Database;
 import plugin.Pluggable;
 import plugin.command.CommandPlugin;
 import spacemgr.command.objects.TableSpace;
-
+import javax.swing.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
+import java.util.Map;
 
 @Pluggable.PluginOptions(provider = TableSpaceManager.Options.class)
 public class TableSpaceManager extends CommandPlugin<Common> {
@@ -118,40 +118,100 @@ public class TableSpaceManager extends CommandPlugin<Common> {
     }
 
 
-    public class Options extends Pluggable.OptionsProvider {
+    private enum UserStatus implements Iconified {
+        @Enum.Undefined
+        None(null),
+        @Enum.Undefined
+        Warn(ImageUtils.combine(
+                ImageUtils.getByPath("/images/user.png"),
+                ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), 0.6f),
+                SwingConstants.SOUTH_EAST
+        )),
+        @Enum.Undefined
+        Error(ImageUtils.combine(
+                ImageUtils.grayscale(ImageUtils.getByPath("/images/user.png")),
+                ImageUtils.getByPath("/images/unavailable.png")
+        )),
+        Success(ImageUtils.combine(
+                ImageUtils.getByPath("/images/user.png"),
+                ImageUtils.resize(ImageUtils.getByPath("/images/success.png"), 0.6f),
+                SwingConstants.SOUTH_EAST
+        ));
+
+
+        private final ImageIcon icon;
+        private final String pattern;
+        UserStatus(ImageIcon icon) {
+            this.icon = icon;
+            this.pattern = Language.get(TableSpaceManager.class, "status@".concat(name().toLowerCase()));
+        }
+
+        private String getPattern() {
+            return this.pattern;
+        }
+
+        @Override
+        public ImageIcon getIcon() {
+            return this.icon;
+        }
+    }
+
+
+    public static class Options extends Pluggable.OptionsProvider {
 
         static final String OPT_DATABASE = "database";
+        static final String OPT_USERSTAT = "status";
         static final String OPT_USERNAME = "user";
-        static final String OPT_USERPASS = "password";
 
         private final ParamModel model = new ParamModel();
         {
-            model.addProperty(new PropertyHolder<>(OPT_DATABASE, getOptTitle(OPT_DATABASE), null, new EntityRef<>(Database.class), true));
-            model.addProperty(new PropertyHolder<>(OPT_USERNAME, getOptTitle(OPT_USERNAME), null, new Str(null) {
+            model.addProperty(new PropertyHolder<EntityRef<Database>, Database>(
+                    OPT_DATABASE, getOptTitle(OPT_DATABASE), null,
+                    new EntityRef<>(Database.class), true
+            ) {
                 @Override
-                public String getValue() {
-                    Database db = (Database) model.getValue(OPT_DATABASE);
-                    return db == null ? null : db.getDatabaseUser(false);
-                }
-            }, true));
-            model.addProperty(new PropertyHolder<>(OPT_USERPASS, getOptTitle(OPT_USERPASS), null, new Str(null) {
-                @Override
-                public String getValue() {
-                    Database db = (Database) model.getValue(OPT_DATABASE);
-                    return db == null ? null : db.getDatabasePassword(false);
-                }
-            }, true));
-
-            model.addChangeListener((name, oldValue, newValue) -> {
-                if (name.equals(OPT_DATABASE)) {
-                    ((AbstractEditor) model.getEditor(OPT_USERNAME)).updateUI();
-                    ((AbstractEditor) model.getEditor(OPT_USERPASS)).updateUI();
+                public boolean isValid() {
+                    return super.isValid() && model.getProperty(OPT_USERSTAT).isValid();
                 }
             });
-            //noinspection unchecked
-            model.getEditor(OPT_DATABASE).addCommand(new CheckDBA());
-            model.getEditor(OPT_USERNAME).setEditable(false);
-            model.getEditor(OPT_USERPASS).setEditable(false);
+            model.addProperty(new PropertyHolder<>(
+                    OPT_USERSTAT, getOptTitle(OPT_USERSTAT), null,
+                    new Enum<>(UserStatus.None, true), true)
+            );
+            model.addProperty(new PropertyHolder<>(
+                    OPT_USERNAME, getOptTitle(OPT_USERNAME), null,
+                    new AnyType(null) {
+                        @Override
+                        public Object getValue() {
+                            final Database database = (Database) model.getValue(OPT_DATABASE);
+                            return database == null ? null : new Iconified() {
+                                final UserStatus status = (UserStatus) model.getValue(OPT_USERSTAT);
+
+                                @Override
+                                public ImageIcon getIcon() {
+                                    return status.getIcon();
+                                }
+
+                                @Override
+                                public String toString() {
+                                    return MessageFormat.format(
+                                            status.getPattern(),
+                                            database.getDatabaseUser(false)
+                                    );
+                                }
+                            };
+                        }
+                    }, false)
+            );
+
+            model.addChangeListener((name, oldValue, newValue) -> {
+                if (OPT_DATABASE.equals(name)) {
+                    model.setValue(OPT_USERSTAT, getUserStatus());
+                    ((AbstractEditor) model.getEditor(OPT_USERNAME)).updateUI();
+                }
+            });
+            model.setValue(OPT_USERSTAT, getUserStatus());
+            model.getEditor(OPT_USERSTAT).setVisible(false);
         }
 
         @Override
@@ -163,45 +223,28 @@ public class TableSpaceManager extends CommandPlugin<Common> {
             return Language.get(TableSpaceManager.class, optName.concat(PropertyHolder.PROP_NAME_SUFFIX));
         }
 
-
-        private class CheckDBA extends EditorCommand<EntityRef<Database>, Database> {
-
-            private CheckDBA() {
-                super(
-                        ImageUtils.resize(ImageUtils.getByPath("/images/question.png"), 19, 19),
-                        Language.get(TableSpaceManager.class, "check.dba@title"),
-                        PropertyHolder::isValid
-                );
-            }
-
-            @Override
-            public void execute(PropertyHolder<EntityRef<Database>, Database> context) {
-                final String query = Language.get(TableSpaceManager.class, "check.dba@query", Locale.US);
-                try (final ResultSet resultSet = ServiceRegistry.getInstance()
-                            .lookupService(IDatabaseAccessService.class).select(
-                                    context.getPropValue().getValue().getConnectionID(true),
-                                    query
-                            )
-                ) {
-                    if (resultSet.next()) {
-                        if (resultSet.getInt(1) == 1) {
-                            MessageBox.show(
-                                    MessageType.INFORMATION,
-                                    Language.get(TableSpaceManager.class, "check.dba@success")
-                            );
-                        } else {
-                            MessageBox.show(
-                                    MessageType.ERROR,
-                                    Language.get(TableSpaceManager.class, "check.dba@fail")
-                            );
-                        }
-                    }
-                } catch (SQLException e) {
-                    MessageBox.show(MessageType.ERROR, MessageFormat.format(
-                            Language.get(TableSpaceManager.class, "check.dba@error"),
-                            e.getLocalizedMessage()
-                    ));
+        private boolean checkRoleDBA(Database database) throws SQLException {
+            final String query = Language.get(TableSpaceManager.class, "check.dba@query", Locale.US);
+            try (final ResultSet resultSet = ServiceRegistry.getInstance()
+                    .lookupService(IDatabaseAccessService.class).select(
+                            database.getConnectionID(true),
+                            query
+                    )
+            ) {
+                if (resultSet.next()) {
+                    return resultSet.getInt(1) == 1;
                 }
+                return false;
+            }
+        }
+
+        private UserStatus getUserStatus() {
+            Database db = (Database) model.getValue(OPT_DATABASE);
+            if (db == null) return UserStatus.None;
+            try {
+                return checkRoleDBA(db) ? UserStatus.Success : UserStatus.Warn;
+            } catch (SQLException e) {
+                return UserStatus.Error;
             }
         }
     }
