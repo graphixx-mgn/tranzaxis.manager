@@ -55,6 +55,11 @@ public class Offshoot extends BinarySource {
     private final static String PROP_WC_LOADED   = "loaded";
 
     static {
+        CommandRegistry.getInstance().registerCommand(
+                Offshoot.class,
+                FixOffshoot.class,
+                Offshoot::isInvalid
+        );
         CommandRegistry.getInstance().registerCommand(OpenDir.class);
         CommandRegistry.getInstance().registerCommand(RefreshWC.class);
         CommandRegistry.getInstance().registerCommand(UpdateWC.class);
@@ -111,15 +116,6 @@ public class Offshoot extends BinarySource {
     @Override
     protected void remove() {
         ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).executeTask((this).new DeleteOffshoot());
-    }
-
-    @Override
-    protected List<EntityCommand<Entity>> getCommands(Entity entity) {
-        List<EntityCommand<Entity>> commands = super.getCommands(entity);
-        if (((Offshoot) entity).isInvalid()) {
-            commands.add(new FixOffshoot());
-        }
-        return commands;
     }
 
     public final String getVersion() {
@@ -396,7 +392,7 @@ public class Offshoot extends BinarySource {
     }
 
 
-    public static class FixOffshoot extends EntityCommand<Entity> {
+    public static class FixOffshoot extends EntityCommand<Offshoot> {
 
         private final static ImageIcon ICON_MAINTAIN = ImageUtils.getByPath("/images/maintain.png");
         private final static ImageIcon ICON_INFO     = ImageUtils.getByPath("/images/info.png");
@@ -417,11 +413,10 @@ public class Offshoot extends BinarySource {
         }
 
         @Override
-        public void execute(Entity context, Map<String, IComplexType> params) {
-            Offshoot offshoot = (Offshoot) context;
+        public void execute(Offshoot context, Map<String, IComplexType> params) {
             String info = Language.get(
                     Offshoot.class,
-                    offshoot.getID() != null ? "maintain@info.db" : "maintain@info.wc"
+                    context.getID() != null ? "maintain@info.db" : "maintain@info.wc"
             );
             Dialog dialog = new Dialog(
                     Dialog.findNearestWindow(),
@@ -435,9 +430,9 @@ public class Offshoot extends BinarySource {
                     }},
                     event -> {
                         if (event.getID() == CODE_REPAIR) {
-                            repair(offshoot);
+                            repair(context);
                         } else if (event.getID() == CODE_DELETE) {
-                            delete(offshoot);
+                            delete(context);
                         }
                     },
                     new DialogButton(ICON_UPDATE, Language.get(Offshoot.class, "repair@title"), KeyEvent.VK_INSERT, CODE_REPAIR),

@@ -592,13 +592,8 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return getCommands(this);
     }
 
-    @SuppressWarnings("unchecked")
-    protected List<EntityCommand<Entity>> getCommands(Entity entity) {
-        LinkedList<EntityCommand<Entity>> commands = new LinkedList<>();
-        new LinkedList<>(COMMAND_REGISTRY.getRegisteredCommands(entity.getClass())).forEach(entityCommand -> {
-            commands.add((EntityCommand<Entity>) entityCommand);
-        });
-        return commands;
+    <E extends Entity> List<EntityCommand<E>> getCommands(E entity) {
+        return new LinkedList<>(COMMAND_REGISTRY.getRegisteredCommands(entity));
     }
 
     /**

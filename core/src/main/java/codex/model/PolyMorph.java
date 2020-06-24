@@ -53,15 +53,16 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
         }
     }
 
-    private static List<Class<?>> getClassHierarchy(final Class<?> cls) {
+    @SuppressWarnings("unchecked")
+    private static <E extends Entity> List<Class<E>> getClassHierarchy(final Class<E> cls) {
         if (cls == null) {
             return null;
         }
-        final List<Class<?>> classes = new ArrayList<>();
-        Class<?> superclass = cls.getSuperclass();
+        final List<Class<E>> classes = new ArrayList<>();
+        Class<E> superclass = cls;
         while (superclass != null && PolyMorph.class.isAssignableFrom(cls)) {
             classes.add(superclass);
-            superclass = superclass.getSuperclass();
+            superclass = (Class<E>) superclass.getSuperclass();
         }
         Collections.reverse(classes);
         return classes;
@@ -81,7 +82,7 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
                     !EntityModel.SYSPROPS.contains(name) &&
                     !model.isPropertyDynamic(name)
             ) {
-                Map<String, String> parameters = getParameters(true);
+                Map<String, String> parameters = getParameters();
                 String serializedValue = model.getProperty(name).getPropValue().toString();
                 if (!Objects.equals(serializedValue, parameters.get(name))) {
                     parameters.put(name, model.getProperty(name).getPropValue().toString());
@@ -110,11 +111,8 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, String> getParameters(boolean unsaved) {
-        return (Map<String, String>) (unsaved ?
-                model.getUnsavedValue(PROP_IMPL_PARAM) :
-                model.getValue(PROP_IMPL_PARAM)
-        );
+    private Map<String, String> getParameters() {
+        return (Map<String, String>) (model.getUnsavedValue(PROP_IMPL_PARAM));
     }
 
     private void setParameters(Map<String, String> params) {
@@ -124,19 +122,16 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
 
     @Override
     @SuppressWarnings("unchecked")
-    protected final List<EntityCommand<Entity>> getCommands(Entity entity) {
-        return Stream.concat(
-                    getClassHierarchy(getClass()).stream().filter(PolyMorph.class::isAssignableFrom),
-                    Stream.of(getClass())
-               ).map(aClass -> {
-                    LinkedList<EntityCommand<Entity>> commands = new LinkedList<>();
-                    new LinkedList<>(CommandRegistry.getInstance().getRegisteredCommands(aClass.asSubclass(Entity.class))).forEach(entityCommand -> {
-                        commands.add((EntityCommand<Entity>) entityCommand);
-                    });
-                    return commands;
-               })
-               .flatMap(Collection::stream)
-               .collect(Collectors.toList());
+    protected final <E extends Entity> List<EntityCommand<E>> getCommands(E entity) {
+        return Stream
+                .concat(
+                        getClassHierarchy((Class<E>) getClass()).stream().filter(PolyMorph.class::isAssignableFrom),
+                        Stream.empty()
+                )
+                .map(aClass -> CommandRegistry.getInstance().getRegisteredCommands(entity, aClass))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList())
+        ;
     }
 
     private Class<? extends PolyMorph> getImplClass() {
