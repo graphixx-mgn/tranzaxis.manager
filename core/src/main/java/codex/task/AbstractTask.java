@@ -52,6 +52,10 @@ public abstract class AbstractTask<T> implements ITask<T> {
                 } catch (InterruptedException e) {
                     throw new CancelException();
                 }
+                if (isCancelled()) {
+                    // If cancel interrupts IO operation and causes normal task termination
+                    throw new CancelException();
+                }
                 setStatus(Status.FINISHED);
                 finished(result);
                 return result;

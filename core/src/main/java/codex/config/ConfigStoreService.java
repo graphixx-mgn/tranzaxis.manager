@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 import org.sqlite.*;
 import org.sqlite.core.Codes;
 
+import javax.swing.*;
+
 /**
  * Реализация интерфейса сервиса загрузки и сохранения данных модели на базе SQLite.
  */
@@ -102,7 +104,7 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
                     return MessageFormat.format("[{0}]\n", tableInfo.name).concat(tableInfo.toString());
                 }).collect(Collectors.joining("\n\n"))
         );
-        maintainClassDef();
+        SwingUtilities.invokeLater(this::maintainClassDef);
     }
 
     private synchronized void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {

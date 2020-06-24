@@ -31,14 +31,7 @@ public class ImageUtils {
         List<Class> stack = Caller.getInstance().getClassStack().stream()
                 .filter(aClass -> aClass != ImageUtils.class)
                 .collect(Collectors.toList());
-        URL resource = stack.get(0).getClassLoader().getResource(path);
-        if (resource != null) {
-            return new ImageIcon(resource);
-        } else {
-            Error err = new Error(MessageFormat.format("Image ''{0}'' not found", path));
-            Logger.getLogger().warn(err.getMessage(), err);
-        }
-        return new ImageIcon();
+        return getByPath(stack.get(0), path);
     }
 
     public static ImageIcon getByPath(Class callerClass, String path) {
