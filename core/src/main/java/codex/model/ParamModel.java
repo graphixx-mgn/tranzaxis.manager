@@ -21,9 +21,7 @@ public final class ParamModel extends AbstractModel implements IPropertyChangeLi
         boolean isValid = true;
         for (String propName : getProperties(Access.Any)) {
             boolean propValid = getProperty(propName).isValid();
-            if (!propValid) {
-                getEditor(propName).setBorder(IEditor.BORDER_ERROR);
-            }
+            getEditor(propName).setBorder(propValid ? IEditor.BORDER_NORMAL : IEditor.BORDER_ERROR);
             isValid = isValid & propValid;
         }
         return isValid;
