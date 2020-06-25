@@ -21,7 +21,7 @@ public class ValueProvider<V> extends EditorCommand<IComplexType<V, IMask<V>>, V
      */
     public ValueProvider(DataSelector<?, V> selector) {
         super(
-            ImageUtils.resize(ImageUtils.getByPath("/images/selector.png"), 18, 18),
+            ImageUtils.getByPath("/images/selector.png"),
             null,
             (holder) -> selector.getSupplier().ready()
         );

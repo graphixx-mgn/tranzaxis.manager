@@ -149,7 +149,7 @@ public class ResizeDataFile extends EntityCommand<TableSpace> {
 
         private CopyValue() {
             super(
-                    ImageUtils.resize(ImageUtils.getByPath("/images/paste.png"), 18, 18),
+                    ImageUtils.getByPath("/images/paste.png"),
                     Language.get(ResizeDataFile.class, "command.copy@title"),
                     holder -> !holder.isEmpty()
             );

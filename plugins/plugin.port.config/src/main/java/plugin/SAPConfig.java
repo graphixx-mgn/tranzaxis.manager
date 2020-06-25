@@ -174,7 +174,7 @@ public class SAPConfig extends CommandPlugin<Environment> {
 
         SetHost() {
             super(
-                    ImageUtils.resize(ImageUtils.getByPath("/images/submit.png"), 20, 20),
+                    ImageUtils.getByPath("/images/submit.png"),
                     Language.get(SAPConfig.class, "host@apply"),
                     propertyHolder -> propertyHolder.getOwnPropValue().getValue() != null
             );

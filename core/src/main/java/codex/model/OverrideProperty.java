@@ -23,8 +23,8 @@ import javax.swing.ImageIcon;
  */
 public final class OverrideProperty extends EditorCommand<IComplexType<Object, IMask<Object>>, Object> {
     
-    private static final ImageIcon OVERRIDE = ImageUtils.resize(ImageUtils.getByPath("/images/override.png"), 18, 18);
-    private static final ImageIcon INHERIT  = ImageUtils.resize(ImageUtils.getByPath("/images/inherit.png"), 18, 18);
+    private static final ImageIcon OVERRIDE = ImageUtils.getByPath("/images/override.png");
+    private static final ImageIcon INHERIT  = ImageUtils.getByPath("/images/inherit.png");
     
     private Consumer<PropertyHolder> updater;
 

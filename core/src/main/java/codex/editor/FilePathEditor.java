@@ -76,7 +76,7 @@ public class FilePathEditor extends AbstractEditor<FilePath, Path> {
     private class PathSelector extends EditorCommand<FilePath, Path> {
 
         private PathSelector() {
-            super(ImageUtils.resize(ICON, 18, 18), Language.get("title"));
+            super(ICON, Language.get("title"));
         }
 
         @Override

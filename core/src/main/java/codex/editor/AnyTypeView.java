@@ -57,7 +57,7 @@ public class AnyTypeView extends AbstractEditor<AnyType, Object> {
     public void setValue(Object value) {
         textField.setText(value == null ? "" : value.toString());
         if (value != null && Iconified.class.isAssignableFrom(value.getClass())) {
-            iconLabel.setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 18, 18));
+            iconLabel.setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 20, 20));
             iconLabel.setVisible(true);
         } else {
             iconLabel.setIcon(null);

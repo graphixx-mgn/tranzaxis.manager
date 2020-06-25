@@ -31,8 +31,8 @@ import java.util.List;
  */
 public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
     
-    private static final ImageIcon EDIT_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 18, 18);
-    private static final ImageIcon VIEW_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/view.png"), 18, 18);
+    private static final ImageIcon EDIT_ICON = ImageUtils.getByPath("/images/edit.png");
+    private static final ImageIcon VIEW_ICON = ImageUtils.getByPath("/images/view.png");
     private static final Dimension SIZE = new Dimension(350, 400);
     
     private JTextField   textField;

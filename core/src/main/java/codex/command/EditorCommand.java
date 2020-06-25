@@ -3,6 +3,7 @@ package codex.command;
 import codex.mask.IMask;
 import codex.property.PropertyHolder;
 import codex.type.IComplexType;
+import codex.utils.ImageUtils;
 import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import java.util.LinkedList;
@@ -60,7 +61,7 @@ public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>
         if (icon == null) {
             throw new IllegalStateException("Parameter 'icon' can not be NULL");
         }
-        this.icon      = icon;
+        this.icon      = ImageUtils.resize(icon, 20, 20);
         this.hint      = hint;
         this.available = available;
     }

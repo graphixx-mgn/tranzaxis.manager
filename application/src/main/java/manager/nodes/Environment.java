@@ -33,9 +33,9 @@ import manager.type.SourceType;
 
 public class Environment extends Entity implements INodeListener {
 
-    private final static ImageIcon UNKNOWN   = ImageUtils.resize(ImageUtils.getByPath("/images/unavailable.png"), 20, 20);
-    private final static ImageIcon CHECKED   = ImageUtils.resize(ImageUtils.getByPath("/images/update.png"), 20, 20);
-    private final static ImageIcon UNCHECKED = ImageUtils.resize(ImageUtils.combine(CHECKED, UNKNOWN), 20, 20);
+    private final static ImageIcon UNKNOWN   = ImageUtils.getByPath("/images/unavailable.png");
+    private final static ImageIcon CHECKED   = ImageUtils.getByPath("/images/update.png");
+    private final static ImageIcon UNCHECKED = ImageUtils.combine(CHECKED, UNKNOWN);
 
     static {
         CommandRegistry.getInstance().registerCommand(RunAll.class);
@@ -397,14 +397,17 @@ public class Environment extends Entity implements INodeListener {
         return (String) model.getValue(PROP_USER_NOTE);
     }
 
+    @SuppressWarnings("unchecked")
     public final List<String> getStarterFlags(boolean unsaved) {
         return (List<String>) (unsaved ? model.getUnsavedValue(PROP_STARTER_OPTS) : model.getValue(PROP_STARTER_OPTS));
     }
 
+    @SuppressWarnings("unchecked")
     public final List<String> getServerFlags(boolean unsaved) {
         return (List<String>) (unsaved ? model.getUnsavedValue(PROP_SERVER_OPTS) : model.getValue(PROP_SERVER_OPTS));
     }
 
+    @SuppressWarnings("unchecked")
     public final List<String> getExplorerFlags(boolean unsaved) {
         return (List<String>) (unsaved ? model.getUnsavedValue(PROP_EXPLORER_OPTS) : model.getValue(PROP_EXPLORER_OPTS));
     }

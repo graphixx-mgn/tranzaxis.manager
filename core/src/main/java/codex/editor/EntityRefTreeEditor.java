@@ -175,7 +175,7 @@ public class EntityRefTreeEditor extends AbstractEditor<EntityRef<Entity>, Entit
     private class EntitySelector extends EditorCommand<EntityRef<Entity>, Entity> {
 
         private EntitySelector() {
-            super(ImageUtils.resize(ImageUtils.getByPath("/images/hierachy.png"), 18, 18), Language.get("title"));
+            super(ImageUtils.getByPath("/images/hierachy.png"), Language.get("title"));
         }
 
         @Override

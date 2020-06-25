@@ -34,8 +34,8 @@ import java.util.function.Function;
 
 public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, V>> {
 
-    private static final ImageIcon  EDIT_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/edit.png"), 18, 18);
-    private static final ImageIcon  VIEW_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/view.png"), 18, 18);
+    private static final ImageIcon  EDIT_ICON = ImageUtils.getByPath("/images/edit.png");
+    private static final ImageIcon  VIEW_ICON = ImageUtils.getByPath("/images/view.png");
     private static final ImageIcon   ADD_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 26, 26);
     private static final ImageIcon   DEL_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 26, 26);
     private static final ImageIcon CLEAR_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/remove.png"), 26, 26);

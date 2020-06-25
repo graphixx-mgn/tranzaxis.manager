@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 
 class ShowExtraProps extends EntityCommand<Entity> {
 
-    private final static ImageIcon IMAGE_WARN = ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), 20, 20);
+    private final static ImageIcon IMAGE_WARN = ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), .7f);
 
     ShowExtraProps() {
         super(

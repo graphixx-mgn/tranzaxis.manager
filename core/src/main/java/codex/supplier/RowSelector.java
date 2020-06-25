@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 
 public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R> implements AdjustmentListener {
 
-    private static final ImageIcon ICON_FILTER   = ImageUtils.resize(ImageUtils.getByPath("/images/filter.png"), 20, 20);
+    private static final ImageIcon ICON_FILTER   = ImageUtils.getByPath("/images/filter.png");
     private static final ImageIcon ICON_SELECTOR = ImageUtils.getByPath("/images/selector.png");
     private static final ImageIcon ICON_SEARCH   = ImageUtils.getByPath("/images/search.png");
     private static final ImageIcon ICON_REVERT   = ImageUtils.getByPath("/images/undo.png");
@@ -396,7 +396,7 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
 
         private BackToInitial() {
             super(
-                    ImageUtils.resize(ICON_REVERT, 18, 18),
+                    ICON_REVERT,
                     null,
                     holder -> initialSelectedRow != TableModelEvent.HEADER_ROW
             );
@@ -413,7 +413,7 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
     private class ApplyFilter extends EditorCommand<Str, String> {
 
         ApplyFilter() {
-            super(ImageUtils.resize(ICON_SEARCH, 18, 18), null);
+            super(ICON_SEARCH, null);
         }
 
         private void applyFilter(String lookupValue) {

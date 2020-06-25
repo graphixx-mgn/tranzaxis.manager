@@ -136,7 +136,7 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
     private class CurrentTime extends EditorCommand<DateTime, Date> {
 
         private CurrentTime() {
-            super(ImageUtils.resize(CURR, 18, 18), null);
+            super(CURR, null);
         }
 
         @Override
@@ -226,7 +226,7 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
         }};
 
         private TimePicker() {
-            super(ImageUtils.resize(PICK, 18, 18), null);
+            super(PICK, null);
             now.addActionListener(new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent e) {

@@ -29,7 +29,7 @@ import java.util.stream.StreamSupport;
 @EntityDefinition(icon = "/images/lamp.png")
 public final class LoggerServiceOptions extends Service<LogManagementService> {
 
-    private final static ImageIcon LIMIT = ImageUtils.resize(ImageUtils.getByPath("/images/limit.png"), 20, 20);
+    private final static ImageIcon LIMIT = ImageUtils.getByPath("/images/limit.png");
     final static Integer STORE_DAYS = 15;
 
     final static String PROP_DB_FILE = "dbFile";
