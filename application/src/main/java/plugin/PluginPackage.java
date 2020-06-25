@@ -1,16 +1,18 @@
 package plugin;
 
-import codex.log.Logger;
 import manager.xml.VersionsDocument;
 import org.apache.xmlbeans.XmlException;
 import org.atteo.classindex.ClassIndex;
+import javax.xml.bind.DatatypeConverter;
 import java.io.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
-import java.nio.file.Path;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.jar.Attributes;
@@ -18,7 +20,7 @@ import java.util.jar.JarInputStream;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public final class PluginPackage implements Closeable {
+public final class PluginPackage {
 
     private final static String VERSION_RESOURCE = "version.xml";
 
@@ -40,9 +42,7 @@ public final class PluginPackage implements Closeable {
     static final Comparator<PluginPackage> PKG_COMPARATOR = (pkg1, pkg2) -> VER_COMPARATOR.compare(pkg1.version, pkg2.version);
 
     static Attributes getAttributes(File jarFile) throws IOException {
-        try (
-                JarInputStream jarStream = new JarInputStream(new FileInputStream(jarFile))
-        ) {
+        try (JarInputStream jarStream = new JarInputStream(new FileInputStream(jarFile))) {
             if (jarStream.getManifest() == null) {
                 throw new IOException();
             }
@@ -50,29 +50,35 @@ public final class PluginPackage implements Closeable {
         }
     }
 
-    final Path jarFilePath;
-    private final URLClassLoader       classLoader;
-    private final List<PluginHandler>  pluginList;
-    private final String vendor, title, version, author;
+    private final String  vendor, title, version, author;
     private final Boolean build;
+    private final URLConnection connection;
+    private VersionsDocument versionInfo;
+
+    private final List<PluginHandler<? extends IPlugin>> plugins;
 
     PluginPackage(File jarFile) throws IOException {
-        this.jarFilePath = jarFile.toPath();
+        connection = jarFile.toURI().toURL().openConnection();
+        connection.setUseCaches(false);
+        connection.setDefaultUseCaches(false);
 
         Attributes attributes = getAttributes(jarFile);
-        vendor  = attributes.getValue(Attributes.Name.IMPLEMENTATION_VENDOR_ID);
-        title   = attributes.getValue(Attributes.Name.IMPLEMENTATION_TITLE);
-        version = attributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION);
-        author  = attributes.getValue("Built-By");
-        build   = attributes.getValue("Build").equals("true");
+        vendor   = attributes.getValue(Attributes.Name.IMPLEMENTATION_VENDOR);
+        title    = attributes.getValue(Attributes.Name.IMPLEMENTATION_TITLE);
+        version  = attributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION);
+        author   = attributes.getValue("Built-By");
+        build    = attributes.getValue("Build").equals("true");
+        plugins  = loadPlugins();
 
-        URLConnection conn = jarFile.toURI().toURL().openConnection();
-        conn.setUseCaches(false);
-        conn.setDefaultUseCaches(false);
-
-        classLoader = new URLClassLoader(new URL[]{ conn.getURL() });
-        pluginList = loadPlugins(conn.getURL());
-        getChanges();
+        try {
+            try (URLClassLoader jarLoader = new URLClassLoader(new URL[]{ connection.getURL() }, null)) {
+                if (jarLoader.getResource(VERSION_RESOURCE) != null) {
+                    versionInfo = VersionsDocument.Factory.parse(jarLoader.getResourceAsStream(VERSION_RESOURCE));
+                }
+            }
+        } catch (XmlException | IOException e) {
+            versionInfo = null;
+        }
     }
 
     String getId() {
@@ -95,55 +101,52 @@ public final class PluginPackage implements Closeable {
         return author;
     }
 
-    Boolean isBuild() {
+    Boolean inDevelopment() {
         return build;
     }
 
     VersionsDocument getChanges() {
-        try {
-            URLConnection conn = jarFilePath.toFile().toURI().toURL().openConnection();
-            conn.setUseCaches(false);
-            conn.setDefaultUseCaches(false);
-            try (URLClassLoader jarLoader = new URLClassLoader(new URL[]{ conn.getURL() }, null)) {
-                if (jarLoader.getResource(VERSION_RESOURCE) != null) {
-                    return VersionsDocument.Factory.parse(jarLoader.getResourceAsStream(VERSION_RESOURCE));
-                }
-            }
-        } catch (XmlException | IOException e) {
-            //
+        return versionInfo;
+    }
+
+    String getCheckSum() throws Exception {
+        byte[] b = Files.readAllBytes(Paths.get(getUrl().toURI()));
+        byte[] hash = MessageDigest.getInstance("MD5").digest(b);
+        return DatatypeConverter.printHexBinary(hash);
+    }
+
+    private List<PluginHandler<? extends IPlugin>> loadPlugins() throws IOException {
+        try (URLClassLoader fileLoader = new URLClassLoader(new URL[]{ connection.getURL() }, null)) {
+            return StreamSupport.stream(ClassIndex.getAnnotatedNames(Pluggable.class, fileLoader).spliterator(), false)
+                    .map(className -> {
+                        try {
+                            PluginClassLoader pluginLoader = new PluginClassLoader(new URL[]{ connection.getURL() }, className);
+                            Class<?> pluginClass = pluginLoader.loadClass(className);
+                            Class<? extends PluginHandler> pluginHandlerClass = pluginClass.getAnnotation(Pluggable.class).pluginHandlerClass();
+                            Constructor<? extends PluginHandler> handlerConstructor = pluginHandlerClass.getDeclaredConstructor(Class.class);
+                            handlerConstructor.setAccessible(true);
+                            return (PluginHandler<? extends IPlugin>) handlerConstructor.newInstance(pluginClass);
+                        } catch (
+                                ClassNotFoundException |
+                                IllegalAccessException |
+                                InstantiationException |
+                                NoSuchMethodException  |
+                                InvocationTargetException e
+                        ) {
+                            e.printStackTrace();
+                            return null;
+                        }
+                    })
+                    .collect(Collectors.toList());
         }
-        return null;
     }
 
-    List<PluginHandler> getPlugins() {
-        return pluginList;
+    List<PluginHandler<? extends IPlugin>> getPlugins() {
+        return new LinkedList<>(plugins);
     }
 
-    int size() {
-        return pluginList.size();
-    }
-
-    private List<PluginHandler> loadPlugins(URL url) {
-        return StreamSupport.stream(ClassIndex.getAnnotatedNames(Pluggable.class, new URLClassLoader(new URL[]{ url }, null)).spliterator(), false)
-                .map(className -> {
-                    try {
-                        Class<?> pluginClass = classLoader.loadClass(className);
-                        Class<? extends PluginHandler> pluginHandlerClass = pluginClass.getAnnotation(Pluggable.class).pluginHandlerClass();
-                        Constructor<? extends PluginHandler> handlerConstructor = pluginHandlerClass.getDeclaredConstructor(Class.class);
-                        handlerConstructor.setAccessible(true);
-                        return handlerConstructor.newInstance(pluginClass);
-                    } catch (
-                            ClassNotFoundException  |
-                            IllegalAccessException  |
-                            InstantiationException  |
-                            NoSuchMethodException   |
-                            InvocationTargetException e
-                    ) {
-                        Logger.getLogger().error("Error", e);
-                        throw new RuntimeException(e);
-                    }
-                })
-                .collect(Collectors.toList());
+    URL getUrl() {
+        return connection.getURL();
     }
 
     @Override
@@ -162,11 +165,6 @@ public final class PluginPackage implements Closeable {
     @Override
     public String toString() {
         return MessageFormat.format("{0}.{1}-{2}", vendor, title, version);
-    }
-
-    @Override
-    public void close() throws IOException {
-        classLoader.close();
     }
 
 }
