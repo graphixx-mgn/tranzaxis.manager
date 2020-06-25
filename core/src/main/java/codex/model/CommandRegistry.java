@@ -121,7 +121,7 @@ public final class CommandRegistry {
     }
 
     @SuppressWarnings("unchecked")
-    private static <E extends Entity> Class<E> getCommandEntityClass(Class<? extends EntityCommand<E>> commandClass) {
+    private synchronized static <E extends Entity> Class<E> getCommandEntityClass(Class<? extends EntityCommand<E>> commandClass) {
         try {
             return (Class<E>) ((ParameterizedType) commandClass.getGenericSuperclass()).getActualTypeArguments()[0];
         } catch (ClassCastException e) {
@@ -129,7 +129,7 @@ public final class CommandRegistry {
         }
     }
 
-    private static <E extends Entity> EntityCommand<E> getCommandInstance(Class<? extends EntityCommand<E>> commandClass) {
+    private synchronized static <E extends Entity> EntityCommand<E> getCommandInstance(Class<? extends EntityCommand<E>> commandClass) {
         if (commandClass.isMemberClass() && !Modifier.isStatic(commandClass.getModifiers())) {
             Logger.getLogger().warn("In is not possible to register non-static inner command class [{0}]", commandClass);
             return null;
