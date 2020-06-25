@@ -2,8 +2,6 @@ package plugin;
 
 import codex.command.EditorCommand;
 import codex.editor.AnyTypeView;
-import codex.editor.IEditor;
-import codex.editor.IEditorFactory;
 import codex.model.Access;
 import codex.model.Catalog;
 import codex.model.CommandRegistry;
@@ -18,8 +16,6 @@ import manager.upgrade.UpgradeService;
 import manager.xml.Version;
 import manager.xml.VersionsDocument;
 import javax.swing.*;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -27,6 +23,7 @@ import java.util.List;
 
 class RemotePackageView extends Catalog {
 
+    private final static ImageIcon ICON_SOURCE = ImageUtils.getByPath("/images/localhost.png");
     private final static ImageIcon ICON_CREATE = ImageUtils.getByPath("/images/plus.png");
     private final static ImageIcon ICON_UPDATE = ImageUtils.getByPath("/images/up.png");
     private final static ImageIcon ICON_INFO   = ImageUtils.getByPath("/images/info.png");
@@ -34,63 +31,19 @@ class RemotePackageView extends Catalog {
         CommandRegistry.getInstance().registerCommand(DownloadPackages.class);
     }
 
-    final static String PROP_VERSION = "version";
-    final static String PROP_UPGRADE = "upgrade";
-    final static String PROP_AUTHOR  = "author";
+    private final static String PROP_VERSION = "version";
+    private final static String PROP_UPGRADE = "upgrade";
+    private final static String PROP_AUTHOR  = "author";
+    private final static String PROP_SOURCES = "sources";
 
     PluginLoaderService.RemotePackage remotePackage;
 
     RemotePackageView(PluginLoaderService.RemotePackage remotePackage) {
         this(null, remotePackage.getTitle());
         this.remotePackage = remotePackage;
-        setIcon(remotePackage.getIcon());
+        setIcon(PackageView.PACKAGE);
 
-        if (remotePackage.getPlugins().size() == 1) {
-            IPluginLoaderService.RemotePlugin remotePlugin = remotePackage.getPlugins().get(0);
-
-            remotePlugin.getProperties().stream()
-                    .filter(propPresentation -> propPresentation.getAccess().equals(Access.Select))
-                    .forEach(propPresentation -> {
-                        String propName = propPresentation.getName();
-                        model.addDynamicProp(
-                                propName,
-                                new AnyType() {
-                                    @Override
-                                    public IEditorFactory editorFactory() {
-                                        return propHolder -> {
-                                            try {
-                                                Constructor<? extends IEditor> ctor = propPresentation.getEditor().getConstructor(PropertyHolder.class);
-                                                return ctor.newInstance(propHolder);
-                                            } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-                                                e.printStackTrace();
-                                                return new AnyTypeView(propHolder);
-                                            }
-                                        };
-                                    }
-                                }, Access.Select, () -> new Iconified() {
-                                    @Override
-                                    public ImageIcon getIcon() {
-                                        return propPresentation.getIcon();
-                                    }
-
-                                    @Override
-                                    public String toString() {
-                                        return propPresentation.getValue();
-                                    }
-                                });
-                        String propTitle = Language.get(
-                                propName.equals(Plugin.PROP_TYPE) ? Plugin.class : remotePlugin.getHandlerClass(),
-                                propName+PropertyHolder.PROP_NAME_SUFFIX
-                        );
-                        String propDesc = Language.get(
-                                propName.equals(Plugin.PROP_TYPE) ? Plugin.class : remotePlugin.getHandlerClass(),
-                                propName+PropertyHolder.PROP_DESC_SUFFIX
-                        );
-                        PackageView.changePropertyNaming(model.getProperty(propName), propTitle, propDesc);
-                    });
-        } else {
-            remotePackage.getPlugins().forEach(remotePlugin -> attach(new RemotePluginView(remotePlugin)));
-        }
+        remotePackage.getPlugins().forEach(remotePlugin -> attach(new RemotePluginView(remotePlugin)));
         ((AnyTypeView) model.getEditor("version")).addCommand(new ShowChanges());
     }
 
@@ -117,7 +70,21 @@ class RemotePackageView extends Catalog {
                 }
             };
         });
-        model.addDynamicProp(PROP_AUTHOR,  new AnyType(), null, () -> remotePackage.getAuthor());
+        model.addDynamicProp(PROP_SOURCES, new AnyType(), Access.Edit, () -> new Iconified() {
+            @Override
+            public ImageIcon getIcon() {
+                return ICON_SOURCE;
+            }
+
+            @Override
+            public String toString() {
+                return MessageFormat.format(
+                        Language.get(RemotePackageView.class, "sources.desc"),
+                        remotePackage.getInstances().size()
+                );
+            }
+        });
+        model.addDynamicProp(PROP_AUTHOR,  new AnyType(), Access.Select, () -> remotePackage.getAuthor());
     }
 
     @Override
@@ -131,27 +98,7 @@ class RemotePackageView extends Catalog {
     }
 
     void refreshUpgradeInfo() {
-        model.setValue(PROP_UPGRADE, model.calculateDynamicValue(PROP_UPGRADE));
-    }
-
-    private static List<Version> getChanges(PluginLoaderService.RemotePackage remotePackage) {
-        List<Version> changes = new LinkedList<>();
-        final PluginPackage localPackage = PluginManager.getInstance().getPluginLoader().getPackageById(remotePackage.getId());
-        if (localPackage != null) {
-            VersionsDocument remotePkgVersions = remotePackage.getChanges();
-            if (remotePkgVersions != null) {
-                Version localVersion = Version.Factory.newInstance();
-                localVersion.setNumber(localPackage.getVersion());
-                for (Version remoteVersion : remotePackage.getChanges().getVersions().getVersionArray()) {
-                    if (UpgradeService.VER_COMPARATOR.compare(remoteVersion, localVersion) > 0) {
-                        changes.add(remoteVersion);
-                    }
-                }
-            }
-        } else {
-            changes.addAll(Arrays.asList(remotePackage.getChanges().getVersions().getVersionArray()));
-        }
-        return changes;
+        model.updateDynamicProps(PROP_SOURCES, PROP_UPGRADE);
     }
 
 
@@ -166,7 +113,23 @@ class RemotePackageView extends Catalog {
 
         @Override
         public void execute(PropertyHolder<AnyType, Object> context) {
-            PluginManager.showVersionInfo(getChanges(remotePackage));
+            List<Version> changes = new LinkedList<>();
+            final PluginPackage localPackage = PluginManager.getInstance().getPluginLoader().getPackageById(remotePackage.getId());
+            if (localPackage != null) {
+                VersionsDocument remotePkgVersions = remotePackage.getChanges();
+                if (remotePkgVersions != null) {
+                    Version localVersion = Version.Factory.newInstance();
+                    localVersion.setNumber(localPackage.getVersion());
+                    for (Version remoteVersion : remotePackage.getChanges().getVersions().getVersionArray()) {
+                        if (UpgradeService.VER_COMPARATOR.compare(remoteVersion, localVersion) > 0) {
+                            changes.add(remoteVersion);
+                        }
+                    }
+                }
+            } else {
+                changes.addAll(Arrays.asList(remotePackage.getChanges().getVersions().getVersionArray()));
+            }
+            PluginManager.showVersionInfo(changes);
         }
 
         @Override
