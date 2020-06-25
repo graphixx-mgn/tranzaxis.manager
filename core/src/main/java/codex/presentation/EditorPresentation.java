@@ -172,7 +172,7 @@ public final class EditorPresentation extends JPanel {
                     new JPanel(new BorderLayout()) {{
                         add(context.getEditorPage(), BorderLayout.NORTH);
 
-                        if (ICatalog.class.isAssignableFrom(context.getClass()) && context.getChildCount() > 0) {
+                        if (context.getChildCount() > 0) {
                             SelectorPresentation embedded = context.getSelectorPresentation();
                             if (embedded != null) {
                                 add(context.getSelectorPresentation(), BorderLayout.CENTER);
