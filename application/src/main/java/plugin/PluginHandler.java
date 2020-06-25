@@ -1,40 +1,100 @@
 package plugin;
 
+import codex.context.IContext;
+import codex.context.RootContext;
+import codex.log.Logger;
 import codex.type.Iconified;
-import java.util.LinkedList;
-import java.util.List;
+import codex.utils.ImageUtils;
+import codex.utils.Language;
+import org.atteo.classindex.ClassIndex;
+import javax.swing.*;
+import java.util.*;
+import java.util.function.Supplier;
 
 public abstract class PluginHandler<P extends IPlugin> implements Iconified {
 
-    private   final List<IHandlerListener> listeners = new LinkedList<>();
-    protected final Class<P> pluginClass;
+    final Class<P>  pluginClass;
+    private final Plugin<P> pluginConfig;
+
+    private static <P extends IPlugin>  List<Class<? extends IContext>> getContexts(Class<P> pluginClass) {
+        List<Class<? extends IContext>> contexts = new LinkedList<>();
+        contexts.add(pluginClass);
+        ClassIndex.getSubclasses(IContext.class, pluginClass.getClassLoader()).forEach(subContext -> {
+            Class<? extends IContext> parentCtx = subContext;
+            while (true) {
+                IContext.Definition ctxDef = parentCtx.getAnnotation(IContext.Definition.class);
+                if (ctxDef == null || ctxDef.parent() == RootContext.class) break;
+                if (ctxDef.parent() == pluginClass) {
+                    contexts.add(subContext);
+                    break;
+                }
+                parentCtx = ctxDef.parent();
+            }
+        });
+        return contexts;
+    }
 
     protected PluginHandler(Class<P> pluginClass) {
         this.pluginClass = pluginClass;
+        pluginConfig     = new Plugin<>(this);
     }
 
-    protected abstract Plugin    getView();
+    Plugin<P> getView() {
+        return pluginConfig;
+    }
+
+    public Class<P> getPluginClass() {
+        return pluginClass;
+    }
+
     protected abstract String    getTitle();
-    protected abstract String    getDescription();
-    protected abstract Iconified getTypeDefinition();
-
-    synchronized void addHandlerListener(IHandlerListener listener) {
-        listeners.add(listener);
+    protected abstract Iconified getDescription();
+    protected Map<String, Supplier<Iconified>> getTypeDefinition() {
+        return Collections.emptyMap();
     }
 
-    synchronized void removeHandlerListener(IHandlerListener listener) {
-        listeners.remove(listener);
+    protected boolean loadPlugin() throws PluginException {
+        getContexts(pluginClass).forEach(aClass -> Logger.getContextRegistry().registerContext(aClass));
+        return true;
     }
 
-    protected void loadPlugin() throws PluginException {
-        new LinkedList<>(listeners).forEach(listener -> listener.pluginLoaded(this));
-    }
-    protected void unloadPlugin() throws PluginException {
-        new LinkedList<>(listeners).forEach(listener -> listener.pluginUnloaded(this));
+    protected boolean unloadPlugin() throws PluginException {
+        getContexts(pluginClass).forEach(aClass -> Logger.getContextRegistry().unregisterContext(aClass));
+        return true;
     }
 
-    interface IHandlerListener {
-        void pluginLoaded(PluginHandler handler);
-        void pluginUnloaded(PluginHandler handler);
+    protected boolean reloadPlugin(PluginHandler<P> pluginHandler) throws PluginException {
+        try {
+            if (unloadPlugin()) {
+                pluginHandler.loadPlugin();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new PluginException(e.getMessage());
+        }
+        return true;
+    }
+
+    @Override
+    public final ImageIcon getIcon() {
+        return ImageUtils.getByPath(pluginClass, Language.get(pluginClass, "icon"));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PluginHandler<?> that = (PluginHandler<?>) o;
+        return pluginClass.getTypeName().equals(that.pluginClass.getTypeName());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(pluginClass.getTypeName());
+    }
+
+    @Override
+    public final String toString() {
+        return Language.get(pluginClass, "title");
     }
 }
