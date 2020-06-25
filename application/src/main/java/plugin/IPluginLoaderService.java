@@ -1,11 +1,14 @@
 package plugin;
 
+import codex.editor.AnyTypeView;
 import codex.editor.IEditor;
 import codex.instance.Instance;
 import codex.model.Access;
 import codex.model.EntityModel;
 import codex.service.IRemoteService;
 import codex.type.Iconified;
+import codex.utils.ImageUtils;
+import codex.utils.Language;
 import manager.upgrade.stream.RemoteInputStream;
 import manager.xml.VersionsDocument;
 import javax.swing.*;
@@ -14,7 +17,6 @@ import java.rmi.RemoteException;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public interface IPluginLoaderService extends IRemoteService {
 
@@ -47,7 +49,7 @@ public interface IPluginLoaderService extends IRemoteService {
             version = pluginPackage.getVersion();
             changes = pluginPackage.getChanges();
             author  = pluginPackage.getAuthor();
-            icon    = pluginPackage.getPlugins().size() == 1 ? pluginPackage.getPlugins().get(0).getTypeDefinition().getIcon() : PackageView.PACKAGE;
+            icon    = PackageView.PACKAGE;
 
             plugins.addAll(pluginPackage.getPlugins().stream()
                     .map(RemotePlugin::new)
@@ -129,18 +131,12 @@ public interface IPluginLoaderService extends IRemoteService {
         private final Class<? extends PluginHandler> handlerClass;
         private final List<PropertyPresentation> properties = new LinkedList<>();
 
-        RemotePlugin(PluginHandler pluginHandler) {
+        RemotePlugin(PluginHandler<? extends IPlugin> pluginHandler) {
             handlerClass = pluginHandler.getClass();
             pluginId     = Plugin.getId(pluginHandler);
 
-            final EntityModel pluginModel = pluginHandler.getView().model;
-            Stream.concat(
-                    pluginModel.getProperties(Access.Edit).stream(),
-                    pluginModel.getProperties(Access.Select).stream()
-            )
-            .distinct()
-            .filter(propName -> !EntityModel.SYSPROPS.contains(propName))
-            .forEach(propName -> properties.add(new PropertyPresentation(pluginModel, propName, pluginModel.getEditor(propName).getClass())));
+            properties.add(new PropertyPresentation(pluginHandler));
+            pluginHandler.getView().getProperties().forEach(propName -> properties.add(new PropertyPresentation(pluginHandler, propName)));
         }
 
         String getPluginId() {
@@ -166,12 +162,22 @@ public interface IPluginLoaderService extends IRemoteService {
         private final ImageIcon icon;
         private final Access    access;
 
-        PropertyPresentation(final EntityModel model, final String propName, final Class<? extends IEditor> editorClass) {
+        PropertyPresentation(final PluginHandler pluginHandler) {
+            name   = EntityModel.THIS;
+            value  = Language.get(pluginHandler.pluginClass, "title");
+            icon   = ImageUtils.getByPath(pluginHandler.pluginClass, Language.get(pluginHandler.pluginClass, "icon"));
+            editor = AnyTypeView.class.getTypeName();
+            access = Access.Edit;
+        }
+
+        PropertyPresentation(final PluginHandler pluginHandler, final String propName) {
+            final EntityModel model = pluginHandler.getView().model;
+
             Object propVal = model.calculateDynamicValue(propName);
             name   = propName;
             value  = propVal == null ? null : propVal.toString();
             icon   = propVal == null || !Iconified.class.isAssignableFrom(propVal.getClass()) ? null : ((Iconified) propVal).getIcon();
-            editor = editorClass.getCanonicalName();
+            editor = model.getEditor(propName).getClass().getTypeName();
 
             boolean shownInSelector = model.getProperties(Access.Select).contains(propName);
             boolean shownInEditor   = model.getProperties(Access.Edit).contains(propName);
@@ -212,7 +218,6 @@ public interface IPluginLoaderService extends IRemoteService {
             }
         }
     }
-
 
     interface IPublicationListener {
         void publicationEvent(RemotePackage remotePackage, boolean published);
