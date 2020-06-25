@@ -88,6 +88,9 @@ public final class EditorPresentation extends JPanel {
         for (AncestorListener listener : page.getAncestorListeners()) {
             listener.ancestorAdded(event);
         }
+        if (!this.equals(context.get().getEditorPage().getParent())) {
+            add(context.get().getEditorPage(), BorderLayout.CENTER);
+        }
         updateCommands();
         activateCommands();
     }
