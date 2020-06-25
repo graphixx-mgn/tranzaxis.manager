@@ -50,6 +50,14 @@ public final class NodeTreeModel extends DefaultTreeModel implements Iterable<IN
     }
 
     @Override
+    public void childReplaced(INode prevChild, INode nextChild) {
+        nodeChanged(nextChild);
+        nextChild.addNodeListener(this);
+        ((Entity) prevChild).model.removeModelListener(this);
+        ((Entity) nextChild).model.addModelListener(this);
+    }
+
+    @Override
     public void childMoved(INode parentNode, INode childNode) {
         nodeStructureChanged(parentNode);
     }

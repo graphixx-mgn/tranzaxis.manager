@@ -56,9 +56,7 @@ public abstract class AbstractNode implements INode {
      * Гнерирует событие изменения узла.
      */
     protected final void fireChangeEvent() {
-        new LinkedList<>(nodeListeners).forEach((listener) -> {
-            listener.childChanged(this);
-        });
+        new LinkedList<>(nodeListeners).forEach((listener) -> listener.childChanged(this));
     }
     
     @Override
@@ -83,7 +81,11 @@ public abstract class AbstractNode implements INode {
     public void setParent(INode parent) {
         this.parent = parent;
     }
-    
+
+    synchronized List<INodeListener> getListeners() {
+        return new LinkedList<>(nodeListeners);
+    }
+
     @Override
     public final void addNodeListener(INodeListener listener) {
         synchronized (nodeListeners) {
@@ -114,6 +116,17 @@ public abstract class AbstractNode implements INode {
             children.add(position, child);
             new LinkedList<>(nodeListeners).forEach((listener) -> listener.childMoved(this, child));
         }
+    }
+
+    @Override
+    public void replace(INode nextChild, int index) {
+        INode prevChild = getChildAt(index);
+        children.remove(prevChild);
+        prevChild.setParent(null);
+
+        nextChild.setParent(this);
+        children.add(index, nextChild);
+        new LinkedList<>(nodeListeners).forEach((listener) -> listener.childReplaced(prevChild, nextChild));
     }
 
     @Override

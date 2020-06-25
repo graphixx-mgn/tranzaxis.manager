@@ -77,7 +77,14 @@ public interface INode extends TreeNode {
      * @param position Индекс новой позиции.
      */
     void move(INode child, int position);
-    
+
+    /**
+     * Замена дочернего узла
+     * @param child Ссылка на дочерний узел.
+     * @param position Индекс новой позиции.
+     */
+    void replace(INode child, int position);
+
     /**
      * Удалить дочерний узел.
      * @param child Ссылка на дочерний узел.
@@ -135,7 +142,7 @@ public interface INode extends TreeNode {
             throw new ArrayIndexOutOfBoundsException("Node has no children");
         }
         if (childrenList().size() <= childIndex || childIndex < 0) {
-            throw new ArrayIndexOutOfBoundsException("Index out range");
+            throw new ArrayIndexOutOfBoundsException("Index out range: index="+childIndex+", size="+childrenList().size());
         }
         return childrenList().get(childIndex);
     }

@@ -39,15 +39,17 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
             columnModel.forEach(columnInfo -> addColumn(columnInfo.title));
         }
         addRow(columnModel.stream().map(columnInfo -> entity.model.getValue(columnInfo.name)).toArray());
+        attachListeners(entity);
+    }
 
+    void attachListeners(Entity entity) {
         EntityModel childModel  = entity.model;
         childModel.addModelListener(this);
         childModel.addChangeListener((name, oldValue, newValue) -> {
-            if (childModel.isPropertyDynamic(name) && findColumn(name) >= 0) {
+            if (childModel.isPropertyDynamic(name) && findColumn(name) >= 0 && entity.getParent() != null) {
                 setValueAt(newValue, rootEntity.getIndex(entity), findColumn(name));
             }
         });
-
         entity.addNodeListener(new INodeListener() {
             @Override
             public void childChanged(INode node) {

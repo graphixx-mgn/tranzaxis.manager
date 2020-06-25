@@ -5,7 +5,6 @@ import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.config.IConfigStoreService;
-import codex.explorer.browser.BrowseMode;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.log.Logger;
@@ -54,6 +53,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     private final Supplier<List<Entity>>  context;
     private final Map<EntityCommand<Entity>,  CommandContextKind> systemCommands  = new LinkedHashMap<>();
     private final Map<EntityCommand<Entity>,  CommandContextKind> contextCommands = new LinkedHashMap<>();
+
+    private final List<IEntitySelectedListener> selectListeners = new LinkedList<>();
     
     /**
      * Конструктор презентации. 
@@ -104,7 +105,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 table.getSelectionModel().setValueIsAdjusting(false);
             }
         });
-        
+
+        entity.addNodeListener(this);
         entity.addNodeListener(new INodeListener() {
             @Override
             public void childDeleted(INode parentNode, INode childNode, int index) {
@@ -127,17 +129,18 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 tableModel.addEntity(newEntity);
             }
 
-//            @Override
-//            public void childReplaced(INode prevNode, INode nextNode) {
-//                Entity newEntity = (Entity) nextNode;
-//                int index = entity.getIndex(nextNode);
-//                tableModel.removeRow(index);
-//                tableModel.addEntity(newEntity);
-//
-//                int lastRow = tableModel.getRowCount() - 1;
-//                tableModel.moveRow();
-//                        //moveRow(lastRow, lastRow, entity.getIndex(nextNode));
-//            }
+            @Override
+            public void childReplaced(INode prevChild, INode nextChild) {
+                int index = entity.getIndex(nextChild);
+                tableModel.attachListeners((Entity) nextChild);
+
+                EntityModel childModel = ((Entity) nextChild).model;
+                childModel.getProperties(Access.Any).forEach(propName -> {
+                        if (tableModel.findColumn(propName) >= 0) {
+                            tableModel.setValueAt(childModel.getValue(propName), index, tableModel.findColumn(propName));
+                        }
+                });
+            }
         });
         addAncestorListener(new AncestorAdapter() {
             @Override
@@ -206,6 +209,10 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     private Map<EntityCommand<Entity>, CommandContextKind> getSystemCommands() {
         final Map<EntityCommand<Entity>, CommandContextKind> commands = new LinkedHashMap<>();
 
+        entity.getCommands().stream()
+                .filter(command -> command.getKind() == EntityCommand.Kind.System)
+                .forEach(command -> commands.put(command, CommandContextKind.Parent));
+
         if (true) {
             final EntityCommand<Entity> editCmd   = findCommand(systemCommands.keySet(), EditEntity.class, new EditEntity());
             commands.put(editCmd, CommandContextKind.Child);
@@ -222,9 +229,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             final EntityCommand<Entity> deleteCmd = findCommand(systemCommands.keySet(), DeleteEntity.class, new DeleteEntity());
             commands.put(deleteCmd, CommandContextKind.Child);
         }
-        entity.getCommands().stream()
-                .filter(command -> command.getKind() == EntityCommand.Kind.System)
-                .forEach(command -> commands.put(command, CommandContextKind.Parent));
 
         getContextCommands().keySet().stream()
                 .filter(command -> command.getKind() == EntityCommand.Kind.System)
@@ -273,6 +277,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     public void valueChanged(ListSelectionEvent event) {
         if (!event.getValueIsAdjusting()) {
             refresh();
+            new LinkedList<>(selectListeners).forEach(listener -> listener.selectedEntities(context.get()));
         }
     }
 
@@ -300,6 +305,14 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
     public void setColumnRenderer(int column, TableCellRenderer renderer) {
         table.getColumnModel().getColumn(column).setCellRenderer(renderer);
+    }
+
+    public void addSelectListener(IEntitySelectedListener listener) {
+        selectListeners.add(listener);
+    }
+
+    public void removeSelectListener(IEntitySelectedListener listener) {
+        selectListeners.remove(listener);
     }
 
     class CreateEntity extends EntityCommand<Entity> {
@@ -553,10 +566,10 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             );
             activator = entities -> {
                 if (entities != null && entities.size() > 0 && !(entities.size() > 1 && !multiContextAllowed())) {
-                    boolean allDisabled = entities.get(0).model.getProperties(Access.Edit).stream().allMatch((name) -> {
-                        return !entities.get(0).model.getEditor(name).isEditable();
-                    });
-
+                    boolean allDisabled = entities.get(0).model.getProperties(Access.Edit).stream()
+                            .noneMatch(
+                                    (name) -> entities.get(0).model.getEditor(name).isEditable()
+                            );
                     boolean hasProps = !entities.get(0).model.getProperties(Access.Edit).isEmpty();
                     boolean hasChild = ICatalog.class.isAssignableFrom(entities.get(0).getClass()) && entities.get(0).getChildCount() > 0;
                     return new CommandStatus(hasProps || hasChild, allDisabled || entities.get(0).islocked() ? IMAGE_VIEW : IMAGE_EDIT);
@@ -578,84 +591,8 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            boolean allDisabled = context.model.getProperties(Access.Edit).stream().noneMatch((name) -> context.model.getEditor(name).isEditable());
-
-            final Dialog editor = new Dialog(
-                    SwingUtilities.getWindowAncestor(SelectorPresentation.this),
-                    allDisabled ? IMAGE_VIEW : IMAGE_EDIT,
-                    Language.get(SelectorPresentation.class, allDisabled ? "viewer@title" : "editor@title"),
-                    new JPanel(new BorderLayout()) {{
-                        add(context.getEditorPage(), BorderLayout.NORTH);
-
-                        if (ICatalog.class.isAssignableFrom(context.getClass()) && context.getChildCount() > 0) {
-                            SelectorPresentation embedded = context.getSelectorPresentation();
-                            if (embedded != null) {
-                                add(context.getSelectorPresentation(), BorderLayout.CENTER);
-                                embedded.setBorder(new TitledBorder(
-                                        new LineBorder(Color.GRAY, 1),
-                                        IComplexType.coalesce(BrowseMode.getDescription(BrowseMode.getClassHierarchy(context), "group@title"), BrowseMode.SELECTOR_TITLE)
-                                ));
-                            }
-                        }
-
-                        setBorder(new CompoundBorder(
-                                new EmptyBorder(10, 5, 5, 5),
-                                new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())
-                        ));
-                    }},
-                    (event) -> {
-                        if (event.getID() == Dialog.OK) {
-                            if (context.model.hasChanges()) {
-                                try {
-                                    context.model.commit(true);
-                                } catch (Exception e) {
-                                    context.model.rollback();
-                                }
-                            }
-                        } else {
-                            if (context.model.hasChanges()) {
-                                context.model.rollback();
-                            }
-                        }
-                    },
-                    allDisabled ?
-                            new DialogButton[] { Dialog.Default.BTN_CLOSE.newInstance() } :
-                            new DialogButton[] { Dialog.Default.BTN_OK.newInstance(), Dialog.Default.BTN_CANCEL.newInstance() }
-            ) {{
-                    // Перекрытие обработчика кнопок
-                    Function<DialogButton, ActionListener> defaultHandler = handler;
-                    handler = (button) -> (event) -> {
-                        if (event.getID() != Dialog.OK || context.getInvalidProperties().isEmpty()) {
-                            defaultHandler.apply(button).actionPerformed(event);
-                        }
-                    };
-                }
-                
-                @Override
-                public Dimension getPreferredSize() {
-                    return new Dimension(700, super.getPreferredSize().height);
-                }
-            };
-            
-            context.model.getProperties(Access.Edit).stream()
-                    .map(context.model::getEditor)
-                    .forEach((propEditor) -> propEditor.getEditor().addComponentListener(new ComponentAdapter() {
-                        @Override
-                        public void componentHidden(ComponentEvent e) {
-                            editor.pack();
-                        }
-
-                        @Override
-                        public void componentShown(ComponentEvent e) {
-                            editor.pack();
-                        }
-                    }));
-            
-            editor.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-            editor.setResizable(false);
-            editor.setVisible(true);
+            EditorPresentation.EmbeddedEditor.show(context);
         }
-
     }
     
     class DeleteEntity extends EntityCommand<Entity> {
@@ -746,5 +683,9 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
     private enum CommandContextKind {
         Parent, Child
+    }
+
+    public interface IEntitySelectedListener {
+        void selectedEntities(List<Entity> selected);
     }
 }

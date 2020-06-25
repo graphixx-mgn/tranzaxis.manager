@@ -41,7 +41,8 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
             }
             if (event.getOldLeadSelectionPath() != null) {
                 Entity previous = (Entity) event.getOldLeadSelectionPath().getLastPathComponent();
-                if (!previous.close()) {
+
+                if (previous.getParent() != null && !previous.close()) {
                     clearSelection();
                     getSelectionModel().setSelectionPath(event.getOldLeadSelectionPath());
                     return;
