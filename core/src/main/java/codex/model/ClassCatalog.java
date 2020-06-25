@@ -99,6 +99,12 @@ public abstract class ClassCatalog extends Entity {
         Logger.getLogger().debug("Register class catalog: {0}", classCatalog.getTypeName());
     }
 
+    public synchronized static void unregisterClassCatalog(Class<? extends ClassCatalog> classCatalog) {
+        if (catalogs.remove(classCatalog)) {
+            Logger.getLogger().debug("Unregister class catalog: {0}", classCatalog.getTypeName());
+        }
+    }
+
     static synchronized Class<? extends ClassCatalog> forName(String className) throws ClassNotFoundException {
         return catalogs.stream()
                 .filter(aClass -> aClass.getTypeName().equals(className))
