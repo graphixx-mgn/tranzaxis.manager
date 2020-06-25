@@ -5,11 +5,10 @@ import codex.command.EditorCommand;
 import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
-import codex.editor.AnyTypeView;
+import codex.editor.IEditorFactory;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.instance.IInstanceDispatcher;
-import codex.log.Logger;
 import codex.model.*;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
@@ -18,19 +17,19 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.xml.VersionsDocument;
 import javax.swing.*;
-import java.lang.reflect.Field;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 
 public class PackageView extends Catalog {
 
-    private final static ImageIcon ICON_INFO = ImageUtils.getByPath("/images/info.png");
     private final static IInstanceDispatcher ICS = ServiceRegistry.getInstance().lookupService(IInstanceDispatcher.class);
+
+    private final static ImageIcon ICON_INFO = ImageUtils.getByPath("/images/info.png");
+    private final static ImageIcon ICON_WARN = ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), .7f);
 
     final static ImageIcon PACKAGE   = ImageUtils.getByPath("/images/repository.png");
     final static ImageIcon DISABLED  = ImageUtils.getByPath("/images/unavailable.png");
@@ -42,23 +41,39 @@ public class PackageView extends Catalog {
     private final static String PROP_AUTHOR  = "author";
     private final static String PROP_PUBLIC  = "public";
 
-    private final Supplier<List<PluginHandler>> pluginsSupplier;
-    private final Supplier<PluginPackage>       packageSupplier;
+    private final PluginPackage pluginPackage;
+
     private final INodeListener updatePackage = new INodeListener() {
         @Override
         public void childChanged(INode node) {
-            setIcon(getStatusIcon());
+            boolean hasLoaded = pluginPackage.getPlugins().stream().anyMatch(pluginHandler -> pluginHandler.getView().isEnabled());
+            setMode(MODE_SELECTABLE + (hasLoaded ? MODE_ENABLED : MODE_NONE));
         }
     };
 
     static {
-        CommandRegistry.getInstance().registerCommand(LoadPackage.class);
-        CommandRegistry.getInstance().registerCommand(UnloadPackage.class);
-        CommandRegistry.getInstance().registerCommand(PublishPackage.class);
-    }
-
-    private PackageView(EntityRef owner, String title) {
-        this(null);
+        CommandRegistry.getInstance().registerCommand(
+                PackageView.class,
+                PublishPackage.class,
+                packageView -> !packageView.pluginPackage.inDevelopment()
+        );
+        CommandRegistry.getInstance().registerCommand(
+                PackageView.class,
+                EditOptions.class,
+                packageView ->
+                        packageView.getPackage().getPlugins().size() == 1 &&
+                        packageView.getPackage().getPlugins().get(0).getView().hasOptions()
+        );
+        CommandRegistry.getInstance().registerCommand(
+                PackageView.class,
+                LoadPlugin.class,
+                packageView -> packageView.getPackage().getPlugins().size() == 1
+        );
+        CommandRegistry.getInstance().registerCommand(
+                PackageView.class,
+                UnloadPlugin.class,
+                packageView -> packageView.getPackage().getPlugins().size() == 1
+        );
     }
 
     PackageView(PluginPackage pluginPackage) {
@@ -68,19 +83,18 @@ public class PackageView extends Catalog {
                 pluginPackage == null ? null : pluginPackage.getTitle(),
                 null
         );
-        pluginsSupplier = pluginPackage == null ? ArrayList::new : pluginPackage::getPlugins;
-        packageSupplier = pluginPackage == null ? null : () -> pluginPackage;
+        this.pluginPackage = pluginPackage;
 
         model.addDynamicProp(PROP_VERSION, new AnyType(), null, () -> new Iconified() {
             @Override
             public ImageIcon getIcon() {
-                return pluginPackage == null || !pluginPackage.isBuild() ? READY : BUILDING;
+                return pluginPackage == null || !pluginPackage.inDevelopment() ? READY : BUILDING;
             }
 
             @Override
             public String toString() {
                 return pluginPackage == null ? null : (
-                            pluginPackage.isBuild() ? MessageFormat.format(
+                            pluginPackage.inDevelopment() ? MessageFormat.format(
                                     Language.get(PackageView.class, "version.build"),
                                     pluginPackage.getVersion()
                             ) : pluginPackage.getVersion()
@@ -92,24 +106,32 @@ public class PackageView extends Catalog {
         model.addUserProp(PROP_PUBLIC,  new Bool(false), false, Access.Edit);
 
         if (pluginPackage != null) {
-            if (pluginPackage.size() == 1) {
+            //noinspection unchecked
+            (model.getEditor(PROP_VERSION)).addCommand(new ShowChanges());
+
+            if (pluginPackage.getPlugins().size() == 1) {
                 PluginHandler pluginHandler = pluginPackage.getPlugins().get(0);
                 Plugin pluginView = pluginHandler.getView();
 
+                setIcon(pluginHandler.getIcon());
                 pluginView.addNodeListener(updatePackage);
 
                 pluginView.model.getProperties(Access.Edit).forEach(propName -> {
                     if (!EntityModel.SYSPROPS.contains(propName)) {
+                        Class<?> propClass = Plugin.VIEW_PROPS.contains(propName) ? Plugin.class : pluginHandler.getClass();
                         model.addDynamicProp(
                                 propName,
-                                pluginView.model.getProperty(propName).getPropValue(),
+                                Language.get(propClass, propName + PropertyHolder.PROP_NAME_SUFFIX),
+                                Language.get(propClass, propName + PropertyHolder.PROP_DESC_SUFFIX),
+                                new AnyType() {
+                                    @Override
+                                    @SuppressWarnings("unchecked")
+                                    public IEditorFactory<AnyType, Object> editorFactory() {
+                                        return pluginView.model.getProperty(propName).getPropValue().editorFactory();
+                                    }
+                                },
                                 Access.Select,
-                                () -> pluginView.model.getValue(propName)
-                        );
-                        changePropertyNaming(
-                                model.getProperty(propName),
-                                pluginView.model.getProperty(propName).getTitle(),
-                                pluginView.model.getProperty(propName).getDescriprion()
+                                () -> pluginView.model.calculateDynamicValue(propName)
                         );
                     }
                 });
@@ -117,105 +139,77 @@ public class PackageView extends Catalog {
                         Language.get("type@group"),
                         pluginView.model.getProperties(Access.Edit).toArray(new String[]{})
                 );
+
             } else {
+                setIcon(PACKAGE);
+
                 pluginPackage.getPlugins().forEach(pluginHandler -> {
                     Plugin pluginView = pluginHandler.getView();
                     pluginView.addNodeListener(updatePackage);
                     attach(pluginView);
                 });
             }
-            if (packageSupplier.get().isBuild()) {
+            updatePackage.childChanged(null);
+            if (getID() == null) {
                 try {
-                    setPublished(false);
-                } catch (Exception e) {/**/}
+                    model.create(true);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-        }
-        setIcon(getStatusIcon());
-        if (pluginPackage != null) {
-            ((AnyTypeView) model.getEditor(PROP_VERSION)).addCommand(new ShowChanges());
         }
     }
 
     PluginPackage getPackage() {
-        return packageSupplier.get();
+        return pluginPackage;
     }
 
-    void updateView() {
-        setIcon(getStatusIcon());
-    }
-
-    void setPublished(boolean published) throws Exception {
+    private void setPublished(boolean published) throws Exception {
         model.setValue(PROP_PUBLIC, published);
         model.commit(true);
         ICS.getInstances().forEach(instance -> {
             try {
                 final IPluginLoaderService pluginLoader = (IPluginLoaderService) instance.getService(PluginLoaderService.class);
                 pluginLoader.packagePublicationChanged(
-                        new IPluginLoaderService.RemotePackage(packageSupplier.get()),
+                        new IPluginLoaderService.RemotePackage(getPackage()),
                         isPublished()
                 );
             } catch (RemoteException | NotBoundException e) {
-                //
+                e.printStackTrace();
             }
         });
     }
 
     boolean isPublished() {
-        return model.getValue(PROP_PUBLIC) == Boolean.TRUE;
+        return model.getValue(PROP_PUBLIC) == Boolean.TRUE && !pluginPackage.inDevelopment();
     }
 
     @Override
     public Class<? extends Entity> getChildClass() {
-        return pluginsSupplier.get().size() > 1 ? Plugin.class : null;
+        return pluginPackage.getPlugins().size() > 1 ? Plugin.class : null;
     }
 
     @Override
-    protected Map<Class<? extends Entity>, Collection<String>> getChildrenPIDs() {
-        return Collections.emptyMap();
-    }
+    public void loadChildren() {}
 
     @Override
     public boolean allowModifyChild() {
         return false;
     }
 
-    private ImageIcon getStatusIcon() {
-        if (pluginsSupplier.get().size() == 1) {
-            return pluginsSupplier.get().get(0).getView().getStatusIcon();
-        } else {
-            boolean hasLoaded = pluginsSupplier.get().stream().anyMatch(pluginHandler -> pluginHandler.getView().isEnabled());
-            return  hasLoaded ? PACKAGE : ImageUtils.combine(ImageUtils.grayscale(PACKAGE), DISABLED);
-        }
-    }
-
-    static void changePropertyNaming(PropertyHolder propHolder, String title, String desc) {
-        try {
-            Field fieldTitle = PropertyHolder.class.getDeclaredField("title");
-            Field fieldDesc  = PropertyHolder.class.getDeclaredField("desc");
-
-            fieldTitle.setAccessible(true);
-            fieldDesc.setAccessible(true);
-
-            fieldTitle.set(propHolder, title);
-            fieldDesc.set(propHolder, desc);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            //
-        }
-    }
-
 
     class ShowChanges extends EditorCommand<AnyType, Object> {
         ShowChanges() {
             super(
-                    ImageUtils.resize(ICON_INFO,20,20),
+                    ICON_INFO,
                     Language.get(PluginManager.class, "history@command"),
-                    holder -> packageSupplier.get().getChanges() != null
+                    holder -> getPackage().getChanges() != null
             );
         }
 
         @Override
         public void execute(PropertyHolder<AnyType, Object> context) {
-            VersionsDocument verDoc = packageSupplier.get().getChanges();
+            VersionsDocument verDoc = getPackage().getChanges();
             if (verDoc != null) {
                 PluginManager.showVersionInfo(Arrays.asList(verDoc.getVersions().getVersionArray()));
             }
@@ -228,103 +222,75 @@ public class PackageView extends Catalog {
     }
 
 
-    class LoadPackage extends EntityCommand<PackageView> {
-        LoadPackage() {
-            super(
-                    "load package",
-                    Language.get(PackageView.class, "load@title"),
-                    ImageUtils.getByPath("/images/plugin_load.png"),
-                    Language.get(PackageView.class, "load@title"),
-                    packageView -> packageView.pluginsSupplier.get().stream().anyMatch(plugin -> !plugin.getView().isEnabled())
+    static class LoadPlugin extends EntityCommand<PackageView> {
+
+        public LoadPlugin() {
+            super("load plugin",
+                    Language.get(Plugin.class, "load@title"),
+                    ImageUtils.getByPath("/images/start.png"),
+                    Language.get(Plugin.class, "load@title"),
+                    packageView -> packageView.getPackage().getPlugins().get(0).getView().loadAllowed()
             );
         }
 
         @Override
-        public boolean multiContextAllowed() {
-            return true;
-        }
-
-        @Override
         public void execute(PackageView context, Map<String, IComplexType> params) {
-            Map<String, String> errors = new HashMap<>();
-
-            context.pluginsSupplier.get().stream()
-                    .filter(pluginHandler  -> !pluginHandler.getView().isEnabled())
-                    .forEach(pluginHandler -> {
-                        try {
-                            pluginHandler.loadPlugin();
-                            pluginHandler.getView().setEnabled(true, true);
-                        } catch (PluginException e) {
-                            String pluginId = Plugin.getId(pluginHandler);
-                            Logger.getLogger().warn("Unable to load plugin ''{0}''\n{1}", pluginId, Logger.stackTraceToString(e));
-                            errors.put(pluginId, e.getMessage());
-                        }
-                    });
-            if (!errors.isEmpty()) {
-                MessageBox.show(
-                        MessageType.WARNING,
-                        MessageFormat.format(
-                                Language.get(PackageView.class, "load@error"),
-                                errors.entrySet().stream()
-                                        .map(entry -> MessageFormat.format("<p>&bull;&nbsp;<b>{0}</b>: {1}<br>", entry.getKey(), entry.getValue()))
-                                        .collect(Collectors.joining())
-                        )
-                );
-            }
-            context.setIcon(context.getStatusIcon());
+            Plugin plugin = context.getPackage().getPlugins().get(0).getView();
+            plugin.getCommand(Plugin.LoadPlugin.class).execute(plugin, Collections.emptyMap());
         }
     }
 
 
-    class UnloadPackage extends EntityCommand<PackageView> {
-        UnloadPackage() {
-            super(
-                    "unload package",
-                    Language.get(PackageView.class, "unload@title"),
-                    ImageUtils.getByPath("/images/plugin_unload.png"),
-                    Language.get(PackageView.class, "unload@title"),
-                    packageView -> packageView.pluginsSupplier.get().stream().anyMatch(plugin -> plugin.getView().isEnabled())
+    static class UnloadPlugin extends EntityCommand<PackageView> {
+
+        public UnloadPlugin() {
+            super("unload plugin",
+                    Language.get(Plugin.class, "unload@title"),
+                    ImageUtils.getByPath("/images/stop.png"),
+                    Language.get(Plugin.class, "unload@title"),
+                    packageView -> packageView.getPackage().getPlugins().get(0).getView().isEnabled()
             );
         }
 
         @Override
-        public boolean multiContextAllowed() {
-            return true;
-        }
-
-        @Override
         public void execute(PackageView context, Map<String, IComplexType> params) {
-            Map<String, String> errors = new HashMap<>();
-
-            context.pluginsSupplier.get().stream()
-                    .filter(pluginHandler  -> pluginHandler.getView().isEnabled())
-                    .forEach(pluginHandler -> {
-                        try {
-                            pluginHandler.unloadPlugin();
-                            pluginHandler.getView().setEnabled(false, true);
-                        } catch (PluginException e) {
-                            String pluginId = Plugin.getId(pluginHandler);
-                            Logger.getLogger().warn("Unable to unload plugin ''{0}''\n{1}", pluginId, Logger.stackTraceToString(e));
-                            errors.put(pluginId, e.getMessage());
-                        }
-                    });
-            if (!errors.isEmpty()) {
-                MessageBox.show(
-                        MessageType.WARNING,
-                        MessageFormat.format(
-                                Language.get(PackageView.class, "unload@error"),
-                                errors.entrySet().stream()
-                                        .map(entry -> MessageFormat.format("<p>&bull;&nbsp;<b>{0}</b>: {1}<br>", entry.getKey(), entry.getValue()))
-                                        .collect(Collectors.joining())
-                        )
-                );
-            }
-            context.setIcon(context.getStatusIcon());
+            Plugin plugin = context.getPackage().getPlugins().get(0).getView();
+            plugin.getCommand(Plugin.UnloadPlugin.class).execute(plugin, Collections.emptyMap());
         }
     }
 
 
-    class PublishPackage extends EntityCommand<PackageView> {
+    static class EditOptions extends EntityCommand<PackageView> {
+
+        public EditOptions() {
+            super(
+                    "edit options",
+                    Language.get(Plugin.class, "options@title"),
+                    Plugin.ICON_OPTIONS,
+                    Language.get(Plugin.class, "options@title"),
+                    null
+            );
+            Function<List<PackageView>, CommandStatus> defaultActivator = activator;
+            activator = entities -> {
+                boolean hasInvalidProp = entities.stream()
+                        .anyMatch(packageView -> !packageView.getPackage().getPlugins().get(0).getView().isOptionsValid());
+                return new CommandStatus(
+                        defaultActivator.apply(entities).isActive(),
+                        hasInvalidProp ? ImageUtils.combine(getIcon(), ICON_WARN, SwingConstants.SOUTH_EAST) : getIcon()
+                );
+            };
+        }
+
+        @Override
+        public void execute(PackageView context, Map<String, IComplexType> params) {
+            Plugin plugin = context.getPackage().getPlugins().get(0).getView();
+            plugin.getCommand(Plugin.EditOptions.class).execute(plugin, Collections.emptyMap());
+            context.getCommand(LoadPlugin.class).activate();
+        }
+    }
+
+
+    static class PublishPackage extends EntityCommand<PackageView> {
 
         public PublishPackage() {
             super(
@@ -338,12 +304,21 @@ public class PackageView extends Catalog {
                 if (packages == null || packages.isEmpty() || packages.size() > 1) {
                     return new CommandStatus(false, ImageUtils.grayscale(PUBLISHED));
                 } else {
-                    return new CommandStatus(
-                            !packages.get(0).packageSupplier.get().isBuild(),
+                    if (packages.get(0).pluginPackage.inDevelopment()) {
+                        return new CommandStatus(false, ImageUtils.grayscale(PUBLISHED));
+                    } else {
+                        return new CommandStatus(
+                            true,
                             packages.get(0).isPublished() ? PUBLISHED : ImageUtils.combine(ImageUtils.grayscale(PUBLISHED), DISABLED)
-                    );
+                        );
+                    }
                 }
             };
+        }
+
+        @Override
+        public Kind getKind() {
+            return Kind.Admin;
         }
 
         @Override
@@ -359,7 +334,7 @@ public class PackageView extends Catalog {
             try {
                 context.setPublished(!context.isPublished());
             } catch (Exception e) {
-                MessageBox.show(MessageType.ERROR, e.getMessage());
+                MessageBox.show(MessageType.WARNING, e.getMessage());
             }
         }
     }
