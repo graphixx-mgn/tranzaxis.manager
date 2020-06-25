@@ -1,17 +1,32 @@
 package codex.presentation;
 
 import codex.command.EntityCommand;
+import codex.component.button.DialogButton;
+import codex.component.dialog.Dialog;
 import codex.editor.AbstractEditor;
+import codex.explorer.browser.BrowseMode;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.model.Access;
 import codex.model.Entity;
+import codex.model.ICatalog;
+import codex.type.IComplexType;
+import codex.utils.ImageUtils;
+import codex.utils.Language;
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
+import javax.swing.border.TitledBorder;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
 import java.awt.*;
+import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.*;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -136,5 +151,91 @@ public final class EditorPresentation extends JPanel {
     private boolean isEditable() {
         return context.get().model.getProperties(Access.Edit).stream()
                .anyMatch(propName -> !context.get().model.isPropertyDynamic(propName));
+    }
+
+
+    public static final class EmbeddedEditor {
+
+        public final static ImageIcon IMAGE_EDIT  = ImageUtils.getByPath("/images/edit.png");
+        public final static ImageIcon IMAGE_VIEW  = ImageUtils.getByPath("/images/view.png");
+
+        public static void show(Entity context) {
+            boolean allDisabled = context.model.getProperties(Access.Edit).stream().noneMatch((name) -> context.model.getEditor(name).isEditable());
+
+            final codex.component.dialog.Dialog editor = new codex.component.dialog.Dialog(
+                    Dialog.findNearestWindow(),
+                    allDisabled ? IMAGE_VIEW : IMAGE_EDIT,
+                    Language.get(SelectorPresentation.class, allDisabled ? "viewer@title" : "editor@title"),
+                    new JPanel(new BorderLayout()) {{
+                        add(context.getEditorPage(), BorderLayout.NORTH);
+
+                        if (ICatalog.class.isAssignableFrom(context.getClass()) && context.getChildCount() > 0) {
+                            SelectorPresentation embedded = context.getSelectorPresentation();
+                            if (embedded != null) {
+                                add(context.getSelectorPresentation(), BorderLayout.CENTER);
+                                embedded.setBorder(new TitledBorder(
+                                        new LineBorder(Color.GRAY, 1),
+                                        IComplexType.coalesce(BrowseMode.getDescription(BrowseMode.getClassHierarchy(context), "group@title"), BrowseMode.SELECTOR_TITLE)
+                                ));
+                            }
+                        }
+
+                        setBorder(new CompoundBorder(
+                                new EmptyBorder(10, 5, 5, 5),
+                                new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())
+                        ));
+                    }},
+                    (event) -> {
+                        if (event.getID() == codex.component.dialog.Dialog.OK) {
+                            if (context.model.hasChanges()) {
+                                try {
+                                    context.model.commit(true);
+                                } catch (Exception e) {
+                                    context.model.rollback();
+                                }
+                            }
+                        } else {
+                            if (context.model.hasChanges()) {
+                                context.model.rollback();
+                            }
+                        }
+                    },
+                    allDisabled ?
+                            new DialogButton[] { codex.component.dialog.Dialog.Default.BTN_CLOSE.newInstance() } :
+                            new DialogButton[] { codex.component.dialog.Dialog.Default.BTN_OK.newInstance(), codex.component.dialog.Dialog.Default.BTN_CANCEL.newInstance() }
+            ) {{
+                // Перекрытие обработчика кнопок
+                Function<DialogButton, ActionListener> defaultHandler = handler;
+                handler = (button) -> (event) -> {
+                    if (event.getID() != Dialog.OK || context.getInvalidProperties().isEmpty()) {
+                        defaultHandler.apply(button).actionPerformed(event);
+                    }
+                };
+            }
+                @Override
+                public Dimension getPreferredSize() {
+                    return new Dimension(700, super.getPreferredSize().height);
+                }
+            };
+
+            context.model.getProperties(Access.Edit).stream()
+                    .map(context.model::getEditor)
+                    .forEach((propEditor) -> propEditor.getEditor().addComponentListener(new ComponentAdapter() {
+                        @Override
+                        public void componentHidden(ComponentEvent e) {
+                            editor.pack();
+                        }
+
+                        @Override
+                        public void componentShown(ComponentEvent e) {
+                            editor.pack();
+                        }
+                    }));
+
+            editor.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+            editor.setResizable(false);
+            editor.setVisible(true);
+        }
+
     }
 }
