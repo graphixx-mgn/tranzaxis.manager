@@ -20,6 +20,9 @@ public final class NodeTreeModel extends DefaultTreeModel implements Iterable<IN
     public NodeTreeModel(INode root) {
         super(root);
         root.addNodeListener(this);
+        synchronized (root.childrenList()) {
+            root.childrenList().forEach(childNode -> childNode.addNodeListener(this));
+        }
         ((Entity) root).model.addModelListener(this);
     }
 
