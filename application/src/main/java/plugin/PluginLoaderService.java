@@ -7,15 +7,11 @@ import codex.service.RemoteServiceControl;
 import codex.utils.LocaleContextHolder;
 import manager.upgrade.stream.RemoteInputStream;
 import manager.upgrade.stream.RemoteInputStreamServer;
-import javax.xml.bind.DatatypeConverter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.rmi.RemoteException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -38,7 +34,7 @@ public final class PluginLoaderService extends AbstractRemoteService<PluginLoade
 
     @Override
     synchronized public void packagePublicationChanged(final RemotePackage remotePackage, boolean published) throws RemoteException {
-         new LinkedList<>(listeners).forEach(listener -> listener.publicationEvent(remotePackage, published));
+        new LinkedList<>(listeners).forEach(listener -> listener.publicationEvent(remotePackage, published));
     }
 
     @Override
@@ -46,10 +42,8 @@ public final class PluginLoaderService extends AbstractRemoteService<PluginLoade
         PluginPackage pluginPackage = PluginManager.getInstance().getPluginLoader().getPackageById(pluginId);
         if (pluginPackage.getVersion().equals(pluginVersion)) {
             try {
-                byte[] b = Files.readAllBytes(pluginPackage.jarFilePath);
-                byte[] hash = MessageDigest.getInstance("MD5").digest(b);
-                return DatatypeConverter.printHexBinary(hash);
-            } catch (IOException | NoSuchAlgorithmException e) {
+                return pluginPackage.getCheckSum();
+            } catch (Exception e) {
                 throw new RemoteException("Unable to get package checksum", e);
             }
         } else {
@@ -61,7 +55,7 @@ public final class PluginLoaderService extends AbstractRemoteService<PluginLoade
     public RemoteInputStream getPackageFileStream(String pluginId, String pluginVersion) throws RemoteException {
         PluginPackage pluginPackage = PluginManager.getInstance().getPluginLoader().getPackageById(pluginId);
         if (pluginPackage.getVersion().equals(pluginVersion)) {
-            File jar = new File(pluginPackage.jarFilePath.toUri());
+            File jar = new File(pluginPackage.getUrl().getFile());
             try {
                 InputStream in = new FileInputStream(jar);
                 return new RemoteInputStream(new RemoteInputStreamServer(in));
