@@ -23,14 +23,16 @@ public abstract class AbstractRemoteService<P extends RemoteServiceOptions, C ex
         );
     }
 
+    @SuppressWarnings("unchecked")
     public final P getConfiguration() {
         if (serviceConfig == null) {
             try {
-                serviceConfig = Entity.newInstance(Service.getServiceConfigClass(
+                Class<? extends RemoteServiceOptions> optClass = Service.getServiceConfigClass(
                         RemoteServiceOptions.class,
                         AbstractRemoteService.class,
                         getClass()
-                ), null, getTitle());
+                );
+                serviceConfig = (P) Entity.newInstance(optClass, null, getTitle());
             } catch (RemoteException e) {
                 // Must not appear
             }
