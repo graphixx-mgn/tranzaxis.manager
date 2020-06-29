@@ -9,6 +9,7 @@ import codex.editor.IEditorFactory;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.instance.IInstanceDispatcher;
+import codex.log.Logger;
 import codex.model.*;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
@@ -167,7 +168,7 @@ public class PackageView extends Catalog {
     private void setPublished(boolean published) throws Exception {
         model.setValue(PROP_PUBLIC, published);
         model.commit(true);
-        ICS.getInstances().forEach(instance -> {
+        SwingUtilities.invokeLater(() -> ICS.getInstances().forEach(instance -> {
             try {
                 final IPluginLoaderService pluginLoader = (IPluginLoaderService) instance.getService(PluginLoaderService.class);
                 pluginLoader.packagePublicationChanged(
@@ -175,9 +176,11 @@ public class PackageView extends Catalog {
                         isPublished()
                 );
             } catch (RemoteException | NotBoundException e) {
-                e.printStackTrace();
+                Throwable rootCause = PluginLoader.getCause(e);
+                if (!(rootCause instanceof ClassNotFoundException))
+                    Logger.getLogger().warn("Remote service call error: {0}", rootCause.getMessage());
             }
-        });
+        }));
     }
 
     boolean isPublished() {
