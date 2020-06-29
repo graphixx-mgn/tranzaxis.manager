@@ -241,7 +241,8 @@ public class Plugin<P extends IPlugin> extends Catalog {
                 context.setEnabled(true, true);
             } catch (PluginException e) {
                 String pluginId = getId(context.pluginHandler);
-                Logger.getLogger().warn("Unable to load plugin ''{0}''\n{1}", pluginId, Logger.stackTraceToString(e));
+                Logger.getLogger().warn(MessageFormat.format("Unable to load plugin ''{0}''", pluginId), e);
+                if (e.isHandled()) return;
                 MessageBox.show(
                         MessageType.WARNING,
                         MessageFormat.format(
@@ -279,7 +280,8 @@ public class Plugin<P extends IPlugin> extends Catalog {
                 }
             } catch (PluginException e) {
                 String pluginId = getId(context.pluginHandler);
-                Logger.getLogger().warn("Unable to unload plugin ''{0}''\n{1}", pluginId, Logger.stackTraceToString(e));
+                Logger.getLogger().warn(MessageFormat.format("Unable to unload plugin ''{0}''", pluginId), e);
+                if (e.isHandled()) return;
                 MessageBox.show(
                         MessageType.WARNING,
                         MessageFormat.format(

@@ -1,13 +1,19 @@
 package plugin;
 
-public class PluginException extends Exception {
+public final class PluginException extends Exception {
+
+    private final Boolean handled;
 
     public PluginException(String message) {
+        this(message, false);
+    }
+
+    public PluginException(String message, boolean handled) {
         super(message);
+        this.handled = handled;
     }
 
-    public PluginException(String message, Throwable cause) {
-        super(message, cause);
+    final boolean isHandled() {
+        return handled;
     }
-
 }

@@ -3,7 +3,6 @@ package plugin;
 import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.component.dialog.Dialog;
-import codex.explorer.tree.INode;
 import codex.explorer.tree.NodeTreeModel;
 import codex.instance.IInstanceDispatcher;
 import codex.instance.IInstanceListener;
@@ -21,37 +20,26 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.event.TreeModelEvent;
+import javax.swing.event.TreeModelListener;
 import java.awt.*;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
-final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements IInstanceListener, IPluginLoaderService.IPublicationListener {
+final class ShowPackagesUpdates extends EntityCommand<PluginCatalog>
+        implements
+            IInstanceListener,
+            IPluginLoaderService.IPublicationListener,
+            PluginLoader.ILoaderListener
+{
 
     private final static ImageIcon CMD_ICON = ImageUtils.getByPath("/images/update.png");
 
-    private static final Comparator<String> VER_COMPARATOR = (ver1, ver2) -> {
-        String[] vals1 = ver1.split("\\.");
-        String[] vals2 = ver2.split("\\.");
-
-        int i = 0;
-        while (i < vals1.length && i < vals2.length && vals1[i].equals(vals2[i])) {
-            i++;
-        }
-        if (i < vals1.length && i < vals2.length) {
-            int diff = Integer.valueOf(vals1[i]).compareTo(Integer.valueOf(vals2[i]));
-            return Integer.signum(diff);
-        } else {
-            return Integer.signum(vals1.length - vals2.length);
-        }
-    };
-
     private final List<IPluginLoaderService.RemotePackage> remotePackages = new LinkedList<>();
-    private final NodeTreeModel treeModel = new NodeTreeModel(new RemotePackageView(null, null) {
+
+    private final NodeTreeModel updateTreeModel = new NodeTreeModel(new RemotePackageView(null, null) {
         @Override
         public Class<? extends Entity> getChildClass() {
             return RemotePackageView.class;
@@ -60,75 +48,32 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
 
     public ShowPackagesUpdates() {
         super(
-                "update",
+                "update plugins",
                 Language.get("title"),
                 CMD_ICON,
                 Language.get("title"),
                 null
         );
         ServiceRegistry.getInstance().addRegistryListener(IInstanceDispatcher.class, service -> {
-            IInstanceDispatcher ICS = (IInstanceDispatcher) service;
-            ICS.addInstanceListener(this);
-            try {
-                final PluginLoaderService ownPluginLoader = (PluginLoaderService) ICS.getService(PluginLoaderService.class);
-                ownPluginLoader.addPublicationListener(this);
-            } catch (NotBoundException | RemoteException e) {
-                Logger.getLogger().warn("Unable to find plugin loader service", e);
-            }
+            IInstanceDispatcher localICS = (IInstanceDispatcher) service;
+            localICS.addInstanceListener(this);
         });
 
         activator = pluginCatalogs -> {
-            synchronized (remotePackages) {
-                Map<String, IPluginLoaderService.RemotePackage> updateMap = new HashMap<>();
-                remotePackages.forEach(remotePackage -> {
-                    PluginPackage localPackage = PluginManager.getInstance().getPluginLoader().getPackageById(remotePackage.getId());
-                    if (localPackage == null || VER_COMPARATOR.compare(remotePackage.getVersion(), localPackage.getVersion()) > 0) {
-                        if (!updateMap.containsKey(remotePackage.getId())) {
-                            updateMap.put(remotePackage.getId(), remotePackage);
-                        } else if (VER_COMPARATOR.compare(remotePackage.getVersion(), updateMap.get(remotePackage.getId()).getVersion()) > 0) {
-                            updateMap.put(remotePackage.getId(), remotePackage);
-                        }
-                    }
-                });
-                Collection<IPluginLoaderService.RemotePackage> updates = updateMap.values();
-
-                for (INode node: treeModel) {
-                    RemotePackageView pkgView = (RemotePackageView) node;
-                    if (pkgView != treeModel.getRoot()) {
-                        if (!updates.contains(pkgView.remotePackage)) {
-                            ((INode) treeModel.getRoot()).detach(pkgView);
-                        } else {
-                            pkgView.refreshUpgradeInfo();
-                        }
-                    }
-                }
-                updates.forEach(remotePackage -> {
-                    boolean nodeNotExists = StreamSupport.stream(treeModel.spliterator(), false).noneMatch(node ->
-                            treeModel.getRoot() != node &&
-                            ((RemotePackageView) node).remotePackage.equals(remotePackage)
-                    );
-                    if (nodeNotExists) {
-                        ((INode) treeModel.getRoot()).attach(new RemotePackageView(remotePackage));
-                    }
-                });
-                treeModel.nodeStructureChanged((INode) treeModel.getRoot());
-
-                return new CommandStatus(
-                        updates.size() > 0,
-                        updates.size() == 0 ? CMD_ICON : ImageUtils.combine(
-                                    CMD_ICON,
-                                    ImageUtils.createBadge(String.valueOf(updates.size()), Color.decode("#3399FF"), Color.WHITE),
-                                    SwingConstants.SOUTH_EAST
-                        )
-                );
-            }
+            int updatesCount = refreshUpdates();
+            return new CommandStatus(
+                    updatesCount > 0,
+                    updatesCount == 0 ? CMD_ICON : ImageUtils.combine(
+                                CMD_ICON,
+                                ImageUtils.createBadge(String.valueOf(updatesCount), Color.decode("#3399FF"), Color.WHITE),
+                                SwingConstants.SOUTH_EAST
+                    )
+            );
         };
     }
 
-    List<IPluginLoaderService.RemotePackage> getUpdatedPlugins() {
-        return ((INode) treeModel.getRoot()).childrenList().stream()
-                .map(iNode -> ((RemotePackageView) iNode).remotePackage)
-                .collect(Collectors.toList());
+    private PluginCatalog getCatalog() {
+        return PluginManager.getInstance().getPluginCatalog();
     }
 
     @Override
@@ -139,39 +84,36 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
     @Override
     public final void execute(PluginCatalog context, Map<String, IComplexType> params) {
         Dialog dialog = new Dialog(
-                FocusManager.getCurrentManager().getActiveWindow(),
+                Dialog.findNearestWindow(),
                 CMD_ICON,
                 Language.get(ShowPackagesUpdates.class, "title"),
-                createView(),
+                new JPanel(new BorderLayout()) {{
+                    add(new JScrollPane(((Entity) updateTreeModel.getRoot()).getSelectorPresentation()) {{
+                        getViewport().setBackground(Color.WHITE);
+                        setBorder(new CompoundBorder(
+                                new EmptyBorder(5, 5, 5, 5),
+                                new MatteBorder(1, 1, 1, 1, Color.LIGHT_GRAY)
+                        ));
+                    }}, BorderLayout.CENTER);
+                }},
                 e -> {},
-                Dialog.Default.BTN_CLOSE.newInstance()
+                codex.component.dialog.Dialog.Default.BTN_CLOSE.newInstance()
         );
-        treeModel.addTreeModelListener(new TreeModelAdapter() {
+        TreeModelListener listener = new TreeModelAdapter() {
             @Override
             public void treeStructureChanged(TreeModelEvent e) {
-                if (((INode) treeModel.getRoot()).childrenList().isEmpty()) {
+                if (updateTreeModel.getRoot().getChildCount() == 0) {
                     dialog.setVisible(false);
                 }
             }
-        });
+        };
+        updateTreeModel.addTreeModelListener(listener);
 
         dialog.setPreferredSize(new Dimension(800, 600));
         dialog.setResizable(false);
         dialog.setVisible(true);
-    }
 
-    private JPanel createView() {
-        final JScrollPane scrollPane = new JScrollPane();
-        scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setViewportView(((Entity) treeModel.getRoot()).getSelectorPresentation());
-        scrollPane.setBorder(new CompoundBorder(
-                new EmptyBorder(5, 5, 5, 5),
-                new MatteBorder(1, 1, 1, 1, Color.GRAY)
-        ));
-
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.add(scrollPane, BorderLayout.CENTER);
-        return panel;
+        updateTreeModel.removeTreeModelListener(listener);
     }
 
     @Override
@@ -182,9 +124,6 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
                 registerPackages(instance, pluginLoader.getPublishedPackages(LocaleContextHolder.getLocale()));
             } catch (NotBoundException e) {
                 //
-            } catch (ClassCastException e) {
-                //TODO: Временная заглушка до перехода на 2.2.2
-                //Теперь передается наименования класса редактора, не кастектс в класс (а класс не мог быть сериализован)
             } catch (RemoteException e) {
                 Logger.getLogger().warn(MessageFormat.format("Failed remote service ''{0}'' call to instance ''{1}''", PluginLoaderService.class, instance), e);
             }
@@ -193,9 +132,7 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
 
     @Override
     public final void instanceUnlinked(Instance instance) {
-        SwingUtilities.invokeLater(() -> {
-            unregisterPackages(instance, null);
-        });
+        SwingUtilities.invokeLater(() -> unregisterPackages(instance, null));
     }
 
     @Override
@@ -210,14 +147,14 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
         }
     }
 
-    private void registerPackages(Instance instance, List<IPluginLoaderService.RemotePackage> packages) {
+    private synchronized void registerPackages(Instance instance, List<IPluginLoaderService.RemotePackage> packages) {
         synchronized (remotePackages) {
-            packages.forEach(remotePackage -> {
+            for (IPluginLoaderService.RemotePackage remotePackage : packages) {
                 if (!remotePackages.contains(remotePackage)) {
                     remotePackages.add(remotePackage);
                 }
                 remotePackages.get(remotePackages.indexOf(remotePackage)).addInstance(instance);
-            });
+            }
             activate();
         }
     }
@@ -234,5 +171,47 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog> implements 
             });
             activate();
         }
+    }
+
+    private synchronized int refreshUpdates() {
+        final Map<String, IPluginLoaderService.RemotePackage> updateMap = new HashMap<>();
+        for (IPluginLoaderService.RemotePackage remotePackage : remotePackages) {
+            PluginPackage localPackage = PluginManager.getInstance().getPluginLoader().getPackageById(remotePackage.getId());
+            boolean isUpdated =
+                    localPackage != null &&
+                    PluginPackage.VER_COMPARATOR.compare(remotePackage.getVersion(), localPackage.getVersion()) > 0;
+            boolean isInstalled = false;
+            if (isUpdated && getCatalog().onUpdateOption() == PluginCatalog.OnUpdate.Install) {
+                isInstalled = DownloadPackages.installPackage(remotePackage);
+            }
+            if (localPackage == null || (isUpdated && !isInstalled)) {
+                if (!updateMap.containsKey(remotePackage.getId())) {
+                    updateMap.put(remotePackage.getId(), remotePackage);
+                } else if (PluginPackage.VER_COMPARATOR.compare(remotePackage.getVersion(), updateMap.get(remotePackage.getId()).getVersion()) > 0) {
+                    updateMap.replace(remotePackage.getId(), remotePackage);
+                }
+            }
+        }
+
+        updateTreeModel.getRoot().childrenList().forEach(iNode -> {
+            RemotePackageView pkgView = (RemotePackageView) iNode;
+            if (updateMap.values().contains(pkgView.remotePackage)) {
+                pkgView.refreshUpgradeInfo();
+            } else {
+                updateTreeModel.getRoot().detach(pkgView);
+            }
+        });
+        updateMap.forEach((id, remotePackage) -> {
+            if (updateTreeModel.getRoot().childrenList().stream().noneMatch(iNode -> ((RemotePackageView) iNode).remotePackage.equals(remotePackage))) {
+                updateTreeModel.getRoot().attach(new RemotePackageView(remotePackage));
+            }
+        });
+        updateTreeModel.nodeStructureChanged(updateTreeModel.getRoot());
+        return updateTreeModel.getRoot().getChildCount();
+    }
+
+    @Override
+    public void packageLoaded(PluginPackage pluginPackage) {
+        activate();
     }
 }

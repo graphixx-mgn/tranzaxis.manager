@@ -3,21 +3,24 @@ package plugin;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.explorer.tree.INode;
-import codex.instance.IInstanceDispatcher;
 import codex.log.Logger;
+import codex.model.Access;
 import codex.model.Catalog;
 import codex.model.CommandRegistry;
 import codex.model.Entity;
-import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
+import codex.type.Enum;
+import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import javax.swing.*;
 import java.io.IOException;
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
 import java.text.MessageFormat;
+import java.util.Collections;
 
 final class PluginCatalog extends Catalog {
+
+    private final static String PROP_ON_UPDATE = "onUpdate";
 
     static {
         CommandRegistry.getInstance().registerCommand(ShowPackagesUpdates.class);
@@ -34,18 +37,23 @@ final class PluginCatalog extends Catalog {
                 Language.get(PluginManager.class, "root@title"),
                 null
         );
+
+        // Properties
+        model.addUserProp(PROP_ON_UPDATE, new Enum<>(OnUpdate.Install), true, Access.Select);
     }
 
     @Override
     public void attach(INode child) {
         super.attach(child);
-        getCommand(ShowPackagesUpdates.class).activate();
     }
 
     @Override
     public Class<? extends Entity> getChildClass() {
         return PackageView.class;
     }
+
+    @Override
+    public void loadChildren() {}
 
     @Override
     public boolean allowModifyChild() {
@@ -57,37 +65,33 @@ final class PluginCatalog extends Catalog {
         return getChildCount() == 0;
     }
 
+    OnUpdate onUpdateOption() {
+        return (OnUpdate) model.getValue(PROP_ON_UPDATE);
+    }
+
+    PackageView getView(PluginPackage pluginPackage) {
+        return childrenList().stream()
+                .map(iNode -> (PackageView) iNode)
+                .filter(packageView -> packageView.getPackage().equals(pluginPackage))
+                .findFirst().orElse(null);
+    }
+
 
     public static <E extends Entity> void deleteInstance(E entity, boolean cascade, boolean confirmation) {
-        PackageView   pkgView = (PackageView) entity;
-        PluginPackage pkg = ((PackageView) entity).getPackage();
-
+        PackageView   packageView = (PackageView) entity;
+        PluginPackage pluginPackage = packageView.getPackage();
         try {
-            if (pkgView.isPublished()) {
-                if (ServiceRegistry.getInstance().isServiceRegistered(IInstanceDispatcher.class)) {
-                    IInstanceDispatcher ICS = ServiceRegistry.getInstance().lookupService(IInstanceDispatcher.class);
-                    if (ICS.isStarted()) {
-                        ICS.getInstances().forEach(instance -> {
-                            try {
-                                final IPluginLoaderService pluginLoader = (IPluginLoaderService) instance.getService(PluginLoaderService.class);
-                                pluginLoader.packagePublicationChanged(
-                                        new IPluginLoaderService.RemotePackage(pkg),
-                                        false
-                                );
-                            } catch (RemoteException | NotBoundException ignore) {
-                                //
-                            }
-                        });
-                    }
-                }
+            if (packageView.isPublished()) {
+                packageView.getCommand(PackageView.PublishPackage.class).execute(packageView, Collections.emptyMap());
             }
-            for (PluginHandler pluginHandler : pkg.getPlugins()) {
+            PluginManager.getInstance().getPluginLoader().removePluginPackage(pluginPackage, true, true);
+            for (PluginHandler pluginHandler : pluginPackage.getPlugins()) {
                 Entity.deleteInstance(pluginHandler.getView(), false, false);
             }
-            Entity.deleteInstance(pkgView, false, false);
-            PluginManager.getInstance().getPluginLoader().removePluginPackage(pkg, true);
+            Entity.deleteInstance(entity, false, false);
         } catch (PluginException | IOException e) {
-            Logger.getLogger().warn("Unable to remove plugin package ''{0}'': {1}", pkg, e.getMessage());
+            Logger.getLogger().warn(MessageFormat.format("Unable to remove plugin package ''{0}''", pluginPackage), e);
+            if (e instanceof PluginException && ((PluginException) e).isHandled()) return;
             MessageBox.show(
                     MessageType.WARNING,
                     MessageFormat.format(
@@ -95,7 +99,33 @@ final class PluginCatalog extends Catalog {
                             e.getMessage()
                     )
             );
-            pkgView.updateView();
+        }
+    }
+
+
+    enum OnUpdate implements Iconified {
+
+        Install(ImageUtils.getByPath("/images/plugin_install.png")),
+        //Notify(ImageUtils.getByPath("/images/notify.png")),
+        None(ImageUtils.getByPath("/images/unavailable.png"));
+
+        private final ImageIcon icon;
+        private final String title;
+
+        OnUpdate(ImageIcon icon) {
+            this.icon  = icon;
+            this.title = Language.get(PluginManager.class, "update@".concat(name().toLowerCase()));
+        }
+
+        @Override
+        public ImageIcon getIcon() {
+            return icon;
+        }
+
+
+        @Override
+        public String toString() {
+            return title;
         }
     }
 }

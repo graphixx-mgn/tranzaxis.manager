@@ -69,7 +69,6 @@ public abstract class PluginHandler<P extends IPlugin> implements Iconified {
                 pluginHandler.loadPlugin();
             }
         } catch (Exception e) {
-            e.printStackTrace();
             throw new PluginException(e.getMessage());
         }
         return true;

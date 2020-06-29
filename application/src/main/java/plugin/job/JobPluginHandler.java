@@ -22,6 +22,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
+import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -79,7 +80,12 @@ public class JobPluginHandler extends PluginHandler<JobPlugin> {
                 .collect(Collectors.toList());
         if (!references.isEmpty()) {
             showUsingObjects(references);
-            return false;
+            throw new PluginException(
+                    "There are entity references:\n"+references.stream()
+                        .map(entity -> MessageFormat.format("* {0}", entity.getPathString()))
+                        .collect(Collectors.joining("\n")),
+                    true
+            );
         } else {
             ClassCatalog.unregisterClassCatalog(getPluginClass());
         }
@@ -116,6 +122,8 @@ public class JobPluginHandler extends PluginHandler<JobPlugin> {
                 }
             });
         }
+        ClassCatalog.unregisterClassCatalog(getPluginClass());
+        ClassCatalog.registerClassCatalog(pluginHandler.getPluginClass());
         super.unloadPlugin();
         super.loadPlugin();
         return true;
