@@ -2,13 +2,12 @@ package codex.task;
 
 import codex.context.IContext;
 import codex.log.Logger;
+import codex.notification.Handler;
+import codex.notification.Message;
 import codex.notification.NotifySource;
 import codex.notification.INotificationService;
-import codex.notification.Message;
-import codex.notification.TrayInformer;
 import codex.service.*;
 import codex.utils.Language;
-import java.awt.*;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,12 +29,14 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
         @Override
         public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
             if (nextStatus == Status.FAILED || nextStatus == Status.FINISHED) {
-                NSS.sendMessage(TrayInformer.getInstance(), new Message(
-                        task.getStatus() == Status.FINISHED ? TrayIcon.MessageType.INFO : TrayIcon.MessageType.ERROR,
-                        Language.get(TaskMonitor.class,"notify@"+task.getStatus().name().toLowerCase()),
-                        task.getTitle()
-                ));
-                task.removeListener(this);
+                NSS.sendMessage(
+                        Message.getBuilder()
+                                .setSeverity(task.getStatus() == Status.FINISHED ? Message.Severity.Information : Message.Severity.Error)
+                                .setSubject(Language.get(TaskMonitor.class,"notify@"+task.getStatus().name().toLowerCase()))
+                                .setContent(task.getTitle())
+                                .build(),
+                        Handler.Tray
+                );
             }
         }
     };
@@ -83,9 +84,6 @@ public class TaskExecutorService extends AbstractService<TaskServiceOptions> imp
                         MessageFormat.format(" (duration: {0})", TaskView.formatDuration(((AbstractTask) task).getDuration())) :
                         ""
         );
-        if (nextStatus.isFinal()) {
-            task.removeListener(this);
-        }
     }
 
     private void attachMonitor(ThreadPoolKind kind, ITaskMonitor monitor) {

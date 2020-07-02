@@ -1,7 +1,6 @@
 package codex.task;
 
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -15,10 +14,10 @@ class TaskExecutor extends ThreadPoolExecutor {
     
     TaskExecutor(ThreadPoolKind kind) {
         super(
-                kind == ThreadPoolKind.Queued ? QUEUE_SIZE : 0, 
+                kind == ThreadPoolKind.Queued ? QUEUE_SIZE : DEMAND_SIZE,
                 kind == ThreadPoolKind.Queued ? QUEUE_SIZE : DEMAND_SIZE,
                 30L, TimeUnit.SECONDS,
-                kind == ThreadPoolKind.Queued ? new LinkedBlockingQueue<>() : new SynchronousQueue<>(),
+                new LinkedBlockingQueue<>(),
                 new NamingThreadFactory(kind)
         );
     }

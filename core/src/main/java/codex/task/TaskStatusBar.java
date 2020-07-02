@@ -1,12 +1,16 @@
 package codex.task;
 
 import codex.component.ui.StripedProgressBarUI;
+import codex.log.Logger;
 import codex.utils.Language;
 import com.sun.javafx.PlatformUtil;
+import org.bridj.Platform;
 import org.bridj.Pointer;
+import org.bridj.PointerIO;
 import org.bridj.cpp.com.COMRuntime;
 import org.bridj.cpp.com.shell.ITaskbarList3;
 import org.bridj.jawt.JAWTUtils;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -101,17 +105,29 @@ final class TaskStatusBar extends JPanel implements TaskMonitor.ITaskMonitorList
 
     @SuppressWarnings("unchecked")
     private void notifyTaskBar(ITaskbarList3.TbpFlag mode, int percent) {
-        if (PlatformUtil.isWin7OrLater() && SwingUtilities.getWindowAncestor(this) != null && SwingUtilities.getWindowAncestor(this).isShowing()) {
-            try {
-                ITaskbarList3 taskBarIcon = COMRuntime.newInstance(ITaskbarList3.class);
-                long hwndVal = JAWTUtils.getNativePeerHandle(SwingUtilities.getWindowAncestor(this));
-                Pointer<?> HWND = Pointer.pointerToAddress(hwndVal);
-                taskBarIcon.SetProgressState((Pointer) HWND, mode);
-                if (mode != ITaskbarList3.TbpFlag.TBPF_NOPROGRESS) {
-                    taskBarIcon.SetProgressValue((Pointer) HWND, percent, 100);
-                }
-            } catch (ClassNotFoundException e) {/**/}
+        try {
+            ITaskbarList3 taskBarIcon = COMRuntime.newInstance(ITaskbarList3.class);
+            long hwndVal = JAWTUtils.getNativePeerHandle(SwingUtilities.getWindowAncestor(this));
+            Pointer<?> HWND = Pointer.pointerToAddress(hwndVal, (PointerIO) null);
+            taskBarIcon.SetProgressState((Pointer) HWND, mode);
+            if (mode != ITaskbarList3.TbpFlag.TBPF_NOPROGRESS) {
+                taskBarIcon.SetProgressValue((Pointer) HWND, percent, 100);
+            }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         }
+
+//        if (PlatformUtil.isWin7OrLater() && SwingUtilities.getWindowAncestor(this) != null && SwingUtilities.getWindowAncestor(this).isShowing()) {
+//            try {
+//                ITaskbarList3 taskBarIcon = COMRuntime.newInstance(ITaskbarList3.class);
+//                long hwndVal = JAWTUtils.getNativePeerHandle(SwingUtilities.getWindowAncestor(this));
+//                Pointer<?> HWND = Pointer.pointerToAddress(hwndVal);
+//                taskBarIcon.SetProgressState((Pointer) HWND, mode);
+//                if (mode != ITaskbarList3.TbpFlag.TBPF_NOPROGRESS) {
+//                    taskBarIcon.SetProgressValue((Pointer) HWND, percent, 100);
+//                }
+//            } catch (ClassNotFoundException e) {/**/}
+//        }
     }
     
 }

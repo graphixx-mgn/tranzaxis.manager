@@ -1,6 +1,8 @@
 package codex.task;
 
 import codex.component.ui.StripedProgressBarUI;
+import codex.log.Logger;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Insets;
@@ -56,7 +58,10 @@ public class TaskView extends AbstractTaskView {
             cancel.addActionListener((event) -> cancelAction.accept(task));
             controls.add(cancel, BorderLayout.EAST);
         }
-        if (task.isPauseable() && cancelAction != null) {
+        if (cancelAction != null && task.isPauseable()) {
+            Logger.todo("Task view looks ugly but it needs for view injection to custom dialogs etc.");
+        }
+        if (task.isPauseable() /*&& cancelAction != null*/) {
             PauseButton pause = new PauseButton();
             pause.addActionListener(new AbstractAction() {
                 @Override
