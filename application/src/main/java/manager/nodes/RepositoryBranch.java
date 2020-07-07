@@ -1,8 +1,10 @@
 package manager.nodes;
 
+import codex.config.IConfigStoreService;
 import codex.model.Catalog;
 import codex.model.Entity;
 import codex.model.EntityDefinition;
+import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import manager.svn.SVN;
 import org.atteo.classindex.IndexSubclasses;
@@ -71,7 +73,21 @@ public abstract class RepositoryBranch extends Catalog {
                         attach(child);
                     });
         } else {
-            super.loadChildren();
+            List<Class<? extends Entity>> classCatalog = getClassCatalog();
+            if (!classCatalog.isEmpty()) {
+                EntityRef ownerRef = Entity.findOwner(this);
+                IConfigStoreService CSS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
+                getClassCatalog().forEach(catalogClass -> {
+                    List<Entity> children = new LinkedList<>();
+                    CSS.readCatalogEntries(ownerRef == null ? null : ownerRef.getId(), catalogClass).forEach(entityRef -> {
+                        if (entityRef != null && !childrenList().contains(entityRef.getValue())) {
+                            children.add(entityRef.getValue());
+                        }
+                    });
+                    children.sort((o1, o2) -> BinarySource.VERSION_SORTER.reversed().compare(o1.getPID(), o2.getPID()));
+                    children.forEach(this::attach);
+                });
+            }
         }
     }
 
