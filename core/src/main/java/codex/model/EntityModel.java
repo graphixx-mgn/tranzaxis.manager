@@ -294,9 +294,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * Обновление всех динамических свойств модели.
      */
     public final void updateDynamicProps() {
-        dynamicResolver.updateDynamicProps(dynamicProps.stream()
-                .filter(dynamicResolver.valueProviders::containsKey)
-                .collect(Collectors.toList())
+        dynamicResolver.updateDynamicProps(
+                dynamicProps.stream()
+                    .filter(dynamicResolver.valueProviders::containsKey)
+                    .collect(Collectors.toList()),
+                false
         );
     }
     
@@ -305,9 +307,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
      * @param names Список свойст для обновления.
      */
     public final void updateDynamicProps(String... names) {
-        dynamicResolver.updateDynamicProps(Arrays.stream(names)
-                .filter((propName) -> dynamicProps.contains(propName) && dynamicResolver.valueProviders.containsKey(propName))
-                .collect(Collectors.toList())
+        dynamicResolver.updateDynamicProps(
+                Arrays.stream(names)
+                    .filter((propName) -> dynamicProps.contains(propName) && dynamicResolver.valueProviders.containsKey(propName))
+                    .collect(Collectors.toList()),
+                true
         );
     }
     
@@ -981,9 +985,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         }
         
         @SuppressWarnings("unchecked")
-        void updateDynamicProps(List<String> names) {
+        void updateDynamicProps(List<String> names, boolean force) {
             List<String> filtered = names.stream()
-                    .filter(propName -> ISerializableType.class.isAssignableFrom(getPropertyType(propName)))
+                    .filter(propName -> ISerializableType.class.isAssignableFrom(getPropertyType(propName)) || force)
                     .collect(Collectors.toList());
 
             if (filtered.size() == 1) {
@@ -993,23 +997,22 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 Map<String, List<String>> updatePlan = buildUpdatePlan(filtered);
                 
                 List<String> independentProps = updatePlan.entrySet().stream()
-                            .filter((entry) -> {
-                                    return
-                                        entry.getValue().size() == 1 && entry.getKey().equals(entry.getValue().get(0)) &&
-                                                updatePlan.values().stream()
-                                                        .filter((baseProps) -> baseProps != entry.getValue())
-                                                        .noneMatch((baseProps) -> baseProps.contains(entry.getKey()));
-                            })
+                            .filter((entry) ->
+                                    entry.getValue().size() == 1 &&
+                                    entry.getKey().equals(entry.getValue().get(0)) &&
+                                    updatePlan.values().stream()
+                                            .filter((baseProps) -> baseProps != entry.getValue())
+                                            .noneMatch((baseProps) -> baseProps.contains(entry.getKey())))
                             .map(Map.Entry::getKey)
                         .collect(Collectors.toList());
                 
                 Map<String, List<String>> dependencies = updatePlan.entrySet().stream()
-                            .filter((entry) -> {
-                                    return !(entry.getValue().size() == 1 && entry.getKey().equals(entry.getValue().get(0)));
-                            }).collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                Map.Entry::getValue
-                            ));
+                            .filter((entry) ->
+                                    !(entry.getValue().size() == 1 &&
+                                    entry.getKey().equals(entry.getValue().get(0)))).collect(Collectors.toMap(
+                                        Map.Entry::getKey,
+                                        Map.Entry::getValue
+                                    ));
 
                 Logger.getContextLogger(OrmContext.class).debug(
                         "Perform update ''{0}'' dynamic properties: {1} by resolving plan\n"
@@ -1023,18 +1026,18 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                                         .collect(Collectors.joining(", "))
                 );
                 
-                independentProps.forEach((proName) -> {
-                    getProperty(proName).setValue(dynamicResolver.valueProviders.get(proName).get());
-                });
+                independentProps.forEach((proName) ->
+                        getProperty(proName).setValue(dynamicResolver.valueProviders.get(proName).get())
+                );
                 
                 Map<String, Object> newValues = new LinkedHashMap<>();
-                dependencies.values().forEach((baseProps) -> {
-                    baseProps.forEach((baseProp) -> {
-                        if (!newValues.containsKey(baseProp)) {
-                            newValues.put(baseProp, dynamicResolver.valueProviders.get(baseProp).get());
-                        }
-                    });
-                });
+                dependencies.values().forEach((baseProps) ->
+                        baseProps.forEach((baseProp) -> {
+                            if (!newValues.containsKey(baseProp)) {
+                                newValues.put(baseProp, dynamicResolver.valueProviders.get(baseProp).get());
+                            }
+                        })
+                );
 
                 newValues.forEach((key, value) -> {
                     if (getValue(key) != value) {
@@ -1047,9 +1050,9 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                             "Perform forced update orphaned dynamic properties: {0}", 
                             dependencies.keySet()
                     );
-                    dependencies.keySet().forEach((proName) -> {
-                        getProperty(proName).setValue(dynamicResolver.valueProviders.get(proName).get());
-                    });
+                    dependencies.keySet().forEach((proName) ->
+                            getProperty(proName).setValue(dynamicResolver.valueProviders.get(proName).get())
+                    );
                 }
             }
         }
