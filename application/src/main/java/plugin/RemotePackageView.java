@@ -97,10 +97,6 @@ class RemotePackageView extends Catalog {
         return false;
     }
 
-    void refreshUpgradeInfo() {
-        model.updateDynamicProps(PROP_SOURCES, PROP_UPGRADE);
-    }
-
 
     class ShowChanges extends EditorCommand<AnyType, Object> {
         ShowChanges() {
