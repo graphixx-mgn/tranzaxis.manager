@@ -168,15 +168,14 @@ public class PackageView extends Catalog {
     private void setPublished(boolean published) throws Exception {
         model.setValue(PROP_PUBLIC, published);
         model.commit(true);
+        final IPluginLoaderService.RemotePackage remotePackage = new IPluginLoaderService.RemotePackage(getPackage());
         SwingUtilities.invokeLater(() -> ICS.getInstances().forEach(instance -> {
             try {
                 final IPluginLoaderService pluginLoader = (IPluginLoaderService) instance.getService(PluginLoaderService.class);
-                pluginLoader.packagePublicationChanged(
-                        new IPluginLoaderService.RemotePackage(getPackage()),
-                        isPublished()
-                );
+                pluginLoader.packagePublicationChanged(remotePackage, isPublished());
             } catch (RemoteException | NotBoundException e) {
                 Throwable rootCause = PluginLoader.getCause(e);
+                rootCause.printStackTrace();
                 if (!(rootCause instanceof ClassNotFoundException))
                     Logger.getLogger().warn("Remote service call error: {0}", rootCause.getMessage());
             }
