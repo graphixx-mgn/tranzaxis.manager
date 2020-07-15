@@ -145,6 +145,8 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
     }
 
     ContextView attachContext(Logger.ContextInfo contextInfo) {
+        if (LogManagementService.class.equals(contextInfo.getClazz())) return null;
+
         Optional<ContextView> ctxView = StreamSupport.stream(treeModel.spliterator(), false)
                 .map(iNode -> (ContextView) iNode)
                 .filter(contextView -> contextView.getContextClass() == contextInfo.getClazz())

@@ -3,6 +3,7 @@ package codex.log;
 import codex.context.IContext;
 import codex.notification.*;
 import codex.service.AbstractService;
+import codex.service.ServiceRegistry;
 import java.text.MessageFormat;
 
 @NotifySource(condition = NotifyCondition.ALWAYS)
@@ -32,19 +33,19 @@ public class LogManagementService extends AbstractService<LoggerServiceOptions> 
     @Override
     public void error(String message, Object... params) {
         log(Level.Error, format(message, params));
-//        ServiceRegistry.getInstance().lookupService(INotificationService.class).sendMessage(TrayInformer.getInstance(), new Message(
-//                TrayIcon.MessageType.ERROR,
-//                Level.Error.toString(), message
-//        ));
+        ServiceRegistry.getInstance().lookupService(INotificationService.class).sendMessage(
+                Message.getBuilder()
+                    .setSeverity(Message.Severity.Error)
+                    .setSubject(Level.Error.toString())
+                    .setContent(format(message, params))
+                    .build(),
+                Handler.Tray
+        );
     }
 
     @Override
     public void error(String message, Throwable exception) {
         logError(Level.Error, message, exception);
-//        ServiceRegistry.getInstance().lookupService(INotificationService.class).sendMessage(TrayInformer.getInstance(), new Message(
-//                TrayIcon.MessageType.ERROR,
-//                Level.Error.toString(), exception.getMessage()
-//        ));
     }
 
     @Override

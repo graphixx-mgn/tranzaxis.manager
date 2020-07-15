@@ -284,8 +284,7 @@ public class Logger extends org.apache.log4j.Logger {
             StreamSupport.stream(ClassIndex.getSubclasses(IContext.class).spliterator(),false)
                     .filter(ctxClass -> !(
                             Modifier.isInterface(ctxClass.getModifiers()) ||
-                            Modifier.isAbstract(ctxClass.getModifiers())  ||
-                            LogManagementService.class.equals(ctxClass)
+                            Modifier.isAbstract(ctxClass.getModifiers())
                     ))
                     .map(Logger::resolveContextClass)
                     .map(ContextInfo::getInstance)
