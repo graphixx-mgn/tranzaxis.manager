@@ -1,4 +1,5 @@
 codex.config.ConfigStoreService
+codex.utils.Language$TranslateService
 codex.task.TaskExecutorService
 codex.notification.NotificationService
 codex.instance.InstanceCommunicationService
