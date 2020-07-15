@@ -34,7 +34,7 @@ final class PluginCatalog extends Catalog {
         super(
                 null,
                 ImageUtils.getByPath("/images/plugins.png"),
-                Language.get(PluginManager.class, "root@title"),
+                title,
                 null
         );
 
@@ -106,8 +106,7 @@ final class PluginCatalog extends Catalog {
     enum OnUpdate implements Iconified {
 
         Install(ImageUtils.getByPath("/images/plugin_install.png")),
-        //Notify(ImageUtils.getByPath("/images/notify.png")),
-        None(ImageUtils.getByPath("/images/unavailable.png"));
+        Notify(ImageUtils.getByPath("/images/notify.png"));
 
         private final ImageIcon icon;
         private final String title;
