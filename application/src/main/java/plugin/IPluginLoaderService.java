@@ -12,10 +12,13 @@ import codex.utils.Language;
 import manager.upgrade.stream.RemoteInputStream;
 import manager.xml.VersionsDocument;
 import javax.swing.*;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public interface IPluginLoaderService extends IRemoteService {
@@ -165,7 +168,7 @@ public interface IPluginLoaderService extends IRemoteService {
         PropertyPresentation(final PluginHandler pluginHandler) {
             name   = EntityModel.THIS;
             value  = Language.get(pluginHandler.pluginClass, "title");
-            icon   = ImageUtils.getByPath(pluginHandler.pluginClass, Language.get(pluginHandler.pluginClass, "icon"));
+            icon   = cloneImage(ImageUtils.getByPath(pluginHandler.pluginClass, Language.get(pluginHandler.pluginClass, "icon")));
             editor = AnyTypeView.class.getTypeName();
             access = Access.Edit;
         }
@@ -176,7 +179,12 @@ public interface IPluginLoaderService extends IRemoteService {
             Object propVal = model.calculateDynamicValue(propName);
             name   = propName;
             value  = propVal == null ? null : propVal.toString();
-            icon   = propVal == null || !Iconified.class.isAssignableFrom(propVal.getClass()) ? null : ((Iconified) propVal).getIcon();
+
+            if (propVal == null || !Iconified.class.isAssignableFrom(propVal.getClass())) {
+                icon = null;
+            } else {
+                icon = cloneImage(((Iconified) propVal).getIcon());
+            }
             editor = model.getEditor(propName).getClass().getTypeName();
 
             boolean shownInSelector = model.getProperties(Access.Select).contains(propName);
@@ -216,6 +224,16 @@ public interface IPluginLoaderService extends IRemoteService {
             } catch (ClassNotFoundException e) {
                 return null;
             }
+        }
+
+        private static ImageIcon cloneImage(ImageIcon origIcon) {
+            int w = origIcon.getIconWidth();
+            int h = origIcon.getIconHeight();
+            BufferedImage dimg = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = dimg.createGraphics();
+            g.drawImage(origIcon.getImage(), 0, 0, w, h, 0, 0, w, h, null);
+            g.dispose();
+            return new ImageIcon(dimg);
         }
     }
 
