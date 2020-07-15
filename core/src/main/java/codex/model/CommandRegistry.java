@@ -26,11 +26,11 @@ public final class CommandRegistry {
 
     private CommandRegistry() {}
 
-    public synchronized <E extends Entity> EntityCommand<E> registerCommand(Class<? extends EntityCommand<E>> commandClass) {
+    public <E extends Entity> EntityCommand<E> registerCommand(Class<? extends EntityCommand<E>> commandClass) {
         return registerCommand(getCommandEntityClass(commandClass), commandClass);
     }
 
-    public synchronized <E extends Entity> EntityCommand<E> registerCommand(Class<? extends E> entityClass, Class<? extends EntityCommand<E>> commandClass) {
+    public <E extends Entity> EntityCommand<E> registerCommand(Class<? extends E> entityClass, Class<? extends EntityCommand<E>> commandClass) {
         if (!REGISTRY.containsKey(entityClass)) {
             REGISTRY.put(entityClass, new LinkedList<>());
         }
@@ -56,7 +56,7 @@ public final class CommandRegistry {
         return command;
     }
 
-    public synchronized <E extends Entity> EntityCommand<E> registerCommand(
+    public <E extends Entity> EntityCommand<E> registerCommand(
             Class<E> entityClass,
             Class<? extends EntityCommand<E>> commandClass,
             Predicate<E> condition
@@ -86,27 +86,27 @@ public final class CommandRegistry {
         return command;
     }
 
-    public synchronized <E extends Entity> void unregisterCommand(Class<? extends EntityCommand<E>> commandClass) {
+    public <E extends Entity> void unregisterCommand(Class<? extends EntityCommand<E>> commandClass) {
         unregisterCommand(getCommandEntityClass(commandClass), commandClass);
     }
 
-    public synchronized <E extends Entity> void unregisterCommand(Class<E> entityClass, Class<? extends EntityCommand<E>> commandClass) {
+    public <E extends Entity> void unregisterCommand(Class<E> entityClass, Class<? extends EntityCommand<E>> commandClass) {
         if (REGISTRY.containsKey(entityClass)) {
             REGISTRY.get(entityClass).removeIf(commandEntry -> commandEntry.getValue().getClass().equals(commandClass));
         }
     }
 
-    public synchronized <E extends Entity> List<EntityCommand<E>> getRegisteredCommands(Class<E> entityClass) {
+    public <E extends Entity> List<EntityCommand<E>> getRegisteredCommands(Class<E> entityClass) {
         return getRegisteredCommands(null, entityClass);
     }
 
     @SuppressWarnings("unchecked")
-    synchronized <E extends Entity> List<EntityCommand<E>> getRegisteredCommands(E entity) {
+    <E extends Entity> List<EntityCommand<E>> getRegisteredCommands(E entity) {
         return new LinkedList<>(getRegisteredCommands(entity, (Class<E>) entity.getClass()));
     }
 
     @SuppressWarnings("unchecked")
-    synchronized <E extends Entity> List<EntityCommand<E>> getRegisteredCommands(E entity, Class<E> entityClass) {
+    <E extends Entity> List<EntityCommand<E>> getRegisteredCommands(E entity, Class<E> entityClass) {
         List<EntityCommand<E>> entityCommands = new LinkedList<>();
         REGISTRY.getOrDefault(entityClass, Collections.emptyList()).forEach(commandEntry -> {
             if (entity == null || ((Predicate<E>) commandEntry.getKey()).test(entity)) {
@@ -121,7 +121,7 @@ public final class CommandRegistry {
     }
 
     @SuppressWarnings("unchecked")
-    private synchronized static <E extends Entity> Class<E> getCommandEntityClass(Class<? extends EntityCommand<E>> commandClass) {
+    private static <E extends Entity> Class<E> getCommandEntityClass(Class<? extends EntityCommand<E>> commandClass) {
         try {
             return (Class<E>) ((ParameterizedType) commandClass.getGenericSuperclass()).getActualTypeArguments()[0];
         } catch (ClassCastException e) {
@@ -129,13 +129,13 @@ public final class CommandRegistry {
         }
     }
 
-    private synchronized static <E extends Entity> EntityCommand<E> getCommandInstance(Class<? extends EntityCommand<E>> commandClass) {
+    private static <E extends Entity> EntityCommand<E> getCommandInstance(Class<? extends EntityCommand<E>> commandClass) {
         if (commandClass.isMemberClass() && !Modifier.isStatic(commandClass.getModifiers())) {
             Logger.getLogger().warn("In is not possible to register non-static inner command class [{0}]", commandClass);
             return null;
         }
         try {
-            Constructor<? extends EntityCommand<E>>  ctor = commandClass.getDeclaredConstructor();
+            Constructor<? extends EntityCommand<E>> ctor = commandClass.getDeclaredConstructor();
             ctor.setAccessible(true);
             return ctor.newInstance();
         } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
