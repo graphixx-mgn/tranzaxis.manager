@@ -113,7 +113,7 @@ final class PluginCatalog extends Catalog {
 
         OnUpdate(ImageIcon icon) {
             this.icon  = icon;
-            this.title = Language.get(PluginManager.class, "update@".concat(name().toLowerCase()));
+            this.title = Language.get(PluginCatalog.class, "update@".concat(name().toLowerCase()));
         }
 
         @Override
