@@ -194,7 +194,7 @@ class DownloadPackages extends EntityGroupCommand<RemotePackageView> {
                 Language.get("title"),
                 ICON_LOAD,
                 Language.get("title"),
-                null
+                remotePackageView -> remotePackageView.remotePackage.isAvailable()
         );
     }
 
