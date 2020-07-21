@@ -1,14 +1,14 @@
 package plugin;
 
-import codex.command.ICommandListener;
 import codex.component.dialog.Dialog;
 import codex.explorer.ExplorerUnit;
 import codex.explorer.browser.BrowseMode;
 import codex.explorer.browser.EmbeddedMode;
 import codex.explorer.tree.Navigator;
 import codex.explorer.tree.NodeTreeModel;
+import codex.instance.IInstanceDispatcher;
 import codex.log.Logger;
-import codex.notification.Message;
+import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -18,36 +18,56 @@ import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
-import javax.swing.event.AncestorEvent;
-import javax.swing.event.AncestorListener;
 import javax.swing.text.DefaultCaret;
 import java.awt.*;
-import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.util.*;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.util.Collection;
 import java.util.List;
 
 public final class PluginManager extends AbstractUnit {
 
     private final static ImageIcon ICON_INFO = ImageUtils.getByPath("/images/info.png");
 
-    static final File PLUGIN_DIR = new File("plugins");
     private static final PluginManager INSTANCE = new PluginManager();
     public static PluginManager getInstance() {
         return INSTANCE;
     }
-    static {
-        PLUGIN_DIR.mkdirs();
+
+    static Object getOption(Class <? extends IPlugin> pluginClass, String optName) throws ClassNotFoundException {
+        return getInstance().getPluginLoader().getPackages().parallelStream()
+                .map(PluginPackage::getPlugins)
+                .flatMap(Collection::stream)
+                .filter(pluginHandler -> pluginHandler.getPluginClass().equals(pluginClass))
+                .findFirst()
+                .orElseThrow(() -> new ClassNotFoundException(pluginClass.getCanonicalName()))
+                .getView()
+                .getOption(optName);
     }
 
     private ExplorerUnit        explorer;
     private final PluginCatalog pluginCatalog = new PluginCatalog();
-    private final PluginLoader  pluginLoader = new PluginLoader(PLUGIN_DIR) {
+    private final PluginLoader  pluginLoader  = new PluginLoader() {
         @Override
         void addPluginPackage(PluginPackage pluginPackage) {
             super.addPluginPackage(pluginPackage);
             pluginCatalog.attach(new PackageView(pluginPackage));
+        }
+
+        @Override
+        void replacePluginPackage(PluginPackage pluginPackage) {
+            super.replacePluginPackage(pluginPackage);
+            PluginPackage installedPackage = getPackageById(pluginPackage.getId());
+            pluginCatalog.childrenList().stream()
+                    .map(iNode -> (PackageView) iNode)
+                    .filter(packageView -> packageView.getPackage().equals(installedPackage))
+                    .findFirst()
+                    .ifPresent(packageView -> {
+                        int position = pluginCatalog.getIndex(packageView);
+                        pluginCatalog.replace(new PackageView(pluginPackage), position);
+                    });
         }
     };
 
@@ -64,26 +84,28 @@ public final class PluginManager extends AbstractUnit {
 
             Navigator navigator = (Navigator) navigatorField.get(explorer);
             navigator.setModel(new NodeTreeModel(pluginCatalog));
-
-            pluginCatalog.getCommand(ShowPackagesUpdates.class).addListener(new ICommandListener<PluginCatalog>() {
-                @Override
-                public void commandStatusChanged(boolean active) {
-                    updateNotifications(navigator.isShowing() && pluginCatalog == navigator.getLastSelectedPathComponent());
-                }
-            });
-            navigator.addAncestorListener(new AncestorListener() {
-                @Override
-                public void ancestorAdded(AncestorEvent event) {
-                    updateNotifications(navigator.isShowing() && pluginCatalog == navigator.getLastSelectedPathComponent());
-                }
-                @Override
-                public void ancestorRemoved(AncestorEvent event) {}
-                @Override
-                public void ancestorMoved(AncestorEvent event) {}
-            });
         } catch (Exception e) {
             //
         }
+
+        ServiceRegistry.getInstance().addRegistryListener(IInstanceDispatcher.class, service -> {
+            IInstanceDispatcher localICS = (IInstanceDispatcher) service;
+            localICS.registerRemoteService(PluginLoaderService.class);
+
+            try {
+                ((PluginLoaderService) localICS.getService(PluginLoaderService.class)).addPublicationListener(pluginCatalog.getCommand(ShowPackagesUpdates.class));
+            } catch (RemoteException e) {
+                Logger.getLogger().warn("Unable to find plugin loader service", e);
+            } catch (NotBoundException ignore) {
+                ignore.printStackTrace();
+            }
+        });
+
+        getPluginLoader().addListener(pluginCatalog.getCommand(ShowPackagesUpdates.class));
+    }
+
+    PluginCatalog getPluginCatalog() {
+        return pluginCatalog;
     }
 
     PluginLoader getPluginLoader() {
@@ -98,29 +120,6 @@ public final class PluginManager extends AbstractUnit {
     @Override
     public void viewportBound() {
         explorer.viewportBound();
-    }
-
-    private final Set<IPluginLoaderService.RemotePackage> checkedUpdates = new HashSet<>();
-    private final Map<IPluginLoaderService.RemotePackage, Message> notifications = new HashMap<>();
-    private void updateNotifications(boolean clearAll) {
-        List<IPluginLoaderService.RemotePackage> updates = pluginCatalog.getCommand(ShowPackagesUpdates.class).getUpdatedPlugins();
-        if (clearAll) {
-            checkedUpdates.addAll(updates);
-        } else {
-            updates.stream()
-                    .filter(remotePackage -> !(checkedUpdates.contains(remotePackage) || notifications.containsKey(remotePackage)))
-                    .forEach(remotePackage -> {
-                            notifications.put(remotePackage, new Message(remotePackage.getId()));
-                            eventQueue.putMessage(notifications.get(remotePackage));
-                    });
-        }
-        notifications.entrySet().removeIf(entry -> {
-            boolean condition = !updates.contains(entry.getKey()) || checkedUpdates.contains(entry.getKey());
-            if (condition) {
-                eventQueue.dropMessage(entry.getValue());
-            }
-            return condition;
-        });
     }
 
     static void showVersionInfo(List<Version> versions) {
