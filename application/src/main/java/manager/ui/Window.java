@@ -1,8 +1,7 @@
 package manager.ui;
 
-import codex.notification.Message;
 import codex.unit.AbstractUnit;
-import codex.unit.EventQueue;
+import codex.unit.IEventInformer;
 import codex.utils.ImageUtils;
 import java.awt.*;
 import javax.swing.*;
@@ -85,30 +84,25 @@ public final class Window extends JFrame {
                 }},
                 unit.getTitle()
         );
-        final int tabIndex = tabbedPanel.getTabCount()-1;
         unit.viewportBound();
-        unit.addEventListener(new EventQueue.IEventListener() {
-            @Override
-            public void putMessage(Message message, int queueSize, TrayIcon.MessageType maxSeverity) {
-                tabbedPanel.setIconAt(tabIndex, ImageUtils.combine(
-                        ImageUtils.resize(unit.getIcon(), 24, 24),
-                        ImageUtils.createBadge(
-                                String.valueOf(queueSize),
-                                maxSeverity.ordinal() > TrayIcon.MessageType.INFO.ordinal() ? Color.decode("#DE5347") : Color.decode("#3399FF"),
-                                Color.WHITE
-                        ),
-                        SwingUtilities.SOUTH_EAST
-                ));
-            }
-
-            @Override
-            public void dropMessage(Message message, int queueSize, TrayIcon.MessageType maxSeverity) {
-                if (queueSize > 0) {
-                    putMessage(message, queueSize, maxSeverity);
-                } else {
-                    tabbedPanel.setIconAt(tabIndex, ImageUtils.resize(unit.getIcon(), 24, 24));
-                }
-            }
-        });
+        if (unit instanceof IEventInformer) {
+            final int tabIndex = tabbedPanel.getTabCount()-1;
+            ((IEventInformer) unit).addEventListener(events ->
+                    tabbedPanel.setIconAt(
+                            tabIndex,
+                            events == 0 ?
+                                    ImageUtils.resize(unit.getIcon(), 24, 24) :
+                                    ImageUtils.combine(
+                                        ImageUtils.resize(unit.getIcon(), 24, 24),
+                                        ImageUtils.createBadge(
+                                                String.valueOf(events),
+                                                Color.decode("#DE5347"),
+                                                Color.WHITE
+                                        ),
+                                        SwingUtilities.SOUTH_EAST
+                                    )
+                    )
+            );
+        }
     }
 }
