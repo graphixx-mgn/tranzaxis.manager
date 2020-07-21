@@ -13,11 +13,7 @@ public interface INotificationService extends IService {
         return "Notification Service";
     }
 
-    default void registerChannel(IMessageChannel channel) {}
-    default void sendMessage(IMessageChannel channel, Message message) {}
+    void sendMessage(Message message, Handler handler);
 
-    Accessor getAccessor();
-    abstract class Accessor {
-        abstract boolean contextAllowed(Class<? extends IContext> contextClass);
-    }
+    boolean contextAllowed(Class<? extends IContext> contextClass);
 }

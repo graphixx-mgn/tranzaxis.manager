@@ -1,63 +1,55 @@
 package codex.notification;
 
-import codex.log.Logger;
 import codex.context.ServiceCallContext;
+import codex.log.Logger;
 import codex.service.ServiceRegistry;
-import javax.swing.*;
+import codex.utils.ImageUtils;
 import java.awt.*;
-import java.awt.event.AWTEventListener;
-import java.awt.event.WindowEvent;
-import java.awt.image.BufferedImage;
 
-public class TrayInformer implements IMessageChannel {
+public class TrayInformer implements IMessageHandler {
 
     private final static TrayInformer INSTANCE = new TrayInformer();
-    public  static TrayInformer getInstance() {
+    static TrayInformer getInstance() {
         return INSTANCE;
     }
 
     private TrayIcon trayIcon;
-    private final AWTEventListener windowListener = (event) -> {
-        if (event.getSource() instanceof JFrame) {
-            JFrame frame = (JFrame) event.getSource();
-            if (event.getID() == WindowEvent.WINDOW_OPENED && frame.getTitle() != null && frame.getIconImage() != null && !frame.isUndecorated()) {
-                Toolkit.getDefaultToolkit().removeAWTEventListener(this.windowListener);
-                trayIcon.setImage(frame.getIconImage());
-                trayIcon.setToolTip(frame.getTitle());
-            }
+
+    @Override
+    public void postMessage(Message message) {
+        if (SystemTray.isSupported() && checkConditions()) {
+            trayIcon.displayMessage(message.getSubject(), message.getContent(), getType(message));
         }
-    };
+    }
 
     private TrayInformer() {
         if (SystemTray.isSupported()) {
-            trayIcon = new TrayIcon(new BufferedImage(32,32, BufferedImage.TYPE_INT_ARGB));
+            Logger.getContextLogger(NotificationService.class).info("System notification is supported");
+            Image trayImage = ImageUtils.getByPath("/images/project.png").getImage();
+            trayIcon = new TrayIcon(trayImage);
             trayIcon.setImageAutoSize(true);
             try {
                 SystemTray.getSystemTray().add(trayIcon);
             } catch (AWTException e) {
                 e.printStackTrace();
             }
-            Toolkit.getDefaultToolkit().addAWTEventListener(windowListener, AWTEvent.WINDOW_EVENT_MASK);
         } else {
-            Logger.getLogger().warn("NSS: System notification not supported by operating system");
+            Logger.getContextLogger(NotificationService.class).warn("NSS: System notification not supported by operating system");
         }
     }
 
-    @Override
-    public String getTitle() {
-        return "System tray informer";
-    }
-
-    @Override
-    public void sendMessage(Message message) {
-        if (checkConditions() && trayIcon != null) {
-            trayIcon.displayMessage(message.getHead(), message.getText(), message.getType());
+    private TrayIcon.MessageType getType(Message message) {
+        switch (message.getSeverity()) {
+            case Error:       return TrayIcon.MessageType.ERROR;
+            case Warning:     return TrayIcon.MessageType.WARNING;
+            case Information:
+            default:          return TrayIcon.MessageType.INFO;
         }
     }
 
     private boolean checkConditions() {
         INotificationService NSS = ServiceRegistry.getInstance().lookupService(INotificationService.class);
         return ServiceCallContext.getContextStack().stream()
-                .anyMatch(ctxClass -> NSS.getAccessor().contextAllowed(ctxClass));
+                .anyMatch(NSS::contextAllowed);
     }
 }
