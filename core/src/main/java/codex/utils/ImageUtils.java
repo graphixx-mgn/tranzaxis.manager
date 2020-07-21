@@ -181,6 +181,10 @@ public class ImageUtils {
     }
 
     public static ImageIcon createBadge(String text, Color bgColor, Color fgColor) {
+        return createBadge(text, bgColor, fgColor, 0);
+    }
+
+    public static ImageIcon createBadge(String text, Color bgColor, Color fgColor, int borderSize) {
         Font font = new Font("Arial", Font.BOLD, IEditor.FONT_BOLD.getSize());
 
         BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
@@ -190,8 +194,7 @@ public class ImageUtils {
         int textWidth  = fm.stringWidth(text);
         int textHeight = fm.getAscent() + fm.getDescent();
 
-        BufferedImage bufferedImage = new BufferedImage(textHeight+textWidth, textHeight, BufferedImage.TYPE_INT_ARGB);
-        Color transparent = new Color(0x00FFFFFF, true);
+        BufferedImage bufferedImage = new BufferedImage(textHeight+textWidth+borderSize*2, textHeight+borderSize*2, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = (Graphics2D) bufferedImage.getGraphics();
 
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
@@ -200,18 +203,20 @@ public class ImageUtils {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setComposite(AlphaComposite.Src);
 
-        g.setColor(transparent);
-        g.setBackground(Color.GREEN);
-        g.fillRect(0, 0, bufferedImage.getWidth(), bufferedImage.getHeight());
-
+        if (borderSize > 0) {
+            g.setColor(fgColor);
+            g.fill(new Arc2D.Double(0, 0, textHeight + borderSize * 2, textHeight + borderSize * 2, 90, 180, Arc2D.PIE));
+            g.fill(new Rectangle2D.Double(textHeight / 2, 0, textWidth, textHeight + borderSize * 2));
+            g.fill(new Arc2D.Double(textWidth - borderSize, 0, textHeight + borderSize * 2, textHeight + borderSize * 2, 270, 180, Arc2D.PIE));
+        }
         g.setColor(bgColor);
-        g.fill(new Arc2D.Double(0, 0, textHeight, textHeight, 90, 180, Arc2D.PIE));
-        g.fill(new Rectangle2D.Double(textHeight/2, 0, textWidth, textHeight));
-        g.fill(new Arc2D.Double(textWidth, 0, textHeight, textHeight, 270, 180, Arc2D.PIE));
+        g.fill(new Arc2D.Double(borderSize, borderSize, textHeight, textHeight, 90, 180, Arc2D.PIE));
+        g.fill(new Rectangle2D.Double(textHeight/2, borderSize, textWidth, textHeight));
+        g.fill(new Arc2D.Double(textWidth, borderSize, textHeight, textHeight, 270, 180, Arc2D.PIE));
 
         g.setColor(fgColor);
         g.setFont(font);
-        g.drawString(text, textHeight/2, fm.getAscent());
+        g.drawString(text, textHeight/2, fm.getAscent()+borderSize);
         return new ImageIcon(bufferedImage);
     }
 
