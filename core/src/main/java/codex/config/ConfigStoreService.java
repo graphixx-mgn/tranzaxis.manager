@@ -107,7 +107,8 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
         SwingUtilities.invokeLater(this::maintainClassDef);
     }
 
-    private synchronized void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {
+    @Override
+    public synchronized void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {
         final String className = clazz.getSimpleName().toUpperCase();
         Map<String, String> columns = new LinkedHashMap<String, String>() {{
             put(EntityModel.ID,  "INTEGER PRIMARY KEY AUTOINCREMENT");
@@ -193,14 +194,6 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
             }
             throw e;
         }
-    }
-
-    @Override
-    public Connection getConnection() throws SQLException {
-        File configFile = new File(System.getProperty("user.home") + getOption("file"));
-        SQLiteConfig config = new SQLiteConfig();
-        config.setReadOnly(true);
-        return DriverManager.getConnection("jdbc:sqlite:"+ configFile.getPath(), config.toProperties());
     }
 
     @Override

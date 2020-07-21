@@ -140,7 +140,9 @@ public final class EditorPresentation extends JPanel {
     }
 
     private List<EntityCommand<Entity>> getContextCommands() {
-        return context.get().getCommands();
+        List<EntityCommand<Entity>> commands = context.get().getCommands();
+        commands.removeIf(command -> command.getKind() == EntityCommand.Kind.System);
+        return commands;
     }
 
     private EntityCommand<Entity> findCommand(

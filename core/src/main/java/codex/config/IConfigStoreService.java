@@ -15,9 +15,7 @@ import java.util.*;
  */
 public interface IConfigStoreService extends IService {
 
-    default Connection getConnection() throws SQLException {
-        return null;
-    }
+    default void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {}
     
     /**
      * Создать пустую запись в каталоге для модели сушности по её уникальному ключу.
@@ -76,7 +74,7 @@ public interface IConfigStoreService extends IService {
     }
     
     /**
-     * Получить список (ID, PID) всех записей каталога.
+     * Получить список сущностей каталога.
      * @param ownerId Идентификатор владельца сущности.
      * @param entityClass Класс сущности.
      */
@@ -166,6 +164,11 @@ public interface IConfigStoreService extends IService {
         public String toString() {
             return MessageFormat.format("[{0} {1}-{2}]", isIncoming ? "from" : "to", entryClass, entryID);
         }
+    }
+
+
+    enum Order {
+        ASC, DESC
     }
     
 }
