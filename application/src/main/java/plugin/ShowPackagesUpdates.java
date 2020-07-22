@@ -313,25 +313,31 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog>
                         String.join("",
                                 !changes.containsKey(Change.Type.BUGFIX) ? "" : MessageFormat.format(
                                         Language.get("msg@upd.row.bugfix"),
-                                        changes.get(Change.Type.BUGFIX).size()
+                                        changes.get(Change.Type.BUGFIX).stream()
+                                                .map(change -> MessageFormat.format("<li>{0}</li>", change.getDescription()))
+                                                .collect(Collectors.joining())
+                                ),
+                                !changes.containsKey(Change.Type.FEATURE) ? "" : MessageFormat.format(
+                                        Language.get("msg@upd.row.whatsnew"),
+                                        changes.get(Change.Type.FEATURE).stream()
+                                                .filter(change -> change.getScope() != Change.Scope.API)
+                                                .map(change -> MessageFormat.format(
+                                                        "<li>{0}</li>",
+                                                        change.getDescription()
+                                                                .replaceAll("\\n", "<br>")
+                                                                .replaceAll("\\*", "&nbsp;&bull;")
+                                                ))
+                                                .collect(Collectors.joining())
                                 ),
                                 newPlugins.isEmpty() ? "" : MessageFormat.format(
                                         Language.get("msg@upd.row.plugins"),
                                         newPlugins.stream()
                                                 .map(remotePlugin -> MessageFormat.format(
-                                                        "<b>{0}</b><br>{1}",
+                                                        "<li><b>{0}</b><br>{1}</li>",
                                                         getPluginTitle(remotePlugin),
                                                         getPluginDescription(remotePlugin)
                                                 ))
-                                                .collect(Collectors.joining("<br>"))
-                                ),
-                                !changes.containsKey(Change.Type.FEATURE) ? "" : MessageFormat.format(
-                                        Language.get("msg@upd.row.features"),
-                                        changes.get(Change.Type.FEATURE).size()
-                                ),
-                                !changes.containsKey(Change.Type.CHANGE) ? "" : MessageFormat.format(
-                                        Language.get("msg@upd.row.changes"),
-                                        changes.get(Change.Type.CHANGE).size()
+                                                .collect(Collectors.joining())
                                 )
                         )
                 ))
