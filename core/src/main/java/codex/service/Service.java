@@ -27,7 +27,7 @@ public abstract class Service<S extends IService> extends PolyMorph implements I
     final static String PROP_VIEW = "view";
     private final static String PROP_ENABLED = "enabled";
 
-    private final static String APP_CATALOG = Runtime.APP.mainClass.get().getTypeName();
+    private final static String APP_CATALOG = Runtime.APP.mainClass.get().getSimpleName();
     private final static String SRV_CATALOG = "Services";
 
     private static <S extends IService> void setProperty(Class<S> serviceClass, String propName, String value) {
