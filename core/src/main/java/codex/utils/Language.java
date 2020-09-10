@@ -2,6 +2,7 @@ package codex.utils;
 
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
+import codex.context.IContext;
 import codex.log.Logger;
 import codex.model.Access;
 import codex.model.EntityDefinition;
@@ -90,7 +91,7 @@ public class Language {
     private final static Map<Locale, Plural.WordForms[]> PLURAL_FORMS = new HashMap<>();
     public static Plural getPlural() {
         if (!PLURAL_FORMS.containsKey(getLocale())) {
-            String resourceName = "/locale/Language_"+getLocale().getLanguage()+".properties";
+            String resourceName = "/locale/Language_"+getLocale()+".properties";
             try (InputStream stream = Language.class.getResourceAsStream(resourceName)) {
                 PLURAL_FORMS.put(getLocale(), Plural.parse(
                         String.join("\r\n", IOUtils.readLines(stream, StandardCharsets.UTF_8))
@@ -163,22 +164,22 @@ public class Language {
     public static class TranslateService extends AbstractService<TranslateServiceOptions> implements ITranslateService {
 
         static {
+            Locale osLocale = Locale.getDefault();
+            Logger.getLogger().debug("" +
+                    "OS locale: Language: {0}, Country: {1}",
+                    osLocale.getDisplayLanguage(),
+                    osLocale.getDisplayCountry()
+            );
             String langAsStr = Service.getProperty(TranslateService.class, TranslateServiceOptions.PROP_GUI_LANG);
             if (langAsStr != null) {
                 SupportedLang language = SupportedLang.valueOf(langAsStr);
-                java.lang.System.setProperty("user.language", language.locale.getLanguage());
-                java.lang.System.setProperty("user.country",  language.locale.getCountry());
+                Locale.setDefault(language.getLocale());
             }
-        }
-
-        @Override
-        public void startService() {
-            super.startService();
-            java.util.Locale guiLocale = Language.getLocale();
+            java.util.Locale uiLocale = Language.getLocale();
             Logger.getLogger().debug("" +
-                            "GUI locale: Language: {0}, Country: {1}",
-                    guiLocale.getDisplayLanguage(),
-                    guiLocale.getDisplayCountry()
+                            "UI locale: Language: {0}, Country: {1}",
+                    uiLocale.getDisplayLanguage(),
+                    uiLocale.getDisplayCountry()
             );
         }
 
@@ -213,8 +214,8 @@ public class Language {
 
     enum SupportedLang implements Iconified {
 
-        Russian("Русский", ImageUtils.getByPath("/images/rus.png"), new java.util.Locale("ru")),
-        English("English", ImageUtils.getByPath("/images/eng.png"), new java.util.Locale("en"));
+        Russian("Русский", ImageUtils.getByPath("/images/rus.png"), new java.util.Locale("ru", "RU")),
+        English("English", ImageUtils.getByPath("/images/eng.png"), new java.util.Locale("en", "US"));
 
         private final String    title;
         private final ImageIcon icon;
