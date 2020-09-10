@@ -23,7 +23,7 @@ public final class ServiceRegistry {
         Iterator<IService> iterator = services.iterator();
         while (iterator.hasNext()) {
             try {
-                INSTANCE.registerService(iterator.next(), true);
+                INSTANCE.registerService(iterator.next(), false);
             } catch (ServiceConfigurationError e) {
                 Logger.getLogger().warn("Service Registry: unable to initialize service", e.getCause());
             }

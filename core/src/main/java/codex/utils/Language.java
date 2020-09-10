@@ -2,7 +2,6 @@ package codex.utils;
 
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
-import codex.context.IContext;
 import codex.log.Logger;
 import codex.model.Access;
 import codex.model.EntityDefinition;
@@ -164,11 +163,9 @@ public class Language {
     public static class TranslateService extends AbstractService<TranslateServiceOptions> implements ITranslateService {
 
         static {
-            Locale osLocale = Locale.getDefault();
-            Logger.getLogger().debug("" +
-                    "OS locale: Language: {0}, Country: {1}",
-                    osLocale.getDisplayLanguage(),
-                    osLocale.getDisplayCountry()
+            Locale osLocale = new Locale(
+                    System.getProperty("user.language"),
+                    System.getProperty("user.country")
             );
             String langAsStr = Service.getProperty(TranslateService.class, TranslateServiceOptions.PROP_GUI_LANG);
             if (langAsStr != null) {
@@ -176,6 +173,13 @@ public class Language {
                 Locale.setDefault(language.getLocale());
             }
             java.util.Locale uiLocale = Language.getLocale();
+            if (!uiLocale.equals(osLocale)) {
+                Logger.getLogger().debug("" +
+                                "OS locale: Language: {0}, Country: {1}",
+                        osLocale.getDisplayLanguage(),
+                        osLocale.getDisplayCountry()
+                );
+            }
             Logger.getLogger().debug("" +
                             "UI locale: Language: {0}, Country: {1}",
                     uiLocale.getDisplayLanguage(),
