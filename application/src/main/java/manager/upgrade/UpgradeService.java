@@ -5,9 +5,8 @@ import codex.instance.ServiceNotLoadedException;
 import codex.log.Level;
 import codex.log.Logger;
 import codex.log.LoggingSource;
-import codex.notification.NotifySource;
 import codex.service.AbstractRemoteService;
-import manager.commands.offshoot.BuildWC;
+import codex.utils.Runtime;
 import manager.upgrade.stream.RemoteInputStream;
 import manager.upgrade.stream.RemoteInputStreamServer;
 import manager.xml.Version;
@@ -19,7 +18,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.rmi.RemoteException;
 import java.security.MessageDigest;
@@ -62,12 +60,12 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
     public UpgradeService() throws Exception {
         super();
 
-        if (!getCurrentJar().isFile()) {
+        if (Runtime.APP.devMode.get()) {
             throw new ServiceNotLoadedException(this, "Running application in development mode");
         }
         versionsDocument = VersionsDocument.Factory.parse(this.getClass().getResourceAsStream(VERSION_RESOURCE));
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        java.lang.Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (!lock.tryAcquire()) {
                 try {
                     lock.acquire();
@@ -125,7 +123,7 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
     
     @Override
     public RemoteInputStream getUpgradeFileStream() throws RemoteException {
-        File jar = getCurrentJar();
+        File jar = Runtime.APP.jarFile.get();
         try {
             InputStream in = new FileInputStream(jar) {
                 {
@@ -177,20 +175,11 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
     @Override
     public String getUpgradeFileChecksum() throws RemoteException {
         try {
-            byte[] b = Files.readAllBytes(getCurrentJar().toPath());
+            byte[] b = Files.readAllBytes(Runtime.APP.jarFile.get().toPath());
             byte[] hash = MessageDigest.getInstance("MD5").digest(b);
             return DatatypeConverter.printHexBinary(hash);
         } catch (IOException | NoSuchAlgorithmException e) {
             //
-        }
-        return null;
-    }
-    
-    public static File getCurrentJar() {
-        try {
-            return new File(BuildWC.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-        } catch (URISyntaxException e) {
-            Logger.getLogger().error("Unexpected exception", e);
         }
         return null;
     }

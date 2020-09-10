@@ -7,6 +7,7 @@ import codex.model.PolyMorph;
 import codex.service.Service;
 import codex.service.ServiceRegistry;
 import codex.utils.ImageUtils;
+import codex.utils.Runtime;
 import org.apache.log4j.AsyncAppender;
 import org.apache.log4j.spi.LoggingEvent;
 import org.atteo.classindex.ClassIndex;
@@ -124,8 +125,10 @@ public class Logger extends org.apache.log4j.Logger {
     }
 
     public static void todo(String message) {
-        Exception exception = new Exception();
-        Logger.getContextLogger(TodoContext.class).warn(MessageFormat.format("{0}\nLocation: {1}", message, exception.getStackTrace()[1]));
+        if (Runtime.APP.devMode.get()) {
+            Exception exception = new Exception();
+            Logger.getContextLogger(TodoContext.class).warn(MessageFormat.format("{0}\nLocation: {1}", message, exception.getStackTrace()[1]));
+        }
     }
 
     void addAppendListener(IAppendListener listener){

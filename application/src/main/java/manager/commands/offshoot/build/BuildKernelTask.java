@@ -3,16 +3,11 @@ package manager.commands.offshoot.build;
 import codex.log.Logger;
 import codex.task.*;
 import codex.utils.Language;
+import codex.utils.Runtime;
 import manager.commands.offshoot.BuildWC;
 import manager.nodes.Offshoot;
-import manager.upgrade.UpgradeService;
 import org.apache.tools.ant.util.DateUtils;
-import javax.tools.JavaCompiler;
-import javax.tools.ToolProvider;
 import java.io.File;
-import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.StringJoiner;
@@ -45,7 +40,7 @@ public class BuildKernelTask extends AbstractTask<Void> {
     @Override
     public Void execute() throws Exception {
         UUID uuid = UUID.randomUUID();
-        final File currentJar = UpgradeService.getCurrentJar();
+        final File currentJar = Runtime.APP.jarFile.get();
 
         final ArrayList<String> command = new ArrayList<>();
         command.add("java");
@@ -57,40 +52,7 @@ public class BuildKernelTask extends AbstractTask<Void> {
             classPath = System.getProperty("java.class.path");
         }
 
-        String javac;
-        //javac = System.getenv("JAVA_HOME")+File.separator+"lib"+File.separator+"tools.jar";
-        //Logger.getLogger().warn("java.home="+System.getProperty("java.home"));
-        //Logger.getLogger().warn("JAVA_HOME="+System.getenv("JAVA_HOME"));
-
-        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        if (compiler == null) {
-            throw new ExecuteException("Java compiler not found", "Java compiler not found");
-        } else {
-            URL url = compiler.getClass().getProtectionDomain().getCodeSource().getLocation();
-            try {
-                String urlDecoded = URLDecoder.decode(url.getPath(), "UTF-8");
-                javac = new File(urlDecoded).getPath();
-            } catch (UnsupportedEncodingException e) {
-                throw new ExecuteException("Java compiler not found", "Java compiler not found");
-            }
-        }
-//        String javac;
-//        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-//        if (compiler == null) {
-//            if (!new File(System.getenv("JAVA_HOME")+File.separator+"lib"+File.separator+"tools.jar").exists()) {
-//                throw new ExecuteException("Java compiler not found", "Java compiler not found");
-//            } else {
-//                javac = System.getenv("JAVA_HOME")+File.separator+"lib"+File.separator+"tools.jar";
-//            }
-//        } else {
-//            URL url = compiler.getClass().getProtectionDomain().getCodeSource().getLocation();
-//            try {
-//                String urlDecoded = URLDecoder.decode(url.getPath(), "UTF-8");
-//                javac = new File(urlDecoded).getPath();
-//            } catch (UnsupportedEncodingException e) {
-//                throw new ExecuteException("Java compiler not found", "Java compiler not found");
-//            }
-//        }
+        String javacPath = Runtime.JVM.compiler.get().getPath();
         StringJoiner radixBinPath = new StringJoiner(File.separator)
             .add(offshoot.getLocalPath())
             .add("org.radixware")
@@ -105,7 +67,7 @@ public class BuildKernelTask extends AbstractTask<Void> {
             .add("common")
             .add("lib")
             .add("*");
-        classPath = radixBinPath+";"+radixLibPath+";"+classPath+";"+javac;
+        classPath = radixBinPath+";"+radixLibPath+";"+classPath+";"+javacPath;
         command.add("-cp");
         command.add(classPath);
 
@@ -149,7 +111,7 @@ public class BuildKernelTask extends AbstractTask<Void> {
             builder.directory(currentJar);
         }
 
-        Runtime.getRuntime().addShutdownHook(hook);
+        java.lang.Runtime.getRuntime().addShutdownHook(hook);
         Process process = builder.start();
         addListener(new ITaskListener() {
             @Override
@@ -161,7 +123,7 @@ public class BuildKernelTask extends AbstractTask<Void> {
         });
         process.waitFor();
         BuildWC.getBuildNotifier().removeListener(uuid);
-        Runtime.getRuntime().removeShutdownHook(hook);
+        java.lang.Runtime.getRuntime().removeShutdownHook(hook);
         if (process.isAlive()) process.destroy();
 
         if (errorRef.get() != null) {

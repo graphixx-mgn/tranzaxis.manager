@@ -5,10 +5,10 @@ import codex.task.*;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import codex.utils.Runtime;
 import manager.commands.offshoot.BuildWC;
 import manager.nodes.Offshoot;
 import manager.type.BuildStatus;
-import manager.upgrade.UpgradeService;
 import org.apache.log4j.lf5.viewer.categoryexplorer.TreeModelAdapter;
 import org.apache.tools.ant.util.DateUtils;
 import org.radixware.kernel.common.check.RadixProblem;
@@ -72,7 +72,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
     @Override
     public Error execute() throws Exception {
         UUID uuid = UUID.randomUUID();
-        final File currentJar = UpgradeService.getCurrentJar();
+        final File currentJar = Runtime.APP.jarFile.get();
 
         final ArrayList<String> command = new ArrayList<>();
         command.add("java");
@@ -154,7 +154,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
             builder.directory(currentJar);
         }
 
-        Runtime.getRuntime().addShutdownHook(hook);
+        java.lang.Runtime.getRuntime().addShutdownHook(hook);
         Process process = builder.start();
         addListener(new ITaskListener() {
             @Override
@@ -166,7 +166,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
         });
         process.waitFor();
         BuildWC.getBuildNotifier().removeListener(uuid);
-        Runtime.getRuntime().removeShutdownHook(hook);
+        java.lang.Runtime.getRuntime().removeShutdownHook(hook);
         if (process.isAlive()) process.destroy();
 
         if (errorRef.get() != null) {
