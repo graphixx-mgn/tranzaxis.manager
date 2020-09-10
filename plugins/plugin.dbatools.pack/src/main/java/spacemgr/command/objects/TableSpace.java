@@ -129,7 +129,7 @@ public class TableSpace extends Catalog {
     }
 
     private void loadUsageInfo() {
-        final String query = Language.get(TableSpace.class, "query@usage", Locale.US);
+        final String query = Language.get(TableSpace.class, "query@usage", Language.DEF_LOCALE);
         try (final ResultSet resultSet = ServiceRegistry.getInstance().lookupService(IDatabaseAccessService.class).select(
                 database.getConnectionID(false),
                 query,

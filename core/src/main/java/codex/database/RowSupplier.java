@@ -12,7 +12,7 @@ import java.util.function.Supplier;
 
 public class RowSupplier implements IDataSupplier<Map<String, String>> {
 
-    private final static String       PAGINATION = Language.get(RowSupplier.class, "pagination", Locale.US);
+    private final static String       PAGINATION = Language.get(RowSupplier.class, "pagination", Language.DEF_LOCALE);
     private final static List<String> SYSTEM_COLUMNS = Arrays.asList("ROWINDEX");
 
     private final Supplier<Integer> connection;

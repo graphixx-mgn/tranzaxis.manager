@@ -28,7 +28,8 @@ import java.util.stream.Collectors;
  */
 public class Language {
     
-    public  static final String NOT_FOUND = "<not defined>";
+    public  static final String NOT_FOUND  = "<not defined>";
+    public  static final Locale DEF_LOCALE = SupportedLang.English.locale;
     private static final List<Class> EXCLUDES = Collections.synchronizedList(new ArrayList<>());
     
     /**
@@ -89,7 +90,7 @@ public class Language {
     private final static Map<Locale, Plural.WordForms[]> PLURAL_FORMS = new HashMap<>();
     public static Plural getPlural() {
         if (!PLURAL_FORMS.containsKey(getLocale())) {
-            String resourceName = "/locale/Language_"+getLocale()+".properties";
+            String resourceName = "/locale/Language_"+getLocale().getLanguage()+".properties";
             try (InputStream stream = Language.class.getResourceAsStream(resourceName)) {
                 PLURAL_FORMS.put(getLocale(), Plural.parse(
                         String.join("\r\n", IOUtils.readLines(stream, StandardCharsets.UTF_8))
@@ -210,10 +211,10 @@ public class Language {
     }
 
 
-    private enum SupportedLang implements Iconified {
+    enum SupportedLang implements Iconified {
 
-        Russian("Русский", ImageUtils.getByPath("/images/rus.png"), new java.util.Locale("ru", "RU")),
-        English("English", ImageUtils.getByPath("/images/eng.png"), new java.util.Locale("en", "US"));
+        Russian("Русский", ImageUtils.getByPath("/images/rus.png"), new java.util.Locale("ru")),
+        English("English", ImageUtils.getByPath("/images/eng.png"), new java.util.Locale("en"));
 
         private final String    title;
         private final ImageIcon icon;

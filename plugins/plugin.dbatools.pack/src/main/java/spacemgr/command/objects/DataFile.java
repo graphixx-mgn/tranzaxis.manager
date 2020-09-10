@@ -81,7 +81,7 @@ public class DataFile extends Catalog {
 
     public long getMinimalSize() {
         long freeBlocks = 0;
-        final String query = Language.get(DataFile.class, "query@minimum", Locale.US);
+        final String query = Language.get(DataFile.class, "query@minimum", Language.DEF_LOCALE);
         try (final ResultSet resultSet = ServiceRegistry.getInstance()
                 .lookupService(IDatabaseAccessService.class)
                 .select(

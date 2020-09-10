@@ -41,7 +41,7 @@ public abstract class CommandPlugin<V extends Entity> extends EntityCommand<V> i
 
                 @Override
                 public String name() {
-                    return Language.get(contextClass, "title", Locale.US);
+                    return Language.get(contextClass, "title", Language.DEF_LOCALE);
                 }
 
                 @Override

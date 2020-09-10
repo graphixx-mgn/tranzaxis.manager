@@ -150,7 +150,7 @@ class Provider implements IFormController.IDataProvider {
                         "Found problematic {0} objects:\n{1}",
                         problematicObjects.size(),
                         problematicObjects.stream()
-                            .map(problematic -> "* "+problematic.getDescription(Locale.US))
+                            .map(problematic -> "* "+problematic.getDescription(Language.DEF_LOCALE))
                             .collect(Collectors.joining("\n"))
                 );
             }
@@ -181,7 +181,7 @@ class Provider implements IFormController.IDataProvider {
             );
             setProgress(0, Language.get(Provider.class, "load@fetch"));
             final String query = MessageFormat.format(
-                    Language.get(Provider.class, "load@query.sys", Locale.US),
+                    Language.get(Provider.class, "load@query.sys", Language.DEF_LOCALE),
                     controller.getTableSpace().getPID()
             );
             final PreparedStatement statement = connection.prepareStatement(
@@ -275,11 +275,11 @@ class Provider implements IFormController.IDataProvider {
         }
 
         List<IProblematic> detectProblematic() {
-            Logger.getContextLogger(TableSpaceManager.class).debug(Language.get(Provider.class, "load@check", Locale.US));
+            Logger.getContextLogger(TableSpaceManager.class).debug(Language.get(Provider.class, "load@check", Language.DEF_LOCALE));
             List<IProblematic> problematicObjects = new LinkedList<>();
             try {
                 final PreparedStatement statement = connection.prepareStatement(
-                        Language.get(Provider.class, "load@problem.long", Locale.US),
+                        Language.get(Provider.class, "load@problem.long", Language.DEF_LOCALE),
                         ResultSet.TYPE_FORWARD_ONLY,
                         ResultSet.CONCUR_READ_ONLY
                 );

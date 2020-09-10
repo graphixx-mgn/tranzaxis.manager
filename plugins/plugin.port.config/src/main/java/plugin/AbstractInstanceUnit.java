@@ -28,11 +28,11 @@ public class AbstractInstanceUnit extends AccessPoint {
     }
 
     protected String loadSettingsQuery() {
-        return Language.get(AbstractInstanceUnit.class, "load", Locale.US);
+        return Language.get(AbstractInstanceUnit.class, "load", Language.DEF_LOCALE);
     }
 
     protected String saveSettingsQuery() {
-        return Language.get(AbstractInstanceUnit.class, "save", Locale.US);
+        return Language.get(AbstractInstanceUnit.class, "save", Language.DEF_LOCALE);
     }
 
     @Override

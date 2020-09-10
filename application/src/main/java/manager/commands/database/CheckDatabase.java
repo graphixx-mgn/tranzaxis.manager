@@ -31,7 +31,7 @@ public class CheckDatabase extends EntityCommand<Database> {
                         return new CommandStatus(true, ACTIVE);
                     } else {
                         Logger.getLogger().warn(
-                                Language.get(Database.class, "error@unavailable", Locale.US),
+                                Language.get(Database.class, "error@unavailable", Language.DEF_LOCALE),
                                 databases.get(0).getPID(), dbUrl.substring(0, dbUrl.indexOf("/"))
                         );
                         return new CommandStatus(true, PASSIVE);

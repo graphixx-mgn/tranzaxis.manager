@@ -59,7 +59,7 @@ public class InstanceView extends Catalog {
 
         try (ResultSet rs = DAS.select(
                 database.getConnectionID(false),
-                Language.get(InstanceView.class, "select", Locale.US),
+                Language.get(InstanceView.class, "select", Language.DEF_LOCALE),
                 instance
         )) {
             while (rs.next()) {

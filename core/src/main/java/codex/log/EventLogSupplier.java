@@ -13,7 +13,7 @@ import java.util.*;
 
 class EventLogSupplier implements IDataSupplier<Map<String, String>>, Closeable {
 
-    private final static String PAGINATION = Language.get(EventLogSupplier.class, "pagination", Locale.US);
+    private final static String PAGINATION = Language.get(EventLogSupplier.class, "pagination", Language.DEF_LOCALE);
 
     private final Connection connection;
     private String  query;

@@ -4,7 +4,6 @@ import codex.type.EntityRef;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import plugin.AbstractInstanceUnit;
-import java.util.Locale;
 
 @plugin.Unit(serviceUri = "http://schemas.radixware.org/systeminstancecontrol.wsdl")
 public class InstanceControlService extends AbstractInstanceUnit {
@@ -13,11 +12,11 @@ public class InstanceControlService extends AbstractInstanceUnit {
     }
 
     protected final String loadSettingsQuery() {
-        return Language.get(InstanceControlService.class, "load", Locale.US);
+        return Language.get(InstanceControlService.class, "load", Language.DEF_LOCALE);
     }
 
     protected String saveSettingsQuery() {
-        return Language.get(InstanceControlService.class, "save", Locale.US);
+        return Language.get(InstanceControlService.class, "save", Language.DEF_LOCALE);
     }
 
 }

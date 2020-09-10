@@ -224,7 +224,7 @@ public class TableSpaceManager extends CommandPlugin<Common> {
         }
 
         private boolean checkRoleDBA(Database database) throws SQLException {
-            final String query = Language.get(TableSpaceManager.class, "check.dba@query", Locale.US);
+            final String query = Language.get(TableSpaceManager.class, "check.dba@query", Language.DEF_LOCALE);
             try (final ResultSet resultSet = ServiceRegistry.getInstance()
                     .lookupService(IDatabaseAccessService.class).select(
                             database.getConnectionID(true),

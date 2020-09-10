@@ -56,7 +56,7 @@ public class ImageUtils {
         if (imageURL != null) {
             return new ImageIcon(imageURL);
         } else {
-            Logger.getLogger().error("Image ''{0}'' not found", path);
+            Logger.getLogger().error(MessageFormat.format("Image ''{0}'' not found", path), new Exception());
             return new ImageIcon();
         }
     }

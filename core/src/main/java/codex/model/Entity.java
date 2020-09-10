@@ -88,7 +88,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             if (!Catalog.class.isAssignableFrom(getClass())) {
                 PID = null;
             } else {
-                PID = Language.get(this.getClass(), "title", new java.util.Locale("en", "US"));
+                PID = Language.get(this.getClass(), "title", Language.DEF_LOCALE);
                 this.title = Language.get(this.getClass(), "title");
             }
         } else {

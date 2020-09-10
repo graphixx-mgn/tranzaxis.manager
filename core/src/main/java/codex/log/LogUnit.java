@@ -48,7 +48,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
     private final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");
     private final static Pattern MULTILINE_PATTERN = Pattern.compile("\\n.*", Pattern.DOTALL);
 
-    private final static String QUERY = Language.get(DatabaseAppender.class, "select");
+    private final static String QUERY = Language.get(DatabaseAppender.class, "select", Language.DEF_LOCALE);
 
     private final static Map<String, String> columnNames = new LinkedHashMap<String, String>(){{
         put("TIME",    Language.get(LogUnit.class,"column@time"));

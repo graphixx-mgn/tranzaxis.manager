@@ -72,7 +72,7 @@ public class Database extends Entity {
                 );
             } else {
                 Logger.getLogger().warn(
-                        Language.get(Database.class, "error@notready", Locale.US)
+                        Language.get(Database.class, "error@notready", Language.DEF_LOCALE)
                 );
             }
         }

@@ -39,7 +39,7 @@ public abstract class JobPlugin extends AbstractJob implements IPlugin {
 
                 @Override
                 public String name() {
-                    return Language.get(contextClass, "title", Locale.US);
+                    return Language.get(contextClass, "title", Language.DEF_LOCALE);
                 }
 
                 @Override

@@ -34,7 +34,7 @@ public abstract class AbstractUnit implements Iconified {
 
     @Override
     public ImageIcon getIcon() {
-        return ImageUtils.getByPath(Language.get(getClass(), "unit.icon", Locale.US));
+        return ImageUtils.getByPath(Language.get(getClass(), "unit.icon", Language.DEF_LOCALE));
     }
 
     public String getTitle() {
