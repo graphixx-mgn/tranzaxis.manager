@@ -33,7 +33,7 @@ public class Runtime {
                 .reduce((first, second) -> second)
                 .orElse(null);
         public final static Supplier<File> jarFile = () -> new File(
-                mainClass.get().getProtectionDomain().getCodeSource().getLocation().getFile()
+                Runtime.class.getProtectionDomain().getCodeSource().getLocation().getFile()
         );
         public final static Supplier<Boolean> devMode = () -> !jarFile.get().isFile();
     }

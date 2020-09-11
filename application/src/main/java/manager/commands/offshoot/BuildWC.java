@@ -1,7 +1,10 @@
 package manager.commands.offshoot;
 
 import codex.command.EntityCommand;
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
 import codex.log.Logger;
+import codex.model.ParamModel;
 import codex.property.PropertyHolder;
 import codex.task.GroupTask;
 import codex.task.ITask;
@@ -9,6 +12,7 @@ import codex.type.Bool;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import codex.utils.Runtime;
 import manager.commands.offshoot.build.BuildKernelTask;
 import manager.commands.offshoot.build.BuildSourceTask;
 import manager.commands.offshoot.build.BuildingNotifier;
@@ -78,7 +82,16 @@ public class BuildWC extends EntityCommand<Offshoot> {
     }
 
     @Override
+    protected void preprocessParameters(ParamModel paramModel) {
+        super.preprocessParameters(paramModel);
+    }
+
+    @Override
     public ITask getTask(Offshoot context, Map<String, IComplexType> map) {
+        if (Runtime.JVM.compiler.get() == null) {
+            MessageBox.show(MessageType.ERROR, Language.get(BuildWC.class, "compiler@notfound"));
+            return null;
+        }
         return new GroupTask(
                 MessageFormat.format(
                         "{0}: ''{1}/{2}''",

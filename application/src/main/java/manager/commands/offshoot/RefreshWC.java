@@ -1,6 +1,8 @@
 package manager.commands.offshoot;
 
 import codex.command.EntityCommand;
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
 import codex.property.PropertyHolder;
 import codex.task.GroupTask;
 import codex.task.ITask;
@@ -10,6 +12,8 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.text.MessageFormat;
 import java.util.Map;
+
+import codex.utils.Runtime;
 import manager.commands.offshoot.build.BuildKernelTask;
 import manager.commands.offshoot.build.BuildSourceTask;
 import manager.nodes.Offshoot;
@@ -53,6 +57,10 @@ public class RefreshWC extends EntityCommand<Offshoot> {
 
     @Override
     public ITask getTask(Offshoot context, Map<String, IComplexType> params) {
+        if (Runtime.JVM.compiler.get() == null) {
+            MessageBox.show(MessageType.ERROR, Language.get(BuildWC.class, "compiler@notfound"));
+            return null;
+        }
         return new GroupTask(
                 MessageFormat.format(
                         "{0}: ''{1}/{2}''",
