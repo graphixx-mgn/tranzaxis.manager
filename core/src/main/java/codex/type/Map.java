@@ -58,15 +58,15 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
 
     @Override
     public java.util.Map<K, V> getValue() {
-        return new LinkedHashMap<>(value);
+        return new InternalMap(value);
     }
 
     @Override
     public void setValue(java.util.Map<K, V> value) {
         if (value != null) {
-            this.value = new LinkedHashMap<>(value);
+            this.value = new InternalMap(value);
         } else {
-            this.value = new LinkedHashMap<>();
+            this.value = new InternalMap();
         }
     }
 
@@ -166,5 +166,33 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
                         )
                         .collect(Collectors.joining(",\n"))
         );
+    }
+
+
+    private class InternalMap extends LinkedHashMap <K, V> {
+
+        private InternalMap() {
+            super();
+        }
+
+        private InternalMap(java.util.Map<? extends K, ? extends V> m) {
+            super(m);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            boolean superCheck = super.equals(o);
+            if (!superCheck) return false;
+
+            java.util.Map<K, V> map = (java.util.Map<K, V>) o;
+            Iterator<K> mapIterator = map.keySet().iterator();
+            Iterator<K> theIterator = keySet().iterator();
+            while (theIterator.hasNext()) {
+                if (!theIterator.next().equals(mapIterator.next())) {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 }

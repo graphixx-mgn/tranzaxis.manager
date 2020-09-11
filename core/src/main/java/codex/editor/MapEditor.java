@@ -38,6 +38,8 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
     private static final ImageIcon  VIEW_ICON = ImageUtils.getByPath("/images/view.png");
     private static final ImageIcon   ADD_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 26, 26);
     private static final ImageIcon   DEL_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 26, 26);
+    private static final ImageIcon    UP_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/up.png"), 26, 26);
+    private static final ImageIcon  DOWN_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/down.png"), 26, 26);
     private static final ImageIcon CLEAR_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/remove.png"), 26, 26);
     private static final ImageIcon  WARN_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), 26, 26);
 
@@ -216,6 +218,24 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
                         table.getSelectedRow() >= 0
                 ));
 
+                PushButton moveUp = new PushButton(UP_ICON, null);
+                moveUp.setEnabled(false);
+                moveUp.addActionListener(new MoveAction(tableModel, table, -1));
+                table.getSelectionModel().addListSelectionListener(event -> moveUp.setEnabled(
+                        MapEditor.this.isEditable() &&
+                        !propHolder.isInherited() &&
+                        table.getSelectedRow() > 0
+                ));
+
+                PushButton moveDown = new PushButton(DOWN_ICON, null);
+                moveDown.setEnabled(false);
+                moveDown.addActionListener(new MoveAction(tableModel, table, +1));
+                table.getSelectionModel().addListSelectionListener(event -> moveDown.setEnabled(
+                        MapEditor.this.isEditable() &&
+                        !propHolder.isInherited() &&
+                        table.getSelectedRow() < tableModel.getRowCount()-1
+                ));
+
                 PushButton clear = new PushButton(CLEAR_ICON, null);
                 clear.setEnabled(MapEditor.this.isEditable() && !propHolder.isInherited() && internalValue.size() > 0);
                 clear.addActionListener(new ClearAction(tableModel, table));
@@ -230,6 +250,10 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
                 controls.add(insert);
                 controls.add(Box.createVerticalStrut(10));
                 controls.add(delete);
+                controls.add(Box.createVerticalStrut(10));
+                controls.add(moveUp);
+                controls.add(Box.createVerticalStrut(10));
+                controls.add(moveDown);
                 controls.add(Box.createVerticalStrut(10));
                 controls.add(clear);
 
@@ -378,6 +402,50 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
             } else {
                 table.getSelectionModel().clearSelection();
             }
+        }
+    }
+
+    private class MoveAction implements ActionListener {
+
+        private final DefaultTableModel tableModel;
+        private final JTable table;
+        private final int direction;
+
+        MoveAction(DefaultTableModel tableModel, JTable table, int direction) {
+            this.tableModel = tableModel;
+            this.table = table;
+            this.direction = direction;
+        }
+
+        private java.util.Map<K, V> reorderValues(java.util.Map<K, V> map, int prevIdx, int nextIdx) {
+            final java.util.Map<K, V> newMap = new LinkedHashMap<>();
+            java.util.Map.Entry<K, V> buffer = null;
+
+            int idx = 0;
+            for (java.util.Map.Entry<K, V> entry : map.entrySet()) {
+                if (idx == prevIdx) {
+                    buffer = entry;
+                } else if (idx == nextIdx) {
+                    newMap.put(entry.getKey(),  entry.getValue());
+                    newMap.put(buffer.getKey(), buffer.getValue());
+                } else {
+                    newMap.put(entry.getKey(), entry.getValue());
+                }
+                idx++;
+            }
+            return newMap;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            int idx = table.getSelectedRow();
+            if (direction < 0) {
+                internalValue = reorderValues(internalValue, idx-1, idx);
+            } else {
+                internalValue = reorderValues(internalValue, idx, idx+1);
+            }
+            table.getSelectionModel().setSelectionInterval(idx + direction, idx + direction);
+            tableModel.moveRow(idx, idx, idx + direction);
         }
     }
 
