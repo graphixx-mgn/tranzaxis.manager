@@ -9,6 +9,7 @@ import codex.explorer.tree.NodeTreeModel;
 import codex.model.*;
 import codex.presentation.EditorPage;
 import codex.presentation.SelectorTreeTable;
+import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.service.Service;
 import codex.type.*;
@@ -36,7 +37,21 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
     final static String PROP_DB_SIZE = "dbSize";
     final static String PROP_DB_DAYS = "storeDays";
 
-    private final NodeTreeModel treeModel = new NodeTreeModel(new ContextView(Logger.getContextRegistry().getContext(RootContext.class)));
+    private final IPropertyChangeListener listener = (name, oldValue, newValue) -> {
+        Level newLevel = newValue instanceof Level ? (Level) newValue : Boolean.TRUE.equals(newValue) ? Level.Debug : Level.Off;
+        this.model.setValue(name, newLevel);
+    };
+    private final ContextView rootContext = new ContextView(Logger.getContextRegistry().getContext(RootContext.class)) {{
+        final String propName = getContextClass().getTypeName();
+        Level level = Logger.getContextRegistry().getContext(RootContext.class).getLevel();
+        if (!LoggerServiceOptions.this.model.hasProperty(propName)) {
+            LoggerServiceOptions.this.model.addUserProp(propName, new Enum<>(level), false, Access.Select);
+        }
+        LoggerServiceOptions.this.model.getEditor(propName).setVisible(false);
+        this.model.addChangeListener((name, oldValue, newValue) -> listener.propertyChange(propName, oldValue, newValue));
+    }};
+
+    private final NodeTreeModel treeModel = new NodeTreeModel(rootContext);
 
     public LoggerServiceOptions(EntityRef owner, String title) {
         super(owner, title);
@@ -163,10 +178,7 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
                 if (!model.hasProperty(propName)) {
                     model.addUserProp(propName, new Enum<>(contextInfo.getLevel()), false, Access.Select);
                 }
-                context.model.addChangeListener((name, oldValue, newValue) -> {
-                    Level newLevel = newValue instanceof Level ? (Level) newValue : Boolean.TRUE.equals(newValue) ? Level.Debug : Level.Off;
-                    model.setValue(propName, newLevel);
-                });
+                context.model.addChangeListener((name, oldValue, newValue) -> listener.propertyChange(propName, oldValue, newValue));
                 return context;
             }
         }
