@@ -103,6 +103,10 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
         updateUI();
     }
 
+    public final String getPropName() {
+        return propHolder.getName();
+    }
+
     @Override
     public final JLabel getLabel() {
         return label;
