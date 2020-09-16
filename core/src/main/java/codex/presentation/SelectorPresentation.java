@@ -5,6 +5,8 @@ import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.config.IConfigStoreService;
+import codex.editor.AbstractEditor;
+import codex.editor.IEditor;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.log.Logger;
@@ -20,6 +22,8 @@ import javax.swing.event.AncestorEvent;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.*;
 import java.lang.reflect.InvocationTargetException;
@@ -105,6 +109,23 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 table.getSelectionModel().setValueIsAdjusting(false);
             }
         });
+
+        if (entity instanceof Catalog && ((Catalog) entity).isChildFilterDefined()) {
+            final TableRowSorter<TableModel> sorter = new TableRowSorter<>(table.getModel());
+            sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
+                @Override
+                public boolean include(Entry<? extends TableModel, ? extends Integer> entry) {
+                    return ((Catalog) entity).getCurrentFilter().getCondition().test(entity, tableModel.getEntityForRow(entry.getIdentifier()));
+                }
+            });
+            table.setRowSorter(sorter);
+
+            final IEditor filterEditor = ((Catalog) entity).getFilterEditor();
+            commandPanel.add(Box.createHorizontalGlue());
+            commandPanel.add(filterEditor.getEditor());
+
+            entity.model.getProperty(((AbstractEditor) filterEditor).getPropName()).addChangeListener((name, oldValue, newValue) -> sorter.sort());
+        }
 
         entity.addNodeListener(this);
         entity.addNodeListener(new INodeListener() {
