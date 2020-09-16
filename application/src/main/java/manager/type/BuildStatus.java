@@ -14,9 +14,9 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
-public final class BuildStatus extends ArrStr {
+public final class BuildStatus extends ArrStr implements Iconified {
     
-    private List<String> value = null;
+    private StatusHolder value = null;
     
     public BuildStatus() {
     }
@@ -32,6 +32,19 @@ public final class BuildStatus extends ArrStr {
         } else {
             this.value = null;
         }
+    }
+
+    @Override
+    public ImageIcon getIcon() {
+        return value == null ? null : value.getIcon();
+    }
+
+    public Long getRevision() {
+        return value == null ? null : Long.valueOf(value.get(0));
+    }
+
+    public String getText() {
+        return value == null ? null : value.toString();
     }
     
     @Override

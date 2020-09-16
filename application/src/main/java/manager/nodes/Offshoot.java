@@ -52,6 +52,7 @@ public class Offshoot extends BinarySource {
     private final static String PROP_WC_STATUS   = "wcStatus";
     private final static String PROP_WC_REVISION = "wcRevision";
     private final static String PROP_WC_BUILT    = "built";
+    private final static String PROP_WC_VALID    = "valid";
     private final static String PROP_WC_LOADED   = "loaded";
 
     static {
@@ -71,7 +72,7 @@ public class Offshoot extends BinarySource {
 
     public Offshoot(EntityRef owner, String title) {
         super(owner, ICON, title);
-        
+
         // Properties
         model.addDynamicProp(PROP_WC_STATUS, new Enum<>(WCStatus.Absent), Access.Edit, () -> {
             if (this.getOwner() != null && new File(getLocalPath()).exists()) {
@@ -91,7 +92,29 @@ public class Offshoot extends BinarySource {
             }
             return null;
         }, PROP_WC_STATUS);
-        model.addUserProp(PROP_WC_BUILT, new BuildStatus(), false, null);
+        model.addUserProp(PROP_WC_BUILT, new BuildStatus(), false, Access.Any);
+        model.addDynamicProp(PROP_WC_VALID, new AnyType(), null, () -> {
+            final BuildStatus status = getBuiltStatus();
+            return status == null ? null : new Iconified() {
+                @Override
+                public ImageIcon getIcon() {
+                    if (getWorkingCopyRevision(false).getNumber() != status.getRevision()) {
+                        return ImageUtils.combine(
+                                status.getIcon(),
+                                ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), 0.5f),
+                                SwingConstants.SOUTH_EAST
+                        );
+                    } else {
+                        return status.getIcon();
+                    }
+                }
+
+                @Override
+                public String toString() {
+                    return status.getText();
+                }
+            };
+        }, PROP_WC_BUILT);
 
         PropertyHolder<Bool, Boolean> propLoaded = new PropertyHolder<Bool, Boolean>(PROP_WC_LOADED, new Bool(null), false) {
             @Override
