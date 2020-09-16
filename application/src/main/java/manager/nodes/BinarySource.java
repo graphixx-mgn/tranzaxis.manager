@@ -17,27 +17,25 @@ import java.util.StringJoiner;
 
 public abstract class BinarySource extends Catalog {
 
+            final static String TRUNK = "trunk";
     private final static IExplorerAccessService EAS = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class);
     
-    public static final Comparator<String> VERSION_SORTER = new Comparator<String>() {
-        @Override
-        public int compare(String prev, String next) {
-            if ("trunk".equals(prev)) {
-                return 1;
-            } else if ("trunk".equals(next)) {
-                return -1;
-            } else {
-                String[] components1 = prev.split("\\.");
-                String[] components2 = next.split("\\.");
-                int length = Math.min(components1.length, components2.length);
-                for(int i = 0; i < length; i++) {
-                    int result = new Integer(components1[i]).compareTo(Integer.parseInt(components2[i]));
-                    if(result != 0) {
-                        return result;
-                    }
+    public static final Comparator<String> VERSION_SORTER = (prev, next) -> {
+        if (TRUNK.equals(prev)) {
+            return 1;
+        } else if (TRUNK.equals(next)) {
+            return -1;
+        } else {
+            String[] components1 = prev.split("\\.");
+            String[] components2 = next.split("\\.");
+            int length = Math.min(components1.length, components2.length);
+            for(int i = 0; i < length; i++) {
+                int result = new Integer(components1[i]).compareTo(Integer.parseInt(components2[i]));
+                if(result != 0) {
+                    return result;
                 }
-                return Integer.compare(components1.length, components2.length);
             }
+            return Integer.compare(components1.length, components2.length);
         }
     };
 
