@@ -7,10 +7,7 @@ import codex.database.OracleAccessService;
 import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.mask.RegexMask;
-import codex.model.Access;
-import codex.model.Entity;
-import codex.model.EntityModel;
-import codex.model.IModelListener;
+import codex.model.*;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
@@ -24,6 +21,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import codex.utils.NetTools;
+import manager.commands.database.CheckConnection;
 import javax.swing.*;
 
 public class Database extends Entity {
@@ -45,11 +43,12 @@ public class Database extends Entity {
     
     static {
         ServiceRegistry.getInstance().registerService(OAS);
+        CommandRegistry.getInstance().registerCommand(CheckConnection.class);
     }
 
     private final Runnable connectionChecker = () -> new Thread(() -> {
+        String dbUrl = getDatabaseUrl(true);
         if (getConnectionID(false) == null) {
-            String dbUrl = getDatabaseUrl(true);
             Logger.getLogger().warn(
                     Language.get(Database.class, "error@unavailable", Language.DEF_LOCALE),
                     getPID(), dbUrl.substring(0, dbUrl.indexOf("/"))
@@ -67,7 +66,7 @@ public class Database extends Entity {
                 if (showError) {
                     MessageBox.show(MessageType.WARNING, MessageFormat.format(
                             Language.get(Database.class, "error@unavailable"),
-                            getPID(), url.substring(0, url.indexOf("/"))
+                            url.substring(0, url.indexOf("/"))
                     ));
                 }
                 return null;
@@ -183,7 +182,7 @@ public class Database extends Entity {
             String host = verMatcher.group(1);
             int    port = Integer.valueOf(verMatcher.group(2));
             try {
-                boolean available = NetTools.isPortAvailable(host, port, 200);
+                boolean available = NetTools.isPortAvailable(host, port, 100);
                 setIcon(available ? ICON_ONLINE : ICON_OFFLINE);
                 return available;
             } catch (IllegalStateException e) {
