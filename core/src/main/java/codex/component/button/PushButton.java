@@ -180,6 +180,7 @@ public class PushButton extends JPanel implements IButton, ChangeListener {
     @Override
     public void setVisible(boolean visible) {
         button.setVisible(visible);
+        super.setVisible(visible);
     }
 
     @Override

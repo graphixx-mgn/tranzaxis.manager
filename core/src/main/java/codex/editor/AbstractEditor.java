@@ -201,7 +201,7 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
         addListener(new IEditorListener() {
             @Override
             public void setEditable(boolean editable) {
-                button.setVisible(isEditable() || !command.disableWithContext());
+                button.setEnabled(isEditable() || !command.disableWithContext());
             }
 
             @Override
