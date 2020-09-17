@@ -3,7 +3,6 @@ package manager.nodes;
 import codex.model.Entity;
 import codex.model.EntityDefinition;
 import codex.type.EntityRef;
-import codex.type.Str;
 import codex.utils.ImageUtils;
 import manager.svn.SVN;
 import manager.xml.ReleaseDocument;
@@ -25,18 +24,13 @@ import java.util.regex.Pattern;
 public class Release extends BinarySource {
 
     private final static Pattern LAYER = Pattern.compile("\\sBaseLayerURIs=\"([\\w\\.]*)\"\\s");
-    
-    public final static String PROP_VERSION = "version";
 
     public Release(EntityRef parent, String title) {
         super(parent, ImageUtils.getByPath("/images/release.png"), title);
-        
-        // Properties
-        model.addDynamicProp(PROP_VERSION, new Str(null), null, this::getPID);
     }
     
     public final String getVersion() {
-        return (String) model.getValue(PROP_VERSION);
+        return getPID();
     }
 
     @Override
