@@ -272,8 +272,11 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
             command.addListener(new ICommandListener<PropertyHolder<T, V>>() {
                 @Override
                 public void commandIconChanged(ImageIcon icon) {
-                    button.setIcon(ImageUtils.resize(icon, 20, 20));
-                    button.setDisabledIcon(ImageUtils.grayscale(ImageUtils.resize(icon, 20, 20)));
+                    setVisible(icon != null);
+                    if (icon != null) {
+                        button.setIcon(ImageUtils.resize(icon, 20, 20));
+                        button.setDisabledIcon(ImageUtils.grayscale(ImageUtils.resize(icon, 20, 20)));
+                    }
                 }
 
                 @Override

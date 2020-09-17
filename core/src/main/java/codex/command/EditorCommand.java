@@ -88,9 +88,7 @@ public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>
         CommandStatus status = activator.apply(getContext());
         new LinkedList<>(listeners).forEach(listener -> {
             listener.commandStatusChanged(status.active);
-            if (status.icon != null) {
-                listener.commandIconChanged(status.icon);
-            }
+            listener.commandIconChanged(status.icon);
         });
     }
 
