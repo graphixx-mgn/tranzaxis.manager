@@ -34,7 +34,7 @@ public class Repository extends Entity {
     private final static ImageIcon ICON_ONLINE  = ImageUtils.getByPath("/images/repository.png");
     private final static ImageIcon ICON_OFFLINE = ImageUtils.combine(
             ICON_ONLINE,
-            ImageUtils.resize(ImageUtils.getByPath("/images/close.png"), .6f),
+            ImageUtils.resize(ImageUtils.getByPath("/images/stop.png"), .6f),
             SwingConstants.SOUTH_EAST
     );
 
