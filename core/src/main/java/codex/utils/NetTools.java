@@ -4,11 +4,15 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Класс вспомогательных методов для работы с сетью.
  */
 public class NetTools {
+
+    private final static Map<String, Object> syncMap = new HashMap<>();
     
     /**
      * Проверка доступности сетевого порта.
@@ -23,18 +27,28 @@ public class NetTools {
         if (!checkAddress(host)) {
             throw new IllegalStateException("Invalid host address: "+host);
         }
-        SocketAddress remoteAddr = new InetSocketAddress(host, port);
-        try (Socket socket = new Socket()) {
-            int attempt = 0;
-            while (!socket.isConnected() && attempt < 5) {
-                try {
-                    socket.connect(remoteAddr, timeout);
-                } catch (IOException ignore) {}
-                attempt++;
+
+        Object syncVal;
+        String syncKey = host.concat(":").concat(String.valueOf(port));
+        synchronized (syncMap) {
+            syncVal = syncMap.computeIfAbsent(syncKey, s -> new Object());
+        }
+        synchronized (syncVal) {
+            SocketAddress remoteAddr = new InetSocketAddress(host, port);
+            try (Socket socket = new Socket()) {
+                int attempt = 0;
+                while (!socket.isConnected() && attempt < 3) {
+                    try {
+                        socket.connect(remoteAddr, timeout);
+                    } catch (IOException ignore) {}
+                    attempt++;
+                }
+                return socket.isConnected();
+            } catch (IOException e) {
+                return false;
+            } finally {
+                syncMap.remove(syncKey);
             }
-            return socket.isConnected();
-        } catch (IOException e) {
-            return false;
         }
     }
     
