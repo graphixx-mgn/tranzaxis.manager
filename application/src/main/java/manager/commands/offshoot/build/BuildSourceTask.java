@@ -20,7 +20,9 @@ import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
@@ -39,20 +41,14 @@ public class BuildSourceTask extends AbstractTask<Error> {
 
     private final Offshoot offshoot;
     private final boolean  clean;
-    private final Thread  hook = new Thread(() -> {
+    private final Thread   hook = new Thread(() -> {
         if (!getStatus().isFinal()) {
             cancel(true);
         }
     });
 
     private final EventTreeModel eventsTreeModel = new EventTreeModel();
-    private final List<CompilerEvent> eventsList = new LinkedList<CompilerEvent>() {
-        @Override
-        public boolean add(CompilerEvent compilerEvent) {
-            eventsTreeModel.addEvent(compilerEvent);
-            return super.add(compilerEvent);
-        }
-    };
+    private final List<CompilerEvent> problems = new LinkedList<>();
 
     public BuildSourceTask(Offshoot offshoot, boolean clean) {
         super(MessageFormat.format(
@@ -110,10 +106,6 @@ public class BuildSourceTask extends AbstractTask<Error> {
         command.add(SourceBuilder.class.getCanonicalName());
 
         final ProcessBuilder builder = new ProcessBuilder(command);
-        File temp = File.createTempFile("build_trace", ".tmp", new File(offshoot.getLocalPath()));
-        temp.deleteOnExit();
-        builder.redirectError(temp);
-        builder.redirectOutput(temp);
 
         AtomicReference<Throwable> errorRef = new AtomicReference<>(null);
         BuildWC.getBuildNotifier().addListener(uuid, new IBuildingNotifier.IBuildListener() {
@@ -124,13 +116,13 @@ public class BuildSourceTask extends AbstractTask<Error> {
 
             @Override
             public void event(RadixProblem.ESeverity severity, String defId, String name, ImageIcon icon, String message) {
-                CompilerEvent event = new CompilerEvent(severity, defId, name, icon, message);
-                synchronized (eventsList) {
-                    eventsList.add(event);
+                final CompilerEvent event = new CompilerEvent(severity, defId, name, icon, message);
+                synchronized (eventsTreeModel) {
+                    problems.add(event);
+                    eventsTreeModel.registerEvent(event);
                 }
-                setProgress(getProgress(), getDescription());
+                setProgress(getProgress(), getDescription()); // Repaint task widget
             }
-
 
             @Override
             public void progress(int percent) {
@@ -155,7 +147,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
         }
 
         java.lang.Runtime.getRuntime().addShutdownHook(hook);
-        Process process = builder.start();
+        Process process = builder.redirectErrorStream(true).start();
         addListener(new ITaskListener() {
             @Override
             public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
@@ -164,25 +156,38 @@ public class BuildSourceTask extends AbstractTask<Error> {
                 }
             }
         });
+        final BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        reader.lines().iterator().forEachRemaining(s -> { /* ignore process output */ });
         process.waitFor();
+
         BuildWC.getBuildNotifier().removeListener(uuid);
         java.lang.Runtime.getRuntime().removeShutdownHook(hook);
         if (process.isAlive()) process.destroy();
 
-        if (errorRef.get() != null) {
-            offshoot.setBuiltStatus(new BuildStatus(offshoot.getWorkingCopyRevision(false).getNumber(), true));
-            try {
-                offshoot.model.commit(false);
-            } catch (Exception e) {
-                //
-            }
-            Exception err = new Exception(errorRef.get().getMessage());
-            err.setStackTrace(errorRef.get().getStackTrace());
-            throw err;
+        if (errorRef.get() == null && process.exitValue() > 0) {
+            errorRef.set(new Exception(Language.get(BuildWC.class, "command@halted")));
         }
-        if (eventsList.stream().anyMatch(event -> event.getSeverity() == RadixProblem.ESeverity.ERROR)) {
+
+        if (errorRef.get() != null) {
+            offshoot.setBuiltStatus(null);
+            offshoot.model.commit(false);
+            String message = MessageFormat.format(
+                    "Build sources [{0}/{1}] failed. Total time: {2}",
+                    offshoot.getRepository().getPID(),
+                    offshoot.getPID(),
+                    DateUtils.formatElapsedTime(getDuration())
+            );
+            throw new ExecuteException(
+                    Language.get(BuildWC.class, "command@failed"),
+                    message.concat("\n").concat(Logger.stackTraceToString(BuildWC.getRootCause(errorRef.get())))
+            );
+        }
+
+        if (getErrorsCount() > 0) {
+            offshoot.setBuiltStatus(new BuildStatus(offshoot.getWorkingCopyRevision(false).getNumber(), true));
+            offshoot.model.commit(false);
             Map<String, List<String>> errorIndex = new HashMap<>();
-            eventsList.stream()
+            problems.stream()
                     .filter(event -> event.getSeverity() == RadixProblem.ESeverity.ERROR)
                     .forEach(event -> {
                         String def = event.getName()+" ("+event.getDefId()+")";
@@ -191,12 +196,6 @@ public class BuildSourceTask extends AbstractTask<Error> {
                         }
                         errorIndex.get(def).add(event.getMessage());
                     });
-            offshoot.setBuiltStatus(new BuildStatus(offshoot.getWorkingCopyRevision(false).getNumber(), true));
-            try {
-                offshoot.model.commit(false);
-            } catch (Exception e) {
-                //
-            }
             throw new ExecuteException(
                     Language.get(BuildWC.class, "modules@errors"),
                     MessageFormat.format(
@@ -222,28 +221,26 @@ public class BuildSourceTask extends AbstractTask<Error> {
     @Override
     public void finished(Error err) {
         if (!isCancelled()) {
+            Logger.getLogger().info(MessageFormat.format(
+                    "Build modules [{0}/{1}] {2}. Total time: {3}",
+                    offshoot.getRepository().getPID(),
+                    offshoot.getPID(),
+                    isCancelled() ? "canceled" : "finished",
+                    DateUtils.formatElapsedTime(getDuration())
+            ));
             offshoot.setBuiltStatus(new BuildStatus(offshoot.getWorkingCopyRevision(false).getNumber(), false));
             try {
                 offshoot.model.commit(false);
-            } catch (Exception e) {
-                //
-            }
+            } catch (Exception ignore) {}
         }
-        Logger.getLogger().info(MessageFormat.format(
-                "Build modules [{0}/{1}] {2}. Total time: {3}",
-                offshoot.getRepository().getPID(),
-                offshoot.getPID(),
-                isCancelled() ? "canceled" : "finished",
-                DateUtils.formatElapsedTime(getDuration())
-        ));
     }
 
     private long getErrorsCount() {
-        return eventsList.stream().filter(event -> event.getSeverity() == RadixProblem.ESeverity.ERROR).count();
+        return new ArrayList<>(problems).stream().filter(event -> event.getSeverity() == RadixProblem.ESeverity.ERROR).count();
     }
 
     private long getWarningsCount() {
-        return eventsList.stream().filter(event -> event.getSeverity() == RadixProblem.ESeverity.WARNING).count();
+        return new ArrayList<>(problems).stream().filter(event -> event.getSeverity() == RadixProblem.ESeverity.WARNING).count();
     }
 
     @Override
@@ -251,10 +248,12 @@ public class BuildSourceTask extends AbstractTask<Error> {
         return new BuildTaskView(this, eventsTreeModel, cancelAction);
     }
 
+
     private class BuildTaskView extends TaskView {
 
         private final JCheckBox showWarnings = new JCheckBox(Language.get(BuildWC.class, "switch@warnings"), false) {{
             setOpaque(false);
+            setFocusPainted(false);
         }};
         private final JLabel problemsStatus = new JLabel(getProblemStatusText(), getProblemsStatusIcon(), SwingConstants.LEFT) {{
             setBorder(new EmptyBorder(0, 0, 3, 0));
@@ -284,23 +283,21 @@ public class BuildSourceTask extends AbstractTask<Error> {
             problemsView.setVisible(false);
             problemsView.setPreferredSize(new Dimension(getPreferredSize().width, getPreferredSize().height*5));
 
-            DefaultMutableTreeNode root = (DefaultMutableTreeNode) treeModel.getRoot();
             treeModel.setFilter(compilerEvent ->
                     compilerEvent.getSeverity().equals(RadixProblem.ESeverity.ERROR) || showWarnings.isSelected()
             );
             showWarnings.addItemListener(event -> {
-                synchronized (eventsList) {
-                    root.removeAllChildren();
-                    treeModel.nodeStructureChanged(root);
-                    eventsList.forEach(treeModel::addEvent);
+                synchronized (eventsTreeModel) {
+                    eventsTreeModel.clearEvents();
+                    problems.forEach(eventsTreeModel::registerEvent);
                 }
             });
             problemsStatus.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     if (getErrorsCount() + getWarningsCount() > 0) {
-                        problemsStatusSwitch.setIcon(problemsView.isVisible() ? ICON_COLLAPSE : ICON_EXPAND);
                         problemsView.setVisible(!problemsView.isVisible());
+                        problemsStatusSwitch.setIcon(problemsView.isVisible() ? ICON_EXPAND : ICON_COLLAPSE);
                     }
                 }
             });
@@ -314,8 +311,8 @@ public class BuildSourceTask extends AbstractTask<Error> {
             tree.setBorder(new EmptyBorder(0, 3, 0, 0));
             tree.getModel().addTreeModelListener(new TreeModelAdapter() {
                 @Override
-                public void treeStructureChanged(TreeModelEvent event) {
-                    super.treeStructureChanged(event);
+                public void treeNodesInserted(TreeModelEvent event) {
+                    super.treeNodesInserted(event);
                     tree.expandPath(event.getTreePath());
                 }
             });
@@ -358,7 +355,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
         @Override
         public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
             super.statusChanged(task, prevStatus, nextStatus);
-            if (nextStatus.equals(Status.FAILED) && eventsList.stream().anyMatch(event -> event.getSeverity() == RadixProblem.ESeverity.ERROR)) {
+            if (nextStatus.equals(Status.FAILED) && getErrorsCount() > 0) {
                 showWarnings.setSelected(false);
             }
         }
@@ -388,38 +385,44 @@ public class BuildSourceTask extends AbstractTask<Error> {
         }
     }
 
+
     private class EventTreeModel extends DefaultTreeModel {
 
-        private final DefaultMutableTreeNode root;
+        private final DefaultMutableTreeNode  root = new DefaultMutableTreeNode("Problems");
+        private final Map<String, Definition> defs = new HashMap<>();
         private Predicate<CompilerEvent> filter = compilerEvent -> true;
 
         EventTreeModel() {
             super(new DefaultMutableTreeNode("Problems"));
-            root = (DefaultMutableTreeNode) getRoot();
         }
 
-        void setFilter(Predicate<CompilerEvent> filter) {
-            this.filter = filter;
+        @Override
+        public DefaultMutableTreeNode getRoot() {
+            return root;
         }
 
-        @SuppressWarnings("unchecked")
-        void addEvent(CompilerEvent event) {
+        void registerEvent(CompilerEvent event) {
             if (filter.test(event)) {
-                Definition definition = ((List<Definition>) Collections.list(root.children())).stream()
-                        .filter(childDef -> childDef.defId.equals(event.getDefId()))
-                        .findFirst().orElse(new Definition(event.getDefId(), event.getName(), event.getIcon()));
-                Problem problem = new Problem(event.getSeverity(), event.getMessage());
-
-                if (definition.getParent() == null) {
-                    root.add(definition);
-                    nodesWereInserted(root, new int[]{root.getIndex(definition)});
+                Definition def = defs.computeIfAbsent(event.getDefId(), key -> new Definition(event.getDefId(), event.getName(), event.getIcon()));
+                if (def.getParent() == null) {
+                    insertNodeInto(def, getRoot(), getRoot().getChildCount());
                 }
-                definition.add(problem);
-                nodeStructureChanged(definition);
+                insertNodeInto(new Problem(event.getSeverity(), event.getMessage()), def, def.getChildCount());
+                nodeStructureChanged(def);
             }
         }
 
+        void clearEvents() {
+            defs.clear();
+            getRoot().removeAllChildren();
+            nodeStructureChanged(getRoot());
+        }
+
+        void setFilter(Predicate<CompilerEvent> filter) {
+             this.filter = filter;
+        }
     }
+
 
     private class Definition extends DefaultMutableTreeNode implements Iconified {
         private final String defId;
@@ -438,6 +441,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
         }
     }
 
+
     private class Problem extends DefaultMutableTreeNode implements Iconified {
         private final RadixProblem.ESeverity severity;
         private final String message;
@@ -446,7 +450,6 @@ public class BuildSourceTask extends AbstractTask<Error> {
             this.severity = severity;
             this.message  = message;
         }
-
 
         @Override
         public ImageIcon getIcon() {

@@ -10,8 +10,6 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -58,6 +56,7 @@ public class SourceBuilder {
                 env,
                 false
         );
+
         Field targets = contextInfoClass.getDeclaredField("targets");
         targets.setAccessible(true);
         Set<Definition> checkedDefinitions = (Set<Definition>) targets.get(contextInfo);
@@ -102,36 +101,34 @@ public class SourceBuilder {
     }
     
     public static void main(String[] args12) throws Exception {
-        
-        Integer port  = Integer.valueOf(System.getProperty("port"));
-        UUID    uuid  = UUID.fromString(System.getProperty("uuid"));
-        String  path  = System.getProperty("path");
-        Boolean clean = "1".equals(System.getProperty("clean"));
+        final Integer port  = Integer.valueOf(System.getProperty("port"));
+        final UUID    uuid  = UUID.fromString(System.getProperty("uuid"));
+        final String  path  = System.getProperty("path");
+        final Boolean clean = "1".equals(System.getProperty("clean"));
 
-        Registry reg = LocateRegistry.getRegistry(port);
-        IBuildingNotifier notifier = (IBuildingNotifier) reg.lookup(BuildingNotifier.class.getCanonicalName());
+        final Registry reg = LocateRegistry.getRegistry(port);
+        final IBuildingNotifier notifier = (IBuildingNotifier) reg.lookup(BuildingNotifier.class.getCanonicalName());
         Thread.setDefaultUncaughtExceptionHandler((thread, ex) -> {
             try {
                 notifier.error(uuid, ex);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+            } catch (RemoteException ignore) {}
         });
 
         Map<String, ImageIcon> IMG_CACHE = new HashMap<>();
 
         final AtomicInteger totalModules = new AtomicInteger(0);
-        IBuildEnvironment env = new BuildEnvironment(
+        final IBuildEnvironment env = new BuildEnvironment(
             TARGET_ENV,
             new BuildFlowLogger() {
+
                 @Override
                 public void problem(RadixProblem problem) {
                     final Definition definition = problem.getSource().getDefinition();
                     final RadixIcon  radixIcon  = definition != null ? definition.getIcon() : problem.getSource().getIcon();
-                    final String defId   = definition != null ? definition.getId().toString() : problem.getSource().getQualifiedName();
-                    final String defName = problem.getSource().getQualifiedName();
-                    final String imgUri  = definition != null ? radixIcon.getResourceUri() : radixIcon.getResourceUri();
-                    final String message = problem.getMessage();
+                    final String     defId = definition != null ? definition.getId().toString() : problem.getSource().getQualifiedName();
+                    final String     defName = problem.getSource().getQualifiedName();
+                    final String     imgUri  = definition != null ? radixIcon.getResourceUri() : radixIcon.getResourceUri();
+                    final String     message = problem.getMessage();
 
                     if (!IMG_CACHE.containsKey(imgUri)) {
                         try {
@@ -142,9 +139,7 @@ public class SourceBuilder {
                                             radixIcon.getIcon().getIconWidth()
                                     ))
                             );
-                        } catch (IOException e) {
-                            //
-                        }
+                        } catch (IOException ignore) {}
                     }
                     final ImageIcon icon = IMG_CACHE.get(imgUri);
                     try {
@@ -165,15 +160,14 @@ public class SourceBuilder {
                         public boolean wasCancelled() {
                             try {
                                 notifier.isPaused(uuid);
-                            } catch (RemoteException e) {
-                                throw new RuntimeException(e.getMessage());
-                            }
+                            } catch (RemoteException ignore) {}
                             return false;
                         }
                     };
                 }
             },
             new IProgressHandle() {
+
                 private final Pattern MODULE_BUILD = Pattern.compile("^Build module: (.*): $");
                 private final Set<String> builtModules = new HashSet<>();
 
@@ -182,19 +176,16 @@ public class SourceBuilder {
                     Matcher matcher = MODULE_BUILD.matcher(name);
                     try {
                         if (matcher.find() && !builtModules.contains(matcher.group(1))) {
-                            if (totalModules.get() == 0) {
-                                notifier.description(uuid, matcher.group(1));
-                            } else {
-                                builtModules.add(matcher.group(1));
-                                int progress = 100 * builtModules.size() / totalModules.get();
-                                notifier.description(uuid, matcher.group(1));
-                                notifier.progress(uuid, progress);
-                            }
+                            builtModules.add(matcher.group(1));
+                            int progress = Math.min(100 * builtModules.size() / totalModules.get(), 100);
+
+                            notifier.progress(uuid, progress);
+                            notifier.description(uuid, matcher.group(1));
                         } else {
                             notifier.description(uuid, name);
                         }
                     } catch (RemoteException e) {
-                        throw new RuntimeException(e.getMessage());
+                        e.printStackTrace();
                     }
                 }
 
@@ -203,33 +194,17 @@ public class SourceBuilder {
             }
         ) {
             @Override
-            public Logger getLogger() {
-                return new Logger(BuildEnvironment.class.getName(), null) {
-                    @Override
-                    public void log(Level level, String msg, Throwable thrown) {
-                        try {
-                            notifier.error(uuid, thrown);
-                        } catch (RemoteException e) {
-                            throw new RuntimeException(e.getMessage());
-                        }
-                    }
-                };
-            }
-
-            @Override
             public BuildActionExecutor.EBuildActionType getActionType() {
                 return clean ? BuildActionExecutor.EBuildActionType.CLEAN_AND_BUILD : BuildActionExecutor.EBuildActionType.BUILD;
             }
         };
         Branch branch = Branch.Factory.loadFromDir(new File(path));
-        env.getBuildDisplayer().getProgressHandleFactory().createHandle("Load definitions...");
-        try {
-            totalModules.set(enumerateModules(env, branch));
-        } catch (Exception e) {
-            //
-        }
+        totalModules.set(enumerateModules(env, branch));
+
         BuildActionExecutor executor = new BuildActionExecutor(env);
         executor.execute(branch);
+
+        System.exit(0);
     }
     
 }

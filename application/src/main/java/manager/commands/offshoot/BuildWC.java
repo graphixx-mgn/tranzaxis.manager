@@ -25,6 +25,7 @@ import java.rmi.AlreadyBoundException;
 import java.rmi.registry.LocateRegistry;
 import java.text.MessageFormat;
 import java.util.Map;
+import java.util.stream.Stream;
 
 @EntityCommand.Definition(parentCommand = RefreshWC.class)
 public class BuildWC extends EntityCommand<Offshoot> {
@@ -61,6 +62,14 @@ public class BuildWC extends EntityCommand<Offshoot> {
 
     public static int getPort() {
         return RMI_SOCKET.getLocalPort();
+    }
+
+    public static Throwable getRootCause(Throwable exception) {
+        return Stream
+                .iterate(exception, Throwable::getCause)
+                .filter(element -> element.getCause() == null)
+                .findFirst()
+                .orElse(null);
     }
 
     public BuildWC() {

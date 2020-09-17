@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Logger;
 import org.radixware.kernel.common.builder.BuildActionExecutor;
 import org.radixware.kernel.common.builder.api.IBuildDisplayer;
 import org.radixware.kernel.common.builder.api.IBuildEnvironment;
@@ -31,14 +32,15 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
     private final IBuildDisplayer      buildDisplayer;
     private final ILifecycleManager    lfcManager = new LifecycleManager();
     private final IMutex               mutex = new Mutex();
+    private final Logger               logger = Logger.getLogger(BuildEnvironment.class.getName());
 
-    public BuildEnvironment(EnumSet<ERuntimeEnvironmentType> env, IFlowLogger  flowLogger, IProgressHandle progressHandle) {
+    BuildEnvironment(EnumSet<ERuntimeEnvironmentType> env, IFlowLogger  flowLogger, IProgressHandle progressHandle) {
         checkOptions = new CheckOptions();
         checkOptions.setCheckAllOvrPathes(true);
         checkOptions.setDbConnection(null);
-        checkOptions.setCheckSqlClassQuerySyntax(true);
-        checkOptions.setMaxSqlQueryVariants(16);
+        checkOptions.setCheckSqlClassQuerySyntax(false);
         checkOptions.setCheckDocumentation(false);
+        checkOptions.setCheckModuleDependences(false);
 
         KernelParameters.setAppName("extmanager");
         
@@ -46,6 +48,8 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
         buildOptions.setEnvironment(env);
         buildOptions.setMultythread(true);
         buildOptions.setVerifyClassLinkage(false);
+        buildOptions.setSkipCheck(true);
+        buildOptions.setBuildUds(false);
         
         this.flowLogger = flowLogger;
         this.problemHandler = new ProblemHandler(flowLogger);
@@ -104,8 +108,12 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
 
     @Override
     public void complete() {}
-    
-    
+
+    @Override
+    public Logger getLogger() {
+        return logger;
+    }
+
     public class ProblemHandler implements IBuildProblemHandler {
 
         private int errorsCount = 0;
@@ -113,7 +121,7 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
         private final IFlowLogger flowLogger;
         private final List<RadixProblem> errors = new LinkedList<>();
 
-        public ProblemHandler(IFlowLogger flowLogger) {
+        ProblemHandler(IFlowLogger flowLogger) {
             this.flowLogger = flowLogger;
         }
 
@@ -152,7 +160,8 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
             return warningsCount;
         }
     }
-    
+
+
     private class LifecycleManager implements ILifecycleManager {
 
         @Override
@@ -163,7 +172,8 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
             System.exit(0);
         }
     }
-    
+
+
     private class Mutex implements IMutex {
 
         Lock l = new ReentrantLock();

@@ -7,7 +7,9 @@ import codex.utils.Runtime;
 import manager.commands.offshoot.BuildWC;
 import manager.nodes.Offshoot;
 import org.apache.tools.ant.util.DateUtils;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.StringJoiner;
@@ -78,10 +80,6 @@ public class BuildKernelTask extends AbstractTask<Void> {
         command.add(KernelBuilder.class.getCanonicalName());
 
         final ProcessBuilder builder = new ProcessBuilder(command);
-        File temp = File.createTempFile("build_trace", ".tmp", new File(offshoot.getLocalPath()));
-        temp.deleteOnExit();
-        builder.redirectError(temp);
-        builder.redirectOutput(temp);
         if (currentJar.isFile()) {
             builder.directory(currentJar.getParentFile());
         } else {
@@ -105,14 +103,9 @@ public class BuildKernelTask extends AbstractTask<Void> {
                 checkPaused();
             }
         });
-        if (currentJar.isFile()) {
-            builder.directory(currentJar.getParentFile());
-        } else {
-            builder.directory(currentJar);
-        }
 
         java.lang.Runtime.getRuntime().addShutdownHook(hook);
-        Process process = builder.start();
+        Process process = builder.redirectErrorStream(true).start();
         addListener(new ITaskListener() {
             @Override
             public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
@@ -121,18 +114,21 @@ public class BuildKernelTask extends AbstractTask<Void> {
                 }
             }
         });
+        final BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        reader.lines().iterator().forEachRemaining(s -> { /* ignore process output */ });
         process.waitFor();
+
         BuildWC.getBuildNotifier().removeListener(uuid);
         java.lang.Runtime.getRuntime().removeShutdownHook(hook);
         if (process.isAlive()) process.destroy();
 
+        if (errorRef.get() == null && process.exitValue() > 0) {
+            errorRef.set(new Exception(Language.get(BuildWC.class, "command@halted")));
+        }
+
         if (errorRef.get() != null) {
             offshoot.setBuiltStatus(null);
-            try {
-                offshoot.model.commit(false);
-            } catch (Exception e) {
-                //
-            }
+            offshoot.model.commit(false);
             String message = MessageFormat.format(
                     "Build kernel [{0}/{1}] failed. Total time: {2}",
                     offshoot.getRepository().getPID(),
@@ -140,11 +136,8 @@ public class BuildKernelTask extends AbstractTask<Void> {
                     DateUtils.formatElapsedTime(getDuration())
             );
             throw new ExecuteException(
-                    MessageFormat.format(
-                            Language.get(BuildWC.class, "command@seelog"),
-                            offshoot.getLocalPath()+File.separator+"build-kernel.log"
-                    ),
-                    message.concat("\n").concat(Logger.stackTraceToString(errorRef.get()))
+                    Language.get(BuildWC.class, "command@failed"),
+                    message.concat("\n").concat(Logger.stackTraceToString(BuildWC.getRootCause(errorRef.get())))
             );
         }
         return null;

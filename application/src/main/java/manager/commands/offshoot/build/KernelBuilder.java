@@ -17,12 +17,7 @@ import manager.xml.PropertyDocument;
 import manager.xml.SubantDocument;
 import manager.xml.TargetDocument;
 import org.apache.commons.io.FileUtils;
-import org.apache.tools.ant.BuildEvent;
-import org.apache.tools.ant.BuildException;
-import org.apache.tools.ant.BuildLogger;
-import org.apache.tools.ant.DefaultLogger;
-import org.apache.tools.ant.Project;
-import org.apache.tools.ant.ProjectHelper;
+import org.apache.tools.ant.*;
 import org.radixware.kernel.common.preferences.KernelParameters;
 import org.radixware.kernel.common.repository.Branch;
 import org.radixware.kernel.common.repository.Layer;
@@ -30,19 +25,17 @@ import org.radixware.kernel.common.repository.Layer;
 public class KernelBuilder {
     
     public static void main(String[] args) throws Exception {
+        final Integer port = Integer.valueOf(System.getProperty("port"));
+        final UUID    uuid = UUID.fromString(System.getProperty("uuid"));
+        final String  path = System.getProperty("path");
 
-        Integer port = Integer.valueOf(System.getProperty("port"));
-        UUID    uuid = UUID.fromString(System.getProperty("uuid"));
-        String  path = System.getProperty("path");
+        final Registry reg = LocateRegistry.getRegistry(port);
+        final IBuildingNotifier notifier = (IBuildingNotifier) reg.lookup(BuildingNotifier.class.getCanonicalName());
 
-        Registry reg = LocateRegistry.getRegistry(port);
-        IBuildingNotifier notifier = (IBuildingNotifier) reg.lookup(BuildingNotifier.class.getCanonicalName());
         Thread.setDefaultUncaughtExceptionHandler((thread, ex) -> {
             try {
                 notifier.error(uuid, ex);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+            } catch (RemoteException ignore) {}
         });
 
         KernelParameters.setAppName("extmanager");
@@ -92,7 +85,8 @@ public class KernelBuilder {
 
             File logFile = new File(localDir.getPath()+File.separator+"build-kernel.log");
             PrintStream logStream = new PrintStream(logFile);
-            BuildLogger consoleLogger = new DefaultLogger() {
+
+            BuildLogger consoleLogger = new NoBannerLogger() {
                 @Override
                 public void taskStarted(BuildEvent event) {
                     super.taskStarted(event);
