@@ -8,8 +8,9 @@ import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.mask.RegexMask;
 import codex.model.Access;
-import codex.model.CommandRegistry;
 import codex.model.Entity;
+import codex.model.EntityModel;
+import codex.model.IModelListener;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
@@ -18,10 +19,12 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.sql.SQLException;
 import java.text.MessageFormat;
-import java.util.Collections;
-import java.util.Locale;
+import java.util.List;
 import java.util.function.Function;
-import manager.commands.database.CheckDatabase;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import codex.utils.NetTools;
+import javax.swing.*;
 
 public class Database extends Entity {
     
@@ -29,13 +32,30 @@ public class Database extends Entity {
     private final static String PROP_BASE_USER = "dbSchema";
     private final static String PROP_BASE_PASS = "dbPass";
     private final static String PROP_USER_NOTE = "userNote";
+
+    private final static Pattern   URL_SPLITTER = Pattern.compile("([\\d\\.]+|[^\\s]+):(\\d+)/");
+    private final static ImageIcon ICON_ONLINE  = ImageUtils.getByPath("/images/database.png");
+    private final static ImageIcon ICON_OFFLINE = ImageUtils.combine(
+            ICON_ONLINE,
+            ImageUtils.resize(ImageUtils.getByPath("/images/stop.png"), .6f),
+            SwingConstants.SOUTH_EAST
+    );
    
     private static final IDatabaseAccessService OAS = OracleAccessService.getInstance();
     
     static {
         ServiceRegistry.getInstance().registerService(OAS);
-        CommandRegistry.getInstance().registerCommand(CheckDatabase.class);
     }
+
+    private final Runnable connectionChecker = () -> new Thread(() -> {
+        if (getConnectionID(false) == null) {
+            String dbUrl = getDatabaseUrl(true);
+            Logger.getLogger().warn(
+                    Language.get(Database.class, "error@unavailable", Language.DEF_LOCALE),
+                    getPID(), dbUrl.substring(0, dbUrl.indexOf("/"))
+            );
+        }
+    }).start();
     
     private final Function<Boolean, Integer> connectionGetter = (showError) -> {
         String url  = getDatabaseUrl(true);
@@ -43,7 +63,7 @@ public class Database extends Entity {
         String pass = getDatabasePassword(true);
 
         if (IComplexType.notNull(url, user, pass)) {
-            if (!CheckDatabase.checkUrlPort(url)) {
+            if (!checkUrlPort(url)) {
                 if (showError) {
                     MessageBox.show(MessageType.WARNING, MessageFormat.format(
                             Language.get(Database.class, "error@unavailable"),
@@ -80,7 +100,7 @@ public class Database extends Entity {
     };
     
     public Database(EntityRef owner, String title) {
-        super(owner, ImageUtils.getByPath("/images/database.png"), title, null);
+        super(owner, ICON_ONLINE, title, null);
 
         // Properties
         model.addUserProp(PROP_BASE_URL, 
@@ -94,15 +114,31 @@ public class Database extends Entity {
         model.addUserProp(PROP_BASE_USER, new Str(null), true, null);
         model.addUserProp(PROP_BASE_PASS, new Str(null), true, Access.Select);
         model.addUserProp(PROP_USER_NOTE, new Str(null), false, null);
+
+        // Handlers
+        model.addModelListener(new IModelListener() {
+            @Override
+            public void modelSaved(EntityModel model, List<String> changes) {
+                onChange(changes);
+            }
+
+            @Override
+            public void modelRestored(EntityModel model, List<String> changes) {
+                onChange(changes);
+            }
+
+            private void onChange(List<String> changes) {
+                if (changes.contains(PROP_BASE_URL)) {
+                    connectionChecker.run();
+                }
+            }
+        });
     }
 
     @Override
     public void setParent(INode parent) {
         super.setParent(parent);
-        if (parent != null) {
-            CheckDatabase check = getCommand(CheckDatabase.class);
-            check.setContext(Collections.singletonList(this));
-        }
+        connectionChecker.run();
     }
     
     public final String getDatabaseUrl(boolean unsaved) {
@@ -139,6 +175,23 @@ public class Database extends Entity {
     
     public Integer getConnectionID(boolean showError) {
         return connectionGetter.apply(showError);
+    }
+
+    public boolean checkUrlPort(String dbUrl) {
+        Matcher verMatcher = URL_SPLITTER.matcher(dbUrl);
+        if (verMatcher.find()) {
+            String host = verMatcher.group(1);
+            int    port = Integer.valueOf(verMatcher.group(2));
+            try {
+                boolean available = NetTools.isPortAvailable(host, port, 200);
+                setIcon(available ? ICON_ONLINE : ICON_OFFLINE);
+                return available;
+            } catch (IllegalStateException e) {
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
     
 }

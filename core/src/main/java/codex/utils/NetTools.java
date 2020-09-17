@@ -3,6 +3,7 @@ package codex.utils;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 
 /**
  * Класс вспомогательных методов для работы с сетью.
@@ -22,21 +23,26 @@ public class NetTools {
         if (!checkAddress(host)) {
             throw new IllegalStateException("Invalid host address: "+host);
         }
-        try {
-            try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(host, port), timeout);
-                return true;
+        SocketAddress remoteAddr = new InetSocketAddress(host, port);
+        try (Socket socket = new Socket()) {
+            int attempt = 0;
+            while (!socket.isConnected() && attempt < 5) {
+                try {
+                    socket.connect(remoteAddr, timeout);
+                } catch (IOException ignore) {}
+                attempt++;
             }
+            return socket.isConnected();
         } catch (IOException e) {
             return false;
         }
     }
     
-    public static boolean checkPort(int port) {
+    private static boolean checkPort(int port) {
         return !(port < 1 || port > 65535);
     }
     
-    public static boolean checkAddress(String host) {
+    private static boolean checkAddress(String host) {
         return 
                 host.matches("^(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))$") &&
                 host.matches("^[^\\s]+$");
