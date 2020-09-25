@@ -39,7 +39,7 @@ public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>
     protected Function<PropertyHolder<T, V>, CommandStatus> activator = holder -> new CommandStatus(
             holder != null && (
                     available == null || available.test(holder)
-            ) && !holder.isInherited()
+            ) && !holder.isInherited(), getIcon()
     );
     
     /**

@@ -70,6 +70,7 @@ public final class ExplorerUnit extends AbstractUnit {
         JPanel leftPanel = new JPanel(new BorderLayout());
         navigatePanel = new JScrollPane();
         navigatePanel.setBorder(null);
+        navigatePanel.setViewportView(navigator);
         leftPanel.add(navigatePanel, BorderLayout.CENTER);
         splitPanel.setLeftComponent(leftPanel);
 
@@ -89,7 +90,6 @@ public final class ExplorerUnit extends AbstractUnit {
 
     @Override
     public void viewportBound() {
-        navigatePanel.setViewportView(navigator);
         browsePanel.add(browser, BorderLayout.CENTER);
         navigator.expandRow(0);
     }

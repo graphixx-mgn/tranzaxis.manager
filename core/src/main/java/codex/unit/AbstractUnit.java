@@ -4,14 +4,16 @@ import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.*;
-import java.util.Locale;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Абстракный класс модуля приложения.
  */
-public abstract class AbstractUnit implements Iconified {
+public abstract class AbstractUnit implements Iconified, IEventInformer {
     
     protected JComponent view;
+    private final List<IEventListener> eventListeners = new LinkedList<>();
     
     /**
      * Создает виджет модуля для размещение в окне приложения.
@@ -40,5 +42,19 @@ public abstract class AbstractUnit implements Iconified {
     public String getTitle() {
         return Language.get(getClass(), "unit.title");
     }
-    
+
+    @Override
+    public void addEventListener(IEventListener listener) {
+        eventListeners.add(listener);
+    }
+
+    @Override
+    public void removeEventListener(IEventListener listener) {
+        eventListeners.remove(listener);
+    }
+
+    @Override
+    public List<IEventListener> getEventListeners() {
+        return new LinkedList<>(eventListeners);
+    }
 }

@@ -26,17 +26,19 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
 
     @Override
     public void addEntity(Entity entity) {
-        if (getColumnCount() == 0) {
-            List<String> visibleProps = getVisibleProperties(entity);
-            columnModel.addAll(visibleProps.stream()
-                    .map(propName -> new ColumnInfo(
-                        entity.model.getPropertyType(propName),
-                        propName,
-                        entity.model.getPropertyTitle(propName)
-                    ))
-                    .collect(Collectors.toList())
-            );
-            columnModel.forEach(columnInfo -> addColumn(columnInfo.title));
+        synchronized (this) {
+            if (getColumnCount() == 0) {
+                List<String> visibleProps = getVisibleProperties(entity);
+                columnModel.addAll(visibleProps.stream()
+                        .map(propName -> new ColumnInfo(
+                                entity.model.getPropertyType(propName),
+                                propName,
+                                entity.model.getPropertyTitle(propName)
+                        ))
+                        .collect(Collectors.toList())
+                );
+                columnModel.forEach(columnInfo -> addColumn(columnInfo.title));
+            }
         }
         addRow(columnModel.stream().map(columnInfo -> entity.model.getValue(columnInfo.name)).toArray());
         attachListeners(entity);

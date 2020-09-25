@@ -84,25 +84,23 @@ public final class Window extends JFrame {
                 }},
                 unit.getTitle()
         );
+        final int tabIndex = tabbedPanel.getTabCount()-1;
+        ((IEventInformer) unit).addEventListener(events ->
+                tabbedPanel.setIconAt(
+                        tabIndex,
+                        events == 0 ?
+                                ImageUtils.resize(unit.getIcon(), 24, 24) :
+                                ImageUtils.combine(
+                                    ImageUtils.resize(unit.getIcon(), 24, 24),
+                                    ImageUtils.createBadge(
+                                            String.valueOf(events),
+                                            Color.decode("#DE5347"),
+                                            Color.WHITE
+                                    ),
+                                    SwingUtilities.SOUTH_EAST
+                                )
+                )
+        );
         unit.viewportBound();
-        if (unit instanceof IEventInformer) {
-            final int tabIndex = tabbedPanel.getTabCount()-1;
-            ((IEventInformer) unit).addEventListener(events ->
-                    tabbedPanel.setIconAt(
-                            tabIndex,
-                            events == 0 ?
-                                    ImageUtils.resize(unit.getIcon(), 24, 24) :
-                                    ImageUtils.combine(
-                                        ImageUtils.resize(unit.getIcon(), 24, 24),
-                                        ImageUtils.createBadge(
-                                                String.valueOf(events),
-                                                Color.decode("#DE5347"),
-                                                Color.WHITE
-                                        ),
-                                        SwingUtilities.SOUTH_EAST
-                                    )
-                    )
-            );
-        }
     }
 }

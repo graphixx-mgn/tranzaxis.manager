@@ -45,11 +45,6 @@ public abstract class AbstractService<T extends Service> implements IService {
                 );
                 settings = (T) Service.newInstance(configClass, null, getTitle());
                 settings.setService(this);
-                try {
-                    settings.model.commit(false);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
             }
             return settings;
         }
