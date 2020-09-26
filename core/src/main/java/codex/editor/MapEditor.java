@@ -28,6 +28,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -44,7 +45,7 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
     private static final ImageIcon  WARN_ICON = ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), 26, 26);
 
     private JTextField textField;
-    private EditMode mode = EditMode.ModifyAllowed;
+    private EnumSet<EditMode> mode = EnumSet.allOf(EditMode.class);
     private java.util.Map<K, V> internalValue;
     private final String[] placeholder;
 
@@ -66,12 +67,12 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
         });
     }
 
-    public void setMode(EditMode mode) {
+    public void setMode(EnumSet<EditMode> mode) {
         this.mode = mode;
     }
 
     public enum EditMode {
-        ModifyPermitted, ModifyAllowed
+        InsertAllowed, DeleteAllowed
     }
 
     @Override
@@ -204,19 +205,14 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
             JPanel content = new JPanel(new BorderLayout());
             content.add(scrollPane, BorderLayout.CENTER);
 
-            if (mode.equals(EditMode.ModifyAllowed)) {
+            Box controls = new Box(BoxLayout.Y_AXIS);
+            controls.setBorder(new EmptyBorder(5, 0, 0, 5));
+            if (mode != null && mode.contains(EditMode.InsertAllowed)) {
                 PushButton insert = new PushButton(ADD_ICON, null);
                 insert.setEnabled(MapEditor.this.isEditable() && !propHolder.isInherited());
                 insert.addActionListener(new InsertAction(tableModel));
 
-                PushButton delete = new PushButton(DEL_ICON, null);
-                delete.setEnabled(false);
-                delete.addActionListener(new DeleteAction(tableModel, table));
-                table.getSelectionModel().addListSelectionListener(event -> delete.setEnabled(
-                        MapEditor.this.isEditable() &&
-                        !propHolder.isInherited() &&
-                        table.getSelectedRow() >= 0
-                ));
+
 
                 PushButton moveUp = new PushButton(UP_ICON, null);
                 moveUp.setEnabled(false);
@@ -236,6 +232,23 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
                         table.getSelectedRow() < tableModel.getRowCount()-1
                 ));
 
+                controls.add(insert);
+                controls.add(Box.createVerticalStrut(10));
+
+                controls.add(moveUp);
+                controls.add(Box.createVerticalStrut(10));
+                controls.add(moveDown);
+                controls.add(Box.createVerticalStrut(10));
+            }
+            if (mode != null && mode.contains(EditMode.DeleteAllowed)) {
+                PushButton delete = new PushButton(DEL_ICON, null);
+                delete.setEnabled(false);
+                delete.addActionListener(new DeleteAction(tableModel, table));
+                table.getSelectionModel().addListSelectionListener(event -> delete.setEnabled(
+                        MapEditor.this.isEditable() &&
+                                !propHolder.isInherited() &&
+                                table.getSelectedRow() >= 0
+                ));
                 PushButton clear = new PushButton(CLEAR_ICON, null);
                 clear.setEnabled(MapEditor.this.isEditable() && !propHolder.isInherited() && internalValue.size() > 0);
                 clear.addActionListener(new ClearAction(tableModel, table));
@@ -245,18 +258,11 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
                     }
                 });
 
-                Box controls = new Box(BoxLayout.Y_AXIS);
-                controls.setBorder(new EmptyBorder(5, 0, 0, 5));
-                controls.add(insert);
-                controls.add(Box.createVerticalStrut(10));
                 controls.add(delete);
                 controls.add(Box.createVerticalStrut(10));
-                controls.add(moveUp);
-                controls.add(Box.createVerticalStrut(10));
-                controls.add(moveDown);
-                controls.add(Box.createVerticalStrut(10));
                 controls.add(clear);
-
+            }
+            if (mode != null && !mode.isEmpty()) {
                 content.add(controls, BorderLayout.EAST);
             }
 
