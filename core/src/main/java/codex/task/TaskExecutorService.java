@@ -21,15 +21,13 @@ import java.util.concurrent.ExecutionException;
 @IContext.Definition(id = "TES", name = "Task Executor Service", icon = "/images/tasks.png")
 public class TaskExecutorService extends AbstractService<TaskServiceOptions> implements ITaskExecutorService, IContext, ITaskListener {
 
-    private final static INotificationService NSS = ServiceRegistry.getInstance().lookupService(INotificationService.class);
-
     private final Map<ThreadPoolKind, ITaskMonitor> monitors = new HashMap<>();
     private final ITaskMonitor defMonitor = new DefaultMonitor();
     private final ITaskListener notifyListener = new ITaskListener() {
         @Override
         public void statusChanged(ITask task, Status prevStatus, Status nextStatus) {
             if (nextStatus == Status.FAILED || nextStatus == Status.FINISHED) {
-                NSS.sendMessage(
+                ServiceRegistry.getInstance().lookupService(INotificationService.class).sendMessage(
                         Message.getBuilder()
                                 .setSeverity(task.getStatus() == Status.FINISHED ? Message.Severity.Information : Message.Severity.Error)
                                 .setSubject(Language.get(TaskMonitor.class,"notify@"+task.getStatus().name().toLowerCase()))
