@@ -32,6 +32,8 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
             ISerializableType<V, ? extends IMask<V>> defVal,
             java.util.Map<K, V> value) {
 
+        defaultValue = defVal.getValue();
+
         keyClass = (Class<? extends ISerializableType<K, IMask<K>>>) defKey.getClass();
         keyParamClass = IParametrized.class.isAssignableFrom(keyClass) ? ((IParametrized) defKey).getValueClass() : null;
         keyMask  = defKey.getMask();
@@ -42,8 +44,6 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
 
         keyBuf = createKey();
         valBuf = createVal();
-
-        defaultValue = defVal.getValue();
 
         setValue(value);
     }
