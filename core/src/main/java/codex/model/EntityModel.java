@@ -731,6 +731,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         } else {
             dbValues = getConfigService().readClassInstance(tableClass, getID());
         }
+        if (PolyMorph.class.isAssignableFrom(entityClass)) {
+            dbValues.putAll(PolyMorph.parseParameters(dbValues.get(PolyMorph.PROP_IMPL_PARAM)));
+        }
+
         List<String> userProps = getProperties(Access.Any).stream()
                 .filter((propName) -> !isPropertyDynamic(propName) || SYSPROPS.contains(propName))
                 .collect(Collectors.toList());
