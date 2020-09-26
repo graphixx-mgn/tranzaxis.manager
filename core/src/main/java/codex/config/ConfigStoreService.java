@@ -110,6 +110,9 @@ public final class ConfigStoreService extends AbstractService<ConfigServiceOptio
     @Override
     public synchronized void buildClassCatalog(Class clazz, Map<String, IComplexType> propDefinition) throws Exception {
         final String className = clazz.getSimpleName().toUpperCase();
+        if (tableRegistry.containsKey(className)) {
+            return;
+        }
         Map<String, String> columns = new LinkedHashMap<String, String>() {{
             put(EntityModel.ID,  "INTEGER PRIMARY KEY AUTOINCREMENT");
             put(EntityModel.SEQ, "INTEGER NOT NULL");
