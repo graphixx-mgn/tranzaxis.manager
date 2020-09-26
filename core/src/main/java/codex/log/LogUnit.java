@@ -443,7 +443,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         } else {
             Logger.getLogger().debug("Detected single screen configuration. Event Log opened at center of 1ST device");
-            frame.setSize(new Dimension(1000, 700));
+            frame.setSize(new Dimension(1180, 780));
             frame.setMinimumSize(new Dimension(500, 400));  
             frame.setLocationRelativeTo(null);
         }

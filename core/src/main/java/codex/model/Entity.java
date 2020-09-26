@@ -773,7 +773,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     }
     
     public static <E extends Entity> E newPrototype(Class<E> entityClass) {
-        if (entityClass.isMemberClass()) {
+        if (entityClass.isMemberClass() && !Modifier.isStatic(entityClass.getModifiers())) {
             throw new IllegalStateException(MessageFormat.format(
                     "Entity class ''{0}'' is inner class of ''{1}''", 
                     entityClass.getSimpleName(),

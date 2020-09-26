@@ -23,7 +23,7 @@ public abstract class ClassCatalog extends Entity {
                     .filter(aClass -> !aClass.equals(PolyMorph.class))
                     .collect(Collectors.toList())
             );
-            SwingUtilities.invokeLater(() -> Logger.getLogger().debug(
+            SwingUtilities.invokeLater(() -> Logger.getContextLogger(EntityModel.OrmContext.class).debug(
                     "Registered class catalogs:\n{0}",
                     catalogs.stream()
                         .collect(Collectors.groupingBy(aClass -> {
