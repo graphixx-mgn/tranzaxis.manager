@@ -5,7 +5,6 @@ import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.log.LoggingSource;
 import codex.model.Access;
-import codex.model.ClassCatalog;
 import codex.model.PolyMorph;
 import codex.task.ITaskListener;
 import codex.type.AnyType;
@@ -13,7 +12,6 @@ import codex.type.EntityRef;
 
 @LoggingSource
 @IContext.Definition(id = "JSE", name = "Job Scheduler", icon = "/images/schedule.png")
-@ClassCatalog.Definition(selectorProps = {Schedule.PROP_EXT_INFO})
 abstract class JobTrigger extends PolyMorph implements IContext {
 
     final static String PROP_EXT_INFO = "extInfo";
@@ -26,6 +24,8 @@ abstract class JobTrigger extends PolyMorph implements IContext {
 
         // Properties
         model.addDynamicProp(PROP_EXT_INFO, new AnyType(), Access.Edit, null);
+
+        registerColumnProperties(PROP_EXT_INFO);
 
         // Handlers
         setMode(job.isDisabled() ? 0 : INode.MODE_ENABLED);

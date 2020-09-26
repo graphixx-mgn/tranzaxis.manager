@@ -18,13 +18,12 @@ import java.util.Stack;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
-@ClassCatalog.Definition(selectorProps = {Service.PROP_VIEW})
 public abstract class Service<S extends IService> extends PolyMorph implements ICatalog {
 
     private final static ImageIcon ICON_STARTED = ImageUtils.getByPath("/images/start.png");
     private final static ImageIcon ICON_STOPPED = ImageUtils.getByPath("/images/stop.png");
 
-    final static String PROP_VIEW = "view";
+    private final static String PROP_VIEW    = "view";
     private final static String PROP_ENABLED = "enabled";
 
     private final static String APP_CATALOG = Runtime.APP.mainClass.get().getSimpleName();
@@ -79,6 +78,7 @@ public abstract class Service<S extends IService> extends PolyMorph implements I
             }
         });
         model.addUserProp(PROP_ENABLED, new Bool(true), false, Access.Any);
+        registerColumnProperties(PROP_VIEW);
 
         // Property settings
         setPropertyRestriction(EntityModel.THIS, Access.Any);

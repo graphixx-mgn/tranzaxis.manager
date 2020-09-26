@@ -23,8 +23,7 @@ abstract class Job extends PolyMorph {
         model.addUserProp(PROP_JOB_STATUS, new Enum<>(JobScheduler.JobStatus.Undefined), false, Access.Any);
         model.addUserProp(PROP_JOB_FINISH, new DateTime(null), false, Access.Any);
         model.addUserProp(PROP_JOB_DISABLE, new Bool(false), false, Access.Select);
-
-        model.addDynamicProp(PROP_JOB_RESULT, new AnyType(), Access.Extra, () -> {
+        model.addDynamicProp(PROP_JOB_RESULT, new AnyType(), Access.Edit, () -> {
             return getJobStatus() == JobScheduler.JobStatus.Undefined ? null : new Iconified() {
                 @Override
                 public ImageIcon getIcon() {
@@ -37,6 +36,8 @@ abstract class Job extends PolyMorph {
                 }
             };
         }, PROP_JOB_STATUS, PROP_JOB_FINISH);
+
+        registerColumnProperties(PROP_JOB_STATUS, PROP_JOB_FINISH, PROP_JOB_DISABLE, PROP_JOB_RESULT);
     }
 
     void setJobStatus(JobScheduler.JobStatus status) {

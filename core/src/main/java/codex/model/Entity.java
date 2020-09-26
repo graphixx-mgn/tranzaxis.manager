@@ -311,7 +311,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                     propName ->
                             childModel.hasProperty(propName) &&
                             !childModel.isPropertyDynamic(propName)  &&
-                            !PolyMorph.SYSPROPS.contains(propName)   &&
+                            !PolyMorph.getDatabaseProps(parentModel).contains(propName)   &&
                             !EntityModel.SYSPROPS.contains(propName) &&
                             parentModel.getPropertyType(propName) == childModel.getPropertyType(propName)
             ).collect(Collectors.toList());

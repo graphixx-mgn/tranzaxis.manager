@@ -6,6 +6,7 @@ import codex.type.ArrStr;
 import codex.type.EntityRef;
 import codex.type.ISerializableType;
 import codex.type.Str;
+import codex.utils.Caller;
 import codex.utils.ImageUtils;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -18,11 +19,7 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
 
     @PropertyDefinition(state = true)
     final static String PROP_IMPL_PARAM = "parameters";
-
-    final static List<String> SYSPROPS = Arrays.asList(
-        PROP_IMPL_CLASS,
-        PROP_IMPL_PARAM
-    );
+    final static String PROP_DB_COLUMNS = "columns";
 
     public static <E extends Entity> Class<? extends PolyMorph> getPolymorphClass(Class<E> entityClass) {
         Class<? super E> nextClass = entityClass;
@@ -34,10 +31,15 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
 
     static List<String> getExternalProperties(EntityModel model) {
         return model.getProperties(Access.Any).stream()
-                .filter(propName -> !PolyMorph.SYSPROPS.contains(propName))
+                .filter(propName -> !getDatabaseProps(model).contains(propName))
                 .filter(propName -> !EntityModel.SYSPROPS.contains(propName))
                 .filter(propName -> !propName.equals(EntityModel.THIS))
                 .collect(Collectors.toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    public static List<String> getDatabaseProps(EntityModel model) {
+        return model.hasProperty(PROP_DB_COLUMNS) ? (List<String>) model.getValue(PROP_DB_COLUMNS) : Collections.emptyList();
     }
 
     static Map<String, String> parseParameters(String serialized) {
@@ -68,28 +70,12 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
         return classes;
     }
 
+    private final List<String> databaseProps = new ArrayList<>();
+
     public PolyMorph(EntityRef owner, String title) {
         super(owner, null, title, "");
 
-        model.removeChangeListener(this);
-        model.addChangeListener((name, oldValue, newValue) -> {
-            if (!PolyMorph.SYSPROPS.contains(name)) {
-                this.propertyChange(name, oldValue, newValue);
-            }
-            if (
-                    !PolyMorph.SYSPROPS.contains(name) &&
-                    ISerializableType.class.isAssignableFrom(model.getPropertyType(name)) &&
-                    !EntityModel.SYSPROPS.contains(name) &&
-                    !model.isPropertyDynamic(name)
-            ) {
-                Map<String, String> parameters = getParameters();
-                String serializedValue = model.getProperty(name).getPropValue().toString();
-                if (!Objects.equals(serializedValue, parameters.get(name))) {
-                    parameters.put(name, model.getProperty(name).getPropValue().toString());
-                    setParameters(parameters);
-                }
-            }
-        });
+        model.addDynamicProp(PROP_DB_COLUMNS, new ArrStr(), Access.Any, () -> databaseProps);
 
         model.addUserProp(PROP_IMPL_CLASS, new Str(null), false, Access.Any);
         final Class<? extends Entity> implClass = getPolymorphClass(getClass()).equals(getClass()) ? getImplClass() : getClass();
@@ -102,12 +88,51 @@ public abstract class PolyMorph extends ClassCatalog implements IModelListener {
                 new codex.type.Map<>(new Str(), new Str(), new HashMap<>()),
                 false
         );
-
         model.addUserProp(propertiesHolder, Access.Any);
+
+        databaseProps.add(PROP_IMPL_CLASS);
+        databaseProps.add(PROP_IMPL_PARAM);
 
         // Property settings
         model.setValue(PROP_IMPL_CLASS, getClass().getTypeName());
+
+        // Listeners
+        model.removeChangeListener(this);
+        model.addChangeListener((name, oldValue, newValue) -> {
+            if (!getDatabaseProps(model).contains(name)) {
+                this.propertyChange(name, oldValue, newValue);
+            }
+            if (
+                !getDatabaseProps(model).contains(name) &&
+                ISerializableType.class.isAssignableFrom(model.getPropertyType(name)) &&
+                !EntityModel.SYSPROPS.contains(name) &&
+                !model.isPropertyDynamic(name)
+            ) {
+                Map<String, String> parameters = getParameters();
+                String serializedValue = model.getProperty(name).getPropValue().toString();
+                if (!Objects.equals(serializedValue, parameters.get(name))) {
+                    parameters.put(name, model.getProperty(name).getPropValue().toString());
+                    setParameters(parameters);
+                }
+            }
+        });
         model.addModelListener(this);
+    }
+
+    protected void registerColumnProperties(String... properties) {
+        Class caller = Caller.getInstance().getClassStack().get(1);
+        if (caller != PolyMorph.class && caller != getPolymorphClass(getClass())) {
+            throw new IllegalStateException("Columns registration is not allowed in implementation class");
+        }
+        for (String propName : properties) {
+            if (!model.hasProperty(propName)) {
+                throw new IllegalStateException("Property '"+propName+"' does not exist in model");
+            }
+            if (databaseProps.contains(propName)) {
+                throw new IllegalStateException("Property '"+propName+"' already registered");
+            }
+            databaseProps.add(propName);
+        }
     }
 
     @SuppressWarnings("unchecked")

@@ -99,13 +99,13 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
 
     private List<String> getVisibleProperties(Entity entity) {
         List<String> accessibleProps = entity.model.getProperties(Access.Select);
-        return rootEntity.getChildClass().isAnnotationPresent(ClassCatalog.Definition.class) ?
+        return  PolyMorph.class.isAssignableFrom(rootEntity.getChildClass()) ?
                 Stream.concat(
-                    Stream.concat(
-                            Stream.of(EntityModel.THIS),
-                            EntityModel.SYSPROPS.stream()
-                    ).filter(accessibleProps::contains),
-                    Arrays.stream(rootEntity.getChildClass().getAnnotation(ClassCatalog.Definition.class).selectorProps())
+                        Stream.concat(
+                                Stream.of(EntityModel.THIS),
+                                EntityModel.SYSPROPS.stream()
+                        ).filter(accessibleProps::contains),
+                        PolyMorph.getDatabaseProps(entity.model).stream().filter(accessibleProps::contains)
                 ).collect(Collectors.toList()) :
                 accessibleProps;
     }

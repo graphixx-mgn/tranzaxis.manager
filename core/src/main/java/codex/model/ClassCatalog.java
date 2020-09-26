@@ -58,9 +58,7 @@ public abstract class ClassCatalog extends Entity {
     @Inherited
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface Definition {
-        String[] selectorProps() default {};
-    }
+    public @interface Definition {}
 
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.RUNTIME)
