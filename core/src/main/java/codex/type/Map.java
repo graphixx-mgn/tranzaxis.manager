@@ -84,7 +84,9 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
                 ctor.setAccessible(true);
                 instance = ctor.newInstance(keyParamClass);
             } else {
-                instance = keyClass.getConstructor().newInstance();
+                Constructor<? extends ISerializableType<K, ? extends IMask<K>>> ctor = keyClass.getDeclaredConstructor();
+                ctor.setAccessible(true);
+                instance = ctor.newInstance();
             }
             ((ISerializableType<K,IMask<K>>) instance).setMask(keyMask);
             return instance;
@@ -103,7 +105,9 @@ public class Map<K, V> implements ISerializableType<java.util.Map<K, V>, IMask<j
                 ctor.setAccessible(true);
                 instance = ctor.newInstance(valParamClass);
             } else {
-                instance = valClass.getConstructor().newInstance();
+                Constructor<? extends ISerializableType<V, ? extends IMask<V>>> ctor = valClass.getDeclaredConstructor();
+                ctor.setAccessible(true);
+                instance = ctor.newInstance();
             }
             instance.setValue(defaultValue);
             ((ISerializableType<V, IMask<V>>) instance).setMask(valMask);
