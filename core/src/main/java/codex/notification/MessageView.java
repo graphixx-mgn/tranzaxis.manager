@@ -1,33 +1,34 @@
 package codex.notification;
 
 import codex.component.button.IButton;
+import codex.component.button.PushButton;
 import codex.component.panel.HTMLView;
 import codex.editor.IEditor;
-import codex.log.Logger;
 import codex.mask.DateFormat;
+import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.model.IModelListener;
+import codex.service.Service;
+import codex.type.Iconified;
 import codex.utils.ImageUtils;
+import codex.utils.Language;
 import javax.swing.*;
 import javax.swing.border.*;
-import javax.swing.event.ChangeEvent;
+import javax.swing.event.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
+import java.awt.event.*;
 import java.text.MessageFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.function.Consumer;
 
 class MessageView extends JPanel {
 
     private final static int  IMAGE_SIZE   = (int) (IEditor.FONT_VALUE.getSize()*1.3f);
     private final static Font FONT_SUBJECT = IEditor.FONT_VALUE.deriveFont(Font.BOLD);
     private final static Font FONT_TIME    = IEditor.FONT_VALUE.deriveFont(IEditor.FONT_VALUE.getSize()*.7f);
+    private final static String ACTION     = Language.get("actions");
 
     private final Message message;
-    private final JPanel body, header;
     private final MouseListener hoverListener = new MouseAdapter() {
         @Override
         public void mouseEntered(MouseEvent e) {
@@ -39,38 +40,29 @@ class MessageView extends JPanel {
             setBorder(getViewBorder(getBorderColor(message.getSeverity()), 3));
         }
     };
+    private final ReadHandler readHandler = new ReadHandler();
 
     MessageView(Message message) {
         super(new BorderLayout());
         this.message = message;
 
         Message.Severity severity = message.getSeverity();
-        //Message.IMessageAction action = message.getAction();
+        List<Message.IMessageAction> actions = message.getActions();
 
-        header = getMessageHeader(message);
-        body   = getMessageBody(message);
+        JComponent header = getMessageHeader(message);
+        JComponent body = getMessageBody(message);
+        JComponent footer = actions.isEmpty() ? Box.createHorizontalBox() : getMessageFooter(actions);
+
         add(header, BorderLayout.NORTH);
         add(body,   BorderLayout.CENTER);
-        //add(getMessageFooter(message), BorderLayout.SOUTH);
+        add(footer, BorderLayout.SOUTH);
 
-
-        //if (action != null) {
-//            PushButton doAction = new PushButton(
-//                    ImageUtils.resize(IMAGE_READ/*action.getIcon()*/, IMAGE_SIZE, IMAGE_SIZE),
-//                    /*action.getTitle()*/"TEST"
-//            );
-//            doAction.setBackground(null);
-            //doAction.addActionListener(e -> action.doAction());
-//            add(new Box(BoxLayout.X_AXIS) {{
-//                add(doAction);
-//                setBorder(new EmptyBorder(5, margin.get(), 0, 0));
-//            }}, BorderLayout.SOUTH);
-        //}
-
-        setBackground(Color.WHITE);
         setBorder(getViewBorder(getBorderColor(severity), 3));
         addMouseListener(hoverListener);
-        new ReadHandler();
+    }
+
+    ReadHandler getReadHandler() {
+        return readHandler;
     }
 
     private JPanel getMessageHeader(Message message) {
@@ -86,11 +78,15 @@ class MessageView extends JPanel {
             setFont(FONT_TIME);
             setVerticalAlignment(SwingConstants.TOP);
         }};
+
         JLabel status = new JLabel(
                 null,
                 message.getStatus().getBadge(),
                 SwingConstants.CENTER
         );
+        status.addMouseListener(readHandler);
+        status.addMouseListener(hoverListener);
+
         JLabel title = new JLabel(
                 subject,
                 severity.getIcon() != null ? ImageUtils.resize(severity.getIcon(), IMAGE_SIZE, IMAGE_SIZE) : null,
@@ -102,18 +98,16 @@ class MessageView extends JPanel {
         }};
 
         CancelButton doRemove = new CancelButton();
-        doRemove.addActionListener(e -> {
-            if (message.getStatus() != Message.MessageStatus.Deleted) {
-                message.setStatus(Message.MessageStatus.Deleted);
-            } else {
-                message.delete();
-            }
-        });
+        doRemove.addActionListener(e -> Entity.deleteInstance(message, false, true));
 
         message.model.addModelListener(new IModelListener() {
             @Override
-            public void modelSaved(EntityModel model, List<String> changes) {
+            public void modelChanged(EntityModel model, List<String> changes) {
                 if (changes.contains(Message.PROP_STATUS)) {
+                    message.onStatusChange(
+                            (Message.MessageStatus) message.model.getValue(Message.PROP_STATUS),
+                            (Message.MessageStatus) message.model.getUnsavedValue(Message.PROP_STATUS)
+                    );
                     status.setIcon(message.getStatus().getBadge());
                 }
             }
@@ -147,23 +141,48 @@ class MessageView extends JPanel {
         body.addMouseListener(hoverListener);
 
         return new JPanel(new BorderLayout()) {{
-            setOpaque(false);
+            setBackground(Color.WHITE);
+            setBorder(new EmptyBorder(0, 5, 0, 5));
             add(body, BorderLayout.CENTER);
         }};
     }
 
-//    private JPanel getMessageFooter(Message message) {
-//        return new JPanel() {{
-//            setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
-//            setBorder(new LineBorder(Color.GREEN, 1));
-//        }};
-//    }
+    private JPanel getMessageFooter(List<Message.IMessageAction> actions) {
+        return new JPanel() {{
+            setBackground(Color.WHITE);
+            setLayout(new GridLayout(0, 1, 0, 0));
+            setBorder(new CompoundBorder(
+                    new EmptyBorder(5, 5, 5, 5),
+                    new CompoundBorder(
+                            new TitledBorder(new LineBorder(Color.GRAY, 1), ACTION),
+                            new EmptyBorder(0, 3, 3, 3)
+                    )
+            ));
+            actions.forEach(action -> add(new JPanel() {{
+                setOpaque(true);
+                setBackground(null);
+                setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
+                PushButton doAction = new PushButton(
+                    ImageUtils.resize(action.getIcon(), IMAGE_SIZE, IMAGE_SIZE),
+                    null
+                );
+                doAction.addActionListener(e -> action.doAction());
+                doAction.setBackground(null);
+
+                JLabel descAction = new JLabel(action.getTitle());
+                descAction.setBorder(new EmptyBorder(0, 3, 0, 0));
+
+                add(doAction);
+                add(descAction);
+            }}));
+        }};
+    }
 
     private Border getViewBorder(Color typeColor, int margin) {
         return new CompoundBorder(
                 new EmptyBorder(0, 0, 5, 0),
                 new CompoundBorder(
-                        new MatteBorder(0, 0, 1, 0, Color.decode("#EEEEEE")),
+                        new MatteBorder(0, 0, 1, 1, Color.decode("#DDDDDD")),
                         new CompoundBorder(
                                 new MatteBorder(0, margin, 0, 0, typeColor),
                                 new EmptyBorder(0, 6-margin, 0, 0)
@@ -174,6 +193,7 @@ class MessageView extends JPanel {
 
     private Color getBorderColor(Message.Severity severity) {
         switch (severity) {
+            case Feature:     return Color.decode("#299D37");
             case Information: return Color.decode("#90C8F6");
             case Warning:     return Color.decode("#F69020");
             case Error:       return Color.decode("#DE5347");
@@ -247,53 +267,54 @@ class MessageView extends JPanel {
     }
 
 
-    interface IReadHandler extends MouseListener {
+    class ReadHandler extends MouseAdapter {
 
-        void messageSelected();
-
-        @Override
-        default void mouseClicked(MouseEvent e) {}
-
-        @Override
-        default void mousePressed(MouseEvent e) {}
-
-        @Override
-        default void mouseReleased(MouseEvent e) {}
-
-        @Override
-        default void mouseEntered(MouseEvent e) {
-            messageSelected();
+        private ReadTrigger getReadTrigger() {
+            String triggerName = Service.getProperty(NotificationService.class, NotifyServiceOptions.PROP_READTRIGGER);
+            return triggerName != null ? ReadTrigger.valueOf(triggerName) : ReadTrigger.OnClick;
         }
 
         @Override
-        default void mouseExited(MouseEvent e) {}
-    }
+        public void mouseClicked(MouseEvent e) {
+            if (message.getStatus() != Message.MessageStatus.New) return;
+            if (getReadTrigger() == ReadTrigger.OnClick)
+                message.setStatus(Message.MessageStatus.Read);
+        }
 
-
-    private class ReadHandler implements IReadHandler {
-
-        private final Consumer<Message> reader = message -> message.setStatus(Message.MessageStatus.Read);
-
-        ReadHandler() {
-            if (MessageView.this.message.getStatus() == Message.MessageStatus.New) {
-                attach();
+        void ancestorEvent(JComponent ancestor) {
+            message.onShow();
+            if (message.getStatus() != Message.MessageStatus.New) return;
+            int ownerHeight = ancestor.getHeight();
+            if (ownerHeight > 0 && getReadTrigger() == ReadTrigger.OnShow) {
+                int viewHeight  = getHeight();
+                int shownHeight = getVisibleRect().height;
+                if (shownHeight == viewHeight || shownHeight == ownerHeight) {
+                    message.setStatus(Message.MessageStatus.Read);
+                }
             }
         }
+    }
 
-        private void attach() {
-            MessageView.this.addMouseListener(this);
-            MessageView.this.body.addMouseListener(this);
-        }
+    enum ReadTrigger implements Iconified {
+        OnClick(ImageUtils.getByPath("/images/target.png")),
+        OnShow(ImageUtils.getByPath("/images/search.png"));
 
-        private void detach() {
-            MessageView.this.removeMouseListener(this);
-            MessageView.this.body.removeMouseListener(this);
+        private final ImageIcon icon;
+        private final String    title;
+
+        ReadTrigger(ImageIcon icon) {
+            this.icon  = icon;
+            this.title = Language.get(MessageView.class, "trigger@"+name().toLowerCase());
         }
 
         @Override
-        public void messageSelected() {
-            reader.accept(MessageView.this.message);
-            detach();
+        public ImageIcon getIcon() {
+            return icon;
+        }
+
+        @Override
+        public String toString() {
+            return title;
         }
     }
 }

@@ -10,7 +10,9 @@ import codex.service.Service;
 import codex.type.ArrStr;
 import codex.type.EntityRef;
 import codex.type.Enum;
+import codex.utils.Language;
 import org.atteo.classindex.ClassIndex;
+import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +22,8 @@ import java.util.stream.StreamSupport;
 @EntityDefinition(icon = "/images/notify.png")
 public class NotifyServiceOptions extends Service<NotificationService> {
     
-    private final static String PROP_CONDITIONS = "conditions";
+    final static String PROP_CONDITIONS  = "conditions";
+    final static String PROP_READTRIGGER = "read.trigger";
 
     public NotifyServiceOptions(EntityRef owner, String title) {
         super(owner, title);
@@ -31,6 +34,8 @@ public class NotifyServiceOptions extends Service<NotificationService> {
                         ContextView::new,
                         ctxInfo -> ctxInfo.getClazz().getAnnotation(NotifySource.class).condition()
                 ));
+
+        // Properties
         model.addUserProp(PROP_CONDITIONS,
                 new codex.type.Map<ContextView, NotifyCondition>(
                         new EntityRef<>(ContextView.class),
@@ -75,7 +80,13 @@ public class NotifyServiceOptions extends Service<NotificationService> {
                 },
                 false, Access.Select
         );
-        ((MapEditor) model.getEditor(PROP_CONDITIONS)).setMode(MapEditor.EditMode.ModifyPermitted);
+        model.addUserProp(PROP_READTRIGGER, new Enum<>(MessageView.ReadTrigger.OnClick), true, Access.Select);
+
+        model.addPropertyGroup(Language.get("group@system"), PROP_CONDITIONS);
+        model.addPropertyGroup(Language.get("group@inbox"),  PROP_READTRIGGER);
+
+        // Editor settings
+        ((MapEditor) model.getEditor(PROP_CONDITIONS)).setMode(EnumSet.noneOf(MapEditor.EditMode.class));
     }
     
     @SuppressWarnings("unchecked")

@@ -19,31 +19,22 @@ public class MessageInbox implements IMessageHandler {
 
     @Override
     public void postMessage(Message message) {
-        boolean exists = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).isInstanceExists(
-                Message.class, (String) message.model.getUnsavedValue(EntityModel.PID), null
-        );
-        if (!exists) {
-            try {
-                message.model.commit(false);
-                new LinkedList<>(listeners).forEach(listener -> listener.messagePosted(message));
-            } catch (Exception e) {
-                e.printStackTrace();
+        new Thread(() -> {
+            boolean exists = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).isInstanceExists(
+                    Message.class, (String) message.model.getUnsavedValue(EntityModel.PID), null
+            );
+            if (!exists) {
+                synchronized (this) {
+                    try {
+                        message.model.commit(false);
+                        new LinkedList<>(listeners).forEach(listener -> listener.messagePosted(message));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             }
-        }
+        }).start();
     }
-
-//    boolean deleteMessage(Message message) {
-//        if (message.getStatus() != Message.MessageStatus.Deleted) {
-//            message.setStatus(Message.MessageStatus.Deleted);
-//            //new LinkedList<>(listeners).forEach(listener -> listener.messageUpdated(message));
-//            return false;
-//        } else {
-//            if (message.delete()) {
-//                //new LinkedList<>(listeners).forEach(listener -> listener.messageDeleted(message));
-//            }
-//            return true;
-//        }
-//    }
 
     void addListener(IInboxListener listener) {
         listeners.add(listener);

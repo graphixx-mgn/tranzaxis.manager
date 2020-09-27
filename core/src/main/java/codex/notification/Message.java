@@ -1,7 +1,8 @@
 package codex.notification;
 
-import codex.model.Catalog;
+import codex.model.Access;
 import codex.model.Entity;
+import codex.model.PolyMorph;
 import codex.type.*;
 import codex.type.Enum;
 import codex.utils.ImageUtils;
@@ -9,116 +10,112 @@ import codex.utils.Language;
 import org.apache.commons.codec.digest.DigestUtils;
 import javax.swing.*;
 import java.awt.*;
-import java.io.*;
-import java.util.Date;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
+import java.util.List;
 import java.util.function.Supplier;
 
-public final class Message extends Catalog {
+public abstract class Message extends PolyMorph {
 
     final static String PROP_SEVERITY = "severity";
     final static String PROP_CREATED  = "time";
     final static String PROP_SUBJECT  = "subject";
     final static String PROP_CONTENT  = "content";
     final static String PROP_STATUS   = "status";
-    final static String PROP_ACTION   = "action";
 
     public static Builder getBuilder() {
-        return Entity.newPrototype(Message.class).new Builder();
+        return getBuilder(DefaultMessage.class);
     }
 
-    public static Builder getBuilder(Supplier<String> supplierUID) {
-        return Entity.newPrototype(Message.class).new Builder(supplierUID);
+    public static <M extends Message> Builder<M> getBuilder(Class<M> messageClass) {
+        return getBuilder(messageClass, null);
     }
 
-    private IMessageAction action;
+    public static <M extends Message> Builder<M> getBuilder(Class<M> messageClass, Supplier<String> supplierUID) {
+        return Entity.newPrototype(messageClass).new Builder<M>(supplierUID);
+    }
 
-    private Message(EntityRef owner, String UID) {
-        super(null, null, UID, null);
+    private List<IMessageAction> actions = new LinkedList<>();
+
+    public Message(EntityRef owner, String UID) {
+        super(null, UID);
 
         // Properties
-        model.addUserProp(PROP_SEVERITY, new Enum<>(Severity.None), true, null);
-        model.addUserProp(PROP_CREATED,  new DateTime(), true, null);
-        model.addUserProp(PROP_SUBJECT,  new Str(), true, null);
-        model.addUserProp(PROP_CONTENT,  new Str(), true, null);
-        model.addUserProp(PROP_STATUS,   new Enum<>(MessageStatus.New), true, null);
-        model.addUserProp(PROP_ACTION,   new Str(), false, null);
+        model.addUserProp(PROP_SEVERITY, new Enum<>(Severity.None), true, Access.Any);
+        model.addUserProp(PROP_CREATED,  new DateTime(), true, Access.Any);
+        model.addUserProp(PROP_SUBJECT,  new Str(), true, Access.Any);
+        model.addUserProp(PROP_CONTENT,  new Str(), true, Access.Any);
+        model.addUserProp(PROP_STATUS,   new Enum<>(MessageStatus.New), true, Access.Any);
 
-//        action = getAction();
+        registerColumnProperties(PROP_CREATED, PROP_STATUS, PROP_SEVERITY, PROP_SUBJECT, PROP_CONTENT);
 
         // Remove default change listener
         model.removeChangeListener(this);
     }
 
-    final MessageStatus getStatus() {
-        return (MessageStatus) model.getUnsavedValue(PROP_STATUS);
-    }
-
     final void setStatus(MessageStatus status) {
         model.setValue(PROP_STATUS, status);
-        try {
-            model.commit(false, PROP_STATUS);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        SwingUtilities.invokeLater(() -> {
+            try {
+                model.commit(false, PROP_STATUS);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
-    final Severity getSeverity() {
-        return (Severity) model.getUnsavedValue(PROP_SEVERITY);
+    final long getTime() {
+        return getCreated().getTime();
     }
 
     final Date getCreated() {
         return (Date) model.getUnsavedValue(PROP_CREATED);
     }
 
+    final MessageStatus getStatus() {
+        return (MessageStatus) model.getUnsavedValue(PROP_STATUS);
+    }
+
+    protected final void setSeverity(Severity severity) {
+        model.setValue(PROP_SEVERITY, severity);
+    }
+
+    final Severity getSeverity() {
+        return (Severity) model.getUnsavedValue(PROP_SEVERITY);
+    }
+
+    protected final void setSubject(String subject) {
+        model.setValue(PROP_SUBJECT, subject);
+    }
+
     final String getSubject() {
         return (String) model.getUnsavedValue(PROP_SUBJECT);
     }
 
-    String getContent() {
+    protected final void setContent(String content) {
+        model.setValue(PROP_CONTENT, content);
+    }
+
+    final String getContent() {
         return (String) model.getUnsavedValue(PROP_CONTENT);
     }
 
-//    private void setAction(IMessageAction action) {
-//        this.action = action;
-//        try {
-//            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//
-//            ObjectOutputStream objectOutputStream = new ObjectOutputStream(baos);
-//            objectOutputStream.writeObject(action);
-//            objectOutputStream.close();
-//
-//            model.setValue(PROP_ACTION, new String(Base64.getEncoder().encode(baos.toByteArray())));
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
-
-//    public IMessageAction getAction() {
-//        if (action != null) {
-//            return action;
-//        } else {
-//            String binaryData = (String) model.getValue(PROP_ACTION);
-//            if (binaryData != null) {
-//                try {
-//                    ObjectInputStream objectInputStream = new ObjectInputStream(
-//                            new ByteArrayInputStream(Base64.getDecoder().decode(binaryData.getBytes()))
-//                    );
-//                    return (IMessageAction) objectInputStream.readObject();
-//                } catch (IOException | ClassNotFoundException e) {
-//                    return null;
-//                }
-//
-//            }
-//        }
-//        return null;
-//    }
-
-    boolean delete() {
-        return model.remove();
+    protected final void addActions(IMessageAction... actions) {
+        this.actions.addAll(Arrays.asList(actions));
     }
 
+    final List<IMessageAction> getActions() {
+        return new LinkedList<>(actions);
+    }
+
+    protected void onShow() {}
+    protected void onDelete() {}
+    protected void onStatusChange(MessageStatus prev, MessageStatus next) {}
+
+    @Override
+    protected void remove() {
+        onDelete();
+        super.remove();
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -133,56 +130,44 @@ public final class Message extends Catalog {
         return Objects.hash(getPID());
     }
 
-    public class Builder {
+    public class Builder<M extends Message> {
 
         private final Supplier<String> UID;
-
-        private Builder() {
-            this(null);
-        }
 
         private Builder(Supplier<String> supplierUID) {
             this.UID = supplierUID == null ? () -> UUID.randomUUID().toString(): supplierUID;
             Message.this.setPID(DigestUtils.md5Hex(UID.get()));
-            set(PROP_CREATED, new Date());
+            Message.this.model.setValue(PROP_CREATED, new Date());
         }
 
-        private Builder set(String propName, Object value) {
-            Message.this.model.setValue(propName, value);
+        public Builder<M> setSeverity(Severity severity) {
+            Message.this.setSeverity(severity);
             return this;
         }
 
-        public Builder setSeverity(Severity severity) {
-            set(PROP_SEVERITY, severity);
+        public Builder<M> setSubject(String subject) {
+            Message.this.setSubject(subject);
             return this;
         }
 
-        public Builder setSubject(String subject) {
-            return set(PROP_SUBJECT, subject);
+        public Builder<M> setContent(String content) {
+            Message.this.setContent(content);
+            return this;
         }
 
-        public Builder setContent(String subject) {
-            return set(PROP_CONTENT, subject);
-        }
-
-//        public Builder setAction(IMessageAction action) {
-//            Message.this.setAction(action);
-//            return this;
-//        }
-
-        public Message build() {
+        @SuppressWarnings("unchecked")
+        public M build() {
             if (getSeverity() == null) {
                 setSeverity(Severity.None);
             }
-            return Message.this;
+            return (M) Message.this;
         }
     }
 
 
     enum MessageStatus {
         New(Color.decode("#3399FF")),
-        Read(Color.GRAY),
-        Deleted(Color.decode("#DE5347"));
+        Read(Color.GRAY);
 
         private final ImageIcon badge;
 
@@ -215,11 +200,11 @@ public final class Message extends Catalog {
 
 
     public enum Severity implements Iconified {
-        None(null),
+        None(ImageUtils.getByPath("/images/event.png")),
+        Feature(ImageUtils.getByPath("/images/plus.png")),
         Information(ImageUtils.getByPath("/images/info.png")),
         Warning(ImageUtils.getByPath("/images/warn.png")),
-        Error(ImageUtils.getByPath("/images/stop.png"))
-        ;
+        Error(ImageUtils.getByPath("/images/stop.png"));
 
         private final ImageIcon icon;
 
@@ -234,8 +219,38 @@ public final class Message extends Catalog {
     }
 
 
-    public interface IMessageAction extends Iconified, Serializable {
+    public interface IMessageAction extends Iconified {
         String getTitle();
-        void doAction();
+        void   doAction();
+    }
+
+
+    public static abstract class AbstractMessageAction implements IMessageAction {
+
+        private final ImageIcon icon;
+        private final String    text;
+
+        protected AbstractMessageAction(ImageIcon icon, String text) {
+            this.icon = icon;
+            this.text = text;
+        }
+
+        @Override
+        public final String getTitle() {
+            return text;
+        }
+
+        @Override
+        public final ImageIcon getIcon() {
+            return icon;
+        }
+    }
+
+
+    public static class DefaultMessage extends Message {
+
+        public DefaultMessage(EntityRef owner, String UID) {
+            super(owner, UID);
+        }
     }
 }

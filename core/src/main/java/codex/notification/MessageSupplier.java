@@ -5,7 +5,10 @@ import codex.config.IConfigStoreService;
 import codex.log.Logger;
 import codex.service.ServiceRegistry;
 import codex.supplier.IDataSupplier;
+import codex.type.DateTime;
 import codex.type.EntityRef;
+import codex.type.IComplexType;
+import codex.type.Str;
 import org.sqlite.JDBC;
 import java.io.File;
 import java.io.IOException;
@@ -13,15 +16,13 @@ import java.sql.*;
 import java.text.MessageFormat;
 import java.util.*;
 
-
 class MessageSupplier implements IDataSupplier<Message> {
 
-    private final static String  PAGINATION = "SELECT T.* FROM ({0}) T LIMIT {1} OFFSET {2}";
     private final static Integer LIMIT = 10;
 
     private Connection connection;
-    private Integer    baseID, maxID;
-    private Long       prevOffset = 0L;
+    private Long       prevOffset = Long.MAX_VALUE;
+    private String     filter, query;
 
     private static File getDatabaseFile() throws IOException {
         Class<?> optionHolderClass = ConfigStoreService.class;
@@ -36,12 +37,24 @@ class MessageSupplier implements IDataSupplier<Message> {
         try {
             DriverManager.registerDriver(new JDBC());
             connection = DriverManager.getConnection("jdbc:sqlite:"+ getDatabaseFile().getPath());
-            ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).buildClassCatalog(Message.class, Collections.emptyMap());
-            baseID = getMaxID();
-            maxID  = baseID;
+            ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).buildClassCatalog(
+                    Message.class,
+                    new HashMap<String, IComplexType>() {{
+                        put(Message.PROP_CREATED, new Str());
+                        put(Message.PROP_STATUS,  new DateTime());
+                    }}
+            );
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    void setFilter(String filter) {
+        this.filter = filter;
+        this.query  = MessageFormat.format(
+                "SELECT [ID], [time] FROM MESSAGE WHERE [time] < ? AND ({0}) ORDER BY [time] DESC LIMIT ?",
+                filter
+        );
     }
 
     @Override
@@ -51,67 +64,50 @@ class MessageSupplier implements IDataSupplier<Message> {
 
     @Override
     public boolean available(ReadDirection direction) {
-        return true;
+        return filter != null && direction == ReadDirection.Backward;
     }
 
     @Override
     public List<Message> getNext() {
-        List<Message> result = new LinkedList<>();
-        final String selectSQL = "SELECT [ID] FROM MESSAGE WHERE ID > ? ORDER BY [SEQ] ASC";
-        try (PreparedStatement select = connection.prepareStatement(selectSQL)) {
-            select.setFetchSize(10);
-            select.setInt(1, maxID);
-            try (ResultSet selectRS = select.executeQuery()) {
-                while (selectRS.next()) {
-                    Message message = EntityRef.build(Message.class, selectRS.getInt(1)).getValue();
-                    message.model.read();
-                    result.add(message);
-                    if (message.getID() > maxID) {
-                        maxID = message.getID();
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            Logger.getLogger().error("Unable to retrieve messages", e);
-        }
-        return result;
+        return Collections.emptyList();
     }
 
     @Override
     public List<Message> getPrev() {
         List<Message> result = new LinkedList<>();
-        final String selectSQL = "SELECT [ID] FROM MESSAGE WHERE ID <= ? ORDER BY [SEQ] DESC";
-        try (PreparedStatement select = connection.prepareStatement(MessageFormat.format(
-                PAGINATION, selectSQL, LIMIT, prevOffset
-        ))) {
-            select.setFetchSize(10);
-            select.setInt(1, baseID);
-            try (ResultSet selectRS = select.executeQuery()) {
-                while (selectRS.next()) {
-                    Message message = EntityRef.build(Message.class, selectRS.getInt(1)).getValue();
-                    message.model.read();
-                    result.add(message);
+        synchronized (MessageInbox.getInstance()) {
+            try (PreparedStatement select = connection.prepareStatement(query)) {
+                select.setFetchSize(LIMIT);
+                select.setLong(1, prevOffset);
+                select.setInt(2, LIMIT);
+                try (ResultSet selectRS = select.executeQuery()) {
+                    while (selectRS.next()) {
+                        int msgID = selectRS.getInt(1);
+                        long msgTime = selectRS.getLong(2);
+                        if (msgTime < prevOffset) {
+                            prevOffset = msgTime;
+                        }
+                        Message message = EntityRef.build(Message.class, msgID).getValue();
+                        result.add(message);
+                    }
                 }
+            } catch (SQLException e) {
+                Logger.getLogger().error("Unable to retrieve messages", e);
             }
-        } catch (SQLException e) {
-            Logger.getLogger().error("Unable to retrieve messages", e);
         }
-        prevOffset += result.size();
         return result;
     }
 
     @Override
     public void reset() {
-        prevOffset = 0L;
+        prevOffset = Long.MAX_VALUE;
     }
 
-    private Integer getMaxID() {
-        final String selectSQL = "SELECT MAX([ID]) FROM MESSAGE";
+    Integer getUnreadMessages() {
+        final String selectSQL = "SELECT COUNT([ID]) FROM MESSAGE WHERE [status] IS NULL";
         try (ResultSet resultSet = connection.createStatement().executeQuery(selectSQL)) {
             return resultSet.getInt(1);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        } catch (SQLException ignore) {}
         return 0;
     }
 }
