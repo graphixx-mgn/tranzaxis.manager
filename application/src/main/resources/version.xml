@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <versions current="2.2.2" xmlns="manager/schemas/VersionInfo.xsd">
-    <version number="2.3.0" date="2020-06-24">
+    <version number="2.3.0" date="2020-09-27">
         <changelog>
             <change scope="CORE" type="Bugfix">
                 <description>Исправлена ошибка перерисовки виджета исполняющейся задачи в модальном диалоге.
@@ -16,16 +16,14 @@
                     Сервис работает независимо от модуля, который только отображает происходящие в сервисе процессы.</description>
             </change>
             <change scope="CORE" type="Change">
-                <description>Изменение алгоритма сериализации/десериализации значений типа Map.</description>
-            </change>
-            <change scope="CORE" type="Change">
-                <description>Переработана реализация типа Map и его редактора.</description>
+                <description>Переработана реализация типа Map и его редактора:
+                    * Изменение алгоритма сериализации/десериализации значений.
+                    * Поддержка изменения очередности элементов в карте.
+                    * Добавлена проверка при добавлении нового элемента.
+                </description>
             </change>
             <change scope="CORE" type="Feature">
                 <description>Редакторы внешних инстанций отображают их сетевые сервисы.</description>
-            </change>
-            <change scope="CORE" type="Feature">
-                <description>Поддержка типа данных DateTime.</description>
             </change>
             <change scope="CORE" type="Feature">
                 <description>Новый модуль планировщика задач. В составе модуля реализованы 3 типа триггеров времени:
@@ -49,9 +47,6 @@
                 </description>
             </change>
             <change scope="CORE" type="Feature">
-                <description>Поддержка контекстов логирования для подключаемых расширений (плагинов).</description>
-            </change>
-            <change scope="CORE" type="Feature">
                 <description>Поддержка возможности создавать объекты разных классов (единого класса-предка) в одном каталоге дерева проводника.
                     При этом в отдельном диалоге предлагается выбрать конкретный класс-реализацию (пример: триггеры заданий планировщика)
                 </description>
@@ -67,6 +62,15 @@
             <change scope="CORE" type="Feature">
                 <description>В редактор свойства EntityRef добавлена команда вызова диалога просмотра/редактирования.</description>
             </change>
+            <change scope="CORE" type="Feature">
+                <description>Поддержка фильтрации сущностей.</description>
+            </change>
+            <change scope="CORE" type="Feature">
+                <description>Переработан механизм оповещения:
+                    * Помимо оперативного оповещения через системное уведомление добавлен модуль отображения персистентных сообщений (MailBox).
+                    * Механизм задействован в процессе доставки обновлений (как приложения так и расширений).
+                </description>
+            </change>
             <change scope="APP" type="Bugfix">
                 <description>Исправлена ошибка NPE при заведении новой сущности 'Environment' когда ссылка на БД еще не сохранена.</description>
             </change>
@@ -81,16 +85,20 @@
                     Теперь информация представлена в виде таблиц HTML.
                 </description>
             </change>
-            <change scope="APP" type="Feature">
-                <description>Поддержка истории версий пакетов плагинов.
-                    Поле редактора "Версия" содержит команду просмотра истории изменений. Аналогичная команда добавлена в редактор обновления пакета плагинов, но в окне отображаются только изменения по отношению к установленной версии пакета.
+            <change scope="APP" type="Change">
+                <description>Переработана сущность Database:
+                    * Команда отображения состояния соединения заменена на интерактивную команду проверки как соединения, так и пользователя/пароля.
+                    * Оптимизирован алгоритм проверки состояния соединения при старте приложения.
                 </description>
             </change>
             <change scope="APP" type="Feature">
-                <description>Добавлено автоматическая установка обновлений плагинов (отключаемая опция).</description>
-            </change>
-            <change scope="APP" type="Feature">
-                <description>Добавлена возможность задавать опции плагина.</description>
+                <description>Переработан модуль подключаемых расширений (плагинов):
+                    * Поддержка контекстов логирования для плагинов.
+                    * Поддержка истории версий пакетов плагинов, отображаемая пры вызове команды поля "Версия".
+                    * Добавлено автоматическая установка обновлений плагинов (включаемая опция в настройках модуля).
+                    * Создание правила нотификации о новых пакетах при удалении сообщения.
+                    * Добавлена возможность задавать опции плагина.
+                </description>
             </change>
             <change scope="APP" type="Feature">
                 <description>При загрузке рабочих копий репозитория выполняется задача проверки каталога копии на наличие конфликтов.
@@ -111,7 +119,10 @@
                 <description>В презентации селектора, содержащей программно создаваемые сущности возможно включение сортировки по колонкам.</description>
             </change>
             <change scope="API" type="Change">
-                <description>Новый тип данных BigInt (хранит Java тип Long) и его редактор.</description>
+                <description>Новый тип данных BigInt.</description>
+            </change>
+            <change scope="CORE" type="Feature">
+                <description>Новый тип данных DateTime.</description>
             </change>
             <change scope="API" type="Change">
                 <description>Реализована поддержка пользовательских рендереров ячеек презентаций селектора.</description>

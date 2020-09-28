@@ -9,17 +9,22 @@ import codex.instance.IInstanceDispatcher;
 import codex.instance.IInstanceListener;
 import codex.instance.Instance;
 import codex.log.Logger;
+import codex.model.Access;
 import codex.model.Entity;
 import codex.model.EntityModel;
 import codex.notification.Handler;
 import codex.notification.INotificationService;
 import codex.notification.Message;
 import codex.service.ServiceRegistry;
+import codex.type.ArrStr;
+import codex.type.EntityRef;
 import codex.type.IComplexType;
+import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import codex.utils.LocaleContextHolder;
 import manager.xml.Change;
+import org.apache.commons.codec.digest.DigestUtils;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -40,12 +45,13 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog>
 {
 
     private final static ImageIcon CMD_ICON = ImageUtils.getByPath("/images/update.png");
-    private final static ImageIcon ICON_NEW = ImageUtils.combine(
+
+    final static ImageIcon ICON_NEW = ImageUtils.combine(
             ImageUtils.getByPath("/images/repository.png"),
             ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 20, 20),
             SwingConstants.SOUTH_EAST
     );
-    private final static ImageIcon ICON_UPD = ImageUtils.combine(
+    final static ImageIcon ICON_UPD = ImageUtils.combine(
             ImageUtils.getByPath("/images/repository.png"),
             ImageUtils.resize(ImageUtils.getByPath("/images/up.png"), 20, 20),
             SwingConstants.SOUTH_EAST
@@ -187,10 +193,23 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog>
                 }
                 if (isNew || isUpd) {
                     if (isNew) {
-                        ServiceRegistry.getInstance().lookupService(INotificationService.class).sendMessage(newPackageMessage(remotePackage), Handler.Inbox);
+                        if (PluginManager.getInstance().getPluginCatalog().checkRestriction(remotePackage)) {
+                            ServiceRegistry.getInstance().lookupService(INotificationService.class).sendMessage(
+                                    Message.getBuilder(NewPackageMessage.class, remotePackage::toString).build().build(remotePackage),
+                                    Handler.Inbox
+                            );
+                        } else {
+                            Logger.getContextLogger(PluginLoader.class).debug(
+                                    "New plugin package notification for ''{0}'' is not allowed",
+                                    remotePackage
+                            );
+                        }
                     }
                     if (isUpd) {
-                        ServiceRegistry.getInstance().lookupService(INotificationService.class).sendMessage(updPackageMessage(remotePackage), Handler.Inbox);
+                        ServiceRegistry.getInstance().lookupService(INotificationService.class).sendMessage(
+                                Message.getBuilder(UpdPackageMessage.class, remotePackage::toString).build().build(remotePackage),
+                                Handler.Inbox
+                        );
                     }
                     if (!remotePackages.contains(remotePackage)) {
                         remotePackages.add(remotePackage);
@@ -261,86 +280,132 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog>
                 .findFirst().orElse(Language.NOT_FOUND);
     }
 
-    private Message newPackageMessage(IPluginLoaderService.RemotePackage remotePackage) {
-        return Message.getBuilder(remotePackage::toString)
-            .setSeverity(Message.Severity.Information)
-            .setSubject(MessageFormat.format(
-                    Language.get("msg@new.title"),
+
+    static class NewPackageMessage extends Message {
+
+        private static final String PROP_PACKAGE_NAME = "package.name";
+        private static final String PROP_PACKAGE_VER  = "package.version";
+        private static final String PROP_PACKAGE_PLUG = "package.plugins";
+
+        public NewPackageMessage(EntityRef owner, String UID) {
+            super(owner, UID);
+
+            model.addUserProp(PROP_PACKAGE_NAME, new Str(), false, Access.Any);
+            model.addUserProp(PROP_PACKAGE_VER,  new Str(), false, Access.Any);
+            model.addUserProp(PROP_PACKAGE_PLUG, new ArrStr(), false, Access.Any);
+        }
+
+        private NewPackageMessage build(IPluginLoaderService.RemotePackage remotePackage) {
+            setSeverity(Severity.Feature);
+            setSubject(MessageFormat.format(
+                    Language.get(ShowPackagesUpdates.class, "msg@new.title"),
                     remotePackage.getTitle(),
                     remotePackage.getVersion()
-            ))
-            .setContent(MessageFormat.format(
-                    Language.get("msg@new.template"),
+            ));
+            setContent(MessageFormat.format(
+                    Language.get(ShowPackagesUpdates.class, "msg@new.template"),
                     ImageUtils.toBase64(ICON_NEW), 20,
                     remotePackage.getTitle(),
                     remotePackage.getVersion(),
                     remotePackage.getPlugins().stream()
                             .map(remotePlugin -> MessageFormat.format(
-                                    Language.get("msg@new.row"),
+                                    Language.get(ShowPackagesUpdates.class,"msg@new.row"),
                                     getPluginTitle(remotePlugin),
                                     getPluginDescription(remotePlugin)
                             ))
                             .collect(Collectors.joining())
-            ))
-            .build();
+            ));
+            model.setValue(PROP_PACKAGE_NAME, remotePackage.getTitle());
+            model.setValue(PROP_PACKAGE_VER,  remotePackage.getVersion());
+            model.setValue(PROP_PACKAGE_PLUG,
+                    remotePackage.getPlugins().stream()
+                    .map(IPluginLoaderService.RemotePlugin::getPluginId)
+                    .map(DigestUtils::md5Hex)
+                    .collect(Collectors.toList())
+            );
+            return this;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        protected void onDelete() {
+            try {
+                PluginManager.getInstance().getPluginCatalog().setRestriction(
+                        new PluginCatalog.PackageDescriptor(
+                                (String) model.getValue(PROP_PACKAGE_NAME),
+                                ((String) model.getValue(PROP_PACKAGE_VER)),
+                                ((List<String>) model.getValue(PROP_PACKAGE_PLUG))
+                        )
+                );
+            } catch (Exception ignore) {}
+        }
     }
 
-    private Message updPackageMessage(IPluginLoaderService.RemotePackage remotePackage) {
-        PluginPackage localPackage = PluginManager.getInstance().getPluginLoader().getPackageById(remotePackage.getId());
-        Map<Change.Type.Enum, List<Change>> changes = Arrays.stream(remotePackage.getChanges().getVersions().getVersionArray())
-                .map(version -> Arrays.stream(version.getChangelog().getChangeArray()))
-                .flatMap(x -> x)
-                .collect(Collectors.groupingBy(Change::getType));
-        List<IPluginLoaderService.RemotePlugin> newPlugins = remotePackage.getPlugins().stream()
-                .filter(remotePlugin -> localPackage.getPlugins().stream()
-                        .noneMatch(pluginHandler -> remotePlugin.getPluginId().equals(Plugin.getId(pluginHandler)))
-                )
-                .collect(Collectors.toList());
 
-        return Message.getBuilder(remotePackage::toString)
-                .setSeverity(changes.keySet().contains(Change.Type.BUGFIX) ? Message.Severity.Warning : Message.Severity.Information)
-                .setSubject(MessageFormat.format(
-                        Language.get("msg@upd.title"),
-                        remotePackage.getTitle(),
-                        remotePackage.getVersion()
-                ))
-                .setContent(MessageFormat.format(
-                        Language.get("msg@upd.template"),
-                        ImageUtils.toBase64(ICON_UPD), 20,
-                        remotePackage.getTitle(),
-                        localPackage.getVersion(),
-                        remotePackage.getVersion(),
-                        String.join("",
-                                !changes.containsKey(Change.Type.BUGFIX) ? "" : MessageFormat.format(
-                                        Language.get("msg@upd.row.bugfix"),
-                                        changes.get(Change.Type.BUGFIX).stream()
-                                                .map(change -> MessageFormat.format("<li>{0}</li>", change.getDescription()))
-                                                .collect(Collectors.joining())
-                                ),
-                                !changes.containsKey(Change.Type.FEATURE) ? "" : MessageFormat.format(
-                                        Language.get("msg@upd.row.whatsnew"),
-                                        changes.get(Change.Type.FEATURE).stream()
-                                                .filter(change -> change.getScope() != Change.Scope.API)
-                                                .map(change -> MessageFormat.format(
-                                                        "<li>{0}</li>",
-                                                        change.getDescription()
-                                                                .replaceAll("\\n", "<br>")
-                                                                .replaceAll("\\*", "&nbsp;&bull;")
-                                                ))
-                                                .collect(Collectors.joining())
-                                ),
-                                newPlugins.isEmpty() ? "" : MessageFormat.format(
-                                        Language.get("msg@upd.row.plugins"),
-                                        newPlugins.stream()
-                                                .map(remotePlugin -> MessageFormat.format(
-                                                        "<li><b>{0}</b><br>{1}</li>",
-                                                        getPluginTitle(remotePlugin),
-                                                        getPluginDescription(remotePlugin)
-                                                ))
-                                                .collect(Collectors.joining())
-                                )
-                        )
-                ))
-                .build();
+    static class UpdPackageMessage extends Message {
+
+        public UpdPackageMessage(EntityRef owner, String UID) {
+            super(owner, UID);
+        }
+
+        private UpdPackageMessage build(IPluginLoaderService.RemotePackage remotePackage) {
+            PluginPackage localPackage = PluginManager.getInstance().getPluginLoader().getPackageById(remotePackage.getId());
+
+            Map<Change.Type.Enum, List<Change>> changes = Arrays.stream(remotePackage.getChanges().getVersions().getVersionArray())
+                    .map(version -> Arrays.stream(version.getChangelog().getChangeArray()))
+                    .flatMap(x -> x)
+                    .collect(Collectors.groupingBy(Change::getType));
+
+            List<IPluginLoaderService.RemotePlugin> newPlugins = remotePackage.getPlugins().stream()
+                    .filter(remotePlugin -> localPackage.getPlugins().stream()
+                            .noneMatch(pluginHandler -> remotePlugin.getPluginId().equals(Plugin.getId(pluginHandler)))
+                    )
+                    .collect(Collectors.toList());
+
+            setSeverity(changes.keySet().contains(Change.Type.BUGFIX) ? Severity.Warning : Severity.Information);
+            setSubject(MessageFormat.format(
+                    Language.get(ShowPackagesUpdates.class, "msg@upd.title"),
+                    remotePackage.getTitle(),
+                    remotePackage.getVersion()
+            ));
+            setContent(MessageFormat.format(
+                    Language.get(ShowPackagesUpdates.class, "msg@upd.template"),
+                    ImageUtils.toBase64(ICON_UPD), 20,
+                    remotePackage.getTitle(),
+                    localPackage.getVersion(),
+                    remotePackage.getVersion(),
+                    String.join("",
+                            !changes.containsKey(Change.Type.BUGFIX) ? "" : MessageFormat.format(
+                                    Language.get(ShowPackagesUpdates.class, "msg@upd.row.bugfix"),
+                                    changes.get(Change.Type.BUGFIX).stream()
+                                            .map(change -> MessageFormat.format("<li>{0}</li>", change.getDescription()))
+                                            .collect(Collectors.joining())
+                            ),
+                            !changes.containsKey(Change.Type.FEATURE) ? "" : MessageFormat.format(
+                                    Language.get(ShowPackagesUpdates.class, "msg@upd.row.whatsnew"),
+                                    changes.get(Change.Type.FEATURE).stream()
+                                            .filter(change -> change.getScope() != Change.Scope.API)
+                                            .map(change -> MessageFormat.format(
+                                                    "<li>{0}</li>",
+                                                    change.getDescription()
+                                                            .replaceAll("\\n", "<br>")
+                                                            .replaceAll("\\*", "&nbsp;&bull;")
+                                            ))
+                                            .collect(Collectors.joining())
+                            ),
+                            newPlugins.isEmpty() ? "" : MessageFormat.format(
+                                    Language.get(ShowPackagesUpdates.class, "msg@upd.row.plugins"),
+                                    newPlugins.stream()
+                                            .map(remotePlugin -> MessageFormat.format(
+                                                    "<li><b>{0}</b><br>{1}</li>",
+                                                    getPluginTitle(remotePlugin),
+                                                    getPluginDescription(remotePlugin)
+                                            ))
+                                            .collect(Collectors.joining())
+                            )
+                    )
+            ));
+            return this;
+        }
     }
 }

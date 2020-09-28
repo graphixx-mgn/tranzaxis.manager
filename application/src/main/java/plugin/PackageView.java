@@ -22,6 +22,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -32,15 +33,15 @@ public class PackageView extends Catalog {
     private final static ImageIcon ICON_INFO = ImageUtils.getByPath("/images/info.png");
     private final static ImageIcon ICON_WARN = ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), .7f);
 
-    final static ImageIcon PACKAGE   = ImageUtils.getByPath("/images/repository.png");
-    final static ImageIcon DISABLED  = ImageUtils.getByPath("/images/unavailable.png");
+    final static ImageIcon PACKAGE = ImageUtils.getByPath("/images/repository.png");
+    final static ImageIcon DISABLED = ImageUtils.getByPath("/images/unavailable.png");
     final static ImageIcon PUBLISHED = ImageUtils.getByPath("/images/plugin_public.png");
-    final static ImageIcon BUILDING  = ImageUtils.getByPath("/images/warn.png");
-    final static ImageIcon READY     = ImageUtils.getByPath("/images/success.png");
+    final static ImageIcon BUILDING = ImageUtils.getByPath("/images/warn.png");
+    final static ImageIcon READY = ImageUtils.getByPath("/images/success.png");
 
     private final static String PROP_VERSION = "version";
-    private final static String PROP_AUTHOR  = "author";
-    private final static String PROP_PUBLIC  = "public";
+    private final static String PROP_AUTHOR = "author";
+    private final static String PROP_PUBLIC = "public";
 
     private final PluginPackage pluginPackage;
 
@@ -102,9 +103,8 @@ public class PackageView extends Catalog {
                 );
             }
         });
-        model.addDynamicProp(PROP_AUTHOR,  new Str(null), null, pluginPackage == null ? null : pluginPackage::getAuthor);
-
-        model.addUserProp(PROP_PUBLIC,  new Bool(false), false, Access.Edit);
+        model.addDynamicProp(PROP_AUTHOR, new Str(null), null, pluginPackage == null ? null : pluginPackage::getAuthor);
+        model.addUserProp(PROP_PUBLIC, new Bool(false), false, Access.Edit);
 
         if (pluginPackage != null) {
             //noinspection unchecked
@@ -192,7 +192,8 @@ public class PackageView extends Catalog {
     }
 
     @Override
-    public void loadChildren() {}
+    public void loadChildren() {
+    }
 
     @Override
     public boolean allowModifyChild() {
@@ -310,8 +311,8 @@ public class PackageView extends Catalog {
                         return new CommandStatus(false, ImageUtils.grayscale(PUBLISHED));
                     } else {
                         return new CommandStatus(
-                            true,
-                            packages.get(0).isPublished() ? PUBLISHED : ImageUtils.combine(ImageUtils.grayscale(PUBLISHED), DISABLED)
+                                true,
+                                packages.get(0).isPublished() ? PUBLISHED : ImageUtils.combine(ImageUtils.grayscale(PUBLISHED), DISABLED)
                         );
                     }
                 }
