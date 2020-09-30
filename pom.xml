@@ -184,6 +184,9 @@
                     <version>3.2.0</version>
                     <configuration>
                         <archive>
+                            <manifest>
+                                <addDefaultImplementationEntries>false</addDefaultImplementationEntries>
+                            </manifest>
                             <manifestEntries>
                                 <Built-By>${author}</Built-By>
                                 <Implementation-Title>${project.artifactId}</Implementation-Title>

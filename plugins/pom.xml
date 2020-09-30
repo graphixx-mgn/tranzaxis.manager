@@ -54,9 +54,6 @@
                     <configuration>
                         <outputDirectory>${project.parent.basedir}/../application/target/plugins</outputDirectory>
                         <archive>
-                            <manifest>
-                                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-                            </manifest>
                             <manifestEntries>
                                 <Build>${build}</Build>
                             </manifestEntries>
