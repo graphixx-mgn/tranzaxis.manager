@@ -184,6 +184,9 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog>
         synchronized (remotePackages) {
             boolean changed = false;
             for (IPluginLoaderService.RemotePackage remotePackage : packages) {
+                if (!remotePackage.validatePackage()) {
+                    continue;
+                }
                 remotePackage.addInstance(instance);
 
                 boolean isNew = isNew(remotePackage);

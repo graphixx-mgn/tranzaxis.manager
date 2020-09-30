@@ -54,12 +54,26 @@ public class PluginLoader implements IContext {
             Arrays.stream(jarFiles)
                     .map(jarFile -> {
                         try {
-                            return new PluginPackage(jarFile);
-                        } catch (IOException e) {
+                            PluginPackage pluginPackage = new PluginPackage(jarFile);
+                            return pluginPackage.validatePackage() ? pluginPackage : null;
+                        } catch (Throwable e) {
+                            Logger.getContextLogger(PluginLoader.class).warn(
+                                    MessageFormat.format("Unable to load plugin package ''{0}''", jarFile),
+                                    e
+                            );
                             return null;
                         }
                     })
-                    .filter(pluginPackage -> pluginPackage != null && pluginPackage.getPlugins().size() > 0)
+                    .filter(Objects::nonNull)
+                    .filter(pluginPackage -> {
+                        if (pluginPackage.getPlugins().isEmpty()) {
+                            Logger.getContextLogger(PluginLoader.class).warn(
+                                    "Plugin package ''{0}'' does not contain supportable plugins",
+                                    pluginPackage.getTitle()
+                            );
+                        }
+                        return pluginPackage.getPlugins().size() > 0;
+                    })
                     .collect(Collectors.toMap(
                             PluginPackage::hashCode,
                             pluginPackage -> pluginPackage,

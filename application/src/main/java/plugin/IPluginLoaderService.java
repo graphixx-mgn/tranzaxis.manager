@@ -60,6 +60,10 @@ public interface IPluginLoaderService extends IRemoteService {
             );
         }
 
+        boolean validatePackage() {
+            return vendor != null && title != null && version != null && changes != null;
+        }
+
         String getId() {
             return MessageFormat.format("{0}.{1}", vendor, title);
         }

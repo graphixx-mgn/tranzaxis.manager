@@ -1,5 +1,6 @@
 package plugin;
 
+import codex.type.IComplexType;
 import manager.xml.VersionsDocument;
 import org.apache.xmlbeans.XmlException;
 import org.atteo.classindex.ClassIndex;
@@ -63,7 +64,10 @@ public final class PluginPackage {
         connection.setDefaultUseCaches(false);
 
         Attributes attributes = getAttributes(jarFile);
-        vendor   = attributes.getValue(Attributes.Name.IMPLEMENTATION_VENDOR);
+        vendor   = IComplexType.coalesce(
+                attributes.getValue(Attributes.Name.IMPLEMENTATION_VENDOR),
+                attributes.getValue(Attributes.Name.IMPLEMENTATION_VENDOR_ID)
+        );
         title    = attributes.getValue(Attributes.Name.IMPLEMENTATION_TITLE);
         version  = attributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION);
         author   = attributes.getValue("Built-By");
@@ -79,6 +83,10 @@ public final class PluginPackage {
         } catch (XmlException | IOException e) {
             versionInfo = null;
         }
+    }
+
+    boolean validatePackage() {
+        return vendor != null && title != null && version != null && versionInfo != null;
     }
 
     String getId() {
@@ -137,6 +145,7 @@ public final class PluginPackage {
                             return null;
                         }
                     })
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
         }
     }
@@ -154,7 +163,7 @@ public final class PluginPackage {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         PluginPackage that = (PluginPackage) o;
-        return vendor.equals(that.vendor) && title.equals(that.title);
+        return Objects.equals(vendor, that.vendor) && Objects.equals(title, that.title);
     }
 
     @Override
