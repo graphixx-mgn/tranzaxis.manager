@@ -3,6 +3,7 @@ package codex.instance;
 import codex.context.IContext;
 import codex.service.*;
 import codex.log.Logger;
+import org.atteo.classindex.ClassIndex;
 import java.io.IOException;
 import java.net.*;
 import java.rmi.NotBoundException;
@@ -60,6 +61,7 @@ public final class InstanceCommunicationService extends AbstractService<Communic
                     return String.format("* [%-"+length+"s] : %s", iface.getDisplayName(), InstanceCommunicationService.IFACE_ADDRS.get(iface).getHostAddress());
                 }).collect(Collectors.joining("\n"))
         );
+        ClassIndex.getSubclasses(IRemoteService.class).forEach(this::registerRemoteService);
         lookupServer.start();
     }
 
@@ -71,7 +73,11 @@ public final class InstanceCommunicationService extends AbstractService<Communic
             getSettings().attach(((AbstractRemoteService) service).getConfiguration());
             Logger.getLogger().debug("Registered remote service: ''{0}''", service.getTitle());
         } catch (Exception e) {
-            Logger.getLogger().warn("Unable to register remote service", e);
+            if (e.getCause() != null && e.getCause() instanceof ServiceNotLoadedException) {
+                Logger.getLogger().warn(e.getCause().getMessage());
+            } else {
+                Logger.getLogger().warn("Unable to register remote service", e);
+            }
         }
     }
 
