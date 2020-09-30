@@ -5,11 +5,12 @@ import codex.explorer.tree.NodeTreeModel;
 import codex.instance.InstanceUnit;
 import codex.log.LogUnit;
 import codex.log.Logger;
-import codex.notification.MessagingQueue;
+import codex.notification.MailBox;
 import codex.scheduler.JobScheduler;
 import codex.service.ServiceUnit;
 import codex.task.TaskManager;
 import codex.utils.ImageUtils;
+import codex.utils.Runtime;
 import it.sauronsoftware.junique.AlreadyLockedException;
 import it.sauronsoftware.junique.JUnique;
 import manager.nodes.Common;
@@ -21,12 +22,7 @@ import manager.ui.splash.SplashScreen;
 import manager.upgrade.UpgradeUnit;
 import plugin.PluginManager;
 import javax.swing.*;
-import javax.tools.JavaCompiler;
-import javax.tools.ToolProvider;
-import java.io.File;
-import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.net.URLDecoder;
+import java.io.*;
 import java.util.StringJoiner;
 
 public class Manager {
@@ -44,7 +40,6 @@ public class Manager {
     }
 
     public Manager() {
-//        new NotifyMessage("Test", "TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST", 0, null).setVisible(true);
         SplashScreen splash = new SplashScreen();
         Window window = new Window("TranzAxis Manager", ImageUtils.getByPath("/images/project.png"));
 
@@ -67,7 +62,7 @@ public class Manager {
         systemInfo();
 
         splash.setProgress(35, "Start messaging unit");
-        MessagingQueue messageQueue = new MessagingQueue();
+        MailBox mailCenter = MailBox.getInstance();
 
         splash.setProgress(40, "Start plugin manager");
         PluginManager pluginManager = PluginManager.getInstance();
@@ -88,9 +83,6 @@ public class Manager {
         root.attach(new DatabaseRoot());
         root.attach(new EnvironmentRoot());
 
-        //splash.setProgress(75, "Start command launcher unit");
-        //LauncherUnit commandLauncher = new LauncherUnit();
-
         splash.setProgress(80, "Start service management unit");
         ServiceUnit serviceOptions = new ServiceUnit();
 
@@ -106,10 +98,9 @@ public class Manager {
         window.addUnit(taskManager, window.taskmgrPanel);
 
         window.addUnit(configExplorer);
-        //window.addUnit(commandLauncher);
         window.addUnit(scheduler);
         window.addUnit(serviceOptions);
-        window.addUnit(messageQueue);
+        window.addUnit(mailCenter);
         window.addUnit(networkBrowser);
         window.addUnit(pluginManager);
 
@@ -118,19 +109,9 @@ public class Manager {
     }
 
     private void systemInfo() {
-        String javac = null;
-        Logger.getLogger().debug("Collect JVM information");
-        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        if (compiler == null) {
+        File javac = Runtime.JVM.compiler.get();
+        if (javac == null) {
             Logger.getLogger().warn("Java compiler not found");
-        } else {
-            URL url = compiler.getClass().getProtectionDomain().getCodeSource().getLocation();
-            try {
-                String urlDecoded = URLDecoder.decode(url.getPath(), "UTF-8");
-                javac = new File(urlDecoded).getPath();
-            } catch (UnsupportedEncodingException e) {
-                Logger.getLogger().warn("Java compiler not found");
-            }
         }
         Logger.getLogger().info(
                 new StringJoiner("\n")
@@ -140,9 +121,9 @@ public class Manager {
                         .add("Path:     {2}")
                         .add("Compiler: {3}")
                         .toString(),
-                System.getProperty("java.runtime.name"),
-                System.getProperty("java.vm.specification.version"),
-                System.getProperty("java.home"),
+                Runtime.JVM.name.get(),
+                Runtime.JVM.version.get(),
+                Runtime.JVM.location.get(),
                 javac == null ? "<not found>" : javac
         );
     }
