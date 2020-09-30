@@ -142,7 +142,7 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
             if (table.getModel() instanceof ISelectorTableModel) {
                 ISelectorTableModel selectorModel = (ISelectorTableModel) table.getModel();
                 Entity entity = selectorModel.getEntityForRow(rowIdx);
-                String propName = entity.model.getProperties(Access.Select).get(column);
+                String propName = selectorModel.getPropertyForColumn(column);
 
                 isEntityInvalid = !entity.model.isValid();
                 isEntityLocked  = entity.islocked();
