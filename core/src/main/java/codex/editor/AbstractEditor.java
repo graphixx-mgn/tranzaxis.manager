@@ -56,11 +56,11 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
         label.addMouseListener(new MouseAdapter() {
             private BalloonTip tooltipBalloon;
             private final Timer delayTimer = new Timer(1000, (ActionEvent e1) -> {
-                if (tooltipBalloon == null && propHolder.getDescriprion() != null) {
+                if (tooltipBalloon == null && propHolder.getDescription() != null) {
                     tooltipBalloon = new BalloonTip(
                             label, 
                             new JLabel(
-                                    propHolder.getDescriprion(), 
+                                    propHolder.getDescription(),
                                     ImageUtils.resize(
                                         ImageUtils.getByPath("/images/event.png"), 
                                         16, 16

@@ -84,6 +84,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     /**
      * Возвращает тип (класс значения) свойства.
      */
+    @SuppressWarnings("unchecked")
     public final Class<T> getType() {
         return (Class<T>) value.getClass();
     }
@@ -105,7 +106,7 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     /**
      * Получить описание свойства.
      */
-    public final String getDescriprion() { 
+    public final String getDescription() {
         return desc; 
     }
     
