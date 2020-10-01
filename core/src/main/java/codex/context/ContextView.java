@@ -8,8 +8,10 @@ import codex.model.Entity;
 import codex.type.Bool;
 import codex.type.Enum;
 import codex.type.Iconified;
+import net.jcip.annotations.ThreadSafe;
 import java.util.Objects;
 
+@ThreadSafe
 public class ContextView extends Catalog implements Iconified {
 
     public  final static String PROP_LEVEL = "level";

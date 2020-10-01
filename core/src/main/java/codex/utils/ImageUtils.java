@@ -1,6 +1,7 @@
 package codex.utils;
 
 import codex.editor.IEditor;
+import net.jcip.annotations.ThreadSafe;
 import java.awt.*;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Rectangle2D;
@@ -22,6 +23,7 @@ import javax.swing.text.html.HTML;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.ImageView;
 
+@ThreadSafe
 public class ImageUtils {
     
     public static ImageIcon getByPath(String path) {
@@ -54,7 +56,6 @@ public class ImageUtils {
         if (imageURL != null) {
             return new ImageIcon(imageURL);
         } else {
-            //Logger.getLogger().error(MessageFormat.format("Image ''{0}'' not found", path), new Exception());
             return new ImageIcon();
         }
     }

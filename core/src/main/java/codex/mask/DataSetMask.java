@@ -3,6 +3,7 @@ package codex.mask;
 import codex.command.ValueProvider;
 import codex.supplier.DataSelector;
 import codex.type.ArrStr;
+import net.jcip.annotations.ThreadSafe;
 import java.util.List;
 
 /**
@@ -13,6 +14,7 @@ import java.util.List;
  *   {size}[{item#1 length}]{item#1}[{item#2 length}]{item#2}...
  * </pre>
  */
+@ThreadSafe
 public class DataSetMask extends ValueProvider<List<String>> implements IArrMask {
     
     private final String format;

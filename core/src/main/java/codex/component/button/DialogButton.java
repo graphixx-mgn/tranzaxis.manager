@@ -2,6 +2,7 @@ package codex.component.button;
 
 import codex.component.dialog.Dialog;
 import codex.utils.ImageUtils;
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -9,6 +10,7 @@ import java.awt.event.KeyEvent;
 /**
  * Кнопка управления диалоговым окном {@link Dialog}.
  */
+@ThreadSafe
 public final class DialogButton extends PushButton {
 
     private KeyStroke keyCode;
@@ -41,7 +43,7 @@ public final class DialogButton extends PushButton {
      * слушатель окна.
      * @return Объект описывающий состояние клавиш.
      */
-    public KeyStroke getKeyCode() {
+    public synchronized KeyStroke getKeyCode() {
         return keyCode;
     }
     
@@ -49,7 +51,7 @@ public final class DialogButton extends PushButton {
      * Установить привязку кнопки к клавише клавиатуры.
      * @param keyCode Код клавиши клавиатуры (см. константы VK_*** в {@link KeyEvent}).
      */
-    public void setKeyCode(int keyCode) {
+    public synchronized void setKeyCode(int keyCode) {
         this.keyCode = KeyStroke.getKeyStroke(keyCode, 0);
     }
     
@@ -57,7 +59,7 @@ public final class DialogButton extends PushButton {
      * Получить текущий код возврата кнопки.
      * @return Числовой код.
      */
-    public int getID() {
+    public synchronized int getID() {
         return id;
     }
     
@@ -66,7 +68,7 @@ public final class DialogButton extends PushButton {
      * имели разные коды. Коды стандартных кнопок можно посмотреть в {@link Dialog}
      * @param id Числовой код.
      */
-    public void setID(int id) {
+    public synchronized void setID(int id) {
         this.id = id;
     }
      

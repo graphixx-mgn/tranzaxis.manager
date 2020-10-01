@@ -1,9 +1,11 @@
 package codex.mask;
 
 import codex.model.Entity;
+import net.jcip.annotations.ThreadSafe;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+@ThreadSafe
 public class EntityFilter<E extends Entity> implements IRefMask<E> {
 
     private final Predicate<E>       entityFilter;

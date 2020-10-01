@@ -1,5 +1,6 @@
 package codex.command;
 
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 
 /**
@@ -9,6 +10,7 @@ import javax.swing.*;
  * * {@link ICommandListener#commandStatusChanged(boolean)}<br>
  * которые в свою очередь используются для информирования GUI о необходимости перерисовки кнопок запуска команд.
  */
+@ThreadSafe
 public class CommandStatus {
 
     boolean   active;

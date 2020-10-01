@@ -15,6 +15,7 @@ import codex.type.EntityRef;
 import codex.type.Enum;
 import codex.type.Iconified;
 import com.github.plural4j.Plural;
+import net.jcip.annotations.ThreadSafe;
 import org.apache.commons.io.IOUtils;
 import javax.swing.*;
 import java.io.IOException;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 /**
  * Класс утилит для работы с локализующими ресурсами.
  */
+@ThreadSafe
 public class Language {
     
     public  static final String NOT_FOUND  = "<not defined>";

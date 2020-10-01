@@ -1,7 +1,9 @@
 package codex.utils;
 
+import net.jcip.annotations.ThreadSafe;
 import java.text.DecimalFormat;
 
+@ThreadSafe
 public class FileUtils {
 
     public enum Dimension {

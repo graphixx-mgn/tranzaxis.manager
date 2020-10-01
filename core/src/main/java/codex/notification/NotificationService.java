@@ -2,10 +2,12 @@ package codex.notification;
 
 import codex.context.IContext;
 import codex.service.*;
+import net.jcip.annotations.ThreadSafe;
 
 /**
  * Сервис отображения уведомлений.
  */
+@ThreadSafe
 @IService.Definition()
 @IContext.Definition(id = "NSS", name = "Notification Service", icon = "/images/notify.png")
 public class NotificationService extends AbstractService<NotifyServiceOptions> implements INotificationService, IContext {

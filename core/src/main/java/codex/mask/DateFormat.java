@@ -1,5 +1,8 @@
 package codex.mask;
 
+import net.jcip.annotations.ThreadSafe;
+
+@ThreadSafe
 public class DateFormat implements IDateMask {
 
     public static class Full {

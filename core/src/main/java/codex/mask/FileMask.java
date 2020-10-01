@@ -1,12 +1,14 @@
 package codex.mask;
 
 import codex.editor.FilePathEditor;
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 /**
  * Маска, указывающая редактору {@link FilePathEditor} выбирать файлы.
  */
+@ThreadSafe
 public class FileMask implements IPathMask {
     
     private final FileNameExtensionFilter filter;

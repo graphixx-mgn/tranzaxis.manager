@@ -1,5 +1,6 @@
 package codex.utils;
 
+import net.jcip.annotations.ThreadSafe;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -10,6 +11,7 @@ import java.util.Map;
 /**
  * Класс вспомогательных методов для работы с сетью.
  */
+@ThreadSafe
 public class NetTools {
 
     private final static Map<String, Object> syncMap = new HashMap<>();

@@ -1,10 +1,13 @@
 package codex.supplier;
 
+import net.jcip.annotations.ThreadSafe;
+
 /**
  * Абстрактный класс селектора данных из поставщика.
  * @param <V> Тип данных, возвращаемых поставщиком.
  * @param <R> Тип значения передаваемого селектором при выборе.
  */
+@ThreadSafe
 public abstract class DataSelector<V, R> {
 
     private final IDataSupplier<V> supplier;

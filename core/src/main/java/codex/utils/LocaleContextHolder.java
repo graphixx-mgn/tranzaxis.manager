@@ -1,7 +1,9 @@
 package codex.utils;
 
+import net.jcip.annotations.ThreadSafe;
 import java.util.Locale;
 
+@ThreadSafe
 public final class LocaleContextHolder {
 
     static {

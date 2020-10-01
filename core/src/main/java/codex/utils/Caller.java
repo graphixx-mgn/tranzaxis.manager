@@ -1,9 +1,11 @@
 package codex.utils;
 
+import net.jcip.annotations.ThreadSafe;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@ThreadSafe
 public class Caller extends SecurityManager {
 
     private static final Caller INSTANCE = new Caller();

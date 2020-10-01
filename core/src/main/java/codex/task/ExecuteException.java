@@ -1,10 +1,12 @@
 package codex.task;
 
+import net.jcip.annotations.ThreadSafe;
 import java.util.concurrent.ExecutionException;
 
 /**
  * Исключение, которое прерывает исполнение задачи с выводом ошибки в GUI.
  */
+@ThreadSafe
 public class ExecuteException extends ExecutionException {
     
     private final String desc;

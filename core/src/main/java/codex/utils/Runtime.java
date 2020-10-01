@@ -1,5 +1,6 @@
 package codex.utils;
 
+import net.jcip.annotations.ThreadSafe;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 import java.io.File;
@@ -8,6 +9,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.util.function.Supplier;
 
+@ThreadSafe
 public class Runtime {
 
     public static class JVM {

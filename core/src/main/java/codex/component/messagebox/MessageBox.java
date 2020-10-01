@@ -5,6 +5,7 @@ import codex.component.ui.StripedProgressBarUI;
 import codex.editor.IEditor;
 import codex.task.TaskView;
 import codex.utils.ImageUtils;
+import net.jcip.annotations.ThreadSafe;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -18,6 +19,7 @@ import javax.swing.border.LineBorder;
 /**
  * Окно информационных/предупреждающих сообшений.
  */
+@ThreadSafe
 public final class MessageBox extends Dialog {
     
     /**

@@ -4,8 +4,10 @@ import codex.context.ServiceCallContext;
 import codex.log.Logger;
 import codex.service.ServiceRegistry;
 import codex.utils.ImageUtils;
+import net.jcip.annotations.ThreadSafe;
 import java.awt.*;
 
+@ThreadSafe
 public class TrayInformer implements IMessageHandler {
 
     private final static TrayInformer INSTANCE = new TrayInformer();
@@ -13,12 +15,14 @@ public class TrayInformer implements IMessageHandler {
         return INSTANCE;
     }
 
-    private TrayIcon trayIcon;
+    private final TrayIcon trayIcon;
 
     @Override
     public void postMessage(Message message) {
         if (SystemTray.isSupported() && checkConditions()) {
-            trayIcon.displayMessage(message.getSubject(), message.getContent(), getType(message));
+            synchronized (trayIcon) {
+                trayIcon.displayMessage(message.getSubject(), message.getContent(), getType(message));
+            }
         }
     }
 
@@ -34,6 +38,7 @@ public class TrayInformer implements IMessageHandler {
                 e.printStackTrace();
             }
         } else {
+            trayIcon = null;
             Logger.getContextLogger(NotificationService.class).warn("NSS: System notification not supported by operating system");
         }
     }

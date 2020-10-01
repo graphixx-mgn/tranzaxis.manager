@@ -5,10 +5,12 @@ import codex.property.PropertyHolder;
 import codex.supplier.DataSelector;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
+import net.jcip.annotations.ThreadSafe;
 
 /**
  * Команда редактора свойства, позволяющая выбрать значение из внешнего поставщика.
  */
+@ThreadSafe
 public class ValueProvider<V> extends EditorCommand<IComplexType<V, IMask<V>>, V> {
 
     private final DataSelector<?, V> selector;

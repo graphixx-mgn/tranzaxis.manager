@@ -2,11 +2,13 @@ package codex.context;
 
 import codex.log.Logger;
 import codex.utils.Caller;
+import net.jcip.annotations.ThreadSafe;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@ThreadSafe
 public class ServiceCallContext {
 
     public synchronized static Class<? extends IContext> getContext() {

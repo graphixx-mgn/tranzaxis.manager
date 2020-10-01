@@ -1,10 +1,12 @@
 package codex.mask;
 
+import net.jcip.annotations.ThreadSafe;
 import java.util.regex.Pattern;
 
 /**
  * Маска проверки строковых свойств на соответствие регулярному выражению.
  */
+@ThreadSafe
 public class RegexMask implements IMask<String> {
     
     private final Pattern pattern;
