@@ -246,7 +246,7 @@ public class Language {
         }
 
         public static SupportedLang valueOf(java.util.Locale locale) {
-            for (SupportedLang lang : EnumSet.allOf(SupportedLang.class)) {
+            for (SupportedLang lang : SupportedLang.class.getEnumConstants()) {
                 if (lang.locale.getLanguage().equals(locale.getLanguage())) {
                     return lang;
                 }

@@ -1,7 +1,6 @@
 package codex.utils;
 
 import codex.editor.IEditor;
-import codex.log.Logger;
 import java.awt.*;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Rectangle2D;
@@ -13,7 +12,6 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -56,7 +54,7 @@ public class ImageUtils {
         if (imageURL != null) {
             return new ImageIcon(imageURL);
         } else {
-            Logger.getLogger().error(MessageFormat.format("Image ''{0}'' not found", path), new Exception());
+            //Logger.getLogger().error(MessageFormat.format("Image ''{0}'' not found", path), new Exception());
             return new ImageIcon();
         }
     }
