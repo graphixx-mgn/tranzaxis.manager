@@ -25,6 +25,8 @@ import javax.swing.text.html.ImageView;
 
 @ThreadSafe
 public class ImageUtils {
+
+    private final static ImageIcon ICON_UNKNOWN = ImageUtils.getByPath("/images/question.png");
     
     public static ImageIcon getByPath(String path) {
         path = path.replaceFirst("^/", "");
@@ -56,7 +58,7 @@ public class ImageUtils {
         if (imageURL != null) {
             return new ImageIcon(imageURL);
         } else {
-            return new ImageIcon();
+            return ICON_UNKNOWN;
         }
     }
 
