@@ -61,7 +61,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
                 return result;
 
             } catch (CancelException e) {
-                setStatus(Status.CANCELLED);
+                if (getStatus() != Status.CANCELLED) setStatus(Status.CANCELLED);
                 throw e;
 
             } catch (Throwable e) {
