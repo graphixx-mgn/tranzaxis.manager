@@ -102,15 +102,15 @@ public class SourceBuilder {
     
     public static void main(String[] args12) throws Exception {
         final Integer port  = Integer.valueOf(System.getProperty("port"));
-        final UUID    uuid  = UUID.fromString(System.getProperty("uuid"));
         final String  path  = System.getProperty("path");
         final Boolean clean = "1".equals(System.getProperty("clean"));
 
         final Registry reg = LocateRegistry.getRegistry(port);
-        final IBuildingNotifier notifier = (IBuildingNotifier) reg.lookup(BuildingNotifier.class.getCanonicalName());
+        final IBuildingNotifier notifier = (IBuildingNotifier) reg.lookup(BuildingNotifier.class.getTypeName());
+
         Thread.setDefaultUncaughtExceptionHandler((thread, ex) -> {
             try {
-                notifier.error(uuid, ex);
+                notifier.error(ex);
             } catch (RemoteException ignore) {}
         });
 
@@ -143,7 +143,7 @@ public class SourceBuilder {
                     }
                     final ImageIcon icon = IMG_CACHE.get(imgUri);
                     try {
-                        notifier.event(uuid, problem.getSeverity(), defId, defName, icon, message);
+                        notifier.event(problem.getSeverity(), defId, defName, icon, message);
                     } catch (RemoteException e) {
                         throw new RuntimeException(e.getMessage());
                     }
@@ -159,7 +159,7 @@ public class SourceBuilder {
                         @Override
                         public boolean wasCancelled() {
                             try {
-                                notifier.isPaused(uuid);
+                                notifier.isPaused();
                             } catch (RemoteException ignore) {}
                             return false;
                         }
@@ -179,10 +179,10 @@ public class SourceBuilder {
                             builtModules.add(matcher.group(1));
                             int progress = Math.min(100 * builtModules.size() / totalModules.get(), 100);
 
-                            notifier.progress(uuid, progress);
-                            notifier.description(uuid, matcher.group(1));
+                            notifier.progress(progress);
+                            notifier.description(matcher.group(1));
                         } else {
-                            notifier.description(uuid, name);
+                            notifier.description(name);
                         }
                     } catch (RemoteException e) {
                         e.printStackTrace();

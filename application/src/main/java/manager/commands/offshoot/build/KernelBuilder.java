@@ -9,7 +9,6 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.StringJoiner;
-import java.util.UUID;
 import manager.commands.offshoot.BuildWC;
 import manager.xml.FilelistDocument;
 import manager.xml.ProjectDocument;
@@ -26,15 +25,14 @@ public class KernelBuilder {
     
     public static void main(String[] args) throws Exception {
         final Integer port = Integer.valueOf(System.getProperty("port"));
-        final UUID    uuid = UUID.fromString(System.getProperty("uuid"));
         final String  path = System.getProperty("path");
 
         final Registry reg = LocateRegistry.getRegistry(port);
-        final IBuildingNotifier notifier = (IBuildingNotifier) reg.lookup(BuildingNotifier.class.getCanonicalName());
+        final IBuildingNotifier notifier = (IBuildingNotifier) reg.lookup(BuildingNotifier.class.getTypeName());
 
         Thread.setDefaultUncaughtExceptionHandler((thread, ex) -> {
             try {
-                notifier.error(uuid, ex);
+                notifier.error(ex);
             } catch (RemoteException ignore) {}
         });
 
@@ -91,7 +89,7 @@ public class KernelBuilder {
                 public void taskStarted(BuildEvent event) {
                     super.taskStarted(event);
                     try {
-                        notifier.isPaused(uuid);
+                        notifier.isPaused();
                     } catch (RemoteException e) {
                         throw new RuntimeException(e.getMessage());
                     }
@@ -112,19 +110,19 @@ public class KernelBuilder {
 
             try {
                 ant.fireBuildStarted();
-                notifier.description(uuid, Language.get(BuildWC.class, "command@clean"));
+                notifier.description(Language.get(BuildWC.class, "command@clean"));
                 ant.executeTarget(targetClean.getName());
 
-                notifier.description(uuid, Language.get(BuildWC.class, "command@distributive"));
+                notifier.description(Language.get(BuildWC.class, "command@distributive"));
                 ant.executeTarget(targetBuild.getName());
 
                 ant.fireBuildFinished(null);
             } catch (BuildException e) {
                 ant.fireBuildFinished(e);
-                notifier.error(uuid, e);
+                notifier.error(e);
             }
         } catch (IOException e) {
-            notifier.error(uuid, e);
+            notifier.error(e);
         }
     }
     

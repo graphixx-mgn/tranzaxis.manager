@@ -9,11 +9,11 @@ import manager.nodes.Offshoot;
 import org.apache.tools.ant.util.DateUtils;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.StringJoiner;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class BuildKernelTask extends AbstractTask<Void> {
@@ -41,7 +41,7 @@ public class BuildKernelTask extends AbstractTask<Void> {
 
     @Override
     public Void execute() throws Exception {
-        UUID uuid = UUID.randomUUID();
+        BuildWC.RMIRegistry rmiRegistry = new BuildWC.RMIRegistry();
         final File currentJar = Runtime.APP.jarFile.get();
 
         final ArrayList<String> command = new ArrayList<>();
@@ -73,8 +73,7 @@ public class BuildKernelTask extends AbstractTask<Void> {
         command.add("-cp");
         command.add(classPath);
 
-        command.add("-Dport="+BuildWC.getPort());
-        command.add("-Duuid="+uuid.toString());
+        command.add("-Dport="+rmiRegistry.getPort());
         command.add("-Dpath="+offshoot.getLocalPath());
 
         command.add(KernelBuilder.class.getCanonicalName());
@@ -87,7 +86,7 @@ public class BuildKernelTask extends AbstractTask<Void> {
         }
 
         AtomicReference<Throwable> errorRef = new AtomicReference<>(null);
-        BuildWC.getBuildNotifier().addListener(uuid, new IBuildingNotifier.IBuildListener() {
+        rmiRegistry.registerService(BuildingNotifier.class.getTypeName(), new BuildingNotifier() {
             @Override
             public void error(Throwable ex) {
                 errorRef.set(ex);
@@ -112,13 +111,18 @@ public class BuildKernelTask extends AbstractTask<Void> {
                 if (nextStatus.equals(Status.CANCELLED)) {
                     process.destroy();
                 }
+                if (nextStatus.isFinal()) {
+                    try {
+                        rmiRegistry.close();
+                    } catch (IOException ignore) {}
+                }
             }
         });
+
         final BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        reader.lines().iterator().forEachRemaining(s -> { /* ignore process output */ });
+        reader.lines().iterator().forEachRemaining(s -> {/* ignore process output */ });
         process.waitFor();
 
-        BuildWC.getBuildNotifier().removeListener(uuid);
         java.lang.Runtime.getRuntime().removeShutdownHook(hook);
         if (process.isAlive()) process.destroy();
 

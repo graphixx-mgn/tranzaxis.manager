@@ -22,6 +22,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.MessageFormat;
 import java.util.*;
@@ -67,7 +68,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
 
     @Override
     public Error execute() throws Exception {
-        UUID uuid = UUID.randomUUID();
+        BuildWC.RMIRegistry rmiRegistry = new BuildWC.RMIRegistry();
         final File currentJar = Runtime.APP.jarFile.get();
 
         final ArrayList<String> command = new ArrayList<>();
@@ -98,17 +99,21 @@ public class BuildSourceTask extends AbstractTask<Error> {
         command.add("-cp");
         command.add(classPath);
 
-        command.add("-Dport="+BuildWC.getPort());
-        command.add("-Duuid="+uuid.toString());
+        command.add("-Dport="+rmiRegistry.getPort());
         command.add("-Dpath="+offshoot.getLocalPath());
         command.add("-Dclean="+(clean ? "1" : "0"));
 
         command.add(SourceBuilder.class.getCanonicalName());
 
         final ProcessBuilder builder = new ProcessBuilder(command);
+        if (currentJar.isFile()) {
+            builder.directory(currentJar.getParentFile());
+        } else {
+            builder.directory(currentJar);
+        }
 
         AtomicReference<Throwable> errorRef = new AtomicReference<>(null);
-        BuildWC.getBuildNotifier().addListener(uuid, new IBuildingNotifier.IBuildListener() {
+        rmiRegistry.registerService(BuildingNotifier.class.getTypeName(), new BuildingNotifier() {
             @Override
             public void error(Throwable ex) {
                 errorRef.set(ex);
@@ -126,12 +131,12 @@ public class BuildSourceTask extends AbstractTask<Error> {
 
             @Override
             public void progress(int percent) {
-                BuildSourceTask.this.setProgress(percent, BuildSourceTask.this.getDescription());
+               setProgress(percent, getDescription());
             }
 
             @Override
             public void description(String text) {
-                BuildSourceTask.this.setProgress(BuildSourceTask.this.getProgress(), text);
+                setProgress(getProgress(), text);
             }
 
             @Override
@@ -139,12 +144,6 @@ public class BuildSourceTask extends AbstractTask<Error> {
                 checkPaused();
             }
         });
-
-        if (currentJar.isFile()) {
-            builder.directory(currentJar.getParentFile());
-        } else {
-            builder.directory(currentJar);
-        }
 
         java.lang.Runtime.getRuntime().addShutdownHook(hook);
         Process process = builder.redirectErrorStream(true).start();
@@ -154,13 +153,18 @@ public class BuildSourceTask extends AbstractTask<Error> {
                 if (nextStatus.equals(Status.CANCELLED)) {
                     process.destroy();
                 }
+                if (nextStatus.isFinal()) {
+                    try {
+                        rmiRegistry.close();
+                    } catch (IOException ignore) {}
+                }
             }
         });
+
         final BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
         reader.lines().iterator().forEachRemaining(s -> { /* ignore process output */ });
         process.waitFor();
 
-        BuildWC.getBuildNotifier().removeListener(uuid);
         java.lang.Runtime.getRuntime().removeShutdownHook(hook);
         if (process.isAlive()) process.destroy();
 
