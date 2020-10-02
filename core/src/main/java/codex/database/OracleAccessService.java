@@ -22,7 +22,11 @@ import oracle.ucp.jdbc.PoolDataSourceFactory;
  */
 @IContext.Definition(id = "DAS", name = "Database Access Service", icon = "/images/database.png")
 public class OracleAccessService extends AbstractService<OracleAccessOptions> implements IDatabaseAccessService, IContext {
-    
+
+    private final static int PARAM_MIN_POOL_SIZE = 0;
+    private final static int PARAM_MAX_POOL_SIZE = 50;
+    private final static int PARAM_WAIT_TIMEOUT  = 10;
+
     private final static OracleAccessService INSTANCE = new OracleAccessService();
     
     /**
@@ -59,9 +63,11 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
                     pds.setUser(user);
                     pds.setPassword(password);
 
-                    pds.setInitialPoolSize(1);
-                    pds.setMinPoolSize(5);
-                    pds.setMaxPoolSize(50);
+                    pds.setInitialPoolSize(PARAM_MIN_POOL_SIZE);
+                    pds.setMinPoolSize(PARAM_MIN_POOL_SIZE);
+                    pds.setMaxPoolSize(PARAM_MAX_POOL_SIZE);
+                    pds.setInactiveConnectionTimeout(PARAM_WAIT_TIMEOUT);
+                    pds.setTimeoutCheckInterval(1);
 
                     urlToIdMap.put(PID, SEQ.incrementAndGet());
                     idToPoolMap.put(SEQ.get(), pds);
