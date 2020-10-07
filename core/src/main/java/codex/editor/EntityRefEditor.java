@@ -1,5 +1,7 @@
 package codex.editor;
 
+import codex.command.CommandStatus;
+import codex.command.EditorCommand;
 import codex.component.button.IButton;
 import codex.component.render.GeneralRenderer;
 import codex.explorer.IExplorerAccessService;
@@ -7,11 +9,14 @@ import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.mask.EntityFilter;
 import codex.mask.IRefMask;
+import codex.model.Access;
 import codex.model.Entity;
+import codex.model.EntityModel;
+import codex.model.ICatalog;
+import codex.presentation.EditorPresentation;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
-import codex.type.IComplexType;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -19,13 +24,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.JComboBox;
-import javax.swing.JList;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+import javax.swing.*;
 import javax.swing.border.LineBorder;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
@@ -39,6 +38,7 @@ import javax.swing.plaf.basic.BasicComboPopup;
 public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<T>, T> implements ActionListener, INodeListener {
 
     private JComboBox<T> comboBox;
+    private EmbeddedEditor embeddedEditor;
 
     /**
      * Конструктор редактора.
@@ -46,18 +46,8 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
      */
     public EntityRefEditor(PropertyHolder<EntityRef<T>, T> propHolder) {
         super(propHolder);
-        propHolder.addChangeListener((String name, Object oldValue, Object newValue) -> {
-            if (newValue instanceof IComplexType) {
-                comboBox.removeActionListener(this);
-                comboBox.removeAllItems();
-                
-                comboBox.addItem((T) new Undefined());
-                getValues().forEach((item) -> comboBox.addItem(item));
-                comboBox.setSelectedItem(comboBox.getItemAt(0));
-                
-                comboBox.addActionListener(this);
-            }
-        });
+        embeddedEditor = new EmbeddedEditor();
+        addCommand(embeddedEditor);
     }
 
     protected List<T> getValues() {
@@ -257,5 +247,48 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
             comboBox.repaint();
         }
     }
-    
+
+
+    private class EmbeddedEditor extends EditorCommand<EntityRef<T>, T> {
+
+        private EmbeddedEditor() {
+            super(new ImageIcon(), null, PropertyHolder::isEmpty);
+            activator = holder -> {
+                Entity entity = propHolder.getPropValue().getValue();
+                if (entity == null) {
+                    return new CommandStatus(false, EditorPresentation.EmbeddedEditor.IMAGE_EDIT);
+                } else {
+                    boolean hasProps = !entity.model.getProperties(Access.Edit)
+                            .stream()
+                            .filter(propName -> !propName.equals(EntityModel.PID))
+                            .collect(Collectors.toList())
+                            .isEmpty();
+                    if (!hasProps) {
+                        return new CommandStatus(false, null);
+                    }
+                    boolean allDisabled = entity.model.getProperties(Access.Edit).stream()
+                            .noneMatch(
+                                    (name) -> entity.model.getEditor(name).isEditable()
+                            );
+                    boolean hasChild = ICatalog.class.isAssignableFrom(entity.getClass()) && entity.getChildCount() > 0;
+                    return new CommandStatus(
+                            true,
+                            allDisabled || entity.islocked() ?
+                                    EditorPresentation.EmbeddedEditor.IMAGE_VIEW :
+                                    EditorPresentation.EmbeddedEditor.IMAGE_EDIT
+                    );
+                }
+            };
+        }
+
+        @Override
+        public boolean disableWithContext() {
+            return false;
+        }
+
+        @Override
+        public void execute(PropertyHolder<EntityRef<T>, T> context) {
+            EditorPresentation.EmbeddedEditor.show(context.getPropValue().getValue());
+        }
+    }
 }
