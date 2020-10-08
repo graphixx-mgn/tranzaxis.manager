@@ -11,9 +11,15 @@
                 <description>Исправление проблемы с кешироваанием ресурсов локализации, которая иногда приводила к появлению строк в интерфейсе на языке, отличном от указанного в настройках.
                     При этом, настройка языка GUI перенесена в сервис трансляции интерфейса</description>
             </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена "утечка" сокетов в операционной системе.</description>
+            </change>
             <change scope="CORE" type="Change">
                 <description>Переработаны сервис и модуль исполнения задач.
                     Сервис работает независимо от модуля, который только отображает происходящие в сервисе процессы.</description>
+            </change>
+            <change scope="CORE" type="Change">
+                <description>Переработан сервис взаимодействия инстанций на API java.nio.</description>
             </change>
             <change scope="CORE" type="Change">
                 <description>Переработана реализация типа Map и его редактора:

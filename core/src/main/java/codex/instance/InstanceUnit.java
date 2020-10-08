@@ -47,15 +47,6 @@ public class InstanceUnit extends AbstractUnit {
 
         ServiceRegistry.getInstance().addRegistryListener(IInstanceDispatcher.class, service -> {
             IInstanceDispatcher dispatcher = (IInstanceDispatcher) service;
-            dispatcher.getInstances().forEach((instance) -> {
-                INode root = instancesTree.getRoot();
-                root.attach(new RemoteHost(instance));
-                if (root.getChildCount() > 0) {
-                    explorer.getViewport();
-                    explorer.viewportBound();
-                }
-            });
-
             dispatcher.addInstanceListener(new IInstanceListener() {
                 @Override
                 public void instanceLinked(Instance instance) {

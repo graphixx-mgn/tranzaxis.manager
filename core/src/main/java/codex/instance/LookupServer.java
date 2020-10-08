@@ -4,36 +4,32 @@ import codex.context.IContext;
 import codex.log.Logger;
 import codex.log.LoggingSource;
 import codex.xml.EchoDocument;
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.MulticastSocket;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.LinkedList;
-import java.util.List;
+import java.io.*;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.net.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.*;
+import java.util.*;
+import net.jcip.annotations.ThreadSafe;
 import org.apache.xmlbeans.XmlException;
+import sun.management.VMManagement;
 
 /**
  * Сервер поиска и подключения инстанций. Реализует сетевой обмен пакета между инстанциями
  * установку постоянных соединений и отслеживание обрывов.
  */
+@ThreadSafe
 class LookupServer {
     
     private final static Integer GROUP_PORT = 4445;
     private final static String  GROUP_ADDR = "230.0.0.0";
-    
-    private final List<Instance>  instances = new LinkedList<>();
-    private final InetAddress     mcastGroup; 
-    private final MulticastSocket mcastSenderSocket;
-    private final MulticastSocket mcastReceiverSocket;
-    private final ServerSocket    serverSocket;
-    private final int             rpcPort;
+
+    private final List<Instance> instances  = new LinkedList<>();
+
+    private final Discover discover;
 
     // Контексты
     @LoggingSource(debugOption = true)
@@ -46,266 +42,400 @@ class LookupServer {
      * в сетевых пакетах.
      */
     LookupServer(int rpcPort) throws IOException {
-        this.rpcPort    = rpcPort;
-        this.mcastGroup = InetAddress.getByName(GROUP_ADDR);
+        discover = new Discover(rpcPort);
 
-        mcastReceiverSocket = new MulticastSocket(GROUP_PORT);
-        mcastReceiverSocket.setReuseAddress(true);
-        for (InetAddress address : InstanceCommunicationService.IFACE_ADDRS.values()) {
-            mcastReceiverSocket.setInterface(address);
-            mcastReceiverSocket.joinGroup(mcastGroup);
+        try {
+            RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();
+            Field jvm = runtime.getClass().getDeclaredField("jvm");
+            jvm.setAccessible(true);
+            VMManagement mgmt = (VMManagement) jvm.get(runtime);
+            Method pid_method = mgmt.getClass().getDeclaredMethod("getProcessId");
+            pid_method.setAccessible(true);
+            int pid = (Integer) pid_method.invoke(mgmt);
+            System.err.println("PID: "+pid);
+        } catch (Throwable e) {
+            e.printStackTrace();
         }
-        
-        mcastSenderSocket = new MulticastSocket();
-        mcastSenderSocket.setReuseAddress(true);
-        
-        serverSocket = new ServerSocket(0);
     }
     
     /**
      * Запуск сервера.
      */
     final void start() {
-        new Thread(new RequestHandler(mcastReceiverSocket)).start();
-        new Thread(() -> {
-            try {
-                while (true) {
-                    new AcceptHandler(serverSocket.accept()).start();
-                }
-            } catch (IOException e) {
-                Logger.getLogger().warn("Lookup: Unknown server socket error", e);
-            } finally {
-                try {
-                    serverSocket.close();
-                } catch (IOException e) {
-                    Logger.getLogger().warn("Lookup: close server socket error", e);
-                }
-            }
-        }).start();
+       discover.start();
     }
     
     /**
      * Возвращает список подключенных инстанций.
      */
     List<Instance> getInstances() {
-        return new LinkedList<>(instances);
+        synchronized (instances) {
+            return new LinkedList<>(instances);
+        }
     }
     
     /**
      * Добавляет инстанцию в список подключенных.
      */
     protected void linkInstance(Instance instance) {
-        instances.add(instance);
+        synchronized (instances) {
+            if (instances.stream().noneMatch(registered -> registered.equals(instance))) {
+                instances.add(instance);
+            }
+        }
     }
     
     /**
      * Удаляет инстанцию из списка подключенных.
      */
     protected void unlinkInstance(Instance instance) {
-        instances.remove(instance);
-    }
-    
-    /**
-     * Посылка multicast-пакета для поиска запущенных инстанций.
-     * @param data Байт-массив пакета.
-     */
-    private void broadcast(byte[] data) {
-        DatagramPacket datagramPacket = new DatagramPacket(data, data.length, mcastGroup, GROUP_PORT);
-        datagramPacket.getAddress().getHostName();
-        try {
-            for (InetAddress address : InstanceCommunicationService.IFACE_ADDRS.values()) {
-                Logger.getContextLogger(NetContext.class).debug("Send multicast request packet to interface: {0}", address.getHostAddress());
-                mcastSenderSocket.setInterface(address);
-                mcastSenderSocket.send(datagramPacket);
-            }
-        } catch (IOException e) {
-            Logger.getLogger().warn("ICS: Send request packet error", e);
+        synchronized (instances) {
+            instances.remove(instance);
         }
-    }
-    
-    /**
-     * Подготовка байт-массива эхо-пакета.
-     * Пакет представляет собой XML-документ вида:
-     * <pre>{@code
-     * <Echo host="..." user="..." rpcPort="..." kcaPort="..."/>
-     * где
-     * * host - Имя локального хоста 
-     * * user - Имя локального пользователя
-     * * rpcPort - Номер порта реестра сетевых сервисов (RMI).
-     * * kcaPort - Номер порта для установки постоянного соединения. 
-     * }</pre>
-     */
-    private byte[] prepareEcho() {
-        EchoDocument echoRequest = EchoDocument.Factory.newInstance();
-        echoRequest.addNewEcho();
-        try {
-            echoRequest.getEcho().setHost(InetAddress.getLocalHost().getCanonicalHostName());
-        } catch (IOException e) {
-            //
-        }
-        echoRequest.getEcho().setUser(getUserName());
-        echoRequest.getEcho().setRpcPort(rpcPort);
-        echoRequest.getEcho().setKcaPort(serverSocket.getLocalPort());
-        return echoRequest.toString().getBytes();
     }
 
-    private static String getUserName() {
-        return System.getenv().get("USERNAME");
-    }
-    
-    /**
-     * Проверка существования инстанции в реестре, установление соединения и если 
-     * метод вызван обработчиком multicast пакетов - отправка ответа непосредственно
-     * отправителю.
-     * @param instance Инстанция - содержит необходиные данные для подключения.
-     * @param forward "Прямое" соединение, требуется отправка ответа.
-     */
-    private boolean connect(Instance instance, boolean forward) {
-        synchronized (instances) {
-            if (instances.stream().filter((registered) -> registered.equals(instance)).findFirst().orElse(null) == null) {
-                linkInstance(instance);
-            } else {
-                return false;
+    private class Discover extends Thread {
+
+        private final int rpcPort, kcaPort;
+        private final InetAddress group = InetAddress.getByName(GROUP_ADDR);
+        private final DatagramChannel     udpChannel = DatagramChannel.open(StandardProtocolFamily.INET);
+        private final ServerSocketChannel tcpChannel = ServerSocketChannel.open();
+        private final Selector            selector   = Selector.open();
+
+        private Discover(int rpcPort) throws IOException {
+            setDaemon(true);
+            setName("Discover thread");
+
+            udpChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
+            udpChannel.bind(new InetSocketAddress(GROUP_PORT));
+            udpChannel.configureBlocking(false);
+            for (NetworkInterface netInterface : InstanceCommunicationService.IFACE_ADDRS.keySet()) {
+                udpChannel.setOption(StandardSocketOptions.IP_MULTICAST_IF, netInterface);
+                udpChannel.join(group, netInterface);
             }
-        }
-        new Thread(() -> {
-            try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(instance.address, instance.kcaPort), 1000);
-                Logger.getContextLogger(NetContext.class).debug(
-                        "{0} connection established: {1}:{2}",
-                        forward ? "Forward" : "Backward",
-                        instance.address,
-                        String.valueOf(instance.kcaPort)
-                );
-                socket.setKeepAlive(true);
-                
-                if (forward) {
-                    PrintWriter out = new PrintWriter(socket.getOutputStream());
-                    Logger.getContextLogger(NetContext.class).debug("Send response packet to instance: {0}", instance);
-                    out.println(new String(prepareEcho()));
-                    out.flush();
-                }
-                socket.getInputStream().read();
-            } catch (IOException e) {
-                // Do nothing. Unlink instance in finalization
-            } finally {
-                synchronized (instances) {
-                    if (instances.contains(instance)) {
-                        unlinkInstance(instance);
-                    }
-                }
-            }
-        }).start();
-        return true;
-    }
-    
-    /**
-     * Обработчик ответов.
-     */
-    private class AcceptHandler extends Thread {
-        
-        private final Socket clientSocket;
-        private AcceptHandler(Socket socket) {
-            this.clientSocket = socket;
+
+            tcpChannel.configureBlocking( false );
+            tcpChannel.socket().bind(new InetSocketAddress(0));
+
+            this.rpcPort = rpcPort;
+            this.kcaPort = tcpChannel.socket().getLocalPort();
         }
 
         @Override
         public void run() {
             try {
+                udpChannel.register(selector, SelectionKey.OP_READ,   new UdpServerHandler());
+                tcpChannel.register(selector, SelectionKey.OP_ACCEPT, new TcpServerHandler());
+                broadcast(prepareEcho());
+
                 while (true) {
-                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                    String input = bufferedReader.readLine();
-                    if (input != null && !input.isEmpty()) {
-                        try {
-                            EchoDocument echoRqDoc = EchoDocument.Factory.parse(input);
-                            Logger.getContextLogger(NetContext.class).debug(
-                                    "Received response packet from {0}\n({1})\nData: {2}",
-                                    echoRqDoc.getEcho().getHost(),
-                                    clientSocket.getRemoteSocketAddress(),
-                                    input
-                            );
-                            Instance remoteInstance = new Instance(
-                                    ((InetSocketAddress) clientSocket.getRemoteSocketAddress()).getAddress(),
-                                    echoRqDoc.getEcho().getHost(),
-                                    echoRqDoc.getEcho().getUser(),
-                                    echoRqDoc.getEcho().getRpcPort(), 
-                                    echoRqDoc.getEcho().getKcaPort()
-                            );
-                            connect(remoteInstance, false);
-                        } catch (XmlException e) {
-                            //
-                        }
-                    } else {
-                        break;
+                    try {
+                        selector.select();
+                        Set<SelectionKey> events = selector.selectedKeys();
+                        new HashSet<>(events).forEach(event -> {
+                            events.remove(event);
+                            if (event.isValid()) {
+                                if (event.isAcceptable()) {
+                                    ServerSocketHandler socketHandler = (ServerSocketHandler) event.attachment();
+                                    socketHandler.accept(event);
+                                } else if (event.isConnectable()) {
+                                    ClientSocketHandler socketHandler = (ClientSocketHandler) event.attachment();
+                                    socketHandler.connect(event);
+                                } else if (event.isReadable()) {
+                                    SocketHandler socketHandler = (SocketHandler) event.attachment();
+                                    socketHandler.read(event);
+                                } else if (event.isWritable()) {
+                                    ClientSocketHandler socketHandler = (ClientSocketHandler) event.attachment();
+                                    socketHandler.write(event);
+                                }
+                            }
+                        });
+                    } catch (Throwable e) {
+                        e.printStackTrace();
                     }
                 }
             } catch (IOException e) {
-                // Do nothing. Close connection in finalization
-            } finally {
-                try {
-                    clientSocket.close();
-                } catch (IOException e) {
-                    //
-                }
+                Logger.getLogger().warn("Unable to start discover thread", e);
             }
         }
-    
-    }
-    
-    /**
-     * Обработчик multicast-запросов.
-     */
-    private class RequestHandler implements Runnable {
-        
-        private final MulticastSocket socket;
-        
-        RequestHandler(MulticastSocket socket) {
-            this.socket = socket;
+
+        /**
+         * Посылка multicast-пакета для поиска запущенных инстанций.
+         * @param data Байт-массив пакета.
+         */
+        private void broadcast(byte[] data) {
+            DatagramPacket datagramPacket = new DatagramPacket(data, data.length, group, GROUP_PORT);
+            try (MulticastSocket mcastSenderSocket = new MulticastSocket()) {
+                for (InetAddress address : InstanceCommunicationService.IFACE_ADDRS.values()) {
+                    if (address.getHostAddress().equals("10.7.3.166")) {
+                        Logger.todo("Пока не рассылаем пакеты в С+ сеть");
+                        continue;
+                    }
+                    Logger.getContextLogger(NetContext.class).debug("Send multicast request packet to interface: {0}", address.getHostAddress());
+                    mcastSenderSocket.setInterface(address);
+                    mcastSenderSocket.send(datagramPacket);
+                }
+            } catch (IOException e) {
+                Logger.getLogger().warn("ICS: Send request packet error", e);
+            }
         }
 
-        @Override
-        public void run() {
-            byte[] buf = new byte[256];
-            broadcast(prepareEcho());
-            
-            while (true) {
-                DatagramPacket packet = new DatagramPacket(buf, buf.length);
+        /**
+         * Подготовка байт-массива эхо-пакета.
+         * Пакет представляет собой XML-документ вида:
+         * <pre>{@code
+         * <Echo host="..." user="..." rpcPort="..." kcaPort="..."/>
+         * где
+         * * host - Имя локального хоста
+         * * user - Имя локального пользователя
+         * * rpcPort - Номер порта реестра сетевых сервисов (RMI).
+         * * kcaPort - Номер порта для установки постоянного соединения.
+         * }</pre>
+         */
+        private byte[] prepareEcho() {
+            final EchoDocument echoRequest = EchoDocument.Factory.newInstance();
+            final EchoDocument.Echo echo = echoRequest.addNewEcho();
+            try {
+                echo.setHost(InetAddress.getLocalHost().getCanonicalHostName());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            echo.setUser(getUserName());
+            echo.setRpcPort(rpcPort);
+            echo.setKcaPort(kcaPort);
+            return echoRequest.xmlText().getBytes();
+        }
+
+        private String getUserName() {
+            return System.getenv().get("USERNAME");
+        }
+
+
+        private abstract class SocketHandler {
+            abstract void read(SelectionKey event);
+        }
+
+        private abstract class ServerSocketHandler extends SocketHandler {
+            final EchoDocument parseMessage(byte[] data) {
                 try {
-                    socket.receive(packet);
-                } catch (IOException e) {
-                    Logger.getLogger().warn("ICS: Socket error", e);
-                    continue;
-                }
-                try {
-                    boolean ownPacket = InstanceCommunicationService.IFACE_ADDRS.values().stream()
-                            .anyMatch((localAddress) ->
-                                    packet.getSocketAddress().equals(new InetSocketAddress(localAddress, mcastSenderSocket.getLocalPort()))
-                            );
-                    if (!ownPacket) {
-                        EchoDocument echoRqDoc = EchoDocument.Factory.parse(
-                            new ByteArrayInputStream(packet.getData(), 0, packet.getLength())
-                        );
-                        Logger.getContextLogger(NetContext.class).debug(
-                                "Received request packet from {0}\n({1})\nData: {2}",
-                                echoRqDoc.getEcho().getHost(),
-                                packet.getSocketAddress(),
-                                new String(packet.getData(), 0, packet.getLength())
-                        );
-                        Instance remoteInstance = new Instance(
-                                packet.getAddress(),
-                                echoRqDoc.getEcho().getHost(),
-                                echoRqDoc.getEcho().getUser(),
-                                echoRqDoc.getEcho().getRpcPort(), 
-                                echoRqDoc.getEcho().getKcaPort()
-                        );
-                        connect(remoteInstance, true);
-                    }
+                    return EchoDocument.Factory.parse(new ByteArrayInputStream(data));
                 } catch (XmlException | IOException e) {
                     e.printStackTrace();
                 }
+                return null;
+            }
+
+            abstract void accept(SelectionKey event);
+        }
+
+        private abstract class ClientSocketHandler extends SocketHandler {
+
+            private final Instance instance;
+            private final boolean  sendEcho;
+
+            ClientSocketHandler(Instance instance, boolean sendEcho) {
+                this.instance = instance;
+                this.sendEcho = sendEcho;
+            }
+
+            abstract void connect(SelectionKey event);
+            abstract void write(SelectionKey event);
+
+            protected final Instance getInstance() {
+                return instance;
+            }
+
+            protected final boolean needEcho() {
+                return sendEcho;
+            }
+        }
+
+        private class UdpServerHandler extends ServerSocketHandler {
+
+            @Override
+            void read(SelectionKey event) {
+                final ByteBuffer buffer = ByteBuffer.allocate(256);
+                buffer.clear();
+                DatagramChannel datagramChannel = (DatagramChannel) event.channel();
+                try {
+                    InetSocketAddress remoteAddress = (InetSocketAddress) datagramChannel.receive(buffer);
+                    buffer.flip();
+                    processMessage(remoteAddress, Arrays.copyOf(buffer.array(), buffer.remaining()));
+                } catch (IOException e) {
+                    Logger.getLogger().warn("Unexpected error", e);
+                }
+            }
+
+            private boolean isRemoteMessage(InetSocketAddress remoteAddress) {
+                return InstanceCommunicationService.IFACE_ADDRS.values().stream()
+                        .noneMatch(localAddress -> localAddress.getHostAddress().equals(remoteAddress.getHostString()));
+            }
+
+            final void processMessage(InetSocketAddress remoteAddress, byte[] data) {
+                if (remoteAddress != null && isRemoteMessage(remoteAddress)) {
+                    EchoDocument message = parseMessage(data);
+                    if (message != null) {
+                        Logger.getContextLogger(NetContext.class).debug(
+                                "Received echo packet from {0} ({1})\nData: {2}",
+                                message.getEcho().getHost(),
+                                remoteAddress.getHostString(),
+                                new String(data)
+                        );
+                        try {
+                            SocketChannel socketChannel = SocketChannel.open();
+                            socketChannel.configureBlocking(false);
+                            socketChannel.socket().setSoTimeout(1000);
+                            socketChannel.register(
+                                    selector,
+                                    SelectionKey.OP_CONNECT,
+                                    new TcpClientHandler(
+                                            new Instance(
+                                                    remoteAddress.getAddress(),
+                                                    message.getEcho().getHost(),
+                                                    message.getEcho().getUser(),
+                                                    message.getEcho().getRpcPort(),
+                                                    message.getEcho().getKcaPort()
+                                            ),
+                                            true
+                                    )
+                            );
+                            socketChannel.connect(new InetSocketAddress(
+                                    remoteAddress.getAddress(),
+                                    message.getEcho().getKcaPort()
+                            ));
+                        } catch (IOException e) {
+                            Logger.getLogger().warn("Unexpected error", e);
+                        }
+                    }
+                }
+            }
+
+            @Override
+            void accept(SelectionKey event) {
+                throw new IllegalStateException();
+            }
+        }
+
+        private class TcpServerHandler extends ServerSocketHandler {
+
+            private Instance instance;
+
+            @Override
+            void read(SelectionKey event) {
+                final ByteBuffer buffer = ByteBuffer.allocate(256);
+                buffer.clear();
+                SocketChannel socketChannel = (SocketChannel) event.channel();
+                try {
+                    InetSocketAddress remoteAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
+                    socketChannel.read(buffer);
+                    buffer.flip();
+                    processMessage(remoteAddress, Arrays.copyOf(buffer.array(), buffer.remaining()));
+                } catch (IOException ignore) {
+                    if (instance != null) {
+                        unlinkInstance(instance);
+                    }
+                    event.cancel();
+                }
+            }
+
+            @Override
+            void accept(SelectionKey event) {
+                ServerSocketChannel serverSocketChannel = (ServerSocketChannel) event.channel();
+                try {
+                    SocketChannel socketChannel = serverSocketChannel.accept();
+                    socketChannel.configureBlocking(false);
+                    socketChannel.register(
+                            selector,
+                            SelectionKey.OP_READ,
+                            this
+                    );
+                } catch (IOException e) {
+                    Logger.getLogger().warn("Unexpected error", e);
+                    event.cancel();
+                }
+            }
+
+            final void processMessage(InetSocketAddress remoteAddress, byte[] data) {
+                if (remoteAddress != null) {
+                    EchoDocument message = parseMessage(data);
+                    if (message != null) {
+                        Logger.getContextLogger(NetContext.class).debug(
+                                "Received echo packet from {0} ({1})\nData: {2}",
+                                message.getEcho().getHost(),
+                                remoteAddress.getHostString(),
+                                new String(data)
+                        );
+                        instance = new Instance(
+                                remoteAddress.getAddress(),
+                                message.getEcho().getHost(),
+                                message.getEcho().getUser(),
+                                message.getEcho().getRpcPort(),
+                                message.getEcho().getKcaPort()
+                        );
+                        linkInstance(instance);
+                    }
+                }
+            }
+        }
+
+        private class TcpClientHandler extends ClientSocketHandler {
+
+            TcpClientHandler(Instance instance, boolean sendEcho) {
+                super(instance, sendEcho);
+            }
+
+            @Override
+            void read(SelectionKey event) {
+                final ByteBuffer buffer = ByteBuffer.allocate(256);
+                buffer.clear();
+                SocketChannel socketChannel = (SocketChannel) event.channel();
+                try {
+                    socketChannel.read(buffer);
+                } catch (IOException e) {
+                    Logger.getContextLogger(NetContext.class).debug(
+                            "Connection lost: {0}:{1}",
+                            getInstance().address, String.valueOf(getInstance().kcaPort)
+                    );
+                    unlinkInstance(getInstance());
+                    event.cancel();
+                }
+            }
+
+            @Override
+            void connect(SelectionKey event) {
+                SocketChannel socketChannel = (SocketChannel) event.channel();
+                try {
+                    socketChannel.finishConnect();
+                    Logger.getContextLogger(NetContext.class).debug(
+                            "Connection established: {0}:{1}",
+                            getInstance().address, String.valueOf(getInstance().kcaPort)
+                    );
+                    linkInstance(getInstance());
+                    event.interestOps(needEcho() ? SelectionKey.OP_WRITE : SelectionKey.OP_READ);
+                } catch (IOException e) {
+                    Logger.getContextLogger(NetContext.class).debug(
+                            "Unable to establish connection: {0}:{1}",
+                            getInstance().address, String.valueOf(getInstance().kcaPort)
+                    );
+                    event.cancel();
+                }
+            }
+
+            @Override
+            void write(SelectionKey event) {
+                try {
+                    SocketChannel socketChannel = (SocketChannel) event.channel();
+                    Logger.getContextLogger(NetContext.class).debug(
+                            "Sent response packet: {0}:{1}",
+                            getInstance().address, String.valueOf(getInstance().kcaPort)
+                    );
+                    socketChannel.write(ByteBuffer.wrap(prepareEcho()));
+                } catch (IOException e) {
+                    Logger.getLogger().warn("Unexpected error", e);
+                } finally {
+                    event.interestOps(SelectionKey.OP_READ);
+                }
             }
         }
     }
-    
-    
 }

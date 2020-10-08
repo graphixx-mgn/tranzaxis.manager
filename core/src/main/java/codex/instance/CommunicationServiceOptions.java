@@ -5,7 +5,9 @@ import codex.service.RemoteServiceOptions;
 import codex.model.Entity;
 import codex.service.Service;
 import codex.type.EntityRef;
+import net.jcip.annotations.ThreadSafe;
 
+@ThreadSafe
 @EntityDefinition(icon = "/images/remotehost.png")
 public class CommunicationServiceOptions extends Service<InstanceCommunicationService> {
     public CommunicationServiceOptions(EntityRef owner, String title) {

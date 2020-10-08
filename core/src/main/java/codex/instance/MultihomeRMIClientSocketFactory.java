@@ -1,7 +1,5 @@
 package codex.instance;
 
-//http://weblogs.java.net/blog/emcmanus/archive/2006/12/multihomed_comp.html
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
@@ -17,17 +15,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-//https://community.oracle.com/blogs/emcmanus/2006/12/22/multihomed-computers-and-rmi
 public class MultihomeRMIClientSocketFactory implements RMIClientSocketFactory, Serializable {
     
     private static final long serialVersionUID = 7033753601964541325L;
 
-    private final RMIClientSocketFactory factory;
     private final String[] hosts;
 
     public MultihomeRMIClientSocketFactory(final String[] hosts) {
         this.hosts = hosts;
-        factory = null;
     }
 
     @Override
@@ -35,24 +30,24 @@ public class MultihomeRMIClientSocketFactory implements RMIClientSocketFactory, 
         if (hosts.length < 2) {
             return this.factory().createSocket(hostString, port);
         }
-
         final List<IOException> exceptions = new ArrayList<>();
         final Selector selector = Selector.open();
         for (final String host : hosts) {
             final SocketChannel channel = SocketChannel.open();
             channel.configureBlocking(false);
+            channel.socket().setSoTimeout(1000);
             channel.register(selector, SelectionKey.OP_CONNECT);
             final SocketAddress addr = new InetSocketAddress(host, port);
             channel.connect(addr);
         }
-        SocketChannel connectedChannel = null;
 
+        SocketChannel connectedChannel;
         connect: 
         while (true) {
             if (selector.keys().isEmpty()) {
                 throw new IOException("Connection failed for " + hostString + ": " + exceptions);
             }
-            selector.select(2000);
+            selector.select(1000);
             final Set<SelectionKey> keys = selector.selectedKeys();
             if (keys.isEmpty()) {
                 throw new IOException("Selection keys unexpectedly empty for " + hostString + "[exceptions: " + exceptions + "]");
@@ -70,7 +65,7 @@ public class MultihomeRMIClientSocketFactory implements RMIClientSocketFactory, 
                 }
             }
         }
-        assert connectedChannel != null;
+
         for (final SelectionKey key : selector.keys()) {
             final Channel channel = key.channel();
             if (channel != connectedChannel) {
@@ -79,11 +74,16 @@ public class MultihomeRMIClientSocketFactory implements RMIClientSocketFactory, 
         }
 
         final Socket socket = connectedChannel.socket();
-        if (factory == null && RMISocketFactory.getSocketFactory() == null)
-            return socket;
-        String host = socket.getInetAddress().getHostAddress();
-        socket.close();
-        return factory().createSocket(host, port);
+        try {
+            if (RMISocketFactory.getSocketFactory() == null) {
+                return socket;
+            }
+            String host = socket.getInetAddress().getHostAddress();
+            socket.close();
+            return factory().createSocket(host, port);
+        } finally {
+            selector.close();
+        }
     }
 
     @Override
@@ -91,14 +91,10 @@ public class MultihomeRMIClientSocketFactory implements RMIClientSocketFactory, 
         if (x.getClass() != this.getClass()) {
             return false;
         }
-        final MultihomeRMIClientSocketFactory f = (MultihomeRMIClientSocketFactory) x;
-        return factory == null ? f.factory == null : factory.equals(f.factory);
+        return true;
     }
 
     private RMIClientSocketFactory factory() {
-        if (factory != null) {
-            return factory;
-        }
         final RMIClientSocketFactory f = RMISocketFactory.getSocketFactory();
         if (f != null) {
             return f;
@@ -108,10 +104,6 @@ public class MultihomeRMIClientSocketFactory implements RMIClientSocketFactory, 
 
     @Override
     public int hashCode() {
-        int h = this.getClass().hashCode();
-        if (factory != null) {
-            h += factory.hashCode();
-        }
-        return h;
+        return this.getClass().hashCode();
     }
 }

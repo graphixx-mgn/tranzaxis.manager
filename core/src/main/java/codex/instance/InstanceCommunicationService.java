@@ -3,6 +3,7 @@ package codex.instance;
 import codex.context.IContext;
 import codex.service.*;
 import codex.log.Logger;
+import net.jcip.annotations.ThreadSafe;
 import org.atteo.classindex.ClassIndex;
 import java.io.IOException;
 import java.net.*;
@@ -11,18 +12,20 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
  * Сервис взаимодействия инстанций.
  */
+@ThreadSafe
 @IContext.Definition(id = "ICS", name = "Instance Dispatcher", icon = "/images/localhost.png")
 public final class InstanceCommunicationService extends AbstractService<CommunicationServiceOptions> implements IInstanceDispatcher, IContext {
     
     /**
      * Карта доступных сетевых интерфейсов и их IP адресов.
      */
-    public static Map<NetworkInterface, InetAddress> IFACE_ADDRS = loadInterfaces();
+    public static Map<NetworkInterface, InetAddress> IFACE_ADDRS = Collections.unmodifiableMap(loadInterfaces());
     
     private final ServerSocket rmiSocket = new ServerSocket(0);
     private final Registry     rmiRegistry = LocateRegistry.createRegistry(0, null, (port) -> rmiSocket);
@@ -31,13 +34,17 @@ public final class InstanceCommunicationService extends AbstractService<Communic
         protected void linkInstance(Instance instance) {
             super.linkInstance(instance);
             Logger.getLogger().debug("Link remote instance {0}", instance);
-            new LinkedList<>(listeners).forEach((listener) -> listener.instanceLinked(instance));
+            synchronized (listeners) {
+                listeners.forEach((listener) -> listener.instanceLinked(instance));
+            }
         }
         @Override
         protected void unlinkInstance(Instance instance) {
             super.unlinkInstance(instance);
             Logger.getLogger().debug("Unlink remote instance {0}", instance);
-            new LinkedList<>(listeners).forEach((listener) -> listener.instanceUnlinked(instance));
+            synchronized (listeners) {
+                listeners.forEach((listener) -> listener.instanceUnlinked(instance));
+            }
         }
     };
     
@@ -83,12 +90,17 @@ public final class InstanceCommunicationService extends AbstractService<Communic
 
     @Override
     public void addInstanceListener(IInstanceListener listener) {
-        listeners.add(listener);
+        synchronized (listeners) {
+            listeners.add(listener);
+        }
+        getInstances().forEach(listener::instanceLinked);
     }
 
     @Override
     public void removeInstanceListener(IInstanceListener listener) {
-        listeners.remove(listener);
+        synchronized (listeners) {
+            listeners.remove(listener);
+        }
     }
 
     @Override
@@ -97,9 +109,7 @@ public final class InstanceCommunicationService extends AbstractService<Communic
         for (String className : rmiRegistry.list()) {
             try {
                 services.put(className, getService(className));
-            } catch (NotBoundException e) {
-                //
-            }
+            } catch (NotBoundException ignore) {}
         }
         return services;
     }

@@ -2,7 +2,7 @@ package codex.instance;
 
 import codex.service.IRemoteService;
 import codex.service.ServiceRegistry;
-
+import net.jcip.annotations.ThreadSafe;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.rmi.NotBoundException;
@@ -20,13 +20,13 @@ import java.util.Objects;
  * Класс-контейнер для хранения информации об удаленной инстанции и 
  * обращения к её сервисам.
  */
+@ThreadSafe
 public final class Instance implements IInstanceCommunicationService {
     
     final String       host;
     final String       user;
     final InetAddress  address;
     final int rpcPort, kcaPort;
-    final Registry     registry;
 
     public static Instance getRemoteInstance() {
         try {
@@ -49,23 +49,27 @@ public final class Instance implements IInstanceCommunicationService {
      * @param kcaPort НОмер порта для установки постоянного соединения. 
      * Используется для отслеживания разрыва соединения.
      */
-    Instance(InetAddress address, String host, String user, int rpcPort, int kcaPort) throws RemoteException {
+    Instance(InetAddress address, String host, String user, int rpcPort, int kcaPort) {
         this.host     = host;
         this.user     = user;
         this.address  = address;
         this.rpcPort  = rpcPort;
         this.kcaPort  = kcaPort;
-        this.registry = LocateRegistry.getRegistry(address.getHostAddress(), rpcPort);
     }
     
     @Override
     public String toString() {
-        return MessageFormat.format("[host={0}, user={1}, addr={2}]", host, user, address);
+        return MessageFormat.format(
+                "[host={0}, user={1}, addr={2}]",
+                host, user, address.getHostAddress()
+        );
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(host, user, address);
+    /**
+     * Возвращает имя пользователя удаленной инстанции.
+     */
+    public String getUser() {
+        return user;
     }
 
     /**
@@ -74,19 +78,22 @@ public final class Instance implements IInstanceCommunicationService {
     public final InetSocketAddress getRemoteAddress() {
         return new InetSocketAddress(address, rpcPort);
     }
-    
+
+    private Registry getRegistry() throws RemoteException {
+        return LocateRegistry.getRegistry(address.getHostAddress(), rpcPort);
+    }
+
     /**
      * Возвращает карту имен и ссылок сетевых сервисов.
      */
     @Override
     public Map<String, IRemoteService> getServices() throws RemoteException {
-        Map<String, IRemoteService> registered = new HashMap<>();
+        final Map<String, IRemoteService> registered = new HashMap<>();
+        final Registry registry = getRegistry();
         for (String className : registry.list()) {
             try {
                 registered.put(className, (IRemoteService) registry.lookup(className));
-            } catch (NotBoundException e) {
-                //
-            }
+            } catch (NotBoundException ignore) {}
         }
         return registered;
     }
@@ -98,18 +105,21 @@ public final class Instance implements IInstanceCommunicationService {
     
     @Override
     public IRemoteService getService(String className) throws RemoteException, NotBoundException {
-        return (IRemoteService) registry.lookup(className);
+        return (IRemoteService) getRegistry().lookup(className);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        Instance instance = (Instance) obj;
-        return host.equals(instance.host) && 
-               user.equals(instance.user) &&
-               address.equals(instance.address);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Instance instance = (Instance) o;
+        return host.equals(instance.host) &&
+                user.equals(instance.user) &&
+                address.equals(instance.address);
     }
 
-    public String getUser() {
-        return user;
+    @Override
+    public int hashCode() {
+        return Objects.hash(host, user, address);
     }
 }

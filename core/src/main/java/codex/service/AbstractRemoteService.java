@@ -33,7 +33,7 @@ public abstract class AbstractRemoteService<P extends RemoteServiceOptions, C ex
                         getClass()
                 );
                 serviceConfig = (P) Entity.newInstance(optClass, null, getTitle());
-            } catch (RemoteException e) {
+            } catch (RemoteException ignore) {
                 // Must not appear
             }
         }
