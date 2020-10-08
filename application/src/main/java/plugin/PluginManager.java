@@ -8,6 +8,7 @@ import codex.explorer.tree.Navigator;
 import codex.explorer.tree.NodeTreeModel;
 import codex.instance.IInstanceDispatcher;
 import codex.log.Logger;
+import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
 import codex.utils.ImageUtils;
@@ -50,6 +51,24 @@ public final class PluginManager extends AbstractUnit {
     private ExplorerUnit        explorer;
     private final PluginCatalog pluginCatalog = new PluginCatalog();
     private final PluginLoader  pluginLoader  = new PluginLoader() {
+
+        {
+            IInstanceDispatcher localICS = ServiceRegistry.getInstance().lookupService(IInstanceDispatcher.class);
+            getPackages().stream()
+                    .filter(pluginPackage -> Entity.newInstance(PackageView.class, null, pluginPackage.getTitle()).isPublished())
+                    .map(IPluginLoaderService.RemotePackage::new)
+                    .forEach(remotePackage -> {
+                        localICS.getInstances().forEach(instance -> {
+                            try {
+                                final IPluginLoaderService pluginLoader = (IPluginLoaderService) instance.getService(PluginLoaderService.class);
+                                pluginLoader.packagePublicationChanged(remotePackage, true);
+                            } catch (RemoteException | NotBoundException e) {
+                                e.printStackTrace();
+                            }
+                        });
+                    });
+        }
+
         @Override
         void addPluginPackage(PluginPackage pluginPackage) {
             super.addPluginPackage(pluginPackage);
@@ -91,9 +110,9 @@ public final class PluginManager extends AbstractUnit {
         ServiceRegistry.getInstance().addRegistryListener(IInstanceDispatcher.class, service -> {
             IInstanceDispatcher localICS = (IInstanceDispatcher) service;
             localICS.registerRemoteService(PluginLoaderService.class);
-
             try {
-                ((PluginLoaderService) localICS.getService(PluginLoaderService.class)).addPublicationListener(pluginCatalog.getCommand(ShowPackagesUpdates.class));
+                PluginLoaderService pluginLoaderService = (PluginLoaderService) localICS.getService(PluginLoaderService.class);
+                pluginLoaderService.addPublicationListener(pluginCatalog.getCommand(ShowPackagesUpdates.class));
             } catch (RemoteException e) {
                 Logger.getLogger().warn("Unable to find plugin loader service", e);
             } catch (NotBoundException ignore) {
