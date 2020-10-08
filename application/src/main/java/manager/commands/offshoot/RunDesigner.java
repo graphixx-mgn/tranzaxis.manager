@@ -61,8 +61,6 @@ public class RunDesigner extends EntityCommand<Offshoot> {
                 addAll(offshoot.getJvmDesigner().stream().map("-J"::concat).collect(Collectors.toList()));
                 add("--userdir");
                 add(confDir.toString());
-                add("--console");
-                add("suppress");
             }};
             
             ProcessBuilder builder = new ProcessBuilder(args);
