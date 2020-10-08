@@ -130,7 +130,7 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog>
 
     @Override
     public final void instanceLinked(Instance instance) {
-        SwingUtilities.invokeLater(() -> {
+        new Thread(() -> {
             try {
                 final IPluginLoaderService pluginLoader = (IPluginLoaderService) instance.getService(PluginLoaderService.class);
                 registerPackages(instance, pluginLoader.getPublishedPackages(LocaleContextHolder.getLocale()));
@@ -139,7 +139,7 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog>
             } catch (RemoteException e) {
                 Logger.getLogger().warn(MessageFormat.format("Failed remote service ''{0}'' call to instance ''{1}''", PluginLoaderService.class, instance), e);
             }
-        });
+        }).start();
     }
 
     @Override
@@ -180,15 +180,13 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog>
         }
     }
 
-    private synchronized void registerPackages(Instance instance, List<IPluginLoaderService.RemotePackage> packages) {
+    private void registerPackages(Instance instance, List<IPluginLoaderService.RemotePackage> packages) {
         synchronized (remotePackages) {
             boolean changed = false;
             for (IPluginLoaderService.RemotePackage remotePackage : packages) {
                 if (!remotePackage.validatePackage()) {
                     continue;
                 }
-                remotePackage.addInstance(instance);
-
                 boolean isNew = isNew(remotePackage);
                 boolean isUpd = !isNew && isUpdate(remotePackage);
                 if (isUpd && getCatalog().onUpdateOption() == PluginCatalog.OnUpdate.Install) {
@@ -215,7 +213,10 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog>
                         );
                     }
                     if (!remotePackages.contains(remotePackage)) {
+                        remotePackage.addInstance(instance);
                         remotePackages.add(remotePackage);
+                    } else {
+                        remotePackages.get(remotePackages.indexOf(remotePackage)).addInstance(instance);
                     }
                     changed = true;
                 }
