@@ -43,19 +43,6 @@ class LookupServer {
      */
     LookupServer(int rpcPort) throws IOException {
         discover = new Discover(rpcPort);
-
-        try {
-            RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();
-            Field jvm = runtime.getClass().getDeclaredField("jvm");
-            jvm.setAccessible(true);
-            VMManagement mgmt = (VMManagement) jvm.get(runtime);
-            Method pid_method = mgmt.getClass().getDeclaredMethod("getProcessId");
-            pid_method.setAccessible(true);
-            int pid = (Integer) pid_method.invoke(mgmt);
-            System.err.println("PID: "+pid);
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
     }
     
     /**
