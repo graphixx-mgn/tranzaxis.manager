@@ -154,10 +154,6 @@ class LookupServer {
             DatagramPacket datagramPacket = new DatagramPacket(data, data.length, group, GROUP_PORT);
             try (MulticastSocket mcastSenderSocket = new MulticastSocket()) {
                 for (InetAddress address : InstanceCommunicationService.IFACE_ADDRS.values()) {
-                    if (address.getHostAddress().equals("10.7.3.166")) {
-                        Logger.todo("Пока не рассылаем пакеты в С+ сеть");
-                        continue;
-                    }
                     Logger.getContextLogger(NetContext.class).debug("Send multicast request packet to interface: {0}", address.getHostAddress());
                     mcastSenderSocket.setInterface(address);
                     mcastSenderSocket.send(datagramPacket);
