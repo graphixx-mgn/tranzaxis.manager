@@ -81,21 +81,30 @@ public class BuildSourceTask extends AbstractTask<Error> {
         } else {
             classPath = System.getProperty("java.class.path");
         }
-        StringJoiner radixBinPath = new StringJoiner(File.separator)
-                .add(offshoot.getLocalPath())
-                .add("org.radixware")
-                .add("kernel")
-                .add("common")
-                .add("bin")
-                .add("*");
-        StringJoiner radixLibPath = new StringJoiner(File.separator)
-                .add(offshoot.getLocalPath())
-                .add("org.radixware")
-                .add("kernel")
-                .add("common")
-                .add("lib")
-                .add("*");
-        classPath = radixBinPath+";"+radixLibPath+";"+classPath;
+        String radixBinPath = String.join(
+                File.separator,
+                offshoot.getLocalPath(),
+                "org.radixware",
+                "kernel",
+                "common",
+                "bin",
+                "*"
+        );
+        String radixLibPath = String.join(
+                File.separator,
+                offshoot.getLocalPath(),
+                "org.radixware",
+                "kernel",
+                "common",
+                "lib",
+                "*"
+        );
+        classPath = String.join(
+                File.pathSeparator,
+                radixBinPath,
+                radixLibPath,
+                classPath
+        );
         command.add("-cp");
         command.add(classPath);
 

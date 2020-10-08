@@ -15,6 +15,8 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class BuildKernelTask extends AbstractTask<Void> {
 
@@ -55,21 +57,31 @@ public class BuildKernelTask extends AbstractTask<Void> {
         }
 
         String javacPath = Runtime.JVM.compiler.get().getPath();
-        StringJoiner radixBinPath = new StringJoiner(File.separator)
-            .add(offshoot.getLocalPath())
-            .add("org.radixware")
-            .add("kernel")
-            .add("common")
-            .add("bin")
-            .add("*");
-        StringJoiner radixLibPath = new StringJoiner(File.separator)
-            .add(offshoot.getLocalPath())
-            .add("org.radixware")
-            .add("kernel")
-            .add("common")
-            .add("lib")
-            .add("*");
-        classPath = radixBinPath+";"+radixLibPath+";"+classPath+";"+javacPath;
+        String radixBinPath = String.join(
+                File.separator,
+                offshoot.getLocalPath(),
+                "org.radixware",
+                "kernel",
+                "common",
+                "bin",
+                "*"
+        );
+        String radixLibPath = String.join(
+                File.separator,
+                offshoot.getLocalPath(),
+                "org.radixware",
+                "kernel",
+                "common",
+                "lib",
+                "*"
+        );
+        classPath = String.join(
+                File.pathSeparator,
+                radixBinPath,
+                radixLibPath,
+                classPath,
+                javacPath
+        );
         command.add("-cp");
         command.add(classPath);
 
