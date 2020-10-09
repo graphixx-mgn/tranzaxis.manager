@@ -10,5 +10,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface LoggingSource {
     boolean debugOption() default false;
+    Level   defaultLevel() default Level.Info;
     Class<? extends IContext.IContextProvider> ctxProvider() default IContext.DefaultContextProvider.class;
 }

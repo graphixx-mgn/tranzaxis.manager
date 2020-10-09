@@ -274,7 +274,7 @@ public class Logger extends org.apache.log4j.Logger {
                 return Level.valueOf(level);
             } else {
                 boolean isOption = clazz.getAnnotation(LoggingSource.class).debugOption();
-                return isOption ? Level.Off : Level.Debug;
+                return isOption ? Level.Off : clazz.getAnnotation(LoggingSource.class).defaultLevel();
             }
         }
     }
