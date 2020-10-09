@@ -35,13 +35,15 @@ class MessageSupplier implements IDataSupplier<Message> {
 
     static {
         try {
-            ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).buildClassCatalog(
-                    Message.class,
-                    new HashMap<String, IComplexType>() {{
-                        put(Message.PROP_CREATED, new Str());
-                        put(Message.PROP_STATUS,  new DateTime());
-                    }}
-            );
+            synchronized (MessageInbox.getInstance()) {
+                ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).buildClassCatalog(
+                        Message.class,
+                        new HashMap<String, IComplexType>() {{
+                            put(Message.PROP_CREATED, new Str());
+                            put(Message.PROP_STATUS, new DateTime());
+                        }}
+                );
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
