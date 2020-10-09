@@ -34,8 +34,6 @@ public abstract class Message extends PolyMorph {
         return Entity.newPrototype(messageClass).new Builder<M>(supplierUID);
     }
 
-    private List<IMessageAction> actions = new LinkedList<>();
-
     public Message(EntityRef owner, String UID) {
         super(null, UID);
 
@@ -99,12 +97,8 @@ public abstract class Message extends PolyMorph {
         return (String) model.getUnsavedValue(PROP_CONTENT);
     }
 
-    protected final void addActions(IMessageAction... actions) {
-        this.actions.addAll(Arrays.asList(actions));
-    }
-
-    final List<IMessageAction> getActions() {
-        return new LinkedList<>(actions);
+    protected List<IMessageAction> getActions() {
+        return Collections.emptyList();
     }
 
     protected void onShow() {}
