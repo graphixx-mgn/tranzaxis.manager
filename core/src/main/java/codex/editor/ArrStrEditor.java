@@ -159,7 +159,7 @@ public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
         private ListEditor() {
             super(EDIT_ICON, Language.get("title"));
             activator = holder -> new CommandStatus(
-                    true,
+                    ArrStrEditor.this.isEditable() || !holder.isEmpty(),
                     ArrStrEditor.this.isEditable() && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON
             );
         }
