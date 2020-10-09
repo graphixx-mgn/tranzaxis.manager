@@ -165,81 +165,83 @@ public final class EditorPresentation extends JPanel {
         public final static ImageIcon IMAGE_VIEW  = ImageUtils.getByPath("/images/view.png");
 
         public static void show(Entity context) {
-            boolean allDisabled = context.model.getProperties(Access.Edit).stream().noneMatch((name) -> context.model.getEditor(name).isEditable());
+            SwingUtilities.invokeLater(() -> {
+                boolean allDisabled = context.model.getProperties(Access.Edit).stream().noneMatch((name) -> context.model.getEditor(name).isEditable());
 
-            final codex.component.dialog.Dialog editor = new codex.component.dialog.Dialog(
-                    Dialog.findNearestWindow(),
-                    allDisabled ? IMAGE_VIEW : IMAGE_EDIT,
-                    Language.get(SelectorPresentation.class, allDisabled ? "viewer@title" : "editor@title"),
-                    new JPanel(new BorderLayout()) {{
-                        add(context.getEditorPage(), BorderLayout.NORTH);
+                final codex.component.dialog.Dialog editor = new codex.component.dialog.Dialog(
+                        Dialog.findNearestWindow(),
+                        allDisabled ? IMAGE_VIEW : IMAGE_EDIT,
+                        Language.get(SelectorPresentation.class, allDisabled ? "viewer@title" : "editor@title"),
+                        new JPanel(new BorderLayout()) {{
+                            add(context.getEditorPage(), BorderLayout.NORTH);
 
-                        if (context.getChildCount() > 0) {
-                            SelectorPresentation embedded = context.getSelectorPresentation();
-                            if (embedded != null) {
-                                add(context.getSelectorPresentation(), BorderLayout.CENTER);
-                                embedded.setBorder(new TitledBorder(
-                                        new LineBorder(Color.GRAY, 1),
-                                        IComplexType.coalesce(BrowseMode.getDescription(BrowseMode.getClassHierarchy(context), "group@title"), BrowseMode.SELECTOR_TITLE)
-                                ));
+                            if (context.getChildCount() > 0) {
+                                SelectorPresentation embedded = context.getSelectorPresentation();
+                                if (embedded != null) {
+                                    add(context.getSelectorPresentation(), BorderLayout.CENTER);
+                                    embedded.setBorder(new TitledBorder(
+                                            new LineBorder(Color.GRAY, 1),
+                                            IComplexType.coalesce(BrowseMode.getDescription(BrowseMode.getClassHierarchy(context), "group@title"), BrowseMode.SELECTOR_TITLE)
+                                    ));
+                                }
                             }
-                        }
 
-                        setBorder(new CompoundBorder(
-                                new EmptyBorder(10, 5, 5, 5),
-                                new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())
-                        ));
-                    }},
-                    (event) -> {
-                        if (event.getID() == codex.component.dialog.Dialog.OK) {
-                            if (context.model.hasChanges()) {
-                                try {
-                                    context.model.commit(true);
-                                } catch (Exception e) {
+                            setBorder(new CompoundBorder(
+                                    new EmptyBorder(10, 5, 5, 5),
+                                    new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())
+                            ));
+                        }},
+                        (event) -> {
+                            if (event.getID() == codex.component.dialog.Dialog.OK) {
+                                if (context.model.hasChanges()) {
+                                    try {
+                                        context.model.commit(true);
+                                    } catch (Exception e) {
+                                        context.model.rollback();
+                                    }
+                                }
+                            } else {
+                                if (context.model.hasChanges()) {
                                     context.model.rollback();
                                 }
                             }
-                        } else {
-                            if (context.model.hasChanges()) {
-                                context.model.rollback();
-                            }
+                        },
+                        allDisabled ?
+                                new DialogButton[] { codex.component.dialog.Dialog.Default.BTN_CLOSE.newInstance() } :
+                                new DialogButton[] { codex.component.dialog.Dialog.Default.BTN_OK.newInstance(), codex.component.dialog.Dialog.Default.BTN_CANCEL.newInstance() }
+                ) {{
+                    // Перекрытие обработчика кнопок
+                    Function<DialogButton, ActionListener> defaultHandler = handler;
+                    handler = (button) -> (event) -> {
+                        if (event.getID() != Dialog.OK || context.getInvalidProperties().isEmpty()) {
+                            defaultHandler.apply(button).actionPerformed(event);
                         }
-                    },
-                    allDisabled ?
-                            new DialogButton[] { codex.component.dialog.Dialog.Default.BTN_CLOSE.newInstance() } :
-                            new DialogButton[] { codex.component.dialog.Dialog.Default.BTN_OK.newInstance(), codex.component.dialog.Dialog.Default.BTN_CANCEL.newInstance() }
-            ) {{
-                // Перекрытие обработчика кнопок
-                Function<DialogButton, ActionListener> defaultHandler = handler;
-                handler = (button) -> (event) -> {
-                    if (event.getID() != Dialog.OK || context.getInvalidProperties().isEmpty()) {
-                        defaultHandler.apply(button).actionPerformed(event);
+                    };
+                }
+                    @Override
+                    public Dimension getPreferredSize() {
+                        return new Dimension(700, super.getPreferredSize().height);
                     }
                 };
-            }
-                @Override
-                public Dimension getPreferredSize() {
-                    return new Dimension(700, super.getPreferredSize().height);
-                }
-            };
 
-            context.model.getProperties(Access.Edit).stream()
-                    .map(context.model::getEditor)
-                    .forEach((propEditor) -> propEditor.getEditor().addComponentListener(new ComponentAdapter() {
-                        @Override
-                        public void componentHidden(ComponentEvent e) {
-                            editor.pack();
-                        }
+                context.model.getProperties(Access.Edit).stream()
+                        .map(context.model::getEditor)
+                        .forEach((propEditor) -> propEditor.getEditor().addComponentListener(new ComponentAdapter() {
+                            @Override
+                            public void componentHidden(ComponentEvent e) {
+                                editor.pack();
+                            }
 
-                        @Override
-                        public void componentShown(ComponentEvent e) {
-                            editor.pack();
-                        }
-                    }));
+                            @Override
+                            public void componentShown(ComponentEvent e) {
+                                editor.pack();
+                            }
+                        }));
 
-            editor.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-            editor.setResizable(false);
-            editor.setVisible(true);
+                editor.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+                editor.setResizable(false);
+                editor.setVisible(true);
+            });
         }
 
     }
