@@ -4,7 +4,7 @@ import codex.property.PropertyHolder;
 import codex.type.BigInt;
 import codex.type.Int;
 import codex.utils.ImageUtils;
-
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
@@ -18,13 +18,14 @@ import java.util.function.Predicate;
 /**
  * Редактор свойств типа {@link Int}, представляет собой поле ввода.
  */
+@ThreadSafe
 public class BigIntEditor extends AbstractEditor<BigInt, Long> implements DocumentListener {
 
     private JTextField textField;
     private String     previousValue;
 
-    private final Consumer<String>   update;
-    private final Consumer<String>   commit;
+    private final Consumer<String> update;
+    private final Consumer<String> commit;
 
     private final JLabel signDelete;
 
@@ -158,9 +159,11 @@ public class BigIntEditor extends AbstractEditor<BigInt, Long> implements Docume
     @Override
     public void setEditable(boolean editable) {
         super.setEditable(editable);
-        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
-        textField.setEditable(editable && !propHolder.isInherited());
-        textField.setFocusable(editable);
+        SwingUtilities.invokeLater(() -> {
+            textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
+            textField.setEditable(editable && !propHolder.isInherited());
+            textField.setFocusable(editable);
+        });
     }
 
     @Override

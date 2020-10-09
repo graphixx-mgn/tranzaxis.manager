@@ -7,6 +7,7 @@ import codex.property.PropertyHolder;
 import codex.type.Enum;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
+import net.jcip.annotations.ThreadSafe;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -20,6 +21,7 @@ import javax.swing.plaf.basic.BasicComboPopup;
  * Если свойство содержит перечисление, реализующее интерфейс {@link Iconified}, 
  * отображаются также и иконки для каждого элемента.
  */
+@ThreadSafe
 public class EnumEditor<T extends java.lang.Enum> extends AbstractEditor<Enum<T>, T> implements ActionListener {
 
     private final static ImageIcon ICON_NULL = ImageUtils.resize(ImageUtils.getByPath("/images/clearval.png"), 17, 17);
@@ -69,24 +71,26 @@ public class EnumEditor<T extends java.lang.Enum> extends AbstractEditor<Enum<T>
 
     @Override
     public void setValue(T value) {
-        if (!comboBox.getSelectedItem().equals(value)) {
-            comboBox.setSelectedItem(value);
-        }
-        if (Enum.isUndefined(value)) {
-            comboBox.setForeground(Color.GRAY);
-            comboBox.setFont(FONT_VALUE);
-        } else {
-            JList list = ((BasicComboPopup) comboBox.getAccessibleContext().getAccessibleChild(0)).getList();
-            Component rendered = comboBox.getRenderer().getListCellRendererComponent(list, value, comboBox.getSelectedIndex(), false, false);
-            comboBox.setForeground(rendered.getForeground());
-            comboBox.setFont(rendered.getFont());
-        }
+        SwingUtilities.invokeLater(() -> {
+            if (!comboBox.getSelectedItem().equals(value)) {
+                comboBox.setSelectedItem(value);
+            }
+            if (Enum.isUndefined(value)) {
+                comboBox.setForeground(Color.GRAY);
+                comboBox.setFont(FONT_VALUE);
+            } else {
+                JList list = ((BasicComboPopup) comboBox.getAccessibleContext().getAccessibleChild(0)).getList();
+                Component rendered = comboBox.getRenderer().getListCellRendererComponent(list, value, comboBox.getSelectedIndex(), false, false);
+                comboBox.setForeground(rendered.getForeground());
+                comboBox.setFont(rendered.getFont());
+            }
+        });
     }
     
     @Override
     public void setEditable(boolean editable) {
         super.setEditable(editable);
-        comboBox.setEnabled(editable);
+        SwingUtilities.invokeLater(() -> comboBox.setEnabled(editable));
     }
 
     /**

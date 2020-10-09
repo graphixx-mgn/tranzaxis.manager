@@ -3,6 +3,7 @@ package codex.editor;
 import codex.property.PropertyHolder;
 import codex.type.Int;
 import codex.utils.ImageUtils;
+import net.jcip.annotations.ThreadSafe;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -28,13 +29,14 @@ import javax.swing.event.DocumentListener;
 /**
  * Редактор свойств типа {@link Int}, представляет собой поле ввода.
  */
+@ThreadSafe
 public class IntEditor extends AbstractEditor<Int, Integer> implements DocumentListener {
     
     private JTextField textField;
     private String     previousValue;
 
-    private final Consumer<String>   update;
-    private final Consumer<String>   commit;
+    private final Consumer<String> update;
+    private final Consumer<String> commit;
     
     private final JLabel signDelete;
     
@@ -168,9 +170,11 @@ public class IntEditor extends AbstractEditor<Int, Integer> implements DocumentL
     @Override
     public void setEditable(boolean editable) {
         super.setEditable(editable);
-        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
-        textField.setEditable(editable && !propHolder.isInherited());
-        textField.setFocusable(editable);
+        SwingUtilities.invokeLater(() -> {
+            textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
+            textField.setEditable(editable && !propHolder.isInherited());
+            textField.setFocusable(editable);
+        });
     }
 
     @Override

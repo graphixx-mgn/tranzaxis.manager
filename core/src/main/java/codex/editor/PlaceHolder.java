@@ -1,5 +1,6 @@
 package codex.editor;
 
+import net.jcip.annotations.ThreadSafe;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -18,6 +19,7 @@ import javax.swing.text.*;
  *  class construction.
  * 
  */
+@ThreadSafe
 public final class PlaceHolder extends JLabel implements FocusListener, DocumentListener {
     
     public enum Show {
@@ -32,11 +34,11 @@ public final class PlaceHolder extends JLabel implements FocusListener, Document
     private boolean        showPromptOnce;
     private int            focusLost;
 
-    public PlaceHolder(String text, JTextComponent component) {
+    PlaceHolder(String text, JTextComponent component) {
             this(text, component, Show.ALWAYS);
     }
 
-    public PlaceHolder(String text, JTextComponent component, Show show) {
+    PlaceHolder(String text, JTextComponent component, Show show) {
         this.component = component;
         setShow( show );
         document = component.getDocument();

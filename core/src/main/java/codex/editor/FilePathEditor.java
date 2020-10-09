@@ -6,6 +6,7 @@ import codex.property.PropertyHolder;
 import codex.type.FilePath;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import net.jcip.annotations.ThreadSafe;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -18,6 +19,7 @@ import javax.swing.border.EmptyBorder;
  * ввода содержащее путь к файлу/папке. Редактирование осуществляется 
  * в вызываемом командой диалоге выбора объекта файловой системы.
  */
+@ThreadSafe
 public class FilePathEditor extends AbstractEditor<FilePath, Path> {
 
     private static final ImageIcon ICON = ImageUtils.getByPath("/images/folder.png");
@@ -65,12 +67,16 @@ public class FilePathEditor extends AbstractEditor<FilePath, Path> {
     @Override
     public void setEditable(boolean editable) {
         super.setEditable(editable);
-        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_INACTIVE : COLOR_DISABLED);
+        SwingUtilities.invokeLater(() -> {
+            textField.setForeground(editable && !propHolder.isInherited() ? COLOR_INACTIVE : COLOR_DISABLED);
+        });
     }
 
     @Override
     public void setValue(Path path) {
-        textField.setText(path == null ? "" : path.toString());
+        SwingUtilities.invokeLater(() -> {
+            textField.setText(path == null ? "" : path.toString());
+        });
     }
     
     private class PathSelector extends EditorCommand<FilePath, Path> {
@@ -81,33 +87,35 @@ public class FilePathEditor extends AbstractEditor<FilePath, Path> {
 
         @Override
         public void execute(PropertyHolder<FilePath, Path> context) {
-            JFileChooser fileChooser = new JFileChooser(context.getPropValue() == null ? "" : context.toString()) {
-                @Override
-                protected javax.swing.JDialog createDialog(java.awt.Component parent) throws java.awt.HeadlessException {
-                    javax.swing.JDialog dialog = super.createDialog(parent);
-                    dialog.setIconImage(ICON.getImage());
-                    return dialog;
-                }
-            };
-            fileChooser.setDialogTitle(Language.get("title"));
+            final IPathMask mask = context.getPropValue().getMask();
+            SwingUtilities.invokeLater(() -> {
+                JFileChooser fileChooser = new JFileChooser(context.getPropValue() == null ? "" : context.toString()) {
+                    @Override
+                    protected javax.swing.JDialog createDialog(java.awt.Component parent) throws java.awt.HeadlessException {
+                        javax.swing.JDialog dialog = super.createDialog(parent);
+                        dialog.setIconImage(ICON.getImage());
+                        return dialog;
+                    }
+                };
+                fileChooser.setDialogTitle(Language.get("title"));
 
-            IPathMask mask = context.getPropValue().getMask();
-            if (mask != null) {
-                fileChooser.setFileSelectionMode(mask.getSelectionMode());
-                if (mask.getFilter() != null) {
-                    fileChooser.setFileFilter(mask.getFilter());
+                if (mask != null) {
+                    fileChooser.setFileSelectionMode(mask.getSelectionMode());
+                    if (mask.getFilter() != null) {
+                        fileChooser.setFileFilter(mask.getFilter());
+                    }
+                } else {
+                    fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
                 }
-            } else {
-                fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-            }
-            fileChooser.setAcceptAllFileFilterUsed(false);
-            int returnVal = fileChooser.showOpenDialog(SwingUtilities.getWindowAncestor(editor));
+                fileChooser.setAcceptAllFileFilterUsed(false);
+                int returnVal = fileChooser.showOpenDialog(SwingUtilities.getWindowAncestor(editor));
 
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                File file = fileChooser.getSelectedFile();
-                setValue(file.toPath());
-                context.setValue(file.toPath());
-            }
+                if (returnVal == JFileChooser.APPROVE_OPTION) {
+                    File file = fileChooser.getSelectedFile();
+                    setValue(file.toPath());
+                    context.setValue(file.toPath());
+                }
+            });
         }
     }
     

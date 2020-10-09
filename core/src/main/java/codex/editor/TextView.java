@@ -2,6 +2,7 @@ package codex.editor;
 
 import codex.property.PropertyHolder;
 import codex.type.AnyType;
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -11,6 +12,7 @@ import java.awt.*;
  * Редактор свойств типа {@link codex.type.Str}, представляет собой нередактируемое текстовое поле
  * для отображения длинных строк.
  */
+@ThreadSafe
 public class TextView extends AbstractEditor<AnyType, Object> {
 
     private JTextPane pane;
@@ -66,11 +68,7 @@ public class TextView extends AbstractEditor<AnyType, Object> {
 
     @Override
     public void setValue(Object value) {
-        if (value == null) {
-            pane.setText("");
-        } else {
-            pane.setText(value.toString());
-        }
+        SwingUtilities.invokeLater(() -> pane.setText(value == null ? "" : value.toString()));
     }
 
 }

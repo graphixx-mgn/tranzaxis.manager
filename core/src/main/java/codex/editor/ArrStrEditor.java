@@ -13,6 +13,7 @@ import codex.type.ArrStr;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -29,6 +30,7 @@ import java.util.List;
  * в вызываемом командой диалоге со списком строк, которые можно редактировать, 
  * добавлять и удалять.
  */
+@ThreadSafe
 public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
     
     private static final ImageIcon EDIT_ICON = ImageUtils.getByPath("/images/edit.png");
@@ -67,8 +69,8 @@ public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
             }
         });
 
-        IArrMask mask = propHolder.getPropValue().getMask();
-        EditorCommand defCommand = mask instanceof EditorCommand ? (EditorCommand) mask : new ArrStrEditor.ListEditor();
+        final IArrMask mask = propHolder.getPropValue().getMask();
+        final EditorCommand defCommand = mask instanceof EditorCommand ? (EditorCommand) mask : new ArrStrEditor.ListEditor();
         addCommand(defCommand);
 
         textField.addMouseListener(new MouseAdapter() {
@@ -103,9 +105,10 @@ public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
     @Override
     public void setEditable(boolean editable) {
         super.setEditable(editable);
-        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
-        textField.setOpaque(editable && !propHolder.isInherited());
-
+        SwingUtilities.invokeLater(() -> {
+            textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
+            textField.setOpaque(editable && !propHolder.isInherited());
+        });
         commands.stream()
                 .filter(command -> command instanceof ArrStrEditor.ListEditor)
                 .forEach(ICommand::activate);
@@ -113,22 +116,24 @@ public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
 
     @Override
     public void setValue(List<String> value) {
-        IArrMask mask = propHolder.getPropValue().getMask();
-        if (mask != null && mask.getFormat() != null && value != null) {
-            textField.setText(
-                    MessageFormat.format(
-                        mask.getFormat(), 
-                        value.stream().map((item) -> item == null ? "" : item).toArray()
-                    ).replaceAll("\\{\\d+\\}", "")
-            );
-            textField.setCaretPosition(0);
-        } else {
-            textField.setText(IComplexType.coalesce(value, "").toString());
-            textField.setCaretPosition(0);
-        }
-        if (signDelete!= null) {
-            signDelete.setVisible(!propHolder.isEmpty() && !propHolder.isInherited() && isEditable() && textField.isFocusOwner());
-        }
+        final IArrMask mask = propHolder.getPropValue().getMask();
+        SwingUtilities.invokeLater(() -> {
+            if (mask != null && mask.getFormat() != null && value != null) {
+                textField.setText(
+                        MessageFormat.format(
+                                mask.getFormat(),
+                                value.stream().map((item) -> item == null ? "" : item).toArray()
+                        ).replaceAll("\\{\\d+\\}", "")
+                );
+                textField.setCaretPosition(0);
+            } else {
+                textField.setText(IComplexType.coalesce(value, "").toString());
+                textField.setCaretPosition(0);
+            }
+            if (signDelete!= null) {
+                signDelete.setVisible(!propHolder.isEmpty() && !propHolder.isInherited() && isEditable() && textField.isFocusOwner());
+            }
+        });
     }
     
     @Override
@@ -166,77 +171,79 @@ public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
 
         @Override
         public void execute(PropertyHolder<ArrStr, List<String>> context) {
-            List<String> propVal = context.getPropValue().getValue();
+            SwingUtilities.invokeLater(() -> {
+                List<String> propVal = context.getPropValue().getValue();
 
-            List<String> values = propVal == null ? new ArrayList<>() : new ArrayList<>(propVal);
-            EditableList list = new EditableList(values);
-            list.setBorder(new EmptyBorder(5, 5, 5, 5));
-            list.setEditable(ArrStrEditor.this.isEditable() && !propHolder.isInherited());
+                List<String> values = propVal == null ? new ArrayList<>() : new ArrayList<>(propVal);
+                EditableList list = new EditableList(values);
+                list.setBorder(new EmptyBorder(5, 5, 5, 5));
+                list.setEditable(ArrStrEditor.this.isEditable() && !propHolder.isInherited());
 
-            PushButton clean  = new PushButton(ImageUtils.resize(ImageUtils.getByPath("/images/remove.png"), 26, 26), null);
-            clean.setEnabled(ArrStrEditor.this.isEditable() && !propHolder.isInherited() && values.size() > 0);
-            clean.addActionListener((event) -> {
-                while (values.size() > 0) {
-                    list.deleteItem(0);
-                }
-                clean.setEnabled(false);
-            });
+                PushButton clean  = new PushButton(ImageUtils.resize(ImageUtils.getByPath("/images/remove.png"), 26, 26), null);
+                clean.setEnabled(ArrStrEditor.this.isEditable() && !propHolder.isInherited() && values.size() > 0);
+                clean.addActionListener((event) -> {
+                    while (values.size() > 0) {
+                        list.deleteItem(0);
+                    }
+                    clean.setEnabled(false);
+                });
 
-            PushButton insert = new PushButton(ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 26, 26), null);
-            insert.setEnabled(ArrStrEditor.this.isEditable() && !propHolder.isInherited());
-            insert.addActionListener((event) -> {
-                list.insertItem(null);
-                clean.setEnabled(values.size() > 0);
-            });
+                PushButton insert = new PushButton(ImageUtils.resize(ImageUtils.getByPath("/images/plus.png"), 26, 26), null);
+                insert.setEnabled(ArrStrEditor.this.isEditable() && !propHolder.isInherited());
+                insert.addActionListener((event) -> {
+                    list.insertItem(null);
+                    clean.setEnabled(values.size() > 0);
+                });
 
-            PushButton delete = new PushButton(ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 26, 26), null);
-            delete.setEnabled(false);
-            delete.addActionListener((event) -> {
-                list.deleteSelectedItem();
-                clean.setEnabled(values.size() > 0);
-            });
-            list.addSelectionListener((event) -> {
-                delete.setEnabled(event.getFirstIndex() != -1 && ArrStrEditor.this.isEditable() && !propHolder.isInherited());
-            });
+                PushButton delete = new PushButton(ImageUtils.resize(ImageUtils.getByPath("/images/minus.png"), 26, 26), null);
+                delete.setEnabled(false);
+                delete.addActionListener((event) -> {
+                    list.deleteSelectedItem();
+                    clean.setEnabled(values.size() > 0);
+                });
+                list.addSelectionListener((event) -> {
+                    delete.setEnabled(event.getFirstIndex() != -1 && ArrStrEditor.this.isEditable() && !propHolder.isInherited());
+                });
 
-            Box controls = new Box(BoxLayout.Y_AXIS);
-            controls.setBorder(new EmptyBorder(5, 0, 0, 5));
-            controls.add(insert);
-            controls.add(Box.createVerticalStrut(10));
-            controls.add(delete);
-            controls.add(Box.createVerticalStrut(10));
-            controls.add(clean);
+                Box controls = new Box(BoxLayout.Y_AXIS);
+                controls.setBorder(new EmptyBorder(5, 0, 0, 5));
+                controls.add(insert);
+                controls.add(Box.createVerticalStrut(10));
+                controls.add(delete);
+                controls.add(Box.createVerticalStrut(10));
+                controls.add(clean);
 
-            JPanel content = new JPanel(new BorderLayout());
-            content.add(list, BorderLayout.CENTER);
-            content.add(controls, BorderLayout.EAST);
+                JPanel content = new JPanel(new BorderLayout());
+                content.add(list, BorderLayout.CENTER);
+                content.add(controls, BorderLayout.EAST);
 
-            DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
-            confirmBtn.setEnabled(isEditable() && !propHolder.isInherited());
-            DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
+                DialogButton confirmBtn = Dialog.Default.BTN_OK.newInstance();
+                confirmBtn.setEnabled(isEditable() && !propHolder.isInherited());
+                DialogButton declineBtn = Dialog.Default.BTN_CANCEL.newInstance();
 
-            Dialog dialog = new Dialog(
-                    SwingUtilities.getWindowAncestor(editor),
-                    ArrStrEditor.this.isEditable() && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON,
-                    Language.get("title"),
-                    content,
-                    (event) -> {
-                        if (event.getID() == Dialog.OK && (
-                                (propVal == null && !values.isEmpty()) ||
-                                (propVal != null && !values.equals(propVal))
+                Dialog dialog = new Dialog(
+                        SwingUtilities.getWindowAncestor(editor),
+                        ArrStrEditor.this.isEditable() && !propHolder.isInherited() ? EDIT_ICON : VIEW_ICON,
+                        Language.get("title"),
+                        content,
+                        (event) -> {
+                            if (event.getID() == Dialog.OK && (
+                                    (propVal == null && !values.isEmpty()) ||
+                                            (propVal != null && !values.equals(propVal))
                             )
-                        ) {
-                            list.stopEditing();
-                            propHolder.setValue(values);
-                        }
-                    },
-                    confirmBtn,
-                    declineBtn
-            );
-            dialog.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            dialog.setMinimumSize(SIZE);
-            dialog.setPreferredSize(SIZE);
-            dialog.setVisible(true);
+                            ) {
+                                list.stopEditing();
+                                propHolder.setValue(values);
+                            }
+                        },
+                        confirmBtn,
+                        declineBtn
+                );
+                dialog.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                dialog.setMinimumSize(SIZE);
+                dialog.setPreferredSize(SIZE);
+                dialog.setVisible(true);
+            });
         }
     }
     

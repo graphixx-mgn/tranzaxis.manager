@@ -4,6 +4,7 @@ import codex.property.PropertyHolder;
 import codex.type.AnyType;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
@@ -12,6 +13,7 @@ import javax.swing.border.EmptyBorder;
  * в которе выводится строковое предстваление объекта {@link Object#toString()}, а если объект
  * реализует интерыейс {@link Iconified} - то и иконку.
  */
+@ThreadSafe
 public class AnyTypeView extends AbstractEditor<AnyType, Object> {
 
     private JTextPane textField;
@@ -55,14 +57,16 @@ public class AnyTypeView extends AbstractEditor<AnyType, Object> {
 
     @Override
     public void setValue(Object value) {
-        textField.setText(value == null ? "" : value.toString());
-        if (value != null && Iconified.class.isAssignableFrom(value.getClass())) {
-            iconLabel.setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 20, 20));
-            iconLabel.setVisible(true);
-        } else {
-            iconLabel.setIcon(null);
-            iconLabel.setVisible(false);
-        }
+        SwingUtilities.invokeLater(() -> {
+            textField.setText(value == null ? "" : value.toString());
+            if (value != null && Iconified.class.isAssignableFrom(value.getClass())) {
+                iconLabel.setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 20, 20));
+                iconLabel.setVisible(true);
+            } else {
+                iconLabel.setIcon(null);
+                iconLabel.setVisible(false);
+            }
+        });
     }
 
 }

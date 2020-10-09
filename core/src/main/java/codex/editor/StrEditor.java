@@ -8,6 +8,7 @@ import codex.utils.ImageUtils;
 import net.java.balloontip.BalloonTip;
 import net.java.balloontip.styles.EdgedBalloonStyle;
 import net.java.balloontip.utils.TimingUtils;
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
@@ -20,6 +21,7 @@ import java.util.function.Function;
 /**
  * Редактор свойств типа {@link Str}, представляет собой поле ввода.
  */
+@ThreadSafe
 public class StrEditor extends AbstractEditor<Str, String> implements DocumentListener {
     
     private JTextField textField;
@@ -146,17 +148,21 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
     @Override
     public void setEditable(boolean editable) {
         super.setEditable(editable);
-        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
-        textField.setEditable(editable && !propHolder.isInherited());
+        SwingUtilities.invokeLater(() -> {
+            textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
+            textField.setEditable(editable && !propHolder.isInherited());
+        });
     }
 
     @Override
     public void setValue(String value) {
-        textField.getDocument().removeDocumentListener(this);
-        textField.setText(value == null ? "" : value);
-        textField.getDocument().addDocumentListener(this);
-        textField.setCaretPosition(0);
-        verify();
+        SwingUtilities.invokeLater(() -> {
+            textField.getDocument().removeDocumentListener(this);
+            textField.setText(value == null ? "" : value);
+            textField.getDocument().addDocumentListener(this);
+            textField.setCaretPosition(0);
+            verify();
+        });
     }
     
     @Override
@@ -166,17 +172,19 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
     }
 
     private boolean verify() {
-        if (signDelete!= null) {
-            signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
+        if (signDelete != null) {
+            SwingUtilities.invokeLater(() ->signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner()));
         }
         IMask<String> mask = IComplexType.coalesce(propHolder.getPropValue().getMask(), (String text) -> true);
         String value = propHolder.getPropValue().getValue();
         boolean inputOk = ((value == null || value.isEmpty()) && !mask.notNull()) || mask.verify(value);
-        setBorder(!inputOk ? BORDER_ERROR : textField.isFocusOwner() ? BORDER_ACTIVE : BORDER_NORMAL);
-        textField.setForeground(inputOk ? (isEditable() ? COLOR_NORMAL : COLOR_DISABLED) : COLOR_INVALID);
-        if (signInvalid != null) {
-            signInvalid.setVisible(!inputOk);
-        }
+        SwingUtilities.invokeLater(() -> {
+            setBorder(!inputOk ? BORDER_ERROR : textField.isFocusOwner() ? BORDER_ACTIVE : BORDER_NORMAL);
+            textField.setForeground(inputOk ? (isEditable() ? COLOR_NORMAL : COLOR_DISABLED) : COLOR_INVALID);
+            if (signInvalid != null) {
+                signInvalid.setVisible(!inputOk);
+            }
+        });
         return inputOk;
     }
 

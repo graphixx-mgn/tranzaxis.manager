@@ -13,6 +13,7 @@ import codex.utils.Language;
 import com.github.lgooddatepicker.components.CalendarPanel;
 import com.github.lgooddatepicker.components.DatePickerSettings;
 import com.privatejgoodies.forms.factories.CC;
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.DateFormatter;
@@ -28,6 +29,7 @@ import java.time.ZoneId;
 import java.util.Calendar;
 import java.util.Date;
 
+@ThreadSafe
 public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
 
     private static final long MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -102,10 +104,12 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
 
     @Override
     public void setValue(Date date) {
-        textField.setText(date == null ? "" : propHolder.getOwnPropValue().getMask().getFormat().format(date));
-        if (signDelete!= null) {
-            signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
-        }
+        SwingUtilities.invokeLater(() -> {
+            textField.setText(date == null ? "" : propHolder.getOwnPropValue().getMask().getFormat().format(date));
+            if (signDelete!= null) {
+                signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
+            }
+        });
     }
 
     @Override
@@ -231,8 +235,10 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     Date currDate = new Date();
-                    calendarPanel.setSelectedDate(convertDate(currDate));
-                    timeSpinner.setValue(currDate);
+                    SwingUtilities.invokeLater(() -> {
+                        calendarPanel.setSelectedDate(convertDate(currDate));
+                        timeSpinner.setValue(currDate);
+                    });
                 }
             });
             apply.addActionListener(new AbstractAction() {
@@ -259,20 +265,22 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
         @Override
         public void execute(PropertyHolder<DateTime, Date> context) {
             Date currDate = new Date();
-            timeSpinner.setValue(IComplexType.coalesce(
-                    context.getPropValue().getValue(),
-                    currDate
-            ));
-            calendarPanel.setVisible(showDate());
-            calendarPanel.setSelectedDate(convertDate(IComplexType.coalesce(
-                    context.getPropValue().getValue(),
-                    currDate
-            )));
-            popup.show(
-                    invoker,
-                    invoker.getWidth() - popup.getPreferredSize().width - 1,
-                    invoker.getHeight()
-            );
+            SwingUtilities.invokeLater(() -> {
+                timeSpinner.setValue(IComplexType.coalesce(
+                        context.getPropValue().getValue(),
+                        currDate
+                ));
+                calendarPanel.setVisible(showDate());
+                calendarPanel.setSelectedDate(convertDate(IComplexType.coalesce(
+                        context.getPropValue().getValue(),
+                        currDate
+                )));
+                popup.show(
+                        invoker,
+                        invoker.getWidth() - popup.getPreferredSize().width - 1,
+                        invoker.getHeight()
+                );
+            });
         }
 
         private LocalDate convertDate(Date date) {

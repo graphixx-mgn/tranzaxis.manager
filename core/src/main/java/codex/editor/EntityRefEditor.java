@@ -17,6 +17,7 @@ import codex.presentation.EditorPresentation;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
+import net.jcip.annotations.ThreadSafe;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -35,6 +36,7 @@ import javax.swing.plaf.basic.BasicComboPopup;
  * Редактор свойств типа {@link EntityRef}, представляет собой выпадающий список
  * сущностей, найденный по классу и с учетом фильтра указанных в свойстве.
  */
+@ThreadSafe
 public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<T>, T> implements ActionListener, INodeListener {
 
     private JComboBox<T> comboBox;
@@ -65,17 +67,19 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
     
     @Override
     public Box getEditor() {
-        comboBox.removeActionListener(this);
-        comboBox.removeAllItems();
+        SwingUtilities.invokeLater(() -> {
+            comboBox.removeActionListener(this);
+            comboBox.removeAllItems();
 
-        if (!propHolder.getPropValue().isEmpty()) {
-            comboBox.addItem(propHolder.getPropValue().getValue());
-            setValue(propHolder.getPropValue().getValue());
-        } else {
-            comboBox.addItem((T) new Undefined());
-            setValue(null);
-        }
-        comboBox.addActionListener(this);
+            if (!propHolder.getPropValue().isEmpty()) {
+                comboBox.addItem(propHolder.getPropValue().getValue());
+                setValue(propHolder.getPropValue().getValue());
+            } else {
+                comboBox.addItem((T) new Undefined());
+                setValue(null);
+            }
+            comboBox.addActionListener(this);
+        });
         return super.getEditor();
     }
 
@@ -200,28 +204,30 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
 
     @Override
     public void setValue(T value) {
-        if (value == null) {
-            comboBox.setSelectedItem(comboBox.getItemAt(0));
-            comboBox.setForeground(Color.GRAY);
-            comboBox.setFont(FONT_VALUE);
-        } else {
-            if (!comboBox.getSelectedItem().equals(value)) {
-                if (((DefaultComboBoxModel) comboBox.getModel()).getIndexOf(value) == -1) {
-                    comboBox.addItem(value);
+        SwingUtilities.invokeLater(() -> {
+            if (value == null) {
+                comboBox.setSelectedItem(comboBox.getItemAt(0));
+                comboBox.setForeground(Color.GRAY);
+                comboBox.setFont(FONT_VALUE);
+            } else {
+                if (!comboBox.getSelectedItem().equals(value)) {
+                    if (((DefaultComboBoxModel) comboBox.getModel()).getIndexOf(value) == -1) {
+                        comboBox.addItem(value);
+                    }
+                    comboBox.setSelectedItem(value);
                 }
-                comboBox.setSelectedItem(value);
+                JList list = ((BasicComboPopup) comboBox.getAccessibleContext().getAccessibleChild(0)).getList();
+                Component rendered = comboBox.getRenderer().getListCellRendererComponent(list, value, comboBox.getSelectedIndex(), false, false);
+                comboBox.setForeground(rendered.getForeground());
+                comboBox.setFont(rendered.getFont());
             }
-            JList list = ((BasicComboPopup) comboBox.getAccessibleContext().getAccessibleChild(0)).getList();
-            Component rendered = comboBox.getRenderer().getListCellRendererComponent(list, value, comboBox.getSelectedIndex(), false, false);
-            comboBox.setForeground(rendered.getForeground());
-            comboBox.setFont(rendered.getFont());
-        }
+        });
     }
     
     @Override
     public void setEditable(boolean editable) {
         super.setEditable(editable);
-        comboBox.setEnabled(editable);
+        SwingUtilities.invokeLater(() -> comboBox.setEnabled(editable));
     }
 
     @Override
@@ -242,10 +248,12 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
 
     @Override
     public void childChanged(INode node) {
-        if (comboBox.getSelectedItem() == node) {
-            comboBox.revalidate();
-            comboBox.repaint();
-        }
+        SwingUtilities.invokeLater(() -> {
+            if (comboBox.getSelectedItem() == node) {
+                comboBox.revalidate();
+                comboBox.repaint();
+            }
+        });
     }
 
 

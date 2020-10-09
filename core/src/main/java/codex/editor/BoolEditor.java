@@ -3,18 +3,18 @@ package codex.editor;
 import codex.property.PropertyHolder;
 import codex.type.Bool;
 import codex.utils.ImageUtils;
+import net.jcip.annotations.ThreadSafe;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JCheckBox;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
 /**
  * Редактор свойств типа {@link Bool}, представляет собой флажек.
  */
+@ThreadSafe
 public class BoolEditor extends AbstractEditor<Bool, Boolean> implements ItemListener {
     
     private JCheckBox checkBox;
@@ -46,14 +46,16 @@ public class BoolEditor extends AbstractEditor<Bool, Boolean> implements ItemLis
 
     @Override
     public void setValue(Boolean value) {
-        checkBox.setSelected(value != null && value);
+        SwingUtilities.invokeLater(() -> checkBox.setSelected(value != null && value));
     }
     
     @Override
     public void setEditable(boolean editable) {
         super.setEditable(editable);
-        checkBox.setEnabled(editable);
-        checkBox.setOpaque(editable);
+        SwingUtilities.invokeLater(() -> {
+            checkBox.setEnabled(editable);
+            checkBox.setOpaque(editable);
+        });
     }
 
     @Override
