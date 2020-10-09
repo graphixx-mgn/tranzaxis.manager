@@ -1,32 +1,24 @@
 package plugin;
 
-import codex.command.EditorCommand;
 import codex.editor.AnyTypeView;
 import codex.model.Access;
 import codex.model.Catalog;
 import codex.model.CommandRegistry;
 import codex.model.Entity;
-import codex.property.PropertyHolder;
 import codex.type.AnyType;
 import codex.type.EntityRef;
 import codex.type.Iconified;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import manager.upgrade.UpgradeService;
-import manager.xml.Version;
-import manager.xml.VersionsDocument;
+import manager.utils.Versioning;
 import javax.swing.*;
 import java.text.MessageFormat;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
 
 class RemotePackageView extends Catalog {
 
     private final static ImageIcon ICON_SOURCE = ImageUtils.getByPath("/images/localhost.png");
     private final static ImageIcon ICON_CREATE = ImageUtils.getByPath("/images/plus.png");
     private final static ImageIcon ICON_UPDATE = ImageUtils.getByPath("/images/up.png");
-    private final static ImageIcon ICON_INFO   = ImageUtils.getByPath("/images/info.png");
     static {
         CommandRegistry.getInstance().registerCommand(DownloadPackages.class);
     }
@@ -44,7 +36,7 @@ class RemotePackageView extends Catalog {
         setIcon(PackageView.PACKAGE);
 
         remotePackage.getPlugins().forEach(remotePlugin -> attach(new RemotePluginView(remotePlugin)));
-        ((AnyTypeView) model.getEditor("version")).addCommand(new ShowChanges());
+        ((AnyTypeView) model.getEditor("version")).addCommand(new Versioning.ShowChanges(remotePackage.getChanges()));
     }
 
     RemotePackageView(EntityRef owner, String title) {
@@ -95,42 +87,5 @@ class RemotePackageView extends Catalog {
     @Override
     public boolean allowModifyChild() {
         return false;
-    }
-
-
-    class ShowChanges extends EditorCommand<AnyType, Object> {
-        ShowChanges() {
-            super(
-                    ImageUtils.resize(ICON_INFO,20,20),
-                    Language.get(PluginManager.class, "history@command"),
-                    propHolder -> remotePackage.getChanges() != null
-            );
-        }
-
-        @Override
-        public void execute(PropertyHolder<AnyType, Object> context) {
-            List<Version> changes = new LinkedList<>();
-            final PluginPackage localPackage = PluginManager.getInstance().getPluginLoader().getPackageById(remotePackage.getId());
-            if (localPackage != null) {
-                VersionsDocument remotePkgVersions = remotePackage.getChanges();
-                if (remotePkgVersions != null) {
-                    Version localVersion = Version.Factory.newInstance();
-                    localVersion.setNumber(localPackage.getVersion());
-                    for (Version remoteVersion : remotePackage.getChanges().getVersions().getVersionArray()) {
-                        if (UpgradeService.VER_COMPARATOR.compare(remoteVersion, localVersion) > 0) {
-                            changes.add(remoteVersion);
-                        }
-                    }
-                }
-            } else {
-                changes.addAll(Arrays.asList(remotePackage.getChanges().getVersions().getVersionArray()));
-            }
-            PluginManager.showVersionInfo(changes);
-        }
-
-        @Override
-        public boolean disableWithContext() {
-            return false;
-        }
     }
 }

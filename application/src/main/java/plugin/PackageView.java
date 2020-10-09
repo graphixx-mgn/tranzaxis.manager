@@ -1,10 +1,10 @@
 package plugin;
 
 import codex.command.CommandStatus;
-import codex.command.EditorCommand;
 import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
+import codex.editor.AnyTypeView;
 import codex.editor.IEditorFactory;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
@@ -16,7 +16,7 @@ import codex.service.ServiceRegistry;
 import codex.type.*;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import manager.xml.VersionsDocument;
+import manager.utils.Versioning;
 import javax.swing.*;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -30,7 +30,6 @@ public class PackageView extends Catalog {
 
     private final static IInstanceDispatcher ICS = ServiceRegistry.getInstance().lookupService(IInstanceDispatcher.class);
 
-    private final static ImageIcon ICON_INFO = ImageUtils.getByPath("/images/info.png");
     private final static ImageIcon ICON_WARN = ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), .7f);
 
     final static ImageIcon PACKAGE = ImageUtils.getByPath("/images/repository.png");
@@ -107,8 +106,7 @@ public class PackageView extends Catalog {
         model.addUserProp(PROP_PUBLIC, new Bool(false), false, Access.Edit);
 
         if (pluginPackage != null) {
-            //noinspection unchecked
-            (model.getEditor(PROP_VERSION)).addCommand(new ShowChanges());
+            ((AnyTypeView) model.getEditor(PROP_VERSION)).addCommand(new Versioning.ShowChanges(pluginPackage.getChanges()));
 
             if (pluginPackage.getPlugins().size() == 1) {
                 PluginHandler pluginHandler = pluginPackage.getPlugins().get(0);
@@ -198,30 +196,6 @@ public class PackageView extends Catalog {
     @Override
     public boolean allowModifyChild() {
         return false;
-    }
-
-
-    class ShowChanges extends EditorCommand<AnyType, Object> {
-        ShowChanges() {
-            super(
-                    ICON_INFO,
-                    Language.get(PluginManager.class, "history@command"),
-                    holder -> getPackage().getChanges() != null
-            );
-        }
-
-        @Override
-        public void execute(PropertyHolder<AnyType, Object> context) {
-            VersionsDocument verDoc = getPackage().getChanges();
-            if (verDoc != null) {
-                PluginManager.showVersionInfo(Arrays.asList(verDoc.getVersions().getVersionArray()));
-            }
-        }
-
-        @Override
-        public boolean disableWithContext() {
-            return false;
-        }
     }
 
 
