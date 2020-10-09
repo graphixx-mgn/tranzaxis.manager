@@ -19,6 +19,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.event.AncestorEvent;
 import java.awt.*;
+import java.io.IOException;
+import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
@@ -60,14 +62,25 @@ public class MailBox extends AbstractUnit {
         return tabbedPanel;
     }
 
+    @Override
+    public void viewportBound() {
+        super.viewportBound();
+        if (queue.inbox != null)
+            queue.inbox.showUnreadMessages();
+    }
 
     private class Queue extends Catalog {
 
-        private Inbox inbox = new Inbox();
+        private Inbox inbox;
 
         Queue() {
             super(null, null, "Mail",null);
-            attach(inbox);
+            try {
+                inbox = new Inbox();
+                attach(inbox);
+            } catch (IOException | SQLException e) {
+                Logger.getLogger().warn("Unexpected error", e);
+            }
         }
 
         private void postMessage(Message message) {
@@ -92,7 +105,7 @@ public class MailBox extends AbstractUnit {
         private final FolderView folderView = new FolderView(this);
         private final Predicate<Message> condition;
 
-        private MailFolder(ImageIcon icon, String title, Predicate<Message> condition) {
+        private MailFolder(ImageIcon icon, String title, Predicate<Message> condition) throws IOException, SQLException {
             super(null, icon, title, null);
             this.condition = condition;
         }
@@ -193,7 +206,7 @@ public class MailBox extends AbstractUnit {
 
     private class Inbox extends MailFolder {
 
-        private Inbox() {
+        private Inbox() throws IOException, SQLException {
             super(
                     ICON_INBOX,
                     Language.get(MailBox.class, "inbox.title"),

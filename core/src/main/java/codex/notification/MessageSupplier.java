@@ -33,10 +33,8 @@ class MessageSupplier implements IDataSupplier<Message> {
         throw new IOException();
     }
 
-    MessageSupplier() {
+    static {
         try {
-            DriverManager.registerDriver(new JDBC());
-            connection = DriverManager.getConnection("jdbc:sqlite:"+ getDatabaseFile().getPath());
             ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).buildClassCatalog(
                     Message.class,
                     new HashMap<String, IComplexType>() {{
@@ -47,6 +45,11 @@ class MessageSupplier implements IDataSupplier<Message> {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    MessageSupplier() throws IOException, SQLException {
+        DriverManager.registerDriver(new JDBC());
+        connection = DriverManager.getConnection("jdbc:sqlite:"+ getDatabaseFile().getPath());
     }
 
     void setFilter(String filter) {
