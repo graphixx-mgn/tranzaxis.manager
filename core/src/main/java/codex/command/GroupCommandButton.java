@@ -2,6 +2,7 @@ package codex.command;
 
 import codex.model.Entity;
 import codex.utils.ImageUtils;
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
@@ -17,6 +18,7 @@ import java.awt.event.MouseListener;
  * назначением. Команды объединяются в двухуровневую иерархию при помощи аннотации {@link EntityCommand.Definition}.
  * Кнопка групповой команды имеет дополнительный элемент для показа выпадающего меню со списком второстепенных команд.
  */
+@ThreadSafe
 public final class GroupCommandButton extends CommandButton implements MouseListener, PopupMenuListener, IGroupCommandButton {
 
     private static final ImageIcon ARROW = ImageUtils.getByPath("/images/arrow.png");
@@ -56,15 +58,17 @@ public final class GroupCommandButton extends CommandButton implements MouseList
 
     @Override
     public void addChildCommand(EntityCommand<Entity> command) {
-        CommandButton cmdButton = new CommandButton(command, true);
-        cmdButton.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        cmdButton.addActionListener(new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                menu.setVisible(false);
-            }
+        SwingUtilities.invokeLater(() -> {
+            CommandButton cmdButton = new CommandButton(command, true);
+            cmdButton.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            cmdButton.addActionListener(new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    menu.setVisible(false);
+                }
+            });
+            menu.add(cmdButton);
         });
-        menu.add(cmdButton);
     }
 
     @Override

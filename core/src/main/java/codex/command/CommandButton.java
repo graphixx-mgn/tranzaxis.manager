@@ -7,6 +7,7 @@ import codex.component.messagebox.MessageType;
 import codex.editor.IEditor;
 import codex.model.Entity;
 import codex.utils.ImageUtils;
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import java.awt.event.*;
 import java.text.MessageFormat;
@@ -21,6 +22,7 @@ import java.util.function.Supplier;
  * при изменении контекста презентации. Кнопка является слушателем {@link ICommandListener} событий команды, которое вызывается
  * при активации / деактивации команды в процессе обработки метода расчета состояния {@link EntityCommand#activate()}.
  */
+@ThreadSafe
 public class CommandButton extends PushButton implements ICommandListener<Entity>, ActionListener {
 
     private final static int BUTTON_SIZE = IEditor.FONT_VALUE.getSize() * 2;

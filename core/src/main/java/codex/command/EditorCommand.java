@@ -4,7 +4,7 @@ import codex.mask.IMask;
 import codex.property.PropertyHolder;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
-import org.jetbrains.annotations.NotNull;
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,6 +18,7 @@ import java.util.function.Predicate;
  * @param <T> Прикладной тип, производный от {@link IComplexType}
  * @param <V> Системный тип (Java), хранящийся внутри прикладного типа.
  */
+@ThreadSafe
 public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>>, V> implements ICommand<
         PropertyHolder<T, V>,
         PropertyHolder<T, V>
@@ -68,12 +69,16 @@ public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>
 
     @Override
     public final void addListener(ICommandListener<PropertyHolder<T, V>> listener) {
-        listeners.add(listener);
+        synchronized (listeners) {
+            listeners.add(listener);
+        }
     }
 
     @Override
     public final void removeListener(ICommandListener<PropertyHolder<T, V>> listener) {
-        listeners.remove(listener);
+        synchronized (listeners) {
+            listeners.remove(listener);
+        }
     }
 
     /**
@@ -86,10 +91,12 @@ public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>
     @Override
     public final void activate() {
         CommandStatus status = activator.apply(getContext());
-        new LinkedList<>(listeners).forEach(listener -> {
-            listener.commandStatusChanged(status.active);
-            listener.commandIconChanged(status.icon);
-        });
+        synchronized (listeners) {
+            listeners.forEach(listener -> {
+                listener.commandStatusChanged(status.active);
+                listener.commandIconChanged(status.icon);
+            });
+        }
     }
 
     @Override

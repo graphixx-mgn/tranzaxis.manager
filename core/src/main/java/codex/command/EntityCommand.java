@@ -12,6 +12,7 @@ import codex.task.*;
 import codex.type.IComplexType;
 import codex.type.Iconified;
 import codex.utils.Language;
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import java.lang.annotation.*;
 import java.util.*;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
  * Используется для возможности производить различные действия над сущностью.
  * @param <V> Класс {@link Entity} или один из его производных.
  */
-
+@ThreadSafe
 @EntityCommand.Definition(parentCommand = EntityCommand.class)
 public abstract class EntityCommand<V extends Entity> implements ICommand<V, Collection<V>>, Iconified {
     
@@ -202,12 +203,14 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
     @Override
     public final void activate() {
         CommandStatus status = activator.apply(getContext());
-        new LinkedList<>(listeners).forEach(listener -> {
-            listener.commandStatusChanged(status.active);
-            if (status.icon != null) {
-                listener.commandIconChanged(status.icon);
-            }
-        });
+        synchronized (listeners) {
+            listeners.forEach(listener -> {
+                listener.commandStatusChanged(status.active);
+                if (status.icon != null) {
+                    listener.commandIconChanged(status.icon);
+                }
+            });
+        }
     }
 
     /**
@@ -219,19 +222,25 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
 
     @Override
     public final void addListener(ICommandListener<V> listener) {
-        listeners.add(listener);
+        synchronized (listeners) {
+            listeners.add(listener);
+        }
     }
 
     @Override
     public final void removeListener(ICommandListener<V> listener) {
-        listeners.remove(listener);
+        synchronized (listeners) {
+            listeners.remove(listener);
+        }
     }
 
     @Override
     public final void setContext(Collection<V> context) {
         this.context.forEach((contextItem) -> contextItem.model.removeModelListener(modelListener));
         this.context = context;
-        new LinkedList<>(listeners).forEach((listener) -> listener.contextChanged(context));
+        synchronized (listeners) {
+            listeners.forEach((listener) -> listener.contextChanged(context));
+        }
         this.context.forEach((contextItem) -> contextItem.model.addModelListener(modelListener));
         activate();
     }

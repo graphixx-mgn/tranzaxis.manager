@@ -3,6 +3,7 @@ package codex.command;
 import codex.log.Logger;
 import codex.model.Entity;
 import codex.type.IComplexType;
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import java.util.function.Predicate;
  * каждому элементу контекста в отдельности.
  * @param <V> Класс {@link Entity} или один из его производных.
  */
+@ThreadSafe
 public abstract class EntityGroupCommand<V extends Entity> extends EntityCommand<V> {
 
     /**
