@@ -48,20 +48,16 @@ public class CheckConnection extends EntityCommand<Database> {
                 String pass = context.getDatabasePassword(false);
 
                 try (Connection conn = DriverManager.getConnection(url, user, pass)) {
-                    SwingUtilities.invokeLater(() -> {
-                        MessageBox.show(MessageType.INFORMATION, MessageFormat.format(
-                                Language.get(Database.class, "command@connect.success"),
-                                context.getPID()
-                        ));
-                    });
+                    MessageBox.show(MessageType.INFORMATION, MessageFormat.format(
+                            Language.get(Database.class, "command@connect.success"),
+                            context.getPID()
+                    ));
                 } catch (SQLException e) {
-                    SwingUtilities.invokeLater(() -> {
-                        if (e.getErrorCode() == 1017) {
-                            MessageBox.show(MessageType.WARNING, Language.get(Database.class, "error@auth"));
-                        } else {
-                            MessageBox.show(MessageType.WARNING, e.getMessage());
-                        }
-                    });
+                    if (e.getErrorCode() == 1017) {
+                        MessageBox.show(MessageType.WARNING, Language.get(Database.class, "error@auth"));
+                    } else {
+                        MessageBox.show(MessageType.WARNING, e.getMessage());
+                    }
                 }
             }
         }).start();
