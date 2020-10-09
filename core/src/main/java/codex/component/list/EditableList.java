@@ -4,24 +4,16 @@ import codex.component.render.GeneralRenderer;
 import codex.editor.IEditor;
 import codex.editor.ArrStrEditor;
 import codex.type.IComplexType;
+import net.jcip.annotations.ThreadSafe;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.KeyEvent;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Vector;
 import java.util.function.Consumer;
-import javax.swing.BorderFactory;
-import javax.swing.CellEditor;
-import javax.swing.DefaultCellEditor;
-import javax.swing.JComponent;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.KeyStroke;
-import javax.swing.ListSelectionModel;
+import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -34,6 +26,7 @@ import javax.swing.table.DefaultTableModel;
  * Редактируемый список строк, используется в качестве элемента редактора
  * {@link ArrStrEditor}.
  */
+@ThreadSafe
 public final class EditableList extends JPanel {
     
     private final JTable            table;
@@ -74,7 +67,7 @@ public final class EditableList extends JPanel {
             dataVector.addElement(v);
         });
 
-        model.setDataVector(dataVector, new Vector<>(Arrays.asList(new String[]{""})));
+        model.setDataVector(dataVector, new Vector<>(Collections.singletonList("")));
         model.addTableModelListener((TableModelEvent event) -> {
             if (event.getFirstRow() != TableModelEvent.HEADER_ROW) {
                 switch (event.getType()) {
@@ -144,7 +137,7 @@ public final class EditableList extends JPanel {
      * @param value Добавляемая строка.
      */
     public void insertItem(String value) {
-        insert.accept(value);
+        SwingUtilities.invokeLater(() -> insert.accept(value));
     }
     
     /**
@@ -152,7 +145,7 @@ public final class EditableList extends JPanel {
      * @param index Индекс строки в списке. 
      */
     public void deleteItem(int index) {
-        delete.accept(index);
+        SwingUtilities.invokeLater(() -> delete.accept(index));
     }
     
     /**
@@ -160,7 +153,7 @@ public final class EditableList extends JPanel {
      * список останется без изменений.
      */
     public void deleteSelectedItem() {
-        delete.accept(getSelectedItem());
+        SwingUtilities.invokeLater(() -> delete.accept(getSelectedItem()));
     }
 
     /**
@@ -185,7 +178,7 @@ public final class EditableList extends JPanel {
      * @param editable TRUE - если редактирование разрешено, инае - запрещено.
      */
     public void setEditable(boolean editable) {
-        this.editable = editable;
+        SwingUtilities.invokeLater(() -> this.editable = editable);
     }
     
     /**
@@ -202,11 +195,13 @@ public final class EditableList extends JPanel {
         if (table.isEditing()) {
             CellEditor editor = table.getCellEditor();
             if (editor != null) {
-                if (editor.getCellEditorValue() != null) {
-                    editor.stopCellEditing();
-                } else {
-                    editor.cancelCellEditing();
-                }
+                SwingUtilities.invokeLater(() -> {
+                    if (editor.getCellEditorValue() != null) {
+                        editor.stopCellEditing();
+                    } else {
+                        editor.cancelCellEditing();
+                    }
+                });
             }
         }
     } 

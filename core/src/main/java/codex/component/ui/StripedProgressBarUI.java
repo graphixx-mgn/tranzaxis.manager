@@ -1,5 +1,6 @@
 package codex.component.ui;
 
+import net.jcip.annotations.ThreadSafe;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -16,6 +17,7 @@ import javax.swing.plaf.basic.BasicProgressBarUI;
  * прямоугольника рисуются косые полоски.
  * 
  */
+@ThreadSafe
 public class StripedProgressBarUI extends BasicProgressBarUI {
 
     public final static Color PROGRESS_NORMAL   = UIManager.getDefaults().getColor("ProgressBar.foreground");

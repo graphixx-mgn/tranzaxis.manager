@@ -11,6 +11,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -28,7 +29,7 @@ public final class MessageBox extends Dialog {
      * @param text Текст сообщения.
      */
     public static void show(MessageType type, String text) {
-        new MessageBox(type, null, text, null).setVisible(true);
+        SwingUtilities.invokeLater(() -> new MessageBox(type, null, text, null).setVisible(true));
     }
     
     /**
@@ -38,7 +39,7 @@ public final class MessageBox extends Dialog {
      * @param text Текст сообщения.
      */
     public static void show(MessageType type, String title, String text) {
-        new MessageBox(type, title, text, null).setVisible(true);
+        SwingUtilities.invokeLater(() -> new MessageBox(type, title, text, null).setVisible(true));
     }
     
     /**
@@ -49,7 +50,7 @@ public final class MessageBox extends Dialog {
      * @param close Обработчик закрытия окна или нажатия кнопок.
      */
     public static void show(MessageType type, String title, String text, ActionListener close) {
-        new MessageBox(type, title, text, close).setVisible(true);
+        SwingUtilities.invokeLater(() -> new MessageBox(type, title, text, close).setVisible(true));
     }
 
     public static boolean confirmation(String title, String text) {
@@ -64,14 +65,29 @@ public final class MessageBox extends Dialog {
 
     public static boolean confirmation(ImageIcon icon, String title, String text) {
         final AtomicBoolean result = new AtomicBoolean(false);
-        new Dialog(
-                FocusManager.getCurrentManager().getActiveWindow(),
-                MessageType.CONFIRMATION.getIcon(),
-                title,
-                new MessagePanel(icon, text),
-                event -> result.set(event.getID() == Dialog.OK),
-                buttonSet(MessageType.CONFIRMATION)
-        ).setVisible(true);
+        Semaphore lock = new Semaphore(1);
+        SwingUtilities.invokeLater(() -> {
+            try {
+                lock.acquire();
+                new Dialog(
+                        FocusManager.getCurrentManager().getActiveWindow(),
+                        MessageType.CONFIRMATION.getIcon(),
+                        title,
+                        new MessagePanel(icon, text),
+                        event -> result.set(event.getID() == Dialog.OK),
+                        buttonSet(MessageType.CONFIRMATION)
+                ).setVisible(true);
+            } catch (InterruptedException ignore) {
+            } finally {
+                lock.release();
+            }
+        });
+        try {
+            lock.acquire();
+        } catch (InterruptedException ignore) {
+        } finally {
+            lock.release();
+        }
         return result.get();
     }
 

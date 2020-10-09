@@ -87,14 +87,14 @@ public class CommandButton extends PushButton implements ICommandListener<Entity
         EntityCommand<Entity> command = commandSupplier.get();
         String confirmation = command.acquireConfirmation();
         if (confirmation != null) {
-            SwingUtilities.invokeLater(() -> MessageBox.show(
+            MessageBox.show(
                     MessageType.CONFIRMATION, null, confirmation,
                     (close) -> {
                         if (close.getID() == Dialog.OK) {
                             executeCommand();
                         }
                     }
-            ));
+            );
         } else {
             SwingUtilities.invokeLater(this::executeCommand);
         }
