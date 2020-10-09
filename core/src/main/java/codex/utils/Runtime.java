@@ -39,4 +39,27 @@ public class Runtime {
         );
         public final static Supplier<Boolean> devMode = () -> !jarFile.get().isFile();
     }
+
+
+    public static class OS {
+        public final static Supplier<String> name = () -> System.getProperty("os.name");
+        public final static Supplier<String> version = () -> System.getProperty("os.version");
+
+        public final static Supplier<Boolean> isWindows = () -> name.get().startsWith("Windows");
+        public final static Supplier<Boolean> isLinux = () -> name.get().startsWith("Linux");
+        public final static Supplier<Boolean> isMac = () -> name.get().startsWith("Mac");
+
+        public final static Supplier<Boolean> win8 = () -> isWindows.get() && Float.parseFloat(version.get()) >= 6.0f;
+        public final static Supplier<Boolean> win7 = () -> isWindows.get() && Float.parseFloat(version.get()) >= 6.1f;
+
+        public final static Supplier<Boolean> is64bit = () -> System.getProperty("sun.cpu.isalist").contains("64");
+
+//        private static boolean version(float value) {
+//            try {
+//                return Float.parseFloat(version) >= value;
+//            } catch (Exception e) {
+//                return false;
+//            }
+//        }
+    }
 }

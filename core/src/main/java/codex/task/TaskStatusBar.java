@@ -2,7 +2,7 @@ package codex.task;
 
 import codex.component.ui.StripedProgressBarUI;
 import codex.utils.Language;
-import com.sun.javafx.PlatformUtil;
+import codex.utils.Runtime;
 import org.bridj.Pointer;
 import org.bridj.PointerIO;
 import org.bridj.cpp.com.COMRuntime;
@@ -102,7 +102,7 @@ final class TaskStatusBar extends JPanel implements TaskMonitor.ITaskMonitorList
 
     @SuppressWarnings("unchecked")
     private void notifyTaskBar(ITaskbarList3.TbpFlag mode, int percent) {
-        if (PlatformUtil.isWin7OrLater() && SwingUtilities.getWindowAncestor(this) != null && SwingUtilities.getWindowAncestor(this).isShowing()) {
+        if (Runtime.OS.win7.get() && SwingUtilities.getWindowAncestor(this) != null && SwingUtilities.getWindowAncestor(this).isShowing()) {
             try {
                 ITaskbarList3 taskBarIcon = COMRuntime.newInstance(ITaskbarList3.class);
                 long hwndVal = JAWTUtils.getNativePeerHandle(SwingUtilities.getWindowAncestor(this));

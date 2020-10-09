@@ -5,7 +5,6 @@ import codex.log.Logger;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import com.sun.javafx.PlatformUtil;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,8 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
+import codex.utils.Runtime;
 import manager.nodes.Offshoot;
-import manager.type.WCStatus;
 
 public class RunDesigner extends EntityCommand<Offshoot> {
 
@@ -41,8 +40,8 @@ public class RunDesigner extends EntityCommand<Offshoot> {
             designerPath.add("designer");
             designerPath.add("bin");
             designerPath.add("bin");
-            if (PlatformUtil.isWindows()) {
-                designerPath.add("designer"+(is64Bits ? "64" : "")+".exe");
+            if (Runtime.OS.isWindows.get()) {
+                designerPath.add("designer"+(Runtime.OS.is64bit.get() ? "64" : "")+".exe");
             } else {
                 designerPath.add("designer");
             }
@@ -52,7 +51,7 @@ public class RunDesigner extends EntityCommand<Offshoot> {
             File confDir  = new File(localPath+File.separator+".config");
             
             List<String> args = new ArrayList<String>() {{
-                if (PlatformUtil.isWindows()) {
+                if (Runtime.OS.isWindows.get()) {
                     add(designer.getAbsolutePath());
                 } else {
                     add("/bin/sh");
