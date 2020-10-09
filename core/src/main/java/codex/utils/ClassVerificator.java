@@ -1,7 +1,6 @@
 package codex.utils;
 
 import net.jcip.annotations.ThreadSafe;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -26,24 +25,25 @@ public class ClassVerificator {
         Set<Class<?>> threadSafe = new HashSet<>();
 
         allClasses.forEach(aClass -> {
-            if (
+            if (!(
                     aClass.isAnnotation() ||
                     aClass.isMemberClass() ||
                     aClass.isAnonymousClass() ||
-                    aClass.equals(ClassVerificator.class)
-            ) {
-                // Skip
-            } else if (aClass.isInterface()) {
-                ifaces.add(aClass);
-            } else if (aClass.isEnum()) {
-                enums.add(aClass);
-            } else {
-                try {
-                    if (aClass.getAnnotation(ThreadSafe.class) != null) threadSafe.add(aClass);
-                } catch (Throwable e) {
-                    System.err.println("Error class '"+aClass+"' processing: "+e.getMessage());
+                    aClass.equals(ClassVerificator.class) ||
+                    aClass.isAnnotationPresent(Deprecated.class)
+            )) {
+                if (aClass.isInterface()) {
+                    ifaces.add(aClass);
+                } else if (aClass.isEnum()) {
+                    enums.add(aClass);
+                } else {
+                    try {
+                        if (aClass.getAnnotation(ThreadSafe.class) != null) threadSafe.add(aClass);
+                    } catch (Throwable e) {
+                        System.err.println("Error class '"+aClass+"' processing: "+e.getMessage());
+                    }
+                    classes.add(aClass);
                 }
-                classes.add(aClass);
             }
         });
         int safePercent = (threadSafe.size() * 100 / classes.size());
