@@ -2,6 +2,9 @@
 *.iml
 .idea
 
-#Project build files
+# Project build files
 /*/target/
 /plugins/*/target
+
+# Subversion
+.svn
