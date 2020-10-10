@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<versions current="2.2.2" xmlns="manager/schemas/VersionInfo.xsd">
-    <version number="2.3.0" date="2020-09-27">
+<versions current="2.3.0" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="2.3.0" date="2020-10-10">
         <changelog>
             <change scope="CORE" type="Bugfix">
                 <description>Исправлена ошибка перерисовки виджета исполняющейся задачи в модальном диалоге.
