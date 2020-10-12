@@ -179,8 +179,6 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                                             restored.addAndGet(1);
                                         } else if (action == SVNEventAction.SKIP_CONFLICTED) {
                                             skipped.addAndGet(1);
-                                        } else {
-                                            System.err.println(action);
                                         }
                                     }
                                 }

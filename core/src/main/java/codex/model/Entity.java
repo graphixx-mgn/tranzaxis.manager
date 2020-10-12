@@ -714,12 +714,6 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      */
     public final boolean close() {
         if (validate() && model.hasChanges()) {
-            model.getChanges().forEach(s -> {
-                System.err.println(MessageFormat.format(
-                        "&nbsp;&bull;&nbsp;{0}<br>",
-                        IComplexType.coalesce(model.getProperty(s).getTitle(), s)
-                ));
-            });
             // Предлагаем сохранить
             MessageBox.show(
                     MessageType.CONFIRMATION, null,
