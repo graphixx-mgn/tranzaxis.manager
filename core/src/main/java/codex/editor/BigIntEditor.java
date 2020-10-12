@@ -155,29 +155,24 @@ public class BigIntEditor extends AbstractEditor<BigInt, Long> implements Docume
         container.add(textField);
         return container;
     }
-    
+
     @Override
-    public void setEditable(boolean editable) {
-        super.setEditable(editable);
-        SwingUtilities.invokeLater(() -> {
-            textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
-            textField.setEditable(editable && !propHolder.isInherited());
-            textField.setFocusable(editable);
-        });
+    protected void updateEditable(boolean editable) {
+        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
+        textField.setEditable(editable && !propHolder.isInherited());
+        textField.setFocusable(editable);
     }
 
     @Override
-    public void setValue(Long value) {
-        SwingUtilities.invokeLater(() -> {
-            textField.getDocument().removeDocumentListener(this);
-            textField.setText(value == null ? "" : String.valueOf(value));
-            textField.getDocument().addDocumentListener(this);
-            if (signDelete!= null) {
-                signDelete.setVisible(!textField.getText().isEmpty() && isEditable() && textField.isFocusOwner());
-            }
-        });
+    protected void updateValue(Long value) {
+        textField.getDocument().removeDocumentListener(this);
+        textField.setText(value == null ? "" : String.valueOf(value));
+        textField.getDocument().addDocumentListener(this);
+        if (signDelete!= null) {
+            signDelete.setVisible(!textField.getText().isEmpty() && isEditable() && textField.isFocusOwner());
+        }
     }
-    
+
     @Override
     public boolean stopEditing() {
         commit.accept(textField.getText());

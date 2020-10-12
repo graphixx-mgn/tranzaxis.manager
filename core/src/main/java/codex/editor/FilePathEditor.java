@@ -63,22 +63,18 @@ public class FilePathEditor extends AbstractEditor<FilePath, Path> {
         container.add(textField);
         return container;
     }
-    
+
     @Override
-    public void setEditable(boolean editable) {
-        super.setEditable(editable);
-        SwingUtilities.invokeLater(() -> {
-            textField.setForeground(editable && !propHolder.isInherited() ? COLOR_INACTIVE : COLOR_DISABLED);
-        });
+    protected void updateEditable(boolean editable) {
+        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_INACTIVE : COLOR_DISABLED);
     }
 
     @Override
-    public void setValue(Path path) {
-        SwingUtilities.invokeLater(() -> {
-            textField.setText(path == null ? "" : path.toString());
-        });
+    protected void updateValue(Path path) {
+        textField.setText(path == null ? "" : path.toString());
     }
-    
+
+
     private class PathSelector extends EditorCommand<FilePath, Path> {
 
         private PathSelector() {

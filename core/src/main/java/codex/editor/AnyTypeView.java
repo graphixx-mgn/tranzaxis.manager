@@ -51,22 +51,14 @@ public class AnyTypeView extends AbstractEditor<AnyType, Object> {
     }
 
     @Override
-    public final void setEditable(boolean editable) {
-        super.setEditable(false);
+    protected void updateValue(Object value) {
+        textField.setText(value == null ? "" : value.toString());
+        if (value != null && Iconified.class.isAssignableFrom(value.getClass())) {
+            iconLabel.setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 20, 20));
+            iconLabel.setVisible(true);
+        } else {
+            iconLabel.setIcon(null);
+            iconLabel.setVisible(false);
+        }
     }
-
-    @Override
-    public void setValue(Object value) {
-        SwingUtilities.invokeLater(() -> {
-            textField.setText(value == null ? "" : value.toString());
-            if (value != null && Iconified.class.isAssignableFrom(value.getClass())) {
-                iconLabel.setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 20, 20));
-                iconLabel.setVisible(true);
-            } else {
-                iconLabel.setIcon(null);
-                iconLabel.setVisible(false);
-            }
-        });
-    }
-
 }

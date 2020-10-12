@@ -48,7 +48,9 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
             LoggerServiceOptions.this.model.addUserProp(propName, new Enum<>(level), false, Access.Select);
         }
         LoggerServiceOptions.this.model.getEditor(propName).setVisible(false);
-        this.model.addChangeListener((name, oldValue, newValue) -> listener.propertyChange(propName, oldValue, newValue));
+        this.model.getProperty(ContextView.PROP_LEVEL).addChangeListener((name, oldValue, newValue) -> {
+            listener.propertyChange(propName, oldValue, newValue);
+        });
     }};
 
     private final NodeTreeModel treeModel = new NodeTreeModel(rootContext);
@@ -178,7 +180,9 @@ public final class LoggerServiceOptions extends Service<LogManagementService> {
                 if (!model.hasProperty(propName)) {
                     model.addUserProp(propName, new Enum<>(contextInfo.getLevel()), false, Access.Select);
                 }
-                context.model.addChangeListener((name, oldValue, newValue) -> listener.propertyChange(propName, oldValue, newValue));
+                context.model.getProperty(ContextView.PROP_LEVEL).addChangeListener((name, oldValue, newValue) -> {
+                    listener.propertyChange(propName, oldValue, newValue);
+                });
                 return context;
             }
         }

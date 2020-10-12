@@ -169,11 +169,6 @@ public final class PlaceHolder extends JLabel implements FocusListener, Document
     }
 
     @Override
-    public void setVisible(boolean aFlag) {
-        SwingUtilities.invokeLater(() -> super.setVisible(aFlag));
-    }
-
-    @Override
     public void focusGained(FocusEvent e) {
         checkForPrompt();
     }

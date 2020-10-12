@@ -103,13 +103,14 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
     }
 
     @Override
-    public void setValue(Date date) {
-        SwingUtilities.invokeLater(() -> {
-            textField.setText(date == null ? "" : propHolder.getOwnPropValue().getMask().getFormat().format(date));
-            if (signDelete!= null) {
-                signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
-            }
-        });
+    protected void updateEditable(boolean editable) {}
+
+    @Override
+    protected void updateValue(Date date) {
+        textField.setText(date == null ? "" : propHolder.getOwnPropValue().getMask().getFormat().format(date));
+        if (signDelete!= null) {
+            signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
+        }
     }
 
     @Override

@@ -105,7 +105,7 @@ public class SAPConfig extends CommandPlugin<Environment> {
         ParamModel model = new ParamModel();
         ObjectChooser chooser = new ObjectChooser(PROP_SETHOST) {
             @Override
-            public List getValues() {
+            public List<?> getValues() {
                 return NetInterface.getInterfaces();
             }
         };

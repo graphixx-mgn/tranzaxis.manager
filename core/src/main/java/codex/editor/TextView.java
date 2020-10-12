@@ -67,8 +67,7 @@ public class TextView extends AbstractEditor<AnyType, Object> {
     }
 
     @Override
-    public void setValue(Object value) {
-        SwingUtilities.invokeLater(() -> pane.setText(value == null ? "" : value.toString()));
+    protected void updateValue(Object value) {
+        pane.setText(value == null ? "" : value.toString());
     }
-
 }

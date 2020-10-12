@@ -45,17 +45,14 @@ public class BoolEditor extends AbstractEditor<Bool, Boolean> implements ItemLis
     }
 
     @Override
-    public void setValue(Boolean value) {
-        SwingUtilities.invokeLater(() -> checkBox.setSelected(value != null && value));
+    protected void updateEditable(boolean editable) {
+        checkBox.setEnabled(editable);
+        checkBox.setOpaque(editable);
     }
-    
+
     @Override
-    public void setEditable(boolean editable) {
-        super.setEditable(editable);
-        SwingUtilities.invokeLater(() -> {
-            checkBox.setEnabled(editable);
-            checkBox.setOpaque(editable);
-        });
+    protected void updateValue(Boolean value) {
+        checkBox.setSelected(value != null && value);
     }
 
     @Override

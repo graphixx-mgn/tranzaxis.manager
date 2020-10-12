@@ -7,6 +7,7 @@ import codex.component.button.PushButton;
 import codex.mask.IMask;
 import codex.model.Catalog;
 import codex.model.Entity;
+import codex.property.EditMode;
 import codex.property.PropertyHolder;
 import codex.type.IComplexType;
 import codex.type.NullValue;
@@ -160,20 +161,28 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
             setEditable(isEditable());
         }
     }
+
+    protected void updateEditable(boolean editable) {}
     
     @Override
-    public void setEditable(boolean editable) {
-        if (!locked) {
+    public final void setEditable(boolean editable) {
+        if (!locked && propHolder.getEditMode() != EditMode.Programmatic) {
             if (this.editable != editable) {
                 this.editable = editable;
+
                 new LinkedList<>(listeners).forEach(listener -> listener.setEditable(this.editable));
+                if (SwingUtilities.isEventDispatchThread()) {
+                    updateEditable(editable);
+                } else {
+                    SwingUtilities.invokeLater(() -> updateEditable(editable));
+                }
             }
         }
     }
     
     @Override
     public final boolean isEditable() {
-        return editable && !locked;
+        return editable && !locked && propHolder.getEditMode() == EditMode.Always;
     }
     
     @Override
@@ -188,7 +197,7 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
         return editor.isVisible();
     }
 
-    void addListener(IEditorListener listener) {
+    private void addListener(IEditorListener listener) {
         listeners.add(listener);
     }
 
@@ -198,20 +207,17 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
         commands.add(command);
         editor.add(button);
         command.setContext(propHolder);
-        addListener(new IEditorListener() {
-            @Override
-            public void setEditable(boolean editable) {
-                button.setEnabled(isEditable() || !command.disableWithContext());
-            }
-
-            @Override
-            public void setLocked(boolean locked) {}
-        });
     }
     
     @Override
     public List<EditorCommand<T, V>> getCommands() {
         return new LinkedList<>(commands);
+    }
+
+    protected abstract void updateValue(V value);
+
+    public final void setValue(V value) {
+        SwingUtilities.invokeLater(() -> updateValue(value));
     }
 
     /**
@@ -220,8 +226,8 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
     @Override
     public final void updateUI() {
         super.updateUI();
-        setValue(propHolder.getPropValue().getValue());
-        setEditable(isEditable());
+        updateValue(propHolder.getPropValue().getValue());
+        updateEditable(isEditable());
         if (editor.isVisible()) {
             getCommands().stream()
                     // Обновляем только команды-потребители или если редактор еще не отображается (начальная инициализация)

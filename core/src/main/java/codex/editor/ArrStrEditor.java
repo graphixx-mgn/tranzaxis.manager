@@ -103,39 +103,31 @@ public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
     }
     
     @Override
-    public void setEditable(boolean editable) {
-        super.setEditable(editable);
-        SwingUtilities.invokeLater(() -> {
-            textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
-            textField.setOpaque(editable && !propHolder.isInherited());
-        });
-        commands.stream()
-                .filter(command -> command instanceof ArrStrEditor.ListEditor)
-                .forEach(ICommand::activate);
+    protected void updateEditable(boolean editable) {
+        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
+        textField.setOpaque(editable && !propHolder.isInherited());
     }
 
     @Override
-    public void setValue(List<String> value) {
+    protected void updateValue(List<String> value) {
         final IArrMask mask = propHolder.getPropValue().getMask();
-        SwingUtilities.invokeLater(() -> {
-            if (mask != null && mask.getFormat() != null && value != null) {
-                textField.setText(
-                        MessageFormat.format(
-                                mask.getFormat(),
-                                value.stream().map((item) -> item == null ? "" : item).toArray()
-                        ).replaceAll("\\{\\d+\\}", "")
-                );
-                textField.setCaretPosition(0);
-            } else {
-                textField.setText(IComplexType.coalesce(value, "").toString());
-                textField.setCaretPosition(0);
-            }
-            if (signDelete!= null) {
-                signDelete.setVisible(!propHolder.isEmpty() && !propHolder.isInherited() && isEditable() && textField.isFocusOwner());
-            }
-        });
+        if (mask != null && mask.getFormat() != null && value != null) {
+            textField.setText(
+                    MessageFormat.format(
+                            mask.getFormat(),
+                            value.stream().map((item) -> item == null ? "" : item).toArray()
+                    ).replaceAll("\\{\\d+\\}", "")
+            );
+            textField.setCaretPosition(0);
+        } else {
+            textField.setText(IComplexType.coalesce(value, "").toString());
+            textField.setCaretPosition(0);
+        }
+        if (signDelete!= null) {
+            signDelete.setVisible(!propHolder.isEmpty() && !propHolder.isInherited() && isEditable() && textField.isFocusOwner());
+        }
     }
-    
+
     @Override
     public void focusGained(FocusEvent event) {
         super.focusGained(event);

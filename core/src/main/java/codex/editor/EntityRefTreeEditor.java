@@ -131,7 +131,7 @@ public class EntityRefTreeEditor extends AbstractEditor<EntityRef<Entity>, Entit
     }
 
     @Override
-    public void setValue(Entity value) {
+    protected void updateValue(Entity value) {
         if (listModel != null) {
             listModel.removeAllElements();
             if (value == null) {
@@ -144,7 +144,7 @@ public class EntityRefTreeEditor extends AbstractEditor<EntityRef<Entity>, Entit
             signDelete.setVisible(!propHolder.isEmpty() && isEditable() && textField.isFocusOwner());
         }
     }
-    
+
     @Override
     public void focusGained(FocusEvent event) {
         super.focusGained(event);

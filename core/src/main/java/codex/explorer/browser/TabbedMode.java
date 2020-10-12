@@ -5,10 +5,11 @@ import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
-import javax.swing.border.LineBorder;
 import java.awt.*;
 
+@ThreadSafe
 public final class TabbedMode extends BrowseMode<JTabbedPane> {
 
     static {

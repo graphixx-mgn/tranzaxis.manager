@@ -6,6 +6,7 @@ import codex.model.Entity;
 import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorPresentation;
 import codex.type.IComplexType;
+import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -13,6 +14,7 @@ import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 
+@ThreadSafe
 public final class EmbeddedMode extends BrowseMode<JPanel> {
 
     private final JPanel editorPanel;
@@ -32,12 +34,7 @@ public final class EmbeddedMode extends BrowseMode<JPanel> {
     @Override
     void browse(INode node) {
         editorPanel.removeAll();
-        editorPanel.revalidate();
-        editorPanel.repaint();
-
         selectorPanel.removeAll();
-        selectorPanel.revalidate();
-        selectorPanel.repaint();
 
         EditorPresentation editorPresentation = node.getEditorPresentation();
         if (editorPresentation != null) {
@@ -58,5 +55,9 @@ public final class EmbeddedMode extends BrowseMode<JPanel> {
             selectorPanel.add(selectorPresentation);
             selectorPresentation.refresh();
         }
+        editorPanel.revalidate();
+        editorPanel.repaint();
+        selectorPanel.revalidate();
+        selectorPanel.repaint();
     }
 }

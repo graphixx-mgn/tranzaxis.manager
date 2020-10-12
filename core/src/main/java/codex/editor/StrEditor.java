@@ -56,11 +56,9 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
         placeHolder.setBorder(textField.getBorder());
         placeHolder.changeAlpha(100);
         placeHolder.setVisible(textField.getText().isEmpty());
-        
-        signInvalid = new JLabel(ImageUtils.resize(
-                ImageUtils.getByPath("/images/warn.png"), 
-                textField.getPreferredSize().height, textField.getPreferredSize().height
-        ));        
+
+        int height = textField.getPreferredSize().height;
+        signInvalid = new JLabel(ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), height, height));
         signDelete = new JLabel(ImageUtils.resize(
                 ImageUtils.getByPath("/images/clearval.png"), 
                 textField.getPreferredSize().height-2, textField.getPreferredSize().height-2
@@ -144,27 +142,22 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
         container.add(textField);
         return container;
     }
-    
+
     @Override
-    public void setEditable(boolean editable) {
-        super.setEditable(editable);
-        SwingUtilities.invokeLater(() -> {
-            textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
-            textField.setEditable(editable && !propHolder.isInherited());
-        });
+    protected void updateEditable(boolean editable) {
+        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
+        textField.setEditable(editable && !propHolder.isInherited());
     }
 
     @Override
-    public void setValue(String value) {
-        SwingUtilities.invokeLater(() -> {
-            textField.getDocument().removeDocumentListener(this);
-            textField.setText(value == null ? "" : value);
-            textField.getDocument().addDocumentListener(this);
-            textField.setCaretPosition(0);
-            verify();
-        });
+    protected void updateValue(String value) {
+        textField.getDocument().removeDocumentListener(this);
+        textField.setText(value == null ? "" : value);
+        textField.getDocument().addDocumentListener(this);
+        textField.setCaretPosition(0);
+        verify();
     }
-    
+
     @Override
     public boolean stopEditing() {
         commit.accept(textField.getText());

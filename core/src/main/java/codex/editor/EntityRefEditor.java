@@ -40,7 +40,6 @@ import javax.swing.plaf.basic.BasicComboPopup;
 public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<T>, T> implements ActionListener, INodeListener {
 
     private JComboBox<T> comboBox;
-    private EmbeddedEditor embeddedEditor;
 
     /**
      * Конструктор редактора.
@@ -48,8 +47,7 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
      */
     public EntityRefEditor(PropertyHolder<EntityRef<T>, T> propHolder) {
         super(propHolder);
-        embeddedEditor = new EmbeddedEditor();
-        addCommand(embeddedEditor);
+        addCommand(new EmbeddedEditor());
     }
 
     protected List<T> getValues() {
@@ -203,31 +201,28 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
     }
 
     @Override
-    public void setValue(T value) {
-        SwingUtilities.invokeLater(() -> {
-            if (value == null) {
-                comboBox.setSelectedItem(comboBox.getItemAt(0));
-                comboBox.setForeground(Color.GRAY);
-                comboBox.setFont(FONT_VALUE);
-            } else {
-                if (!comboBox.getSelectedItem().equals(value)) {
-                    if (((DefaultComboBoxModel) comboBox.getModel()).getIndexOf(value) == -1) {
-                        comboBox.addItem(value);
-                    }
-                    comboBox.setSelectedItem(value);
-                }
-                JList list = ((BasicComboPopup) comboBox.getAccessibleContext().getAccessibleChild(0)).getList();
-                Component rendered = comboBox.getRenderer().getListCellRendererComponent(list, value, comboBox.getSelectedIndex(), false, false);
-                comboBox.setForeground(rendered.getForeground());
-                comboBox.setFont(rendered.getFont());
-            }
-        });
+    protected void updateEditable(boolean editable) {
+        comboBox.setEnabled(editable);
     }
-    
+
     @Override
-    public void setEditable(boolean editable) {
-        super.setEditable(editable);
-        SwingUtilities.invokeLater(() -> comboBox.setEnabled(editable));
+    protected void updateValue(T value) {
+        if (value == null) {
+            comboBox.setSelectedItem(comboBox.getItemAt(0));
+            comboBox.setForeground(Color.GRAY);
+            comboBox.setFont(FONT_VALUE);
+        } else {
+            if (!comboBox.getSelectedItem().equals(value)) {
+                if (((DefaultComboBoxModel) comboBox.getModel()).getIndexOf(value) == -1) {
+                    comboBox.addItem(value);
+                }
+                comboBox.setSelectedItem(value);
+            }
+            JList list = ((BasicComboPopup) comboBox.getAccessibleContext().getAccessibleChild(0)).getList();
+            Component rendered = comboBox.getRenderer().getListCellRendererComponent(list, value, comboBox.getSelectedIndex(), false, false);
+            comboBox.setForeground(rendered.getForeground());
+            comboBox.setFont(rendered.getFont());
+        }
     }
 
     @Override

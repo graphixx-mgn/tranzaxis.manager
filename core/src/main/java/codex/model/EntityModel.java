@@ -10,6 +10,7 @@ import codex.log.Logger;
 import codex.log.LoggingSource;
 import codex.mask.IMask;
 import codex.presentation.SelectorPresentation;
+import codex.property.EditMode;
 import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
@@ -272,7 +273,13 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     restriction
             );
         } else {
-            addProperty(name, value, false, restriction);
+            //noinspection unchecked
+            addProperty(new PropertyHolder(name, value, false) {
+                @Override
+                public EditMode getEditMode() {
+                    return EditMode.Programmatic;
+                }
+            }, restriction);
         }
         dynamicProps.add(name);
     }
@@ -870,9 +877,6 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 }
             });
         }
-        if (dynamicProps.contains(name)) {
-            editor.setEditable(false);
-        }
         return editor;
     }
 
@@ -904,6 +908,11 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
 
             propertyHolders.put(name, new PropertyHolder(name, title, desc, value, false) {
                 private boolean initiated = false;
+
+                @Override
+                public EditMode getEditMode() {
+                    return EditMode.Programmatic;
+                }
 
                 @Override
                 public synchronized IComplexType getPropValue() {

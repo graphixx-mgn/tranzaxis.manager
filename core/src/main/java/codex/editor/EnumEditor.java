@@ -26,7 +26,7 @@ public class EnumEditor<T extends java.lang.Enum> extends AbstractEditor<Enum<T>
 
     private final static ImageIcon ICON_NULL = ImageUtils.resize(ImageUtils.getByPath("/images/clearval.png"), 17, 17);
     
-    protected JComboBox<T> comboBox;
+    private JComboBox<T> comboBox;
     
     /**
      * Конструктор редактора.
@@ -70,27 +70,24 @@ public class EnumEditor<T extends java.lang.Enum> extends AbstractEditor<Enum<T>
     }
 
     @Override
-    public void setValue(T value) {
-        SwingUtilities.invokeLater(() -> {
-            if (!comboBox.getSelectedItem().equals(value)) {
-                comboBox.setSelectedItem(value);
-            }
-            if (Enum.isUndefined(value)) {
-                comboBox.setForeground(Color.GRAY);
-                comboBox.setFont(FONT_VALUE);
-            } else {
-                JList list = ((BasicComboPopup) comboBox.getAccessibleContext().getAccessibleChild(0)).getList();
-                Component rendered = comboBox.getRenderer().getListCellRendererComponent(list, value, comboBox.getSelectedIndex(), false, false);
-                comboBox.setForeground(rendered.getForeground());
-                comboBox.setFont(rendered.getFont());
-            }
-        });
+    protected void updateEditable(boolean editable) {
+        comboBox.setEnabled(editable);
     }
-    
+
     @Override
-    public void setEditable(boolean editable) {
-        super.setEditable(editable);
-        SwingUtilities.invokeLater(() -> comboBox.setEnabled(editable));
+    protected void updateValue(T value) {
+        if (!comboBox.getSelectedItem().equals(value)) {
+            comboBox.setSelectedItem(value);
+        }
+        if (Enum.isUndefined(value)) {
+            comboBox.setForeground(Color.GRAY);
+            comboBox.setFont(FONT_VALUE);
+        } else {
+            JList list = ((BasicComboPopup) comboBox.getAccessibleContext().getAccessibleChild(0)).getList();
+            Component rendered = comboBox.getRenderer().getListCellRendererComponent(list, value, comboBox.getSelectedIndex(), false, false);
+            comboBox.setForeground(rendered.getForeground());
+            comboBox.setFont(rendered.getFont());
+        }
     }
 
     /**

@@ -98,7 +98,14 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
     }
 
     @Override
-    public void setValue(java.util.Map<K, V> value) {
+    protected void updateEditable(boolean editable) {
+        textField.setFocusable(false);
+        textField.setForeground(editable && !propHolder.isInherited() ? Color.decode("#3399FF") : COLOR_INACTIVE);
+        textField.setOpaque(editable && !propHolder.isInherited());
+    }
+
+    @Override
+    protected void updateValue(java.util.Map<K, V> value) {
         internalValue.clear();
         internalValue.putAll(value);
         if (internalValue.isEmpty()) {
@@ -109,14 +116,6 @@ public class MapEditor<K, V> extends AbstractEditor<Map<K, V>, java.util.Map<K, 
                     Language.getPlural().npl(internalValue.size(), " "+Language.get(codex.type.Map.class, "item"))
             ));
         }
-    }
-
-    @Override
-    public void setEditable(boolean editable) {
-        super.setEditable(editable);
-        textField.setFocusable(false);
-        textField.setForeground(editable && !propHolder.isInherited() ? Color.decode("#3399FF") : COLOR_INACTIVE);
-        textField.setOpaque(editable && !propHolder.isInherited());
     }
 
     private java.util.Map.Entry<PropertyHolder<ISerializableType<K, ? extends IMask<K>>, K>,PropertyHolder<ISerializableType<V, ? extends IMask<V>>, V>> createHolderEntry() {

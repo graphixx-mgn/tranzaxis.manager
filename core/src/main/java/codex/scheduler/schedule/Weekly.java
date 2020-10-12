@@ -172,7 +172,10 @@ public class Weekly extends Schedule {
         }
 
         @Override
-        public void setValue(Map<Integer, Boolean> value) {
+        protected void updateEditable(boolean editable) {}
+
+        @Override
+        protected void updateValue(Map<Integer, Boolean> value) {
             value.forEach((dayIdx, enabled) -> buttonSet.get(dayIdx).setChecked(enabled));
         }
     }

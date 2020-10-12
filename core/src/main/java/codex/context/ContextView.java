@@ -29,11 +29,12 @@ public class ContextView extends Catalog implements Iconified {
 
         boolean isOption = contextInfo.getClazz().getAnnotation(LoggingSource.class).debugOption();
         Level   ctxLevel = contextInfo.getLevel();
-        model.addDynamicProp(
+        model.addUserProp(
                 PROP_LEVEL,
                 isOption ? new Bool(ctxLevel == Level.Debug) : new Enum<>(ctxLevel),
-                null, null
+                 false, null
         );
+        model.getProperty(PROP_LEVEL).removeChangeListener(model);
     }
 
     public Class<? extends IContext> getContextClass() {

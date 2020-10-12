@@ -81,7 +81,7 @@ public interface IComplexType<T, M extends IMask<T>> extends Serializable {
             }
 
             @Override
-            public void setValue(T value) {}
+            protected void updateValue(T value) {}
         };
     }
     

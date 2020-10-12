@@ -33,13 +33,13 @@ public abstract class ObjectChooser extends AbstractEditor<AnyType, Object> impl
         });
     }
 
-    public abstract List<Object> getValues();
+    public abstract List<?> getValues();
 
-    @Override
-    public void setEditable(boolean editable) {
-        super.setEditable(editable);
-        comboBox.setEnabled(editable);
-    }
+//    @Override
+//    public void setEditable(boolean editable) {
+//        super.setEditable(editable);
+//        comboBox.setEnabled(editable);
+//    }
 
     public PropertyHolder getProperty() {
         return propHolder;
@@ -90,11 +90,16 @@ public abstract class ObjectChooser extends AbstractEditor<AnyType, Object> impl
     }
 
     @Override
-    public void setValue(Object value) {
+    protected void updateEditable(boolean editable) {
+        comboBox.setEnabled(editable);
+    }
+
+    @Override
+    protected void updateValue(Object value) {
         if (value == null) {
             comboBox.setSelectedItem(comboBox.getItemAt(0));
         } else {
-            if (!comboBox.getSelectedItem().equals(value)) {
+            if (!value.equals(comboBox.getSelectedItem())) {
                 if (((DefaultComboBoxModel) comboBox.getModel()).getIndexOf(value) == -1) {
                     comboBox.addItem(value);
                 }

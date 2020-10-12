@@ -23,12 +23,11 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
     public  final static String PROP_HOLD_SUFFIX = ".placeholder";
     public  final static String TYPE_HOLD_KEY    = "placeholder";
     
-    private final String  name;
-    private final String  title;
-    private final String  desc;
-    private final String  placeholder;
-    private       boolean require;
-
+    private final String   name;
+    private final String   title;
+    private final String   desc;
+    private final String   placeholder;
+    private       boolean  require;
     private T value;
     private PropertyHolder<T, V> inherit;
     private final List<IPropertyChangeListener> changeListeners = new LinkedList<>();
@@ -108,6 +107,10 @@ public class PropertyHolder<T extends IComplexType<V, ? extends IMask<V>>, V> {
      */
     public final String getDescription() {
         return desc; 
+    }
+
+    public EditMode getEditMode() {
+        return EditMode.Always;
     }
     
     /**
