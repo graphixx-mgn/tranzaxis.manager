@@ -1,6 +1,7 @@
 package codex.service;
 
 import codex.log.Logger;
+import codex.utils.Runtime;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.*;
@@ -34,6 +35,7 @@ public final class ServiceRegistry {
                 Logger.getLogger().debug("Service Registry: start service: ''{0}''", service.getTitle());
             }
         });
+        Runtime.systemInfo();
     }
 
     private final Map<Class<? extends IService>, IService> registry = new ConcurrentHashMap<>();

@@ -59,7 +59,6 @@ public class Manager {
 
         splash.setProgress(5, "Load system services");
         LogUnit logViewer = LogUnit.getInstance();
-        systemInfo();
 
         splash.setProgress(35, "Start messaging unit");
         MailBox mailCenter = MailBox.getInstance();
@@ -106,25 +105,5 @@ public class Manager {
 
         splash.setVisible(false);
         window.setVisible(true);
-    }
-
-    private void systemInfo() {
-        File javac = Runtime.JVM.compiler.get();
-        if (javac == null) {
-            Logger.getLogger().warn("Java compiler not found");
-        }
-        Logger.getLogger().info(
-                new StringJoiner("\n")
-                        .add("JVM information:")
-                        .add("Name:     {0}")
-                        .add("Version:  {1}")
-                        .add("Path:     {2}")
-                        .add("Compiler: {3}")
-                        .toString(),
-                Runtime.JVM.name.get(),
-                Runtime.JVM.version.get(),
-                Runtime.JVM.location.get(),
-                javac == null ? "<not found>" : javac
-        );
     }
 }
