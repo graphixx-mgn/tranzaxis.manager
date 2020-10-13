@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<versions current="1.0.2" xmlns="manager/schemas/VersionInfo.xsd">
+<versions current="1.0.3" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="1.0.3" date="2020-10-13">
+        <changelog>
+            <change scope="APP" type="Bugfix">
+                <description>Исправлен NPE при получении адреса сетевого интерфейса.</description>
+            </change>
+            <change scope="API" type="Bugfix">
+                <description>Исправлена бинарная несовместимость с приложением в связи с рефакторингом класса AbstractEditor.</description>
+            </change>
+        </changelog>
+    </version>
     <version number="1.0.2" date="2019-09-19">
         <changelog>
             <change scope="APP" type="Bugfix">
