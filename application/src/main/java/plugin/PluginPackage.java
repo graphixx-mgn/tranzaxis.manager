@@ -17,9 +17,11 @@ import java.security.MessageDigest;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.jar.Attributes;
-import java.util.jar.JarInputStream;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import java.util.zip.ZipEntry;
 
 public final class PluginPackage {
 
@@ -43,11 +45,10 @@ public final class PluginPackage {
     static final Comparator<PluginPackage> PKG_COMPARATOR = (pkg1, pkg2) -> VER_COMPARATOR.compare(pkg1.version, pkg2.version);
 
     static Attributes getAttributes(File jarFile) throws IOException {
-        try (JarInputStream jarStream = new JarInputStream(new FileInputStream(jarFile))) {
-            if (jarStream.getManifest() == null) {
-                throw new IOException();
-            }
-            return jarStream.getManifest().getMainAttributes();
+        JarFile  jar = new JarFile(jarFile);
+        ZipEntry entry = jar.getEntry(JarFile.MANIFEST_NAME);
+        try (InputStream inputStream = jar.getInputStream(entry)) {
+            return new Manifest(inputStream).getMainAttributes();
         }
     }
 
