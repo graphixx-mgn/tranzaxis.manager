@@ -35,29 +35,24 @@ public class RemoteHost extends Catalog {
 
         this.instance = instance;
         setID(instance.hashCode());
-    }
 
-    @Override
-    protected void onOpenPageView() {
-        if (childrenList().isEmpty()) {
-            SwingUtilities.invokeLater(() -> {
-                try {
-                    instance.getServices().forEach((serviceClassName, remoteService) -> {
-                        try {
-                            Class<? extends AbstractRemoteService> serviceClass = Class.forName(serviceClassName).asSubclass(AbstractRemoteService.class);
-                            RemoteServiceControl serviceControl = createControl(serviceClass);
-                            if (serviceControl != null) {
-                                attach(serviceControl);
-                            }
-                        } catch (ClassNotFoundException e) {
-                            e.printStackTrace();
+        new Thread(() -> {
+            try {
+                instance.getServices().forEach((serviceClassName, remoteService) -> {
+                    try {
+                        Class<? extends AbstractRemoteService> serviceClass = Class.forName(serviceClassName).asSubclass(AbstractRemoteService.class);
+                        RemoteServiceControl serviceControl = createControl(serviceClass);
+                        if (serviceControl != null) {
+                            attach(serviceControl);
                         }
-                    });
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            });
-        }
+                    } catch (ClassNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                });
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     @Override
