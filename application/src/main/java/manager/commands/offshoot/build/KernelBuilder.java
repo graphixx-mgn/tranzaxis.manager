@@ -53,7 +53,7 @@ public class KernelBuilder {
 
             StringJoiner kernels = new StringJoiner("\n");
             Branch branch = Branch.Factory.loadFromDir(localDir);
-            for (Layer layer : branch.getLayers()) {
+            for (Layer layer : branch.getLayers().getInOrder()) {
                 if (layer.getKernel().getDirectory().exists() && !layer.isReadOnly()) {
                     kernels.add(layer.getDirectory().getName()+"/kernel/build.xml");
                 }
@@ -80,10 +80,10 @@ public class KernelBuilder {
             subAntBuild.addNewTarget().setName(targetBuild.getName());
             subAntBuild.setFilelist((FilelistDocument.Filelist) files.copy());
 
-            File buildFile = new File(localDir.getPath()+File.separator+"build-kernel.xml");
+            File buildFile = new File(localDir.getPath()+File.separator+"build.kernel.xml");
             FileUtils.writeStringToFile(buildFile, projectDoc.toString(), StandardCharsets.UTF_8);
 
-            File logFile = new File(localDir.getPath()+File.separator+"build-kernel.log");
+            File logFile = new File(localDir.getPath()+File.separator+"build.kernel.log");
             PrintStream logStream = new PrintStream(logFile);
 
             BuildLogger consoleLogger = new NoBannerLogger() {
