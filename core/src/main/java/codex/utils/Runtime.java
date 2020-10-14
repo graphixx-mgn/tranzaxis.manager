@@ -1,5 +1,6 @@
 package codex.utils;
 
+import codex.log.Logger;
 import net.jcip.annotations.ThreadSafe;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
@@ -7,15 +8,41 @@ import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.*;
 import java.util.function.Supplier;
 
 @ThreadSafe
 public class Runtime {
 
+    public static void systemInfo() {
+        File javac = JVM.compiler.get();
+        if (javac == null) {
+            Logger.getLogger().warn("Java compiler not found");
+        }
+        Logger.getLogger().info(
+                new StringJoiner("\n")
+                        .add("Runtime environment:")
+                        .add(" JVM:       {0} (ver.: {1})")
+                        .add(" Java home: {2}")
+                        .add(" Compiler:  {3}")
+                        .add(" OS:        {4} (ver.: {5}, arch.: {6})")
+                        .add(" Classpath: {7} (dev.mode: {8})")
+                        .toString(),
+                JVM.name.get(),
+                JVM.version.get(),
+                JVM.location.get(),
+                javac == null ? "<not found>" : javac,
+                OS.name.get(),
+                OS.version.get(),
+                OS.is64bit.get() ? "x64" : "x68",
+                APP.jarFile.get(),
+                APP.devMode.get() ? "ON" : "OFF"
+        );
+    }
+
     public static class JVM {
         public final static Supplier<String> name = () -> System.getProperty("java.runtime.name");
         public final static Supplier<String> version = () -> System.getProperty("java.vm.specification.version");
-        public final static Supplier<String> location = () -> System.getProperty("java.home");
         public final static Supplier<File>   compiler = () -> {
             JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
             if (compiler != null) {
@@ -27,6 +54,7 @@ public class Runtime {
             }
             return null;
         };
+        public final static Supplier<String> location = () -> System.getProperty("java.home");
     }
 
 
@@ -53,13 +81,5 @@ public class Runtime {
         public final static Supplier<Boolean> win7 = () -> isWindows.get() && Float.parseFloat(version.get()) >= 6.1f;
 
         public final static Supplier<Boolean> is64bit = () -> System.getProperty("sun.cpu.isalist").contains("64");
-
-//        private static boolean version(float value) {
-//            try {
-//                return Float.parseFloat(version) >= value;
-//            } catch (Exception e) {
-//                return false;
-//            }
-//        }
     }
 }
