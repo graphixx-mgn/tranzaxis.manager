@@ -10,6 +10,8 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -178,12 +180,9 @@ public class SourceBuilder {
                         if (matcher.find() && !builtModules.contains(matcher.group(1))) {
                             builtModules.add(matcher.group(1));
                             int progress = Math.min(100 * builtModules.size() / totalModules.get(), 100);
-
                             notifier.progress(progress);
-                            notifier.description(matcher.group(1));
-                        } else {
-                            notifier.description(name);
                         }
+                        notifier.description(name);
                     } catch (RemoteException e) {
                         e.printStackTrace();
                     }
@@ -193,6 +192,20 @@ public class SourceBuilder {
                 public void finish() {}
             }
         ) {
+            @Override
+            public Logger getLogger() {
+                return new Logger(BuildEnvironment.class.getName(), null) {
+                    @Override
+                    public void log(Level level, String msg, Throwable thrown) {
+                        try {
+                            notifier.error(thrown);
+                        } catch (RemoteException e) {
+                            throw new RuntimeException(e.getMessage());
+                        }
+                    }
+                };
+            }
+
             @Override
             public BuildActionExecutor.EBuildActionType getActionType() {
                 return clean ? BuildActionExecutor.EBuildActionType.CLEAN_AND_BUILD : BuildActionExecutor.EBuildActionType.BUILD;

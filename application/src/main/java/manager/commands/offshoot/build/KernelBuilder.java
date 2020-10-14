@@ -24,6 +24,8 @@ import org.radixware.kernel.common.repository.Layer;
 public class KernelBuilder {
     
     public static void main(String[] args) throws Exception {
+        System.setProperty("build.compiler", "extJavac");
+
         final Integer port = Integer.valueOf(System.getProperty("port"));
         final String  path = System.getProperty("path");
 
