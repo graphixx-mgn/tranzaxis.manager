@@ -271,7 +271,7 @@ class MessageView extends JPanel {
 
         private ReadTrigger getReadTrigger() {
             String triggerName = Service.getProperty(NotificationService.class, NotifyServiceOptions.PROP_READTRIGGER);
-            return triggerName != null ? ReadTrigger.valueOf(triggerName) : ReadTrigger.OnClick;
+            return triggerName != null ? ReadTrigger.valueOf(triggerName) : ReadTrigger.OnShow;
         }
 
         @Override

@@ -80,7 +80,7 @@ public class NotifyServiceOptions extends Service<NotificationService> {
                 },
                 false, Access.Select
         );
-        model.addUserProp(PROP_READTRIGGER, new Enum<>(MessageView.ReadTrigger.OnClick), true, Access.Select);
+        model.addUserProp(PROP_READTRIGGER, new Enum<>(MessageView.ReadTrigger.OnShow), true, Access.Select);
 
         model.addPropertyGroup(Language.get("group@system"), PROP_CONDITIONS);
         model.addPropertyGroup(Language.get("group@inbox"),  PROP_READTRIGGER);
