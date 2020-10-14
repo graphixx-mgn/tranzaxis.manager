@@ -6,7 +6,7 @@
                 <description>Исправлен NPE при получении адреса сетевого интерфейса.</description>
             </change>
             <change scope="API" type="Bugfix">
-                <description>Исправлена бинарная несовместимость с приложением в связи с рефакторингом класса AbstractEditor.</description>
+                <description>Исправлена бинарная несовместимость с приложением (v.2.3.1) в связи с рефакторингом класса AbstractEditor.</description>
             </change>
         </changelog>
     </version>
@@ -16,14 +16,14 @@
                 <description>В селекторе объектов вместо ID модулей отображались ID точек подключения.</description>
             </change>
             <change scope="API" type="Bugfix">
-                <description>Исправлена бинарная несовместимость с приложением в связи с рефакторингом класса ServiceRegistry.</description>
+                <description>Исправлена бинарная несовместимость с приложением (v.2.3.0) в связи с рефакторингом класса ServiceRegistry.</description>
             </change>
         </changelog>
     </version>
     <version number="1.0.1" date="2019-07-01">
         <changelog>
             <change scope="API" type="Bugfix">
-                <description>Исправлена бинарная несовместимость с приложением в связи с рефакторингом редактора типа Enum.</description>
+                <description>Исправлена бинарная несовместимость с приложением (v.2.2.2) в связи с рефакторингом редактора типа Enum.</description>
             </change>
         </changelog>
     </version>
