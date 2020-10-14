@@ -12,7 +12,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,13 +37,13 @@ public class ImageUtils {
 
     public static ImageIcon getByPath(Class callerClass, String path) {
         path = path.replaceFirst("^/", "");
-        URL classURL = ((URLClassLoader) callerClass.getClassLoader()).getURLs()[0];
         URL imageURL = null;
         try {
+            String classLocation = callerClass.getProtectionDomain().getCodeSource().getLocation().getFile();
             Enumeration<URL> resources = callerClass.getClassLoader().getResources(path);
             while (resources.hasMoreElements()) {
                 URL nextURL = resources.nextElement();
-                if (nextURL.getFile().contains(classURL.getFile())) {
+                if (nextURL.getFile().contains(classLocation)) {
                     imageURL = nextURL;
                     break;
                 }
