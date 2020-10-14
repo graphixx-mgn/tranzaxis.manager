@@ -5,6 +5,10 @@
             <change scope="CORE" type="Bugfix">
                 <description>Исправлено "дергание" виджетов редакторов динамических полей при открытии редактора сущности.</description>
             </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена ошибка в сервисе взаимодействия инстанций.
+                    При обрыве соединения отключалась последняя подключенная инстанция вместо нужной.</description>
+            </change>
             <change scope="APP" type="Bugfix">
                 <description>Исправлена ошибка сборки ядра TranzAxis, если установлен JDK с компонентой "Public JRE":
                     Unable to find a javac compiler; com.sun.tools.javac.Main is not on the classpath.</description>

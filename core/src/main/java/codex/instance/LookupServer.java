@@ -5,17 +5,12 @@ import codex.log.Logger;
 import codex.log.LoggingSource;
 import codex.xml.EchoDocument;
 import java.io.*;
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
 import net.jcip.annotations.ThreadSafe;
 import org.apache.xmlbeans.XmlException;
-import sun.management.VMManagement;
 
 /**
  * Сервер поиска и подключения инстанций. Реализует сетевой обмен пакета между инстанциями
@@ -301,8 +296,6 @@ class LookupServer {
 
         private class TcpServerHandler extends ServerSocketHandler {
 
-            private Instance instance;
-
             @Override
             void read(SelectionKey event) {
                 final ByteBuffer buffer = ByteBuffer.allocate(256);
@@ -312,13 +305,12 @@ class LookupServer {
                     InetSocketAddress remoteAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
                     socketChannel.read(buffer);
                     buffer.flip();
-                    processMessage(remoteAddress, Arrays.copyOf(buffer.array(), buffer.remaining()));
-                } catch (IOException ignore) {
-                    if (instance != null) {
-                        unlinkInstance(instance);
-                    }
-                    event.cancel();
-                }
+                    processMessage(
+                            socketChannel,
+                            remoteAddress,
+                            Arrays.copyOf(buffer.array(), buffer.remaining())
+                    );
+                } catch (IOException ignore) {}
             }
 
             @Override
@@ -334,11 +326,10 @@ class LookupServer {
                     );
                 } catch (IOException e) {
                     Logger.getLogger().warn("Unexpected error", e);
-                    event.cancel();
                 }
             }
 
-            final void processMessage(InetSocketAddress remoteAddress, byte[] data) {
+            final synchronized void processMessage(SocketChannel socketChannel, InetSocketAddress remoteAddress, byte[] data) throws ClosedChannelException {
                 if (remoteAddress != null) {
                     EchoDocument message = parseMessage(data);
                     if (message != null) {
@@ -348,12 +339,17 @@ class LookupServer {
                                 remoteAddress.getHostString(),
                                 new String(data)
                         );
-                        instance = new Instance(
+                        Instance instance = new Instance(
                                 remoteAddress.getAddress(),
                                 message.getEcho().getHost(),
                                 message.getEcho().getUser(),
                                 message.getEcho().getRpcPort(),
                                 message.getEcho().getKcaPort()
+                        );
+                        socketChannel.register(
+                                selector,
+                                SelectionKey.OP_READ,
+                                new TcpClientHandler(instance, false)
                         );
                         linkInstance(instance);
                     }
