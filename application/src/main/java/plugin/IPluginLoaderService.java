@@ -37,11 +37,10 @@ public interface IPluginLoaderService extends IRemoteService {
     RemoteInputStream getPackageFileStream(String pluginId, String pluginVersion)  throws RemoteException;
 
 
-    class RemotePackage implements Serializable, Iconified {
+    class RemotePackage implements Serializable {
         private static final long serialVersionUID = -3332763603180744471L;
 
         private final String vendor, title, version, author;
-        private final ImageIcon icon;
         private final VersionsDocument   changes;
         private final List<Instance>     instances = new LinkedList<>();
         private final List<RemotePlugin> plugins = new LinkedList<>();
@@ -52,7 +51,6 @@ public interface IPluginLoaderService extends IRemoteService {
             version = pluginPackage.getVersion();
             changes = pluginPackage.getChanges();
             author  = pluginPackage.getAuthor();
-            icon    = PackageView.PACKAGE;
 
             plugins.addAll(pluginPackage.getPlugins().stream()
                     .map(RemotePlugin::new)
@@ -82,11 +80,6 @@ public interface IPluginLoaderService extends IRemoteService {
 
         String getAuthor() {
             return author;
-        }
-
-        @Override
-        public ImageIcon getIcon() {
-            return icon;
         }
 
         @Override

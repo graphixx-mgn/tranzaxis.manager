@@ -16,6 +16,9 @@
             <change scope="APP" type="Bugfix">
                 <description>Исправлен порядок модулей при формировании задания Ant для сборки ядра слоев TranzAxis.</description>
             </change>
+            <change scope="APP" type="Bugfix">
+                <description>Синхронизированы процессы загрузки плагинов при старте приложения и получения информации об обновлениях.</description>
+            </change>
         </changelog>
     </version>
     <version number="2.3.0" date="2020-10-10">

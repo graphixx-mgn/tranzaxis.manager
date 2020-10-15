@@ -23,6 +23,7 @@ import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import codex.utils.LocaleContextHolder;
+import codex.utils.Runtime;
 import manager.xml.Change;
 import org.apache.commons.codec.digest.DigestUtils;
 import javax.swing.*;
@@ -182,6 +183,19 @@ final class ShowPackagesUpdates extends EntityCommand<PluginCatalog>
 
     private void registerPackages(Instance instance, List<IPluginLoaderService.RemotePackage> packages) {
         synchronized (remotePackages) {
+            if (!packages.isEmpty() && Runtime.APP.devMode.get()) {
+                Logger.getContextLogger(PluginLoader.class).debug(
+                        "Remote instance {0} has installed following plugins:\n{1}",
+                        instance,
+                        packages.stream()
+                                .map(remotePackage -> MessageFormat.format(
+                                        " * {0}-{1}",
+                                        remotePackage.getTitle(),
+                                        remotePackage.getVersion()
+                                ))
+                                .collect(Collectors.joining("\n"))
+                );
+            }
             boolean changed = false;
             for (IPluginLoaderService.RemotePackage remotePackage : packages) {
                 if (!remotePackage.validatePackage()) {

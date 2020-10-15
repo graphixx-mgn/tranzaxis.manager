@@ -7,6 +7,7 @@ import codex.explorer.tree.Navigator;
 import codex.explorer.tree.NodeTreeModel;
 import codex.instance.IInstanceDispatcher;
 import codex.log.Logger;
+import codex.model.CommandRegistry;
 import codex.model.Entity;
 import codex.service.ServiceRegistry;
 import codex.unit.AbstractUnit;
@@ -38,23 +39,6 @@ public final class PluginManager extends AbstractUnit {
     private ExplorerUnit        explorer;
     private final PluginCatalog pluginCatalog = new PluginCatalog();
     private final PluginLoader  pluginLoader  = new PluginLoader() {
-
-        {
-            IInstanceDispatcher localICS = ServiceRegistry.getInstance().lookupService(IInstanceDispatcher.class);
-            getPackages().stream()
-                    .filter(pluginPackage -> Entity.newInstance(PackageView.class, null, pluginPackage.getTitle()).isPublished())
-                    .map(IPluginLoaderService.RemotePackage::new)
-                    .forEach(remotePackage -> {
-                        localICS.getInstances().forEach(instance -> {
-                            try {
-                                final IPluginLoaderService pluginLoader = (IPluginLoaderService) instance.getService(PluginLoaderService.class);
-                                pluginLoader.packagePublicationChanged(remotePackage, true);
-                            } catch (RemoteException | NotBoundException e) {
-                                e.printStackTrace();
-                            }
-                        });
-                    });
-        }
 
         @Override
         void addPluginPackage(PluginPackage pluginPackage) {
@@ -90,24 +74,7 @@ public final class PluginManager extends AbstractUnit {
 
             Navigator navigator = (Navigator) navigatorField.get(explorer);
             navigator.setModel(new NodeTreeModel(pluginCatalog));
-        } catch (Exception e) {
-            //
-        }
-
-        ServiceRegistry.getInstance().addRegistryListener(IInstanceDispatcher.class, service -> {
-            IInstanceDispatcher localICS = (IInstanceDispatcher) service;
-            localICS.registerRemoteService(PluginLoaderService.class);
-            try {
-                PluginLoaderService pluginLoaderService = (PluginLoaderService) localICS.getService(PluginLoaderService.class);
-                pluginLoaderService.addPublicationListener(pluginCatalog.getCommand(ShowPackagesUpdates.class));
-            } catch (RemoteException e) {
-                Logger.getLogger().warn("Unable to find plugin loader service", e);
-            } catch (NotBoundException ignore) {
-                ignore.printStackTrace();
-            }
-        });
-
-        getPluginLoader().addListener(pluginCatalog.getCommand(ShowPackagesUpdates.class));
+        } catch (Exception ignore) {}
     }
 
     PluginCatalog getPluginCatalog() {
@@ -126,5 +93,31 @@ public final class PluginManager extends AbstractUnit {
     @Override
     public void viewportBound() {
         explorer.viewportBound();
+
+        CommandRegistry.getInstance().registerCommand(PluginCatalog.class, ShowPackagesUpdates.class);
+
+        ServiceRegistry.getInstance().addRegistryListener(IInstanceDispatcher.class, service -> {
+            IInstanceDispatcher localICS = (IInstanceDispatcher) service;
+            localICS.registerRemoteService(PluginLoaderService.class);
+
+            try {
+                PluginLoaderService localPluginLoader = (PluginLoaderService) localICS.getService(PluginLoaderService.class);
+                localPluginLoader.addPublicationListener(pluginCatalog.getCommand(ShowPackagesUpdates.class));
+            } catch (RemoteException e) {
+                Logger.getLogger().warn("Unable to find plugin loader service", e);
+            } catch (NotBoundException ignore) {}
+
+            pluginLoader.getPackages().stream()
+                    .filter(pluginPackage -> Entity.newInstance(PackageView.class, null, pluginPackage.getTitle()).isPublished())
+                    .map(IPluginLoaderService.RemotePackage::new)
+                    .forEach(remotePackage -> {
+                        localICS.getInstances().forEach(instance -> {
+                            try {
+                                final IPluginLoaderService pluginLoader = (IPluginLoaderService) instance.getService(PluginLoaderService.class);
+                                pluginLoader.packagePublicationChanged(remotePackage, true);
+                            } catch (RemoteException | NotBoundException ignore) {}
+                        });
+                    });
+        });
     }
 }

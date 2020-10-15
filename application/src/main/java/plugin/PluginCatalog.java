@@ -38,7 +38,6 @@ final class PluginCatalog extends Catalog {
 
     static {
         CommandRegistry.getInstance().registerCommand(UnitSettings.class);
-        CommandRegistry.getInstance().registerCommand(ShowPackagesUpdates.class);
     }
 
     PluginCatalog() {
