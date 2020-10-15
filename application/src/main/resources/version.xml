@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<versions current="2.3.0" xmlns="manager/schemas/VersionInfo.xsd">
+<versions current="2.3.1" xmlns="manager/schemas/VersionInfo.xsd">
     <version number="2.3.1" date="2020-10-15">
         <changelog>
             <change scope="CORE" type="Bugfix">
