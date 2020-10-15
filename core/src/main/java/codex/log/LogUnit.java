@@ -8,12 +8,13 @@ import codex.component.dialog.Dialog;
 import codex.component.layout.WrapLayout;
 import codex.component.render.GeneralRenderer;
 import codex.context.ContextView;
-import codex.context.IContext;
 import codex.editor.IEditor;
 import codex.presentation.SelectorTable;
 import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
+import codex.service.ServiceRegistry;
 import codex.supplier.IDataSupplier;
+import codex.tracker.IWindowTracker;
 import codex.type.DateTime;
 import codex.type.IComplexType;
 import codex.unit.AbstractUnit;
@@ -45,8 +46,9 @@ import java.util.stream.Collectors;
 
 public class LogUnit extends AbstractUnit implements WindowStateListener, AdjustmentListener {
 
+    private final static String WINDOW_CLASSIFIER     = "Window.Logger";
     private final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");
-    private final static Pattern MULTILINE_PATTERN = Pattern.compile("\\n.*", Pattern.DOTALL);
+    private final static Pattern MULTILINE_PATTERN    = Pattern.compile("\\n.*", Pattern.DOTALL);
 
     private final static String QUERY = Language.get(DatabaseAppender.class, "select", Language.DEF_LOCALE);
 
@@ -83,7 +85,17 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
         return INSTANCE;
     }
 
-    private final JFrame frame = new JFrame();
+    private final JFrame frame = new JFrame() {
+        @Override
+        public void setVisible(boolean visible) {
+            if (visible) {
+                ServiceRegistry.getInstance().lookupService(IWindowTracker.class).registerWindow(
+                        this, WINDOW_CLASSIFIER
+                );
+            }
+            super.setVisible(visible);
+        }
+    };
     private boolean      frameState;
     private Connection   connection;
     {
@@ -134,8 +146,6 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                     label.setIcon(ImageUtils.resize(level.getIcon(), iconSize, iconSize));
                 }
                 if (column == 1) {
-                    //String[]  contexts = tableModel.getValueAt(row,2).toString().split(",", -1);
-                    //String    ctxClassName = contexts[contexts.length-1];
                     String ctxClassName = (String) tableModel.getValueAt(row,2);
                     Logger.ContextInfo ctxInfo = Logger.getContextRegistry().getContext(ctxClassName);
                     ImageIcon ctxIcon = ctxInfo != null ? ctxInfo.getIcon() : IMAGE_CTX_NONE;

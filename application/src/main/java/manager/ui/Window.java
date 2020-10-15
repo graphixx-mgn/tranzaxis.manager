@@ -1,5 +1,7 @@
 package manager.ui;
 
+import codex.service.ServiceRegistry;
+import codex.tracker.IWindowTracker;
 import codex.unit.AbstractUnit;
 import codex.unit.IEventInformer;
 import codex.utils.ImageUtils;
@@ -8,11 +10,13 @@ import javax.swing.*;
 import javax.swing.border.MatteBorder;
 
 public final class Window extends JFrame {
+
+    private final static String WINDOW_CLASSIFIER = "Window.Main";
     
     private final JTabbedPane tabbedPanel;
-    public final JPanel upgradePanel = new JPanel();
-    public final JPanel taskmgrPanel = new JPanel();
-    public final JPanel loggingPanel = new JPanel();
+    public  final JPanel upgradePanel = new JPanel();
+    public  final JPanel taskmgrPanel = new JPanel();
+    public  final JPanel loggingPanel = new JPanel();
     
     public Window(String title, ImageIcon icon) {
         super(title);
@@ -61,8 +65,13 @@ public final class Window extends JFrame {
     
     @Override
     public void setVisible(boolean visible) {
-        pack();
-        setLocationRelativeTo(null);
+        if (visible) {
+            pack();
+            setLocationRelativeTo(null);
+            ServiceRegistry.getInstance().lookupService(IWindowTracker.class).registerWindow(
+                this, WINDOW_CLASSIFIER
+            );
+        }
         super.setVisible(visible);
     }
     

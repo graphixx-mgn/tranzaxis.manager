@@ -3,3 +3,4 @@ codex.utils.Language$TranslateService
 codex.task.TaskExecutorService
 codex.notification.NotificationService
 codex.instance.InstanceCommunicationService
+codex.tracker.WindowTracker
