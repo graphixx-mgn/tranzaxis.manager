@@ -158,7 +158,11 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
         if (this.locked != locked) {
             this.locked = locked;
             new LinkedList<>(listeners).forEach(listener -> listener.setLocked(this.locked));
-            setEditable(isEditable());
+            if (SwingUtilities.isEventDispatchThread()) {
+                updateEditable(isEditable());
+            } else {
+                SwingUtilities.invokeLater(() -> updateEditable(isEditable()));
+            }
         }
     }
 
