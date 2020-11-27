@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class LogUnit extends AbstractUnit implements WindowStateListener, AdjustmentListener {
 
@@ -435,9 +436,14 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
         final GraphicsDevice[] graphDevs = graphEnv.getScreenDevices();
         if (graphDevs.length > 1) {
             Logger.getLogger().debug("Detected multi screens configuration. EventLog window moved to 2ND device");
+            int[] extraDevIndexes = IntStream
+                    .iterate(0, n -> n + 1)
+                    .limit(graphDevs.length)
+                    .filter(n -> graphDevs[n] != graphEnv.getDefaultScreenDevice())
+                    .toArray();
             final Insets scnMax = Toolkit.getDefaultToolkit().getScreenInsets(frame.getGraphicsConfiguration());
             int taskBarSize = scnMax.bottom;
-            final Rectangle bounds = graphDevs[1].getDefaultConfiguration().getBounds();
+            final Rectangle bounds = graphDevs[extraDevIndexes[0]].getDefaultConfiguration().getBounds();
             frame.setSize(bounds.width, bounds.height-taskBarSize);
             frame.setLocation(bounds.x, bounds.y);
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH);

@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <versions current="2.3.1" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="2.3.2" date="2020-11-27">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлено некорректное определение индекса первичного монитора при открытии окна модуля логирования.</description>
+            </change>
+        </changelog>
+    </version>
     <version number="2.3.1" date="2020-10-15">
         <changelog>
             <change scope="CORE" type="Bugfix">
