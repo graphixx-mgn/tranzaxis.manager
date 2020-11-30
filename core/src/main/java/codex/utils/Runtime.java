@@ -62,9 +62,14 @@ public class Runtime {
         public final static Supplier<Class> mainClass = () -> Caller.getInstance().getClassStack().stream()
                 .reduce((first, second) -> second)
                 .orElse(null);
-        public final static Supplier<File> jarFile = () -> new File(
-                Runtime.class.getProtectionDomain().getCodeSource().getLocation().getFile()
-        );
+        public final static Supplier<File> jarFile = () -> {
+            try {
+                return new File(
+                        URLDecoder.decode(Runtime.class.getProtectionDomain().getCodeSource().getLocation().getFile(), "UTF-8")
+                );
+            } catch (UnsupportedEncodingException ignore) {}
+            return null;
+        };
         public final static Supplier<Boolean> devMode = () -> !jarFile.get().isFile();
     }
 
