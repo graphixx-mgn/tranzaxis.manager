@@ -5,6 +5,9 @@
             <change scope="CORE" type="Bugfix">
                 <description>Исправлено некорректное определение индекса первичного монитора при открытии окна модуля логирования.</description>
             </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена ошибка запука сборки если путо к файлу приложения содеожит пробелы.</description>
+            </change>
         </changelog>
     </version>
     <version number="2.3.1" date="2020-10-15">
