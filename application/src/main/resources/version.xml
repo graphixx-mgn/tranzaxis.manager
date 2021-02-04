@@ -8,6 +8,9 @@
             <change scope="CORE" type="Bugfix">
                 <description>Исправлена ошибка запуска сборки если путь к файлу приложения содержит пробелы.</description>
             </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена проблема отображения кнопок для вызова команд редакторов в диалоге просмотра расширенных свойств сущности.</description>
+            </change>
             <change scope="CORE" type="Change">
                 <description>Более аккуртный расчет размера диалога выбора значения из модального селектора.</description>
             </change>

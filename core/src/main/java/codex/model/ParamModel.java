@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * Реализация модели параметров команды.
  */
-public final class ParamModel extends AbstractModel implements IPropertyChangeListener {
+public class ParamModel extends AbstractModel implements IPropertyChangeListener {
     
     private final List<IPropertyChangeListener> listeners = new LinkedList<>();
     
