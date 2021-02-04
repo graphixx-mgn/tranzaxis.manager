@@ -17,6 +17,9 @@
             <change scope="CORE" type="Change">
                 <description>Удалены бордюры кнопок вызова команд в редакторах свойств.</description>
             </change>
+            <change scope="CORE" type="Change">
+                <description>Изменен стиль отображения редактора TextView при наличии у него команд.</description>
+            </change>
             <change scope="APP" type="Change">
                 <description>Иконка базы данных отображает её состояние.</description>
             </change>
