@@ -84,7 +84,7 @@ public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>
     /**
      * Вызывает функцию расчета состояния доступности команды и в зависимости от полученного объекта {@link CommandStatus}
      * вызывает события:<br>
-     * * {@link ICommandListener#commandStatusChanged(boolean)}<br>
+     * * {@link ICommandListener#commandStatusChanged(boolean, Boolean)}<br>
      * * {@link ICommandListener#commandIconChanged(ImageIcon)}<br>
      * для подписанных слушателей.
      */
@@ -93,7 +93,7 @@ public abstract class EditorCommand<T extends IComplexType<V, ? extends IMask<V>
         CommandStatus status = activator.apply(getContext());
         synchronized (listeners) {
             listeners.forEach(listener -> {
-                listener.commandStatusChanged(status.active);
+                listener.commandStatusChanged(status.active, status.hidden);
                 listener.commandIconChanged(status.icon);
             });
         }

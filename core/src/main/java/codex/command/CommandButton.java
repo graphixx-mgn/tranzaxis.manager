@@ -69,7 +69,7 @@ public class CommandButton extends PushButton implements ICommandListener<Entity
     }
 
     @Override
-    public final void commandStatusChanged(boolean active) {
+    public final void commandStatusChanged(boolean active, Boolean hidden) {
         button.setEnabled(active);
     }
 

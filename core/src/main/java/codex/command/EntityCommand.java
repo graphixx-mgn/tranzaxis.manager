@@ -196,7 +196,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
     /**
      * Вызывает функцию расчета состояния доступности команды и в зависимости от полученного объекта {@link CommandStatus}
      * вызывает события:<br>
-     * * {@link ICommandListener#commandStatusChanged(boolean)}<br>
+     * * {@link ICommandListener#commandStatusChanged(boolean, Boolean)}<br>
      * * {@link ICommandListener#commandIconChanged(ImageIcon)}<br>
      * для подписанных слушателей.
      */
@@ -205,7 +205,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
         CommandStatus status = activator.apply(getContext());
         synchronized (listeners) {
             listeners.forEach(listener -> {
-                listener.commandStatusChanged(status.active);
+                listener.commandStatusChanged(status.active, status.hidden);
                 if (status.icon != null) {
                     listener.commandIconChanged(status.icon);
                 }
