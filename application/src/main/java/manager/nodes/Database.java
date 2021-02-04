@@ -11,6 +11,7 @@ import codex.model.*;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
 import codex.type.IComplexType;
+import codex.type.Iconified;
 import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -38,6 +39,11 @@ public class Database extends Entity {
             ImageUtils.resize(ImageUtils.getByPath("/images/stop.png"), .6f),
             SwingConstants.SOUTH_EAST
     );
+    private final static ImageIcon ICON_UNKNOWN = ImageUtils.combine(
+            ICON_ONLINE,
+            ImageUtils.resize(ImageUtils.getByPath("/images/question.png"), .6f),
+            SwingConstants.SOUTH_EAST
+    );
    
     private static final IDatabaseAccessService OAS = OracleAccessService.getInstance();
     
@@ -45,6 +51,8 @@ public class Database extends Entity {
         ServiceRegistry.getInstance().registerService(OAS);
         CommandRegistry.getInstance().registerCommand(CheckConnection.class);
     }
+
+    private Status status = Status.Unknown;
 
     private final Runnable connectionChecker = () -> new Thread(() -> {
         String dbUrl = getDatabaseUrl(true);
@@ -176,20 +184,41 @@ public class Database extends Entity {
         return connectionGetter.apply(showError);
     }
 
-    public boolean checkUrlPort(String dbUrl) {
+    public synchronized boolean checkUrlPort(String dbUrl) {
         Matcher verMatcher = URL_SPLITTER.matcher(dbUrl);
         if (verMatcher.find()) {
             String host = verMatcher.group(1);
             int    port = Integer.valueOf(verMatcher.group(2));
             try {
-                boolean available = NetTools.isPortAvailable(host, port, 100);
-                setIcon(available ? ICON_ONLINE : ICON_OFFLINE);
+                boolean available = NetTools.isPortAvailable(host, port, 250);
+                Status newStatus = available ? Status.Online : Status.Offline;
+                if (newStatus != status) {
+                    status = newStatus;
+                    setIcon(status.getIcon());
+                }
                 return available;
             } catch (IllegalStateException e) {
                 return false;
             }
         } else {
             return false;
+        }
+    }
+
+
+    private enum Status implements Iconified {
+        Unknown(ICON_UNKNOWN),
+        Online(ICON_ONLINE),
+        Offline(ICON_OFFLINE);
+
+        private final ImageIcon icon;
+        Status(ImageIcon icon) {
+            this.icon = icon;
+        }
+
+        @Override
+        public ImageIcon getIcon() {
+            return icon;
         }
     }
     

@@ -11,6 +11,9 @@
             <change scope="CORE" type="Change">
                 <description>Более аккуртный расчет размера диалога выбора значения из модального селектора.</description>
             </change>
+            <change scope="APP" type="Change">
+                <description>Иконка базы данных отображает её состояние.</description>
+            </change>
         </changelog>
     </version>
     <version number="2.3.1" date="2020-10-15">
