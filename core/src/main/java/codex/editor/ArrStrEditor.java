@@ -111,7 +111,7 @@ public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
     @Override
     protected void updateValue(List<String> value) {
         final IArrMask mask = propHolder.getPropValue().getMask();
-        if (mask != null && mask.getFormat() != null && value != null) {
+        if (mask != null && mask.getFormat() != null && value != null && !value.isEmpty()) {
             textField.setText(
                     MessageFormat.format(
                             mask.getFormat(),
