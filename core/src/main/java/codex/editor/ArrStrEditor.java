@@ -92,7 +92,7 @@ public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
         textField.setBackground(Color.WHITE);
         textField.addFocusListener(this);
         
-        PlaceHolder placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.ALWAYS);
+        PlaceHolder placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField, PlaceHolder.Show.ALWAYS);
         placeHolder.setBorder(textField.getBorder());
         placeHolder.changeAlpha(100);
 
