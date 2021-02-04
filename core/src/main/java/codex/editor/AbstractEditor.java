@@ -17,9 +17,7 @@ import net.java.balloontip.styles.EdgedBalloonStyle;
 import net.java.balloontip.utils.TimingUtils;
 import javax.swing.*;
 import javax.swing.border.Border;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.MatteBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.LinkedList;
@@ -31,10 +29,8 @@ import java.util.List;
  */
 public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V>>, V> extends JComponent implements IEditor<T, V>, FocusListener {
 
-    private static final Border NORMAL_BORDER = new CompoundBorder(
-            new MatteBorder(0, 1, 0, 0, Color.LIGHT_GRAY),
-            new EmptyBorder(1, 0, 1, 1)
-    );
+    private final static Color  HOVER_COLOR   = Color.decode("#D8E6F2");
+    private final static Color  PRESS_COLOR   = Color.decode("#C0DCF3");
     
     private final JLabel label;
     protected Box        editor;
@@ -248,7 +244,6 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
             button.setBorder(new EmptyBorder(2, 2, 2, 2));
             setHint(command.getHint());
             setBackground(null);
-            setBorder(NORMAL_BORDER);
 
             button.setEnabled(false);
 
@@ -299,13 +294,10 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
         @Override
         protected final void redraw() {
             if (button.getModel().isPressed()) {
-                setBorder(PRESS_BORDER);
-                setBackground(PRESS_COLOR);
+                setBackground(AbstractEditor.PRESS_COLOR);
             } else if (button.getModel().isRollover()) {
-                setBorder(HOVER_BORDER);
-                setBackground(HOVER_COLOR);
+                setBackground(AbstractEditor.HOVER_COLOR);
             } else {
-                setBorder(NORMAL_BORDER);
                 setBackground(null);
             }
         }
