@@ -138,7 +138,6 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
         textField.addFocusListener(this);
 
         Box container = new Box(BoxLayout.X_AXIS);
-        container.setBackground(textField.getBackground());
         container.add(textField);
         return container;
     }
@@ -147,6 +146,8 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
     protected void updateEditable(boolean editable) {
         textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
         textField.setEditable(editable && !propHolder.isInherited());
+        textField.setBackground(editable && !propHolder.isInherited() ? Color.WHITE  : null);
+        getEditor().setBackground(editable && !propHolder.isInherited() ? Color.WHITE  : null);
     }
 
     @Override

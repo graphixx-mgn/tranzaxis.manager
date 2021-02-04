@@ -1,5 +1,6 @@
 package codex.editor;
 
+import codex.command.EditorCommand;
 import codex.component.button.IButton;
 import codex.component.render.GeneralRenderer;
 import codex.mask.IMask;
@@ -13,6 +14,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
+import javax.swing.border.MatteBorder;
 import javax.swing.plaf.BorderUIResource;
 import javax.swing.plaf.basic.BasicComboPopup;
 
@@ -25,8 +27,9 @@ import javax.swing.plaf.basic.BasicComboPopup;
 public class EnumEditor<T extends java.lang.Enum> extends AbstractEditor<Enum<T>, T> implements ActionListener {
 
     private final static ImageIcon ICON_NULL = ImageUtils.resize(ImageUtils.getByPath("/images/clearval.png"), 17, 17);
-    
+
     private JComboBox<T> comboBox;
+    private JPanel boxWrapper;
     
     /**
      * Конструктор редактора.
@@ -63,10 +66,21 @@ public class EnumEditor<T extends java.lang.Enum> extends AbstractEditor<Enum<T>
         Object child = comboBox.getAccessibleContext().getAccessibleChild(0);
         BasicComboPopup popup = (BasicComboPopup)child;
         popup.setBorder(IButton.PRESS_BORDER);
+
+        boxWrapper = new JPanel(new BorderLayout());
+        boxWrapper.add(comboBox, BorderLayout.CENTER);
         
         Box container = new Box(BoxLayout.X_AXIS);
-        container.add(comboBox);
+        container.add(boxWrapper);
         return container;
+    }
+
+    @Override
+    public void addCommand(EditorCommand<Enum<T>, T> command) {
+        super.addCommand(command);
+        if (!commands.isEmpty()) {
+            boxWrapper.setBorder(new MatteBorder(0, 0, 0, 1, Color.LIGHT_GRAY));
+        }
     }
 
     @Override

@@ -1,5 +1,6 @@
 package codex.editor;
 
+import codex.command.CommandStatus;
 import codex.command.EditorCommand;
 import codex.component.button.DialogButton;
 import codex.component.button.IButton;
@@ -41,7 +42,7 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
     private static final ImageIcon NEXT_YEAR  = ImageUtils.resize(ImageUtils.getByPath("/images/end.png"), 0.7f);
     private static final ImageIcon PREV_YEAR  = ImageUtils.resize(ImageUtils.getByPath("/images/begin.png"), 0.7f);
 
-    private JTextField textField;
+    private JTextField   textField;
     private final JLabel signDelete;
 
     /**
@@ -50,7 +51,8 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
      */
     public DateTimeEditor(PropertyHolder<DateTime, Date> propHolder) {
         super(propHolder);
-        TimePicker timePicker = new TimePicker();
+        TimePicker  timePicker = new TimePicker();
+        CurrentTime currentTime = new CurrentTime();
 
         signDelete = new JLabel(ImageUtils.resize(
                 ImageUtils.getByPath("/images/clearval.png"),
@@ -72,7 +74,7 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
             }
         });
 
-        addCommand(new CurrentTime());
+        addCommand(currentTime);
         addCommand(timePicker);
         textField.addMouseListener(new MouseAdapter() {
             @Override
@@ -97,13 +99,23 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
         placeHolder.changeAlpha(100);
 
         Box container = new Box(BoxLayout.X_AXIS);
-        container.setBackground(textField.getBackground());
         container.add(textField);
         return container;
     }
 
+    private EditorCommandButton addSysCommand(EditorCommand<DateTime, Date> command) {
+        final EditorCommandButton button = new EditorCommandButton(command);
+        commands.add(command);
+        command.setContext(propHolder);
+        return button;
+    }
+
     @Override
-    protected void updateEditable(boolean editable) {}
+    protected void updateEditable(boolean editable) {
+        textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
+        textField.setBackground(editable && !propHolder.isInherited() ? Color.WHITE  : null);
+        getEditor().setBackground(editable && !propHolder.isInherited() ? Color.WHITE  : null);
+    }
 
     @Override
     protected void updateValue(Date date) {
@@ -142,6 +154,7 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
 
         private CurrentTime() {
             super(CURR, null);
+            activator = holder -> new CommandStatus(true, null, !isEditable());
         }
 
         @Override
@@ -232,6 +245,7 @@ public class DateTimeEditor extends AbstractEditor<DateTime, Date> {
 
         private TimePicker() {
             super(PICK, null);
+            activator = holder -> new CommandStatus(true, null, !isEditable());
             now.addActionListener(new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent e) {

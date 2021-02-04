@@ -2,7 +2,6 @@ package codex.editor;
 
 import codex.command.CommandStatus;
 import codex.command.EditorCommand;
-import codex.command.ICommand;
 import codex.component.button.DialogButton;
 import codex.component.button.PushButton;
 import codex.component.dialog.Dialog;
@@ -89,7 +88,6 @@ public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
         textField.setFont(FONT_VALUE);
         textField.setBorder(new EmptyBorder(0, 3, 0, 3));
         textField.setEditable(false);
-        textField.setBackground(Color.WHITE);
         textField.addFocusListener(this);
         
         PlaceHolder placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField, PlaceHolder.Show.ALWAYS);
@@ -97,7 +95,6 @@ public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
         placeHolder.changeAlpha(100);
 
         Box container = new Box(BoxLayout.X_AXIS);
-        container.setBackground(textField.getBackground());
         container.add(textField);
         return container;
     }
@@ -105,7 +102,8 @@ public class ArrStrEditor extends AbstractEditor<ArrStr, List<String>> {
     @Override
     protected void updateEditable(boolean editable) {
         textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
-        textField.setOpaque(editable && !propHolder.isInherited());
+        textField.setBackground(editable && !propHolder.isInherited() ? Color.WHITE  : null);
+        getEditor().setBackground(editable && !propHolder.isInherited() ? Color.WHITE  : null);
     }
 
     @Override

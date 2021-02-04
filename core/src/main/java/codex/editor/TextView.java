@@ -63,6 +63,7 @@ public class TextView extends AbstractEditor<AnyType, Object> {
         scrollPane.setAlignmentY(TOP_ALIGNMENT);
 
         commandPanel = new JPanel();
+        commandPanel.setBackground(null);
         commandPanel.setLayout(new BoxLayout(commandPanel, BoxLayout.Y_AXIS));
         commandPanel.setAlignmentY(TOP_ALIGNMENT);
 

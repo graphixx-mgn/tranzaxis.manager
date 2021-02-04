@@ -27,6 +27,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
+import javax.swing.border.MatteBorder;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import javax.swing.plaf.BorderUIResource;
@@ -40,6 +41,7 @@ import javax.swing.plaf.basic.BasicComboPopup;
 public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<T>, T> implements ActionListener, INodeListener {
 
     private JComboBox<T> comboBox;
+    private JPanel boxWrapper;
 
     /**
      * Конструктор редактора.
@@ -162,9 +164,12 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
         Object child = comboBox.getAccessibleContext().getAccessibleChild(0);
         BasicComboPopup popup = (BasicComboPopup)child;
         popup.setBorder(IButton.PRESS_BORDER);
+
+        boxWrapper = new JPanel(new BorderLayout());
+        boxWrapper.add(comboBox, BorderLayout.CENTER);
         
         Box container = new Box(BoxLayout.X_AXIS);
-        container.add(comboBox);
+        container.add(boxWrapper);
         return container;
     }
     
@@ -198,6 +203,14 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
                     .ifPresent(entity -> comboBox.setSelectedItem(entity));
         }
         comboBox.addActionListener(EntityRefEditor.this);
+    }
+
+    @Override
+    public void addCommand(EditorCommand<EntityRef<T>, T> command) {
+        super.addCommand(command);
+        if (!commands.isEmpty()) {
+            boxWrapper.setBorder(new MatteBorder(0, 0, 0, 1, Color.LIGHT_GRAY));
+        }
     }
 
     @Override
@@ -267,7 +280,7 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
                             .collect(Collectors.toList())
                             .isEmpty();
                     if (!hasProps) {
-                        return new CommandStatus(false, null);
+                        return new CommandStatus(false, null, true);
                     }
                     boolean allDisabled = entity.model.getProperties(Access.Edit).stream()
                             .noneMatch(

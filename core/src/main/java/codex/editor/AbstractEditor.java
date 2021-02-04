@@ -241,12 +241,11 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
 
         EditorCommandButton(EditorCommand<T, V> command) {
             super(command.getIcon(), null);
-            button.setBorder(new EmptyBorder(2, 2, 2, 2));
             setHint(command.getHint());
             setBackground(null);
 
+            button.setBorder(new EmptyBorder(2, 2, 2, 2));
             button.setEnabled(false);
-
             button.addActionListener(e -> {
                 command.execute(command.getContext());
                 SwingUtilities.invokeLater(this::updateUI);
@@ -276,17 +275,18 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
 
             command.addListener(new ICommandListener<PropertyHolder<T, V>>() {
                 @Override
+                public void commandStatusChanged(boolean active, Boolean hidden) {
+                    if (hidden != null) {
+                        setVisible(!hidden);
+                    }
+                    button.setEnabled(active && (!command.disableWithContext() || isEditable()));
+                }
+                @Override
                 public void commandIconChanged(ImageIcon icon) {
-                    setVisible(icon != null);
                     if (icon != null) {
                         button.setIcon(ImageUtils.resize(icon, 20, 20));
                         button.setDisabledIcon(ImageUtils.grayscale(ImageUtils.resize(icon, 20, 20)));
                     }
-                }
-
-                @Override
-                public void commandStatusChanged(boolean active) {
-                    button.setEnabled(active && (!command.disableWithContext() || isEditable()));
                 }
             });
         }
