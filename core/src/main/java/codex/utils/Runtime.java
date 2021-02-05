@@ -4,12 +4,15 @@ import codex.log.Logger;
 import net.jcip.annotations.ThreadSafe;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
-import java.io.File;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @ThreadSafe
 public class Runtime {
@@ -55,6 +58,20 @@ public class Runtime {
             return null;
         };
         public final static Supplier<String> location = () -> System.getProperty("java.home");
+        public final static Supplier<List<JavaInfo>> list = () -> {
+            try {
+                return RuntimeStreamer.execute(new String[] {
+                        OS.isWindows.get() ? "where" : "which",
+                        "java"
+                }).stream()
+                        .map(JavaInfo::build)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
+            } catch (IOException e) {
+                e.printStackTrace();
+                return Collections.emptyList();
+            }
+        };
     }
 
 
@@ -86,5 +103,87 @@ public class Runtime {
         public final static Supplier<Boolean> win7 = () -> isWindows.get() && Float.parseFloat(version.get()) >= 6.1f;
 
         public final static Supplier<Boolean> is64bit = () -> System.getProperty("sun.cpu.isalist").contains("64");
+    }
+
+
+    public static class JavaInfo {
+        private static Pattern GET_NAME_VERSION = Pattern.compile("(.*) \\(build (.*)-.*\\)");
+        public final String  path;
+        public final String  name;
+        public final String  version;
+
+        private static JavaInfo build(String javaPath) {
+            try {
+                return new JavaInfo(javaPath);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        private JavaInfo(String javaPath) throws IOException{
+            this.path = javaPath;
+            List<String> versionInfo = RuntimeStreamer.execute( new String[] { javaPath, "-version" } );
+            String  fullName = versionInfo.get(1);
+            Matcher nameMatcher = GET_NAME_VERSION.matcher(fullName);
+            if (nameMatcher.find()) {
+                this.name    = nameMatcher.group(1);
+                this.version = nameMatcher.group(2);
+            } else {
+                throw new IOException("Unable to parse JMV name");
+            }
+        }
+    }
+
+
+    private static class RuntimeStreamer extends Thread {
+        InputStream  is;
+        List<String> lines;
+
+        RuntimeStreamer(InputStream is) {
+            this.is = is;
+            this.lines = new LinkedList<>();
+        }
+
+        synchronized List<String> contents() {
+            return this.lines;
+        }
+
+        synchronized public void run() {
+            try (
+                InputStreamReader isr = new InputStreamReader(is);
+                BufferedReader br  = new BufferedReader(isr);
+            ) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    this.lines.add(line);
+                }
+            } catch (IOException e) {
+                // Do nothing
+            }
+        }
+
+        public static List<String> execute(String[] cmdArray) throws IOException {
+            try {
+                java.lang.Runtime runtime = java.lang.Runtime.getRuntime();
+                Process proc = runtime.exec(cmdArray);
+                RuntimeStreamer outputStreamer = new RuntimeStreamer(proc.getInputStream());
+                RuntimeStreamer errorStreamer  = new RuntimeStreamer(proc.getErrorStream());
+                outputStreamer.start();
+                errorStreamer.start();
+                proc.waitFor();
+                return Stream.concat(
+                        outputStreamer.contents().stream(),
+                        errorStreamer.contents().stream()
+                ).collect(Collectors.toList());
+            } catch (Throwable t) {
+                t.printStackTrace();
+                throw new IOException(t.getMessage());
+            }
+        }
+        public static List<String> execute(String cmd) throws IOException {
+            String[] cmdArray = { cmd };
+            return RuntimeStreamer.execute(cmdArray);
+        }
     }
 }

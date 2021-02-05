@@ -16,11 +16,13 @@ import codex.service.ServiceRegistry;
 import codex.supplier.RowSelector;
 import codex.type.*;
 import codex.type.Enum;
+import codex.utils.FileUtils;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import java.awt.*;
+import java.awt.datatransfer.StringSelection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
 import java.util.function.Consumer;
@@ -44,25 +46,26 @@ public class Environment extends Entity implements INodeListener {
     }
 
     // General properties
-    public final static String PROP_LAYER_URI    = "layerURI";
-    public final static String PROP_DATABASE     = "database";
-    public final static String PROP_VERSION      = "version";
-    public final static String PROP_INSTANCE_ID  = "instanceId";
-    public final static String PROP_REPOSITORY   = "repository";
-    public final static String PROP_SOURCE_TYPE  = "srcType";
-    public final static String PROP_BINARIES     = "binaries";
-    public final static String PROP_OFFSHOOT     = "offshoot";
-    public final static String PROP_RELEASE      = "release";
-    public final static String PROP_USER_NOTE    = "userNote";
-    public final static String PROP_AUTO_RELEASE = "autoRelease";
+    public final static String PROP_LAYER_URI     = "layerURI";
+    public final static String PROP_DATABASE      = "database";
+    public final static String PROP_VERSION       = "version";
+    public final static String PROP_INSTANCE_ID   = "instanceId";
+    public final static String PROP_REPOSITORY    = "repository";
+    public final static String PROP_SOURCE_TYPE   = "srcType";
+    public final static String PROP_BINARIES      = "binaries";
+    public final static String PROP_OFFSHOOT      = "offshoot";
+    public final static String PROP_RELEASE       = "release";
+    public final static String PROP_USER_NOTE     = "userNote";
+    public final static String PROP_AUTO_RELEASE  = "autoRelease";
 
     // Extra properties
-    public final static String PROP_JVM_SERVER   = "jvmServer";
-    public final static String PROP_JVM_EXPLORER = "jvmExplorer";
+    public final static String PROP_JVM_SERVER    = "jvmServer";
+    public final static String PROP_JVM_EXPLORER  = "jvmExplorer";
     public final static String PROP_STARTER_OPTS  = "starterOpts";
     public final static String PROP_SERVER_OPTS   = "serverOpts";
     public final static String PROP_EXPLORER_OPTS = "explorerOpts";
-    public final static String PROP_RUN_COMMANDS  = "commands";
+    public final static String PROP_RUN_SERVER    = "runServer";
+    public final static String PROP_RUN_EXPLORER  = "runExplorer";
 
     private final RowSupplier layerSupplier = new RowSupplier(
             () -> getDataBase(true).getConnectionID(false),
@@ -185,36 +188,30 @@ public class Environment extends Entity implements INodeListener {
         model.addExtraProp(PROP_STARTER_OPTS,  new ArrStr(), true);
         model.addExtraProp(PROP_SERVER_OPTS,   new ArrStr(), true);
         model.addExtraProp(PROP_EXPLORER_OPTS, new ArrStr(), true);
-        model.addDynamicProp(
-                PROP_RUN_COMMANDS,
-                new AnyType() {
-                    @Override
-                    public IEditorFactory<AnyType, Object> editorFactory() {
-                        return TextView::new;
-                    }
-                },
-                Access.Extra,
-                () -> {
-                    List<String> serverCmd   = getServerCommand(false);
-                    List<String> explorerCmd = getExplorerCommand(false);
-                    return MessageFormat.format(
-                            "<html><b><u>RW Server:</u></b><br>{0}<hr><b><u>RW Explorer:</u></b><br>{1}",
-                            serverCmd.isEmpty() ? "<font color=\"red\">(not available)</font>" : String.join(" ", serverCmd),
-                            explorerCmd.isEmpty() ? "<font color=\"red\">(not available)</font>" : String.join(" ", explorerCmd)
-                    );
-                },
-                PROP_JVM_SERVER,
-                PROP_JVM_EXPLORER,
-                PROP_LAYER_URI,
-                PROP_DATABASE,
-                PROP_INSTANCE_ID,
-                PROP_BINARIES,
-                PROP_OFFSHOOT,
-                PROP_RELEASE,
-                PROP_STARTER_OPTS,
-                PROP_SERVER_OPTS,
-                PROP_EXPLORER_OPTS
-        );
+
+        for (String runProp : Arrays.asList(PROP_RUN_SERVER, PROP_RUN_EXPLORER)) {
+            model.addDynamicProp(
+                    runProp,
+                    new AnyType() {
+                        @Override
+                        public IEditorFactory<AnyType, Object> editorFactory() { return TextView::new; }
+                    },
+                    Access.Extra,
+                    () -> {
+                        List<String> cmdList = null;
+                        switch (runProp) {
+                            case PROP_RUN_SERVER   : cmdList = getServerCommand(false); break;
+                            case PROP_RUN_EXPLORER : cmdList = getExplorerCommand(false); break;
+                        }
+                        return cmdList == null || cmdList.isEmpty() ? null : String.join(" ", cmdList);
+                    },
+                    PROP_JVM_SERVER, PROP_JVM_EXPLORER,
+                    PROP_LAYER_URI,
+                    PROP_DATABASE, PROP_INSTANCE_ID,
+                    PROP_BINARIES, PROP_OFFSHOOT, PROP_RELEASE,
+                    PROP_STARTER_OPTS, PROP_SERVER_OPTS, PROP_EXPLORER_OPTS
+            );
+        }
         
         // Property settings
         if (getRelease(false) != null) {
@@ -224,24 +221,45 @@ public class Environment extends Entity implements INodeListener {
         model.addPropertyGroup(Language.get("group@binaries"), PROP_REPOSITORY, PROP_SOURCE_TYPE, PROP_OFFSHOOT, PROP_RELEASE);
         model.addPropertyGroup(Language.get(EnvironmentRoot.class,"group@jvm"), PROP_JVM_SERVER, PROP_JVM_EXPLORER);
         model.addPropertyGroup(Language.get(EnvironmentRoot.class,"group@app"), PROP_STARTER_OPTS, PROP_SERVER_OPTS, PROP_EXPLORER_OPTS);
+        model.addPropertyGroup(Language.get("group@commands"), PROP_RUN_SERVER, PROP_RUN_EXPLORER);
         
         // Editor settings
         model.getEditor(PROP_LAYER_URI).addCommand(layerSelector);
         model.getEditor(PROP_SOURCE_TYPE).setVisible(getRepository(true) != null);
         model.getEditor(PROP_INSTANCE_ID).setVisible(getDataBase(true)   != null);
         model.getEditor(PROP_VERSION).setVisible(getDataBase(true)       != null);
-        
+
+        model.getEditor(PROP_RUN_SERVER).addCommand(new CopyToClipboard());
+        model.getEditor(PROP_RUN_EXPLORER).addCommand(new CopyToClipboard());
+
         SyncRelease syncRelease = new SyncRelease();
         model.addModelListener(syncRelease);
         model.getEditor(PROP_RELEASE).addCommand(syncRelease);
 
         sourceUpdater.accept(PROP_OFFSHOOT);
         sourceUpdater.accept(PROP_RELEASE);
+
+        INodeListener listener = new INodeListener() {
+            @Override
+            public void childChanged(INode node) {
+                new Thread(() -> setVersion(getLayerVersion())).start();
+            }
+        };
+        if (getDataBase(false) != null) {
+            getDataBase(false).addNodeListener(listener);
+        }
         
         // Handlers
         model.addChangeListener((name, oldValue, newValue) -> {
             switch (name) {
                 case PROP_DATABASE:
+                    if (oldValue != null) {
+                        ((Database) oldValue).removeNodeListener(listener);
+                    }
+                    if (newValue != null) {
+                        ((Database) newValue).addNodeListener(listener);
+                    }
+
                     layerSelector.activate();
                     instanceSelector.activate();
 
@@ -300,48 +318,65 @@ public class Environment extends Entity implements INodeListener {
         });
     }
 
+    @Override
+    public void setParent(INode parent) {
+        super.setParent(parent);
+        EnvironmentRoot envRoot = (EnvironmentRoot) parent;
+        model.updateDynamicProps(PROP_RUN_SERVER, PROP_RUN_EXPLORER);
+        envRoot.model.addModelListener(new IModelListener() {
+            @Override
+            public void modelSaved(EntityModel model, List<String> changes) {
+                if (changes.contains(EnvironmentRoot.PROP_JVM_SOURCE)) {
+                    Environment.this.model.updateDynamicProps(PROP_RUN_SERVER, PROP_RUN_EXPLORER);
+                }
+            }
+        });
+    }
+
     public List<String> getServerCommand(boolean addSplash) {
         Database db = getDataBase(true);
-        return canStartServer() ? new LinkedList<String>(){{
-                add("java");
-                add(String.join(" ", getJvmServer()));
-                add("-jar");
-                add(getBinaries().getStarterPath());
-                add("-workDir=" + getBinaries().getLocalPath());
-                add("-topLayerUri=" + getLayerUri(true));
-                if (addSplash) {
-                    add("-showSplashScreen=Server: "+Environment.this+" ("+getBinaries().getPID()+")");
-                }
-                addAll(getStarterFlags(true));
-                add("org.radixware.kernel.server.Server");
-                add("-dbUrl");
-                add("jdbc:oracle:thin:@" + db.getDatabaseUrl(false));
-                add("-user");
-                add(db.getDatabaseUser(false));
-                add("-pwd");
-                add(db.getDatabasePassword(false));
-                add("-dbSchema");
-                add(db.getDatabaseUser(false));
-                add("-instance");
-                add(getInstanceId().toString());
-                addAll(getServerFlags(true));
+        EnvironmentRoot envRoot = (EnvironmentRoot) getParent();
+        return envRoot != null && canStartServer() ? new LinkedList<String>() {{
+            add(FileUtils.pathQuotation(IComplexType.coalesce(envRoot.getJvmSource().get(EnvironmentRoot.PROP_JVM_PATH), "java")));
+            add(String.join(" ", getJvmServer()));
+            add("-jar");
+            add(FileUtils.pathQuotation(getBinaries().getStarterPath()));
+            add("-workDir="+FileUtils.pathQuotation(getBinaries().getLocalPath()));
+            add("-topLayerUri=" + getLayerUri(true));
+            if (addSplash) {
+                add("-showSplashScreen=Server: "+Environment.this+" ("+getBinaries().getPID()+")");
+            }
+            addAll(getStarterFlags(true));
+            add("org.radixware.kernel.server.Server");
+            add("-dbUrl");
+            add("jdbc:oracle:thin:@" + db.getDatabaseUrl(false));
+            add("-user");
+            add(db.getDatabaseUser(false));
+            add("-pwd");
+            add(db.getDatabasePassword(false));
+            add("-dbSchema");
+            add(db.getDatabaseUser(false));
+            add("-instance");
+            add(getInstanceId().toString());
+            addAll(getServerFlags(true));
             }} : Collections.emptyList();
     }
 
     public List<String> getExplorerCommand(boolean addSplash) {
-        return canStartExplorer() ? new LinkedList<String>(){{
-                add("java");
-                addAll(getJvmExplorer());
-                add("-jar");
-                add(getBinaries().getStarterPath());
-                add("-workDir="+getBinaries().getLocalPath());
-                add("-topLayerUri="+getLayerUri(true));
-                if (addSplash) {
-                    add("-showSplashScreen=Explorer: "+Environment.this+" ("+getBinaries().getPID()+")");
-                }
-                addAll(getStarterFlags(true));
-                add("org.radixware.kernel.explorer.Explorer");
-                addAll(getExplorerFlags(true));
+        EnvironmentRoot envRoot = (EnvironmentRoot) getParent();
+        return envRoot != null && canStartExplorer() ? new LinkedList<String>() {{
+            add(FileUtils.pathQuotation(IComplexType.coalesce(envRoot.getJvmSource().get(EnvironmentRoot.PROP_JVM_PATH), "java")));
+            addAll(getJvmExplorer());
+            add("-jar");
+            add(FileUtils.pathQuotation(getBinaries().getStarterPath()));
+            add("-workDir="+FileUtils.pathQuotation(getBinaries().getLocalPath()));
+            add("-topLayerUri="+getLayerUri(true));
+            if (addSplash) {
+                add("-showSplashScreen=Explorer: "+Environment.this+" ("+getBinaries().getPID()+")");
+            }
+            addAll(getStarterFlags(true));
+            add("org.radixware.kernel.explorer.Explorer");
+            addAll(getExplorerFlags(true));
         }} : Collections.emptyList();
     }
     
@@ -588,6 +623,30 @@ public class Environment extends Entity implements INodeListener {
             }
         }
 
+    }
+
+
+    private static class CopyToClipboard extends EditorCommand<AnyType, Object> implements IModelListener {
+        private final static ImageIcon CLIPBOARD = ImageUtils.getByPath("/images/paste.png");
+
+        CopyToClipboard() {
+            super(CLIPBOARD, "copy", holder -> holder.getPropValue().getValue() != null);
+        }
+
+        @Override
+        public boolean disableWithContext() {
+            return false;
+        }
+
+        @Override
+        public void execute(PropertyHolder<AnyType, Object> context) {
+            Toolkit.getDefaultToolkit()
+                    .getSystemClipboard()
+                    .setContents(
+                            new StringSelection((String) context.getPropValue().getValue()),
+                            null
+                    );
+        }
     }
 
 }
