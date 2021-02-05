@@ -165,8 +165,9 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
         BasicComboPopup popup = (BasicComboPopup)child;
         popup.setBorder(IButton.PRESS_BORDER);
 
-        boxWrapper = new JPanel(new BorderLayout());
-        boxWrapper.add(comboBox, BorderLayout.CENTER);
+        boxWrapper = new JPanel();
+        boxWrapper.setLayout(new BoxLayout(boxWrapper, BoxLayout.LINE_AXIS));
+        boxWrapper.add(comboBox);
         
         Box container = new Box(BoxLayout.X_AXIS);
         container.add(boxWrapper);

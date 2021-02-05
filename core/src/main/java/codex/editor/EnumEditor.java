@@ -67,8 +67,9 @@ public class EnumEditor<T extends java.lang.Enum> extends AbstractEditor<Enum<T>
         BasicComboPopup popup = (BasicComboPopup)child;
         popup.setBorder(IButton.PRESS_BORDER);
 
-        boxWrapper = new JPanel(new BorderLayout());
-        boxWrapper.add(comboBox, BorderLayout.CENTER);
+        boxWrapper = new JPanel();
+        boxWrapper.setLayout(new BoxLayout(boxWrapper, BoxLayout.LINE_AXIS));
+        boxWrapper.add(comboBox);
         
         Box container = new Box(BoxLayout.X_AXIS);
         container.add(boxWrapper);
