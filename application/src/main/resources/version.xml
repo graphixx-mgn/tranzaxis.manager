@@ -11,6 +11,9 @@
             <change scope="CORE" type="Bugfix">
                 <description>Исправлена проблема отображения кнопок для вызова команд редакторов в диалоге просмотра расширенных свойств сущности.</description>
             </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена проблема применения фильтра сущностей Offshoot после перезагрузки репозитория.</description>
+            </change>
             <change scope="CORE" type="Change">
                 <description>Более аккуратный расчет размера диалога выбора значения из модального селектора.</description>
             </change>
