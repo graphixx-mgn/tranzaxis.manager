@@ -25,6 +25,11 @@ public class TextView extends AbstractEditor<AnyType, Object> {
      */
     public TextView(PropertyHolder<AnyType, Object> propHolder) {
         super(propHolder);
+
+        PlaceHolder placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textPanel);
+        placeHolder.setHorizontalAlignment(JLabel.CENTER);
+        placeHolder.changeAlpha(100);
+        placeHolder.setVisible(textPanel.getDocument().getLength() == 0);
     }
 
     @Override
@@ -60,14 +65,13 @@ public class TextView extends AbstractEditor<AnyType, Object> {
         };
         scrollPane.setBorder(new EmptyBorder(0, 0, 0, 0));
         scrollPane.setColumnHeader(null);
-        scrollPane.setAlignmentY(TOP_ALIGNMENT);
 
         commandPanel = new JPanel();
         commandPanel.setBackground(null);
         commandPanel.setLayout(new BoxLayout(commandPanel, BoxLayout.Y_AXIS));
-        commandPanel.setAlignmentY(TOP_ALIGNMENT);
+        commandPanel.add(Box.createVerticalGlue());
 
-        Box container = new Box(BoxLayout.X_AXIS) {
+        Box container = new Box(BoxLayout.LINE_AXIS) {
             @Override
             public void setBorder(Border border) {
                 scrollPane.setBorder(border);
@@ -82,7 +86,7 @@ public class TextView extends AbstractEditor<AnyType, Object> {
     public void addCommand(EditorCommand<AnyType, Object> command) {
         final EditorCommandButton button = new EditorCommandButton(command);
         commands.add(command);
-        commandPanel.add(button);
+        commandPanel.add(button, commandPanel.getComponentCount()-1);
         command.setContext(propHolder);
     }
 
