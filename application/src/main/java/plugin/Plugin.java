@@ -28,6 +28,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.net.URLClassLoader;
+import java.net.URLDecoder;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
@@ -59,7 +60,7 @@ public class Plugin<P extends IPlugin> extends Catalog {
     static String getId(PluginHandler pluginHandler) {
         try {
             Attributes attributes = PluginPackage.getAttributes(new File(
-                    ((URLClassLoader) pluginHandler.pluginClass.getClassLoader()).getURLs()[0].getFile()
+                    URLDecoder.decode(((URLClassLoader) pluginHandler.pluginClass.getClassLoader()).getURLs()[0].getFile(), "UTF-8")
             ));
             return MessageFormat.format(
                     "{0}.{1}/{2}",

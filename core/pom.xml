@@ -22,42 +22,6 @@
         </repository>
     </repositories>
 
-    <profiles>
-        <profile>
-            <id>Check @ThreadSafe markers</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <version>3.0.0</version>
-                        <executions>
-                            <execution>
-                                <phase>process-classes</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <executable>java</executable>
-                            <useMavenLogger>true</useMavenLogger>
-                            <includePluginDependencies>true</includePluginDependencies>
-                            <includeProjectDependencies>true</includeProjectDependencies>
-                            <arguments>
-                                <argument>-classpath</argument>
-                                <!-- automatically creates the classpath using all project dependencies, also adding the project build directory -->
-                                <classpath/>
-                                <argument>codex.utils.ClassVerificator</argument>
-                                <argument>${project.build.outputDirectory}</argument>
-                            </arguments>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>

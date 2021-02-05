@@ -17,9 +17,7 @@ import net.java.balloontip.styles.EdgedBalloonStyle;
 import net.java.balloontip.utils.TimingUtils;
 import javax.swing.*;
 import javax.swing.border.Border;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.MatteBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.LinkedList;
@@ -31,10 +29,8 @@ import java.util.List;
  */
 public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V>>, V> extends JComponent implements IEditor<T, V>, FocusListener {
 
-    private static final Border NORMAL_BORDER = new CompoundBorder(
-            new MatteBorder(0, 1, 0, 0, Color.LIGHT_GRAY),
-            new EmptyBorder(1, 0, 1, 1)
-    );
+    private final static Color  HOVER_COLOR   = Color.decode("#D8E6F2");
+    private final static Color  PRESS_COLOR   = Color.decode("#C0DCF3");
     
     private final JLabel label;
     protected Box        editor;
@@ -245,13 +241,11 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
 
         EditorCommandButton(EditorCommand<T, V> command) {
             super(command.getIcon(), null);
-            button.setBorder(new EmptyBorder(2, 2, 2, 2));
             setHint(command.getHint());
             setBackground(null);
-            setBorder(NORMAL_BORDER);
 
+            button.setBorder(new EmptyBorder(2, 2, 2, 2));
             button.setEnabled(false);
-
             button.addActionListener(e -> {
                 command.execute(command.getContext());
                 SwingUtilities.invokeLater(this::updateUI);
@@ -281,17 +275,18 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
 
             command.addListener(new ICommandListener<PropertyHolder<T, V>>() {
                 @Override
+                public void commandStatusChanged(boolean active, Boolean hidden) {
+                    if (hidden != null) {
+                        setVisible(!hidden);
+                    }
+                    button.setEnabled(active && (!command.disableWithContext() || isEditable()));
+                }
+                @Override
                 public void commandIconChanged(ImageIcon icon) {
-                    setVisible(icon != null);
                     if (icon != null) {
                         button.setIcon(ImageUtils.resize(icon, 20, 20));
                         button.setDisabledIcon(ImageUtils.grayscale(ImageUtils.resize(icon, 20, 20)));
                     }
-                }
-
-                @Override
-                public void commandStatusChanged(boolean active) {
-                    button.setEnabled(active && (!command.disableWithContext() || isEditable()));
                 }
             });
         }
@@ -299,13 +294,10 @@ public abstract class AbstractEditor<T extends IComplexType<V, ? extends IMask<V
         @Override
         protected final void redraw() {
             if (button.getModel().isPressed()) {
-                setBorder(PRESS_BORDER);
-                setBackground(PRESS_COLOR);
+                setBackground(AbstractEditor.PRESS_COLOR);
             } else if (button.getModel().isRollover()) {
-                setBorder(HOVER_BORDER);
-                setBackground(HOVER_COLOR);
+                setBackground(AbstractEditor.HOVER_COLOR);
             } else {
-                setBorder(NORMAL_BORDER);
                 setBackground(null);
             }
         }

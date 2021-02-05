@@ -110,22 +110,28 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             }
         });
 
+        final TableRowSorter<TableModel> sorter = new TableRowSorter<>(table.getModel());
         if (entity instanceof Catalog && ((Catalog) entity).isChildFilterDefined()) {
-            final TableRowSorter<TableModel> sorter = new TableRowSorter<>(table.getModel());
             sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
                 @Override
                 public boolean include(Entry<? extends TableModel, ? extends Integer> entry) {
                     return ((Catalog) entity).getCurrentFilter().getCondition().test(entity, tableModel.getEntityForRow(entry.getIdentifier()));
                 }
             });
-            table.setRowSorter(sorter);
-
             final IEditor filterEditor = ((Catalog) entity).getFilterEditor();
             commandPanel.add(Box.createHorizontalGlue());
             commandPanel.add(filterEditor.getEditor());
 
             entity.model.getProperty(((AbstractEditor) filterEditor).getPropName()).addChangeListener((name, oldValue, newValue) -> sorter.sort());
+        } else {
+            sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
+                @Override
+                public boolean include(Entry<? extends TableModel, ? extends Integer> entry) {
+                    return true;
+                }
+            });
         }
+        table.setRowSorter(sorter);
 
         entity.addNodeListener(this);
         entity.addNodeListener(new INodeListener() {
@@ -148,6 +154,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             public void childInserted(INode parentNode, INode childNode) {
                 Entity newEntity = (Entity) childNode;
                 tableModel.addEntity(newEntity);
+                sorter.sort();
             }
 
             @Override

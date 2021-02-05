@@ -4,6 +4,7 @@ import codex.command.CommandStatus;
 import codex.command.EntityCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
+import codex.editor.IEditor;
 import codex.log.Logger;
 import codex.model.*;
 import codex.type.IComplexType;
@@ -52,9 +53,12 @@ class ShowExtraProps extends EntityCommand<Entity> {
         DialogButton btnCancel = Dialog.Default.BTN_CANCEL.newInstance();
 
         List<String> extraPropNames = getExtraProperties(context.model);
-
-        ParamModel paramModel = new ParamModel();
-
+        ParamModel paramModel = new ParamModel() {
+            @Override
+            public IEditor getEditor(String name) {
+                return context.model.getEditor(name);
+            }
+        };
         extraPropNames.stream()
                 .map(context.model::getProperty)
                 .forEach(propertyHolder -> {

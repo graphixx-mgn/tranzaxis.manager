@@ -2,12 +2,17 @@ package codex.utils;
 
 import net.jcip.annotations.ThreadSafe;
 import java.text.DecimalFormat;
+import java.text.MessageFormat;
 
 @ThreadSafe
 public class FileUtils {
 
     public enum Dimension {
         KB, MB, GB, TB, AUTO
+    }
+
+    public static String pathQuotation(String path) {
+        return MessageFormat.format("\"{0}\"", path);
     }
 
     public static String formatFileSize(long size) {

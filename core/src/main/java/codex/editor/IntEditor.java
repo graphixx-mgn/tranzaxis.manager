@@ -4,10 +4,8 @@ import codex.property.PropertyHolder;
 import codex.type.Int;
 import codex.utils.ImageUtils;
 import net.jcip.annotations.ThreadSafe;
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.KeyboardFocusManager;
+
+import java.awt.*;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -162,7 +160,6 @@ public class IntEditor extends AbstractEditor<Int, Integer> implements DocumentL
         textField.addFocusListener(this);
 
         Box container = new Box(BoxLayout.X_AXIS);
-        container.setBackground(textField.getBackground());
         container.add(textField);
         return container;
     }
@@ -171,7 +168,8 @@ public class IntEditor extends AbstractEditor<Int, Integer> implements DocumentL
     protected void updateEditable(boolean editable) {
         textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
         textField.setEditable(editable && !propHolder.isInherited());
-        textField.setFocusable(editable);
+        textField.setBackground(editable && !propHolder.isInherited() ? Color.WHITE  : null);
+        getEditor().setBackground(editable && !propHolder.isInherited() ? Color.WHITE  : null);
     }
 
     @Override

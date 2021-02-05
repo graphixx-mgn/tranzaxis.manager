@@ -20,10 +20,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.TableModelEvent;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableModel;
-import javax.swing.table.TableRowSorter;
+import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.text.MessageFormat;
@@ -128,7 +125,7 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
         setOpaque(false);
     }};
 
-    protected final DefaultTableModel tableModel = new DefaultTableModel() {
+    private final DefaultTableModel tableModel = new DefaultTableModel() {
         @Override
         public Class<?> getColumnClass(int columnIndex) {
             return String.class;
@@ -141,13 +138,15 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
     };
     protected final JTable table = new SelectorTable(tableModel);
     private final TableRowSorter<TableModel> sorter = new TableRowSorter<>(table.getModel());
-    private final JScrollPane scrollPane = new JScrollPane(table) {{
-        getViewport().setBackground(Color.WHITE);
-        setBorder(new CompoundBorder(
-                new EmptyBorder(5, 5, 5, 5),
-                new MatteBorder(1, 1, 1, 1, Color.GRAY)
-        ));
-    }};
+    private final JScrollPane scrollPane = new JScrollPane(table) {
+        {
+            getViewport().setBackground(Color.WHITE);
+            setBorder(new CompoundBorder(
+                    new EmptyBorder(5, 5, 5, 5),
+                    new MatteBorder(1, 1, 1, 1, Color.GRAY)
+            ));
+        }
+    };
 
     private final Mode mode;
     private int initialSelectedRow = TableModelEvent.HEADER_ROW;
@@ -209,7 +208,6 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
                 }
             }
         });
-
         scrollPane.getVerticalScrollBar().addAdjustmentListener(this);
     }
 
@@ -304,7 +302,11 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
 
                 @Override
                 public Dimension getPreferredSize() {
-                    return new Dimension(Math.max(table.getColumnCount() * 200, 300), 500);
+                    Dimension defDim = super.getPreferredSize();
+                    return new Dimension(
+                            Math.max(Math.min(defDim.width,  800), 400), // 400 <= width  <= 800
+                            Math.max(Math.min(defDim.height, 500), 200)  // 200 <= height <= 500
+                    );
                 }
 
                 @Override

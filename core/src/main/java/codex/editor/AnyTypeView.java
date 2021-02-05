@@ -7,6 +7,7 @@ import codex.utils.ImageUtils;
 import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import java.awt.*;
 
 /**
  * Редактор свойств типа {@link codex.type.AnyType}, представляет собой нередактируемое поле
@@ -33,20 +34,32 @@ public class AnyTypeView extends AbstractEditor<AnyType, Object> {
         textField.setFont(FONT_VALUE);
         textField.setContentType("text/html");
         textField.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
-        textField.setBorder(new EmptyBorder(2, 3, 3, 3));
         textField.setEditable(false);
-        textField.setForeground(COLOR_DISABLED);
-        textField.setOpaque(false);
+        textField.setBackground(null);
 
         iconLabel = new JLabel();
-        iconLabel.setBorder(new EmptyBorder(1, 3, 1, 3));
+        iconLabel.setBorder(new EmptyBorder(2, 3, 1, 0));
 
         PlaceHolder placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField, PlaceHolder.Show.ALWAYS);
         placeHolder.changeAlpha(100);
 
         Box container = new Box(BoxLayout.X_AXIS);
         container.add(iconLabel);
-        container.add(textField);
+
+        JPanel wrapper = new JPanel() {{
+            setLayout(new GridBagLayout());
+            add(textField, new GridBagConstraints() {{
+                gridx = 0;
+                gridy = 0;
+                gridwidth = 1;
+                gridheight = 1;
+                anchor = GridBagConstraints.WEST;
+                fill = GridBagConstraints.NONE;
+                weightx = 0.1;
+                weighty = 1;
+            }});
+        }};
+        container.add(wrapper);
         return container;
     }
 

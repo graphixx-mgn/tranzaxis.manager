@@ -35,7 +35,7 @@ public class PackageView extends Catalog {
     final static ImageIcon PACKAGE = ImageUtils.getByPath("/images/repository.png");
     final static ImageIcon DISABLED = ImageUtils.getByPath("/images/unavailable.png");
     final static ImageIcon PUBLISHED = ImageUtils.getByPath("/images/plugin_public.png");
-    final static ImageIcon BUILDING = ImageUtils.getByPath("/images/warn.png");
+    final static ImageIcon BUILDING = ImageUtils.getByPath("/images/maintain.png");
     final static ImageIcon READY = ImageUtils.getByPath("/images/success.png");
 
     private final static String PROP_VERSION = "version";

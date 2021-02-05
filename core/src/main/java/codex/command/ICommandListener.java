@@ -18,8 +18,9 @@ public interface ICommandListener<T> {
     /**
      * Событие смены статуса активности команды.
      * @param active Признак активномти команды.
+     * @param hidden Переключить видимость кнопки команды (если не NULL).
      */
-    default void commandStatusChanged(boolean active) {}
+    default void commandStatusChanged(boolean active, Boolean hidden) {}
 
     /**
      * Смена иконки представления команды.

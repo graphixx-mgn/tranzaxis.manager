@@ -52,6 +52,7 @@ public class FilePathEditor extends AbstractEditor<FilePath, Path> {
         textField.setFont(FONT_VALUE);
         textField.setBorder(new EmptyBorder(0, 3, 0, 3));
         textField.setEditable(false);
+        textField.setBackground(null);
         textField.addFocusListener(this);
         
         PlaceHolder placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField, PlaceHolder.Show.ALWAYS);
@@ -59,7 +60,6 @@ public class FilePathEditor extends AbstractEditor<FilePath, Path> {
         placeHolder.changeAlpha(100);
 
         Box container = new Box(BoxLayout.X_AXIS);
-        container.setBackground(textField.getBackground());
         container.add(textField);
         return container;
     }

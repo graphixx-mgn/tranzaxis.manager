@@ -3,6 +3,7 @@ package manager.commands.offshoot;
 import codex.command.EntityCommand;
 import codex.log.Logger;
 import codex.type.IComplexType;
+import codex.utils.FileUtils;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.io.File;
@@ -10,7 +11,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 import java.util.stream.Collectors;
 import codex.utils.Runtime;
 import manager.nodes.Offshoot;
@@ -30,44 +30,41 @@ public class RunDesigner extends EntityCommand<Offshoot> {
     @Override
     public void execute(Offshoot offshoot, Map<String, IComplexType> map) {
         try {
-            boolean is64Bits = System.getProperty("sun.cpu.isalist").contains("64");
-            String localPath = offshoot.getLocalPath();
+            File fileRun = getDesignerExecFile(offshoot);
+            File workDir = fileRun.getParentFile();
+            List<String> cmdList = getDesignerCommand(offshoot);
             
-            StringJoiner designerPath = new StringJoiner(File.separator);
-            designerPath.add(localPath);
-            designerPath.add("org.radixware");
-            designerPath.add("kernel");
-            designerPath.add("designer");
-            designerPath.add("bin");
-            designerPath.add("bin");
-            if (Runtime.OS.isWindows.get()) {
-                designerPath.add("designer"+(Runtime.OS.is64bit.get() ? "64" : "")+".exe");
-            } else {
-                designerPath.add("designer");
-            }
-            
-            File designer = new File(designerPath.toString());
-            File workDir  = designer.getParentFile();
-            File confDir  = new File(localPath+File.separator+".config");
-            
-            List<String> args = new ArrayList<String>() {{
-                if (Runtime.OS.isWindows.get()) {
-                    add(designer.getAbsolutePath());
-                } else {
-                    add("/bin/sh");
-                    add(designer.getAbsolutePath());
-                }
-                addAll(offshoot.getJvmDesigner().stream().map("-J"::concat).collect(Collectors.toList()));
-                add("--userdir");
-                add(confDir.toString());
-            }};
-            
-            ProcessBuilder builder = new ProcessBuilder(args);
+            ProcessBuilder builder = new ProcessBuilder(cmdList);
             builder.directory(workDir);
             builder.start();
         } catch (IOException e) {
             Logger.getLogger().error("Unable to execute RW Designer", e);
         }
+    }
+
+    private File getDesignerExecFile(Offshoot offshoot) {
+        return new File(String.join(
+                File.separator,
+                offshoot.getLocalPath(),
+                "org.radixware", "kernel", "designer", "bin", "bin",
+                Runtime.OS.isWindows.get() ? "designer"+(Runtime.OS.is64bit.get() ? "64" : "")+".exe" : "designer"
+        ));
+    }
+
+    private List<String> getDesignerCommand(Offshoot offshoot) {
+        return new ArrayList<String>() {{
+            File fileRun = getDesignerExecFile(offshoot);
+            File confDir = new File(offshoot.getLocalPath().concat(File.separator).concat(".config"));
+            if (Runtime.OS.isWindows.get()) {
+                add(FileUtils.pathQuotation(fileRun.getAbsolutePath()));
+            } else {
+                add("sh");
+                add(FileUtils.pathQuotation(fileRun.getAbsolutePath()));
+            }
+            addAll(offshoot.getJvmDesigner().stream().map("-J"::concat).collect(Collectors.toList()));
+            add("--userdir");
+            add(FileUtils.pathQuotation(confDir.getAbsolutePath()));
+        }};
     }
     
 }
