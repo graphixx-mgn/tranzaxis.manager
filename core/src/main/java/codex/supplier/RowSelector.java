@@ -1,5 +1,6 @@
 package codex.supplier;
 
+import codex.command.CommandStatus;
 import codex.command.EditorCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
@@ -150,6 +151,9 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
 
     private final Mode mode;
     private int initialSelectedRow = TableModelEvent.HEADER_ROW;
+    
+    private ApplyFilter search = new ApplyFilter();
+    private BackToInitial back = new BackToInitial();
 
     private RowSelector(Mode mode, IDataSupplier<Map<String, String>> supplier, boolean showDescription) {
         super(supplier);
@@ -171,6 +175,8 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
 
         table.getSelectionModel().addListSelectionListener((ListSelectionEvent event) -> {
             if (event.getValueIsAdjusting()) return;
+            
+            back.activate();
             btnConfirm.setEnabled(
                     table.getRowSorter().getViewRowCount() > 0 &&
                             table.getSelectedRow() > TableModelEvent.HEADER_ROW
@@ -257,9 +263,7 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
                     new Str(null), false
             );
             StrEditor lookupEditor = new StrEditor(lookupHolder);
-
-            ApplyFilter search = new ApplyFilter();
-            BackToInitial back = new BackToInitial();
+            
             lookupEditor.addCommand(search);
             lookupHolder.addChangeListener((name, oldValue, newValue) -> {
                 if (lookupEditor.getFocusTarget().isFocusOwner()) {
@@ -396,10 +400,10 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
     private class BackToInitial extends EditorCommand<Str, String> {
 
         private BackToInitial() {
-            super(
-                    ICON_REVERT,
-                    null,
-                    holder -> initialSelectedRow != TableModelEvent.HEADER_ROW
+            super(ICON_REVERT, null);
+            activator = (holder) -> new CommandStatus(
+                    initialSelectedRow != TableModelEvent.HEADER_ROW &&
+                    initialSelectedRow != table.getSelectedRow()
             );
         }
 
