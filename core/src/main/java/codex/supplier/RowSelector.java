@@ -259,6 +259,7 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
             StrEditor lookupEditor = new StrEditor(lookupHolder);
 
             ApplyFilter search = new ApplyFilter();
+            BackToInitial back = new BackToInitial();
             lookupEditor.addCommand(search);
             lookupHolder.addChangeListener((name, oldValue, newValue) -> {
                 if (lookupEditor.getFocusTarget().isFocusOwner()) {
@@ -324,8 +325,6 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
                                             initialSelectedRow = row;
                                             table.scrollRectToVisible(new Rectangle(table.getCellRect(initialSelectedRow, 0, true)));
                                             table.getSelectionModel().setSelectionInterval(initialSelectedRow, initialSelectedRow);
-
-                                            BackToInitial back = new BackToInitial();
                                             lookupEditor.addCommand(back);
                                             break;
                                         }

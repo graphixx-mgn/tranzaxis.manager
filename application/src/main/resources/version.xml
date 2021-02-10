@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <versions current="2.3.2" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="2.3.3" date="2021-02-10">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена ошибка при вызове модального селектора:
+                Illegal field name "codex.supplier.RowSelector$this" in class codex/supplier/RowSelector$BackToInitial</description>
+            </change>
+        </changelog>
+    </version>
     <version number="2.3.2" date="2021-02-05">
         <changelog>
             <change scope="CORE" type="Bugfix">
