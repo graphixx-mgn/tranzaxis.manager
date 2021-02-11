@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -46,51 +48,17 @@ public class BuildKernelTask extends AbstractTask<Void> {
         BuildWC.RMIRegistry rmiRegistry = new BuildWC.RMIRegistry();
         final File currentJar = Runtime.APP.jarFile.get();
 
-        final ArrayList<String> command = new ArrayList<>();
-        command.add("java");
+        final List<String> cmdList = new LinkedList<String>() {{
+            add("java");
+            add("-cp");
+            add(BuildEnvironment.buildClassPath(offshoot));
+            add("-Dport="+rmiRegistry.getPort());
+            add("-Dpath="+offshoot.getLocalPath());
+            add(KernelBuilder.class.getCanonicalName());
+        }};
+        Logger.getLogger().info("Build commands:\n{0}", String.join("\n", cmdList));
 
-        String classPath;
-        if (currentJar.isFile()) {
-            classPath = currentJar.getName();
-        } else {
-            classPath = System.getProperty("java.class.path");
-        }
-
-        String javacPath = Runtime.JVM.compiler.get().getPath();
-        String radixBinPath = String.join(
-                File.separator,
-                offshoot.getLocalPath(),
-                "org.radixware",
-                "kernel",
-                "common",
-                "bin",
-                "*"
-        );
-        String radixLibPath = String.join(
-                File.separator,
-                offshoot.getLocalPath(),
-                "org.radixware",
-                "kernel",
-                "common",
-                "lib",
-                "*"
-        );
-        classPath = String.join(
-                File.pathSeparator,
-                radixBinPath,
-                radixLibPath,
-                classPath,
-                javacPath
-        );
-        command.add("-cp");
-        command.add(classPath);
-
-        command.add("-Dport="+rmiRegistry.getPort());
-        command.add("-Dpath="+offshoot.getLocalPath());
-
-        command.add(KernelBuilder.class.getCanonicalName());
-
-        final ProcessBuilder builder = new ProcessBuilder(command);
+        final ProcessBuilder builder = new ProcessBuilder(cmdList);
         if (currentJar.isFile()) {
             builder.directory(currentJar.getParentFile());
         } else {

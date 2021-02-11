@@ -70,51 +70,17 @@ public class BuildSourceTask extends AbstractTask<Error> {
     public Error execute() throws Exception {
         BuildWC.RMIRegistry rmiRegistry = new BuildWC.RMIRegistry();
         final File currentJar = Runtime.APP.jarFile.get();
+        final List<String> cmdList = new LinkedList<String>() {{
+            add("java");
+            add("-cp");
+            add(BuildEnvironment.buildClassPath(offshoot));
+            add("-Dport="+rmiRegistry.getPort());
+            add("-Dpath="+offshoot.getLocalPath());
+            add(SourceBuilder.class.getCanonicalName());
+        }};
+        Logger.getLogger().info("Build commands:\n{0}", String.join("\n", cmdList));
 
-        final ArrayList<String> command = new ArrayList<>();
-        command.add("java");
-        command.addAll(offshoot.getJvmDesigner());
-
-        String classPath;
-        if (currentJar.isFile()) {
-            classPath = currentJar.getName();
-        } else {
-            classPath = System.getProperty("java.class.path");
-        }
-        String radixBinPath = String.join(
-                File.separator,
-                offshoot.getLocalPath(),
-                "org.radixware",
-                "kernel",
-                "common",
-                "bin",
-                "*"
-        );
-        String radixLibPath = String.join(
-                File.separator,
-                offshoot.getLocalPath(),
-                "org.radixware",
-                "kernel",
-                "common",
-                "lib",
-                "*"
-        );
-        classPath = String.join(
-                File.pathSeparator,
-                radixBinPath,
-                radixLibPath,
-                classPath
-        );
-        command.add("-cp");
-        command.add(classPath);
-
-        command.add("-Dport="+rmiRegistry.getPort());
-        command.add("-Dpath="+offshoot.getLocalPath());
-        command.add("-Dclean="+(clean ? "1" : "0"));
-
-        command.add(SourceBuilder.class.getCanonicalName());
-
-        final ProcessBuilder builder = new ProcessBuilder(command);
+        final ProcessBuilder builder = new ProcessBuilder(cmdList);
         if (currentJar.isFile()) {
             builder.directory(currentJar.getParentFile());
         } else {
