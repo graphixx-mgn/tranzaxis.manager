@@ -6,6 +6,9 @@
                 <description>Исправлена ошибка при вызове модального селектора:
                 Illegal field name "codex.supplier.RowSelector$this" in class codex/supplier/RowSelector$BackToInitial</description>
             </change>
+            <change scope="APP" type="Bugfix">
+                <description>Исправлена ошибка запуска RW Designer в Linux.</description>
+            </change>
         </changelog>
     </version>
     <version number="2.3.2" date="2021-02-05">
