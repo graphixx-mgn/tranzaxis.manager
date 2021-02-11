@@ -78,7 +78,6 @@ public class BuildSourceTask extends AbstractTask<Error> {
             add("-Dpath="+offshoot.getLocalPath());
             add(SourceBuilder.class.getCanonicalName());
         }};
-        Logger.getLogger().info("Build commands:\n{0}", String.join("\n", cmdList));
 
         final ProcessBuilder builder = new ProcessBuilder(cmdList);
         if (currentJar.isFile()) {

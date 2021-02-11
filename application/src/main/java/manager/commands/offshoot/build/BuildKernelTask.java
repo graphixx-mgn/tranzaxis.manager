@@ -56,7 +56,6 @@ public class BuildKernelTask extends AbstractTask<Void> {
             add("-Dpath="+offshoot.getLocalPath());
             add(KernelBuilder.class.getCanonicalName());
         }};
-        Logger.getLogger().info("Build commands:\n{0}", String.join("\n", cmdList));
 
         final ProcessBuilder builder = new ProcessBuilder(cmdList);
         if (currentJar.isFile()) {
