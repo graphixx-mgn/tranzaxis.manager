@@ -6,6 +6,9 @@
                 <description>Исправлена ошибка при вызове модального селектора:
                 Illegal field name "codex.supplier.RowSelector$this" in class codex/supplier/RowSelector$BackToInitial</description>
             </change>
+            <change scope="CORE" type="Feature">
+                <description>В настройки сервиса нотификации добавлена опция для отключения системных уведомлений.</description>
+            </change>
             <change scope="APP" type="Bugfix">
                 <description>Исправлена ошибка запуска RW Designer в Linux.</description>
             </change>

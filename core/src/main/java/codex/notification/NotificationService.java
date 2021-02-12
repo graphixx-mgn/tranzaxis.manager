@@ -23,4 +23,14 @@ public class NotificationService extends AbstractService<NotifyServiceOptions> i
                 .filter(ctxEntry -> ctxEntry.getKey().getContextClass().equals(contextClass))
                 .anyMatch(ctxEntry -> ctxEntry.getValue().getCondition().get());
     }
+
+    @Override
+    public Accessor getAccessor() {
+        return new Accessor() {
+            @Override
+            NotifyServiceOptions getSettings() {
+                return NotificationService.this.getSettings();
+            }
+        };
+    }
 }

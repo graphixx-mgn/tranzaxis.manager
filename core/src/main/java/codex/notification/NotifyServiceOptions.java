@@ -8,6 +8,7 @@ import codex.model.Access;
 import codex.model.EntityDefinition;
 import codex.service.Service;
 import codex.type.ArrStr;
+import codex.type.Bool;
 import codex.type.EntityRef;
 import codex.type.Enum;
 import codex.utils.Language;
@@ -21,7 +22,8 @@ import java.util.stream.StreamSupport;
 
 @EntityDefinition(icon = "/images/notify.png")
 public class NotifyServiceOptions extends Service<NotificationService> {
-    
+
+    final static String PROP_SYS_NOTIFY  = "sysNotify";
     final static String PROP_CONDITIONS  = "conditions";
     final static String PROP_READTRIGGER = "read.trigger";
 
@@ -36,6 +38,7 @@ public class NotifyServiceOptions extends Service<NotificationService> {
                 ));
 
         // Properties
+        model.addUserProp(PROP_SYS_NOTIFY, new Bool(true), true, Access.Select);
         model.addUserProp(PROP_CONDITIONS,
                 new codex.type.Map<ContextView, NotifyCondition>(
                         new EntityRef<>(ContextView.class),
@@ -82,10 +85,18 @@ public class NotifyServiceOptions extends Service<NotificationService> {
         );
         model.addUserProp(PROP_READTRIGGER, new Enum<>(MessageView.ReadTrigger.OnShow), true, Access.Select);
 
-        model.addPropertyGroup(Language.get("group@system"), PROP_CONDITIONS);
+        model.addPropertyGroup(Language.get("group@system"), PROP_SYS_NOTIFY, PROP_CONDITIONS);
         model.addPropertyGroup(Language.get("group@inbox"),  PROP_READTRIGGER);
 
+        // Handlers
+        model.addChangeListener((name, oldValue, newValue) -> {
+            if (name.equals(PROP_SYS_NOTIFY)) {
+                model.getEditor(PROP_CONDITIONS).setEditable(newValue == Boolean.TRUE);
+            }
+        });
+
         // Editor settings
+        model.getEditor(PROP_CONDITIONS).setEditable(model.getValue(PROP_SYS_NOTIFY) == Boolean.TRUE);
         ((MapEditor) model.getEditor(PROP_CONDITIONS)).setMode(EnumSet.noneOf(MapEditor.EditMode.class));
     }
     
