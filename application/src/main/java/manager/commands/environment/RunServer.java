@@ -1,27 +1,17 @@
 package manager.commands.environment;
 
 import codex.command.EntityCommand;
-import codex.log.Level;
-import codex.log.Logger;
 import codex.service.ServiceRegistry;
 import codex.task.*;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import com.trilead.ssh2.StreamGobbler;
 import manager.nodes.BinarySource;
 import manager.nodes.Environment;
 import manager.nodes.Release;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class RunServer extends EntityCommand<Environment> {
     

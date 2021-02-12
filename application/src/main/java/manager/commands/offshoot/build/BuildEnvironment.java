@@ -1,5 +1,6 @@
 package manager.commands.offshoot.build;
 
+import java.io.File;
 import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -7,6 +8,10 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
+
+import codex.utils.FileUtils;
+import codex.utils.Runtime;
+import manager.nodes.Offshoot;
 import org.radixware.kernel.common.builder.BuildActionExecutor;
 import org.radixware.kernel.common.builder.api.IBuildDisplayer;
 import org.radixware.kernel.common.builder.api.IBuildEnvironment;
@@ -54,6 +59,35 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
         this.flowLogger = flowLogger;
         this.problemHandler = new ProblemHandler(flowLogger);
         buildDisplayer =  new BuildDisplayer(progressHandle);
+    }
+
+    static String buildClassPath(Offshoot offshoot) {
+        final File currentJar = Runtime.APP.jarFile.get();
+        final File javacFile  = Runtime.JVM.compiler.get();
+
+        String classPath;
+        if (currentJar.isFile()) {
+            classPath = currentJar.getName();
+        } else {
+            classPath = System.getProperty("java.class.path");
+        }
+        final String radixBinPath = String.join(
+                File.separator,
+                offshoot.getLocalPath(),
+                "org.radixware", "kernel", "common", "bin", "*"
+        );
+        final String radixLibPath = String.join(
+                File.separator,
+                offshoot.getLocalPath(),
+                "org.radixware", "kernel", "common", "lib", "*"
+        );
+        return String.join(
+                File.pathSeparator,
+                radixBinPath,
+                radixLibPath,
+                classPath,
+                javacFile.getAbsolutePath()
+        );
     }
     
     

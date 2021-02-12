@@ -16,7 +16,6 @@ import codex.service.ServiceRegistry;
 import codex.supplier.RowSelector;
 import codex.type.*;
 import codex.type.Enum;
-import codex.utils.FileUtils;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.awt.*;
@@ -337,11 +336,12 @@ public class Environment extends Entity implements INodeListener {
         Database db = getDataBase(true);
         EnvironmentRoot envRoot = (EnvironmentRoot) getParent();
         return envRoot != null && canStartServer() ? new LinkedList<String>() {{
-            add(FileUtils.pathQuotation(IComplexType.coalesce(envRoot.getJvmSource().get(EnvironmentRoot.PROP_JVM_PATH), "java")));
+            final String javaPath = envRoot.getJvmSource().get(EnvironmentRoot.PROP_JVM_PATH);
+            add(javaPath == null ? "java" : javaPath);
             add(String.join(" ", getJvmServer()));
             add("-jar");
-            add(FileUtils.pathQuotation(getBinaries().getStarterPath()));
-            add("-workDir="+FileUtils.pathQuotation(getBinaries().getLocalPath()));
+            add(getBinaries().getStarterPath());
+            add("-workDir="+getBinaries().getLocalPath());
             add("-topLayerUri=" + getLayerUri(true));
             if (addSplash) {
                 add("-showSplashScreen=Server: "+Environment.this+" ("+getBinaries().getPID()+")");
@@ -365,11 +365,12 @@ public class Environment extends Entity implements INodeListener {
     public List<String> getExplorerCommand(boolean addSplash) {
         EnvironmentRoot envRoot = (EnvironmentRoot) getParent();
         return envRoot != null && canStartExplorer() ? new LinkedList<String>() {{
-            add(FileUtils.pathQuotation(IComplexType.coalesce(envRoot.getJvmSource().get(EnvironmentRoot.PROP_JVM_PATH), "java")));
-            addAll(getJvmExplorer());
+            final String javaPath = envRoot.getJvmSource().get(EnvironmentRoot.PROP_JVM_PATH);
+            add(javaPath == null ? "java" : javaPath);
+            add(String.join(" ", getJvmExplorer()));
             add("-jar");
-            add(FileUtils.pathQuotation(getBinaries().getStarterPath()));
-            add("-workDir="+FileUtils.pathQuotation(getBinaries().getLocalPath()));
+            add(getBinaries().getStarterPath());
+            add("-workDir="+getBinaries().getLocalPath());
             add("-topLayerUri="+getLayerUri(true));
             if (addSplash) {
                 add("-showSplashScreen=Explorer: "+Environment.this+" ("+getBinaries().getPID()+")");

@@ -3,7 +3,6 @@ package manager.commands.offshoot;
 import codex.command.EntityCommand;
 import codex.log.Logger;
 import codex.type.IComplexType;
-import codex.utils.FileUtils;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.io.File;
@@ -55,15 +54,13 @@ public class RunDesigner extends EntityCommand<Offshoot> {
         return new ArrayList<String>() {{
             File fileRun = getDesignerExecFile(offshoot);
             File confDir = new File(offshoot.getLocalPath().concat(File.separator).concat(".config"));
-            if (Runtime.OS.isWindows.get()) {
-                add(FileUtils.pathQuotation(fileRun.getAbsolutePath()));
-            } else {
+            if (!Runtime.OS.isWindows.get()) {
                 add("sh");
-                add(FileUtils.pathQuotation(fileRun.getAbsolutePath()));
             }
+            add(fileRun.getAbsolutePath());
             addAll(offshoot.getJvmDesigner().stream().map("-J"::concat).collect(Collectors.toList()));
             add("--userdir");
-            add(FileUtils.pathQuotation(confDir.getAbsolutePath()));
+            add(confDir.getAbsolutePath());
         }};
     }
     

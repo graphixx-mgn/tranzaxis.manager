@@ -16,4 +16,9 @@ public interface INotificationService extends IService {
     void sendMessage(Message message, Handler handler);
 
     boolean contextAllowed(Class<? extends IContext> contextClass);
+
+    Accessor getAccessor();
+    abstract class Accessor {
+        abstract NotifyServiceOptions getSettings();
+    }
 }
