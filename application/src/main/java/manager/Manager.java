@@ -4,13 +4,11 @@ import codex.explorer.ExplorerUnit;
 import codex.explorer.tree.NodeTreeModel;
 import codex.instance.InstanceUnit;
 import codex.log.LogUnit;
-import codex.log.Logger;
 import codex.notification.MailBox;
 import codex.scheduler.JobScheduler;
 import codex.service.ServiceUnit;
 import codex.task.TaskManager;
 import codex.utils.ImageUtils;
-import codex.utils.Runtime;
 import it.sauronsoftware.junique.AlreadyLockedException;
 import it.sauronsoftware.junique.JUnique;
 import manager.nodes.Common;
@@ -22,8 +20,6 @@ import manager.ui.splash.SplashScreen;
 import manager.upgrade.UpgradeUnit;
 import plugin.PluginManager;
 import javax.swing.*;
-import java.io.*;
-import java.util.StringJoiner;
 
 public class Manager {
     
