@@ -123,7 +123,8 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
         table.setDefaultRenderer(String.class, new GeneralRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                String message = MULTILINE_PATTERN.matcher(value.toString()).replaceAll(" [...]");
+                String text = String.valueOf(IComplexType.coalesce(value, ""));
+                String message = MULTILINE_PATTERN.matcher(text).replaceAll(" [...]");
 
                 JLabel label = (JLabel) super.getTableCellRendererComponent(table, message, isSelected, hasFocus, row, column);
                 Level  level = getRowLevel(row);
@@ -135,8 +136,6 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
                     label.setIcon(ImageUtils.resize(level.getIcon(), iconSize, iconSize));
                 }
                 if (column == 1) {
-                    //String[]  contexts = tableModel.getValueAt(row,2).toString().split(",", -1);
-                    //String    ctxClassName = contexts[contexts.length-1];
                     String ctxClassName = (String) tableModel.getValueAt(row,2);
                     Logger.ContextInfo ctxInfo = Logger.getContextRegistry().getContext(ctxClassName);
                     ImageIcon ctxIcon = ctxInfo != null ? ctxInfo.getIcon() : IMAGE_CTX_NONE;
