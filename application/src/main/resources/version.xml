@@ -2,8 +2,11 @@
 <versions current="2.3.3" xmlns="manager/schemas/VersionInfo.xsd">
     <version number="2.3.4" date="2021-03-02">
         <changelog>
-            <change scope="CORE" type="Bugfix">
+            <change scope="APP" type="Bugfix">
                 <description>Фильтр сущностей Offshoot игнорируеттся при загрузке репозитария в offline режиме.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Проверка рабочих копий при загрузке репозитария в offline режиме.</description>
             </change>
         </changelog>
     </version>
