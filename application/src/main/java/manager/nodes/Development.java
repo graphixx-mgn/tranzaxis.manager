@@ -71,6 +71,9 @@ public class Development extends RepositoryBranch {
     enum Filter implements IFilter {
 
         HidePatches((parent, child) -> {
+            if (!((Development) parent).getRepository().isRepositoryOnline(false)) {
+                return true;
+            }
             final Map<Integer, List<Integer>> disperseMap = parent.childrenList().stream()
                     .map(iNode -> (Entity) iNode)
                     .map(Entity::getPID)
