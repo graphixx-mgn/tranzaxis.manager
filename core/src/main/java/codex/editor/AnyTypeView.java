@@ -53,8 +53,8 @@ public class AnyTypeView extends AbstractEditor<AnyType, Object> {
                 gridy = 0;
                 gridwidth = 1;
                 gridheight = 1;
-                anchor = GridBagConstraints.WEST;
-                fill = GridBagConstraints.NONE;
+                anchor = GridBagConstraints.LINE_START;
+                fill = GridBagConstraints.HORIZONTAL;
                 weightx = 0.1;
                 weighty = 1;
             }});
@@ -66,8 +66,13 @@ public class AnyTypeView extends AbstractEditor<AnyType, Object> {
     @Override
     protected void updateValue(Object value) {
         textField.setText(value == null ? "" : value.toString());
-        if (value != null && Iconified.class.isAssignableFrom(value.getClass())) {
-            iconLabel.setIcon(ImageUtils.resize(((Iconified) value).getIcon(), 20, 20));
+        ImageIcon icon;
+        if (
+                value != null &&
+                Iconified.class.isAssignableFrom(value.getClass()) &&
+                (icon = ((Iconified) value).getIcon()) != null
+        ) {
+            iconLabel.setIcon(ImageUtils.resize(icon, 20, 20));
             iconLabel.setVisible(true);
         } else {
             iconLabel.setIcon(null);
