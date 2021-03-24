@@ -468,7 +468,7 @@ public class LogUnit extends AbstractUnit implements WindowStateListener, Adjust
     private Connection getConnection() throws SQLException {
         Path dbFilePath = Paths.get(
                 System.getProperty("user.home"),
-                ((LogManagementService) Logger.getLogger()).getOption("file")
+                Logger.getLogger().getOption("file")
         );
         return DriverManager.getConnection("jdbc:sqlite:"+ dbFilePath);
     }

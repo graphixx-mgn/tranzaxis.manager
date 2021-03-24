@@ -50,16 +50,4 @@ public abstract class AbstractService<T extends Service> implements IService {
         }
     }
     
-    /**
-     * Получение настроек сервиса из META-INF/options/{Имя класса}.
-     * @param key Значение ключа, по которому выбирается строка-значение.
-     */
-    public final String getOption(String key) {
-        if (ClassLoader.getSystemClassLoader().getResource("META-INF/options/"+getClass().getSimpleName()+".properties") != null) {
-            return ResourceBundle.getBundle("META-INF/options/"+getClass().getSimpleName()).getString(key);
-        } else {
-            return null;
-        }
-    }
-    
 }
