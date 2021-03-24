@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -20,6 +21,7 @@ import org.apache.tools.ant.*;
 import org.radixware.kernel.common.preferences.KernelParameters;
 import org.radixware.kernel.common.repository.Branch;
 import org.radixware.kernel.common.repository.Layer;
+import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 public class KernelBuilder {
     
@@ -55,7 +57,11 @@ public class KernelBuilder {
             Branch branch = Branch.Factory.loadFromDir(localDir);
             for (Layer layer : branch.getLayers().getInOrder()) {
                 if (layer.getKernel().getDirectory().exists() && !layer.isReadOnly()) {
-                    kernels.add(layer.getDirectory().getName()+"/kernel/build.xml");
+                    File kernelDir  = Paths.get(layer.getDirectory().getAbsolutePath(), "kernel").toFile();
+                    File kernelFile = Paths.get(layer.getDirectory().getAbsolutePath(), "kernel", "build.xml").toFile();
+                    if (kernelFile.exists() && SVNWCUtil.isVersionedDirectory(kernelDir)) {
+                        kernels.add(layer.getDirectory().getName() + "/kernel/build.xml");
+                    }
                 }
             }
             if (kernels.length() == 0) {

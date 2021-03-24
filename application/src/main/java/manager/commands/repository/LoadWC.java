@@ -129,7 +129,7 @@ public class LoadWC extends EntityCommand<Repository> {
                         )
                 ) {
                     repository.loadBranches();
-                    Logger.getLogger().warn("Repository ''{0}'' loaded in OFFLINE mode", repository);
+                    Logger.getLogger().warn("Repository ''{0}'' loaded in OFFLINE mode: {1}", repository, e.getMessage());
                     return true;
                 } else {
                     if (getContext().isEmpty()) {

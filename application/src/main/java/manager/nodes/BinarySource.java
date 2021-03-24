@@ -18,7 +18,7 @@ import java.util.StringJoiner;
 public abstract class BinarySource extends Catalog {
 
             final static String TRUNK = "trunk";
-    private final static IExplorerAccessService EAS = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class);
+    //private final static IExplorerAccessService EAS = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class);
     
     public static final Comparator<String> VERSION_SORTER = (prev, next) -> {
         if (TRUNK.equals(prev)) {
@@ -55,7 +55,7 @@ public abstract class BinarySource extends Catalog {
     protected abstract Class<? extends RepositoryBranch> getParentClass();
 
     public final String getLocalPath() {
-        String workDir = ((Common) EAS.getRoot()).getWorkDir().toString();
+        String workDir = Common.newInstance(Common.class, null, "Common").getWorkDir().toString();
         return new StringJoiner(File.separator)
                 .add(workDir)
                 .add(getParentClass().getAnnotation(RepositoryBranch.Branch.class).localDir())
