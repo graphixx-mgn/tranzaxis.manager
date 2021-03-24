@@ -338,7 +338,7 @@ public class Environment extends Entity implements INodeListener {
         return envRoot != null && canStartServer() ? new LinkedList<String>() {{
             final String javaPath = envRoot.getJvmSource().get(EnvironmentRoot.PROP_JVM_PATH);
             add(javaPath == null ? "java" : javaPath);
-            add(String.join(" ", getJvmServer()));
+            addAll(getJvmServer());
             add("-jar");
             add(getBinaries().getStarterPath());
             add("-workDir="+getBinaries().getLocalPath());
@@ -367,7 +367,7 @@ public class Environment extends Entity implements INodeListener {
         return envRoot != null && canStartExplorer() ? new LinkedList<String>() {{
             final String javaPath = envRoot.getJvmSource().get(EnvironmentRoot.PROP_JVM_PATH);
             add(javaPath == null ? "java" : javaPath);
-            add(String.join(" ", getJvmExplorer()));
+            addAll(getJvmExplorer());
             add("-jar");
             add(getBinaries().getStarterPath());
             add("-workDir="+getBinaries().getLocalPath());
