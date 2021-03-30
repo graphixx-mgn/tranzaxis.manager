@@ -58,8 +58,8 @@ public final class GroupCommandButton extends CommandButton implements MouseList
 
     @Override
     public void addChildCommand(EntityCommand<Entity> command) {
+        CommandButton cmdButton = new CommandButton(command, true);
         SwingUtilities.invokeLater(() -> {
-            CommandButton cmdButton = new CommandButton(command, true);
             cmdButton.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
             cmdButton.addActionListener(new AbstractAction() {
                 @Override
