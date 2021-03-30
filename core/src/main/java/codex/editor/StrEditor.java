@@ -204,7 +204,7 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
      */
     @Override
     public void insertUpdate(DocumentEvent event) {
-        signDelete.setVisible(!textField.getText().isEmpty() && isEditable());
+        signDelete.setVisible(!textField.getText().isEmpty() && isEditable() && textField.isFocusOwner());
         update.accept(textField.getText());
     }
 
@@ -214,7 +214,7 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
      */
     @Override
     public void removeUpdate(DocumentEvent event) {
-        signDelete.setVisible(!textField.getText().isEmpty() && isEditable());
+        signDelete.setVisible(!textField.getText().isEmpty() && isEditable() && textField.isFocusOwner());
         update.accept(textField.getText());
     }
 
@@ -224,7 +224,7 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
      */
     @Override
     public void changedUpdate(DocumentEvent event) {
-        signDelete.setVisible(!textField.getText().isEmpty() && isEditable());
+        signDelete.setVisible(!textField.getText().isEmpty() && isEditable() && textField.isFocusOwner());
         update.accept(textField.getText());
     }
 
