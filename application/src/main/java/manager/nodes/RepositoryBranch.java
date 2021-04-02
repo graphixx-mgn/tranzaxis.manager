@@ -1,6 +1,7 @@
 package manager.nodes;
 
 import codex.config.IConfigStoreService;
+import codex.explorer.IExplorerAccessService;
 import codex.model.Catalog;
 import codex.model.Entity;
 import codex.model.EntityDefinition;
@@ -10,7 +11,9 @@ import manager.svn.SVN;
 import org.atteo.classindex.IndexSubclasses;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.wc.SVNWCUtil;
 import javax.swing.*;
+import java.io.File;
 import java.lang.annotation.*;
 import java.util.*;
 
@@ -19,6 +22,7 @@ import java.util.*;
 @RepositoryBranch.Branch(remoteDir = "", localDir="", hasArchive = false)
 public abstract class RepositoryBranch extends Catalog {
 
+    private final static IExplorerAccessService EAS = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class);
     static String ARCHIVE_DIR = "archive";
 
     @Inherited
@@ -79,11 +83,30 @@ public abstract class RepositoryBranch extends Catalog {
                 IConfigStoreService CSS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
                 getClassCatalog().forEach(catalogClass -> {
                     List<Entity> children = new LinkedList<>();
+                    List<String> loaded = new LinkedList<>();
                     CSS.readCatalogEntries(ownerRef == null ? null : ownerRef.getId(), catalogClass).forEach(entityRef -> {
                         if (entityRef != null && !childrenList().contains(entityRef.getValue())) {
+                            loaded.add(entityRef.getValue().getPID());
                             children.add(entityRef.getValue());
                         }
                     });
+
+                    String workDir  = ((Common) EAS.getRoot()).getWorkDir().toString();
+                    File   localDir = new File(new StringJoiner(File.separator)
+                            .add(workDir)
+                            .add(getClass().getAnnotation(RepositoryBranch.Branch.class).localDir())
+                            .add(Repository.urlToDirName(getRepository().getRepoUrl()))
+                            .toString()
+                    );
+                    File[] childDir = localDir.listFiles();
+                    if (childDir != null) {
+                        Arrays.stream(childDir)
+                                .filter(file -> SVNWCUtil.isVersionedDirectory(file) && !loaded.contains(file.getName()))
+                                .forEach(file -> {
+                                    children.add(Entity.newInstance(catalogClass, getRepository().toRef(), file.getName()));
+                                });
+                    }
+
                     children.sort((o1, o2) -> BinarySource.VERSION_SORTER.reversed().compare(o1.getPID(), o2.getPID()));
                     children.forEach(this::attach);
                 });

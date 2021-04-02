@@ -44,7 +44,7 @@ public class RevisionSupplier implements IDataSupplier<Map<String, String>> {
         try {
             List<SVNLogEntry> log = SVN.log(
                     offshoot.getRemotePath(),
-                    nextEdgeRevision,
+                    nextEdgeRevision != null ? nextEdgeRevision : headRevision,
                     SVNRevision.create(1),
                     IDataSupplier.DEFAULT_LIMIT,
                     offshoot.getRepository().getAuthManager()

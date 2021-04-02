@@ -122,6 +122,7 @@ public class Dialog extends JDialog {
     transient Window     parent;
     private final JPanel contentPanel;
     protected Function<DialogButton, ActionListener> handler;
+    private int exitCode = -1;
 
     public Dialog(Window parent, ImageIcon icon, String title, JPanel content, ActionListener close) {
         this(parent, icon, title, content, close, new DialogButton[] {});
@@ -181,6 +182,7 @@ public class Dialog extends JDialog {
                         null
                 );
                 close.actionPerformed(event);
+                exitCode = event.getID();
             }
         };
 
@@ -254,6 +256,11 @@ public class Dialog extends JDialog {
     public final void setContent(JPanel content) {
         contentPanel.removeAll();
         contentPanel.add(content);
+    }
+
+    public int getExitCode() {
+        if (exitCode == -1) throw new IllegalStateException("Dialog is not closed yet");
+        return exitCode;
     }
 
     protected DialogButton getButton(int ID) {

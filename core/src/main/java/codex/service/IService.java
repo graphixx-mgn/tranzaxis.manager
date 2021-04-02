@@ -2,6 +2,7 @@ package codex.service;
 
 import java.lang.annotation.*;
 import java.util.Arrays;
+import java.util.ResourceBundle;
 
 /**
  * Интерфейс сервиса.
@@ -23,6 +24,18 @@ public interface IService {
      */
     default String getTitle() {
         return "Local service instance ["+getClass().getCanonicalName()+"]";
+    }
+
+    /**
+     * Получение настроек сервиса из META-INF/options/{Имя класса}.
+     * @param key Значение ключа, по которому выбирается строка-значение.
+     */
+    default String getOption(String key) {
+        if (ClassLoader.getSystemClassLoader().getResource("META-INF/options/"+getClass().getSimpleName()+".properties") != null) {
+            return ResourceBundle.getBundle("META-INF/options/"+getClass().getSimpleName()).getString(key);
+        } else {
+            return null;
+        }
     }
     
     /**

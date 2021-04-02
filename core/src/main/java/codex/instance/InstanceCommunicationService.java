@@ -81,7 +81,8 @@ public final class InstanceCommunicationService extends AbstractService<Communic
             Logger.getLogger().debug("Registered remote service: ''{0}''", service.getTitle());
         } catch (Exception e) {
             if (e.getCause() != null && e.getCause() instanceof ServiceNotLoadedException) {
-                Logger.getLogger().warn(e.getCause().getMessage());
+                ServiceNotLoadedException serviceException = (ServiceNotLoadedException) e.getCause();
+                Logger.getLogger().log(serviceException.getLevel(), serviceException.getMessage());
             } else {
                 Logger.getLogger().warn("Unable to register remote service", e);
             }

@@ -106,7 +106,11 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
                     e.getMessage().trim(),
                     IDatabaseAccessService.prepareTraceSQL(query, params)
             );
-            throw new SQLException(getCause(e).getMessage().trim());
+            throw new SQLException(
+                    getCause(e).getMessage().trim(),
+                    e.getSQLState(),
+                    e.getErrorCode()
+            );
         }
     }
 

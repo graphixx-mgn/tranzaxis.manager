@@ -5,6 +5,7 @@ import codex.instance.IInstanceDispatcher;
 import codex.instance.IInstanceListener;
 import codex.instance.Instance;
 import codex.instance.ServiceNotLoadedException;
+import codex.log.Level;
 import codex.log.Logger;
 import codex.log.LoggingSource;
 import codex.model.Access;
@@ -69,7 +70,7 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
         super();
 
         if (Runtime.APP.devMode.get()) {
-            throw new ServiceNotLoadedException(this, "Running application in development mode");
+            throw new ServiceNotLoadedException(this, "Running application in development mode", Level.Info);
         }
         history = getHistory();
         version = getCurrentVersion();

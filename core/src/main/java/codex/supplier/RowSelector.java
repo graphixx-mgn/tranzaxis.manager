@@ -1,6 +1,5 @@
 package codex.supplier;
 
-import codex.command.CommandStatus;
 import codex.command.EditorCommand;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
@@ -9,7 +8,6 @@ import codex.component.messagebox.MessageType;
 import codex.component.render.GeneralRenderer;
 import codex.editor.IEditor;
 import codex.editor.StrEditor;
-import codex.log.Logger;
 import codex.presentation.SelectorTable;
 import codex.property.PropertyHolder;
 import codex.type.Str;
@@ -21,17 +19,27 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.TableModelEvent;
-import javax.swing.table.*;
+import javax.swing.event.TableModelListener;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ActionListener;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R> implements AdjustmentListener {
+public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R> /*implements AdjustmentListener*/ {
 
     private static final ImageIcon ICON_FILTER   = ImageUtils.getByPath("/images/filter.png");
     private static final ImageIcon ICON_SELECTOR = ImageUtils.getByPath("/images/selector.png");
@@ -52,28 +60,14 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
         public static RowSelector<List<String>> newInstance(IDataSupplier<Map<String, String>> supplier, boolean showDesc) {
             return new RowSelector<List<String>>(Mode.Multiple, supplier, showDesc) {
                 @Override
-                protected Map<String, String> valueToMap(List<String> initial) {
-                    return initial == null || initial.isEmpty() ?
-                            Collections.emptyMap() :
-                            new LinkedHashMap<String, String>() {{
-                                for (int index = 0; index < initial.size(); index++) {
-                                    put(String.valueOf(index), initial.get(index));
-                                }
-                            }};
+                protected List<String> getValue(Supplier<Map<String, String>> dataSupplier) {
+                    Map<String, String> data = dataSupplier.get();
+                    return data == null || data.isEmpty() ? Collections.emptyList() : new LinkedList<>(data.values());
                 }
 
                 @Override
-                protected List<String> getResult() {
-                    int row = this.table.getSelectedRow();
-                    if (row != TableModelEvent.HEADER_ROW) {
-                        List<String> result = new LinkedList<>();
-                        for (int column = 0; column < table.getColumnCount(); column++) {
-                            result.add(table.getValueAt(row, column).toString());
-                        }
-                        return result;
-                    } else {
-                        return null;
-                    }
+                protected boolean isEmpty(List<String> value) {
+                    return value == null || value.isEmpty();
                 }
             };
         }
@@ -88,455 +82,406 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
         public static RowSelector<String> newInstance(IDataSupplier<Map<String, String>> supplier, boolean showDesc) {
             return new RowSelector<String>(Mode.Single, supplier, showDesc) {
                 @Override
-                protected Map<String, String> valueToMap(String initial) {
-                    return initial == null || initial.isEmpty() ?
-                           Collections.emptyMap() :
-                           Collections.singletonMap("", initial);
+                protected String getValue(Supplier<Map<String, String>> dataSupplier) {
+                    Map<String, String> data = dataSupplier.get();
+                    return data == null || data.isEmpty() ? null : data.values().iterator().next();
                 }
 
                 @Override
-                protected String getResult() {
-                    int row = this.table.getSelectedRow();
-                    if (row != TableModelEvent.HEADER_ROW) {
-                        return table.getValueAt(row, 0).toString();
-                    } else {
-                        return null;
-                    }
+                protected boolean isEmpty(String value) {
+                    return value == null || value.isEmpty();
                 }
             };
         }
     }
 
+    private final boolean desc;
+    private final Mode mode;
 
-    private DialogButton btnConfirm = Dialog.Default.BTN_OK.newInstance();
-    private DialogButton btnCancel = Dialog.Default.BTN_CANCEL.newInstance();
+    private RowSelector(Mode mode, IDataSupplier<Map<String, String>> supplier, boolean showDescription) {
+        super(supplier);
+        this.mode = mode;
+        this.desc = showDescription;
+    }
 
-    private final JTextPane descPane = new JTextPane(){{
-        setBorder(new CompoundBorder(
-                new EmptyBorder(0, 5, 5, 5),
-                new CompoundBorder(
-                        new MatteBorder(1, 1, 1, 1, Color.GRAY),
-                        new EmptyBorder(3, 3, 3, 3)
-                )
-        ));
-        putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
-        setContentType("text/html");
-        setEditable(false);
-        setVisible(false);
-        setOpaque(false);
-    }};
+    protected abstract R getValue(Supplier<Map<String, String>> dataSupplier);
+    protected abstract boolean isEmpty(R value);
 
-    private final DefaultTableModel tableModel = new DefaultTableModel() {
-        @Override
-        public Class<?> getColumnClass(int columnIndex) {
-            return String.class;
+    @Override
+    public R select(R initialVal) {
+        SelectorDialog dialog = new SelectorDialog(initialVal);
+        dialog.setVisible(true);
+        return dialog.getExitCode() == Dialog.OK ? getValue(dialog::getData) : null;
+    }
+
+    private List<Map<String, String>> readData(IDataSupplier.ReadDirection direction) {
+        try {
+            return direction.equals(IDataSupplier.ReadDirection.Forward) ? getSupplier().getNext() : getSupplier().getPrev();
+        } catch (IDataSupplier.LoadDataException e) {
+            e.printStackTrace();
         }
+        return Collections.emptyList();
+    }
 
-        @Override
-        public boolean isCellEditable(int row, int column) {
-            return false;
-        }
-    };
-    protected final JTable table = new SelectorTable(tableModel);
-    private final TableRowSorter<TableModel> sorter = new TableRowSorter<>(table.getModel());
-    private final JScrollPane scrollPane = new JScrollPane(table) {
-        {
+
+    private class SelectorDialog extends Dialog {
+
+        private R   initialVal;
+        private int initialRow = -1;
+
+        private PropertyHolder<Str, String> searchHolder = new PropertyHolder<>(
+                "filter", null, null,
+                new Str(null), false
+        );
+        private final DefaultTableModel tableModel = new DefaultTableModel() {
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                return String.class;
+            }
+
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        private final TableRowSorter<TableModel> sorter = new TableRowSorter<>(tableModel);
+
+        private final JTable    table = new SelectorTable(tableModel);
+        private final StrEditor searchEditor = new StrEditor(searchHolder);
+        private final JPanel    filterPanel  = new JPanel(new BorderLayout()) {{
+            setBorder(new EmptyBorder(5, 5, 0, 5));
+            add(new JLabel(ICON_FILTER) {{
+                setBorder(new EmptyBorder(0, 5, 0, 5));
+            }}, BorderLayout.WEST);
+            add(searchEditor.getEditor(), BorderLayout.CENTER);
+        }};
+        private final JTextPane descPane = new JTextPane() {{
+            setBorder(new CompoundBorder(
+                    new EmptyBorder(0, 5, 5, 5),
+                    new CompoundBorder(
+                            new MatteBorder(1, 1, 1, 1, Color.GRAY),
+                            new EmptyBorder(3, 3, 3, 3)
+                    )
+            ));
+            putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
+            setContentType("text/html");
+            setEditable(false);
+            setVisible(false);
+            setOpaque(false);
+        }};
+        private final JScrollPane scrollPane = new JScrollPane(table) {{
             getViewport().setBackground(Color.WHITE);
             setBorder(new CompoundBorder(
                     new EmptyBorder(5, 5, 5, 5),
                     new MatteBorder(1, 1, 1, 1, Color.GRAY)
             ));
-        }
-    };
+        }};
 
-    private final Mode mode;
-    private int initialSelectedRow = TableModelEvent.HEADER_ROW;
-    
-    private ApplyFilter search = new ApplyFilter();
-    private BackToInitial back = new BackToInitial();
-
-    private RowSelector(Mode mode, IDataSupplier<Map<String, String>> supplier, boolean showDescription) {
-        super(supplier);
-        this.mode = mode;
-        table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setDefaultRenderer(String.class, new GeneralRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                if (row == initialSelectedRow) {
-                    c.setFont(IEditor.FONT_VALUE.deriveFont(Font.BOLD));
-                    c.setForeground(Color.decode("#0066CC"));
-                }
-                return c;
-            }
-        });
-        table.getTableHeader().setDefaultRenderer(new HeaderRenderer());
-        table.setRowSorter(sorter);
-
-        table.getSelectionModel().addListSelectionListener((ListSelectionEvent event) -> {
-            if (event.getValueIsAdjusting()) return;
-            
-            back.activate();
-            btnConfirm.setEnabled(
-                    table.getRowSorter().getViewRowCount() > 0 &&
-                            table.getSelectedRow() > TableModelEvent.HEADER_ROW
-            );
-
-            if (showDescription && table.getSelectedRow() > TableModelEvent.HEADER_ROW) {
-                int selectedRow = table.getSelectedRow();
-                Map<String, String> rowData = new LinkedHashMap<>();
-                for (int column = 0; column < tableModel.getColumnCount(); column++) {
-                    rowData.put(
-                            tableModel.getColumnName(column),
-                            (String) tableModel.getValueAt(selectedRow, column)
-                    );
-                }
-                if (!descPane.isVisible()) {
-                    descPane.setVisible(true);
-                }
-                descPane.setText(MessageFormat.format(
-                        "<html><table>{0}</table></html>",
-                        rowData.entrySet().stream()
-                                .map(entry -> MessageFormat.format(
-                                        "<tr><td><b>{0}:</b></td><td>{1}</td></tr>",
-                                        entry.getKey(),
-                                        entry.getValue()
-                                ))
-                                .collect(Collectors.joining())
-                ));
-            }
-        });
-        table.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent event) {
-                if (event.getClickCount() == 2) {
-                    btnConfirm.click();
-                }
-            }
-        });
-        scrollPane.getVerticalScrollBar().addAdjustmentListener(this);
-    }
-
-    private void readNextPage() throws IDataSupplier.LoadDataException {
-        List<Map<String, String>> data = getSupplier().getNext();
-        if (!data.isEmpty()) {
-            if (tableModel.getColumnCount() == 0) {
-                data.get(0).keySet().forEach(tableModel::addColumn);
-            }
-            data.forEach(rowMap -> tableModel.addRow(rowMap.values().toArray()));
-        }
-    }
-
-    private void readPrevPage() throws IDataSupplier.LoadDataException {
-        List<Map<String, String>> data = getSupplier().getPrev();
-        if (!data.isEmpty()) {
-            if (tableModel.getColumnCount() == 0) {
-                data.get(0).keySet().forEach(tableModel::addColumn);
-            }
-
-            if (initialSelectedRow != TableModelEvent.HEADER_ROW) {
-                initialSelectedRow += data.size();
-            }
-            data.forEach(rowMap -> tableModel.insertRow(0, rowMap.values().toArray()));
-        }
-    }
-
-    protected abstract Map<String, String> valueToMap(R initial);
-    protected abstract R getResult();
-
-    @Override
-    public R select(R initialVal) {
-        Window window = FocusManager.getCurrentManager().getActiveWindow();
-        window.setCursor(new Cursor(Cursor.WAIT_CURSOR));
-
-        getSupplier().reset();
-        sorter.setRowFilter(null);
-        tableModel.getDataVector().removeAllElements();
-        tableModel.fireTableDataChanged();
-
-        if (getSupplier().ready()) {
-            btnConfirm.setEnabled(false);
-
-            JPanel filterPanel = new JPanel(new BorderLayout());
-            PropertyHolder<Str, String> lookupHolder = new PropertyHolder<>(
-                    "filter", null, null,
-                    new Str(null), false
-            );
-            StrEditor lookupEditor = new StrEditor(lookupHolder);
-            
-            lookupEditor.addCommand(search);
-            lookupHolder.addChangeListener((name, oldValue, newValue) -> {
-                if (lookupEditor.getFocusTarget().isFocusOwner()) {
-                    search.execute(lookupHolder);
-                }
-            });
-
-            filterPanel.setBorder(new EmptyBorder(5, 5, 0, 5));
-            filterPanel.add(lookupEditor.getEditor(), BorderLayout.CENTER);
-
-            JLabel filterIcon  = new JLabel(ICON_FILTER);
-            filterIcon.setBorder(new EmptyBorder(0, 5, 0, 5));
-            filterPanel.add(filterIcon, BorderLayout.WEST);
-
-            JPanel content = new JPanel(new BorderLayout());
-            content.add(filterPanel, BorderLayout.NORTH);
-            content.add(scrollPane, BorderLayout.CENTER);
-            content.add(descPane, BorderLayout.SOUTH);
-
-            new Dialog(
+        private SelectorDialog(R initialVal) {
+            super(
                     FocusManager.getCurrentManager().getActiveWindow(),
                     ICON_SELECTOR,
                     Language.get(RowSelector.class, "title"),
-                    content,
-                    (event) -> {
-                        if (event.getID() != Dialog.OK) {
-                            table.clearSelection();
-                        }
-                    },
-                    btnConfirm, btnCancel
-            ) {
-                {
-                    // Перекрытие обработчика кнопок
-                    Function<DialogButton, ActionListener> defaultHandler = handler;
-                    handler = (button) -> (event) -> {
-                        if (event.getID() != Dialog.OK || !lookupEditor.getFocusTarget().isFocusOwner()) {
-                            defaultHandler.apply(button).actionPerformed(event);
-                        }
-                    };
-                }
-
+                    new JPanel(),
+                    e -> {},
+                    Dialog.Default.BTN_OK.newInstance(),
+                    Dialog.Default.BTN_CANCEL.newInstance()
+            );
+            this.initialVal = initialVal;
+            table.setFillsViewportHeight(true);
+            table.getTableHeader().setDefaultRenderer(new HeaderRenderer());
+            table.setDefaultRenderer(String.class, new GeneralRenderer() {
                 @Override
-                public Dimension getPreferredSize() {
-                    Dimension defDim = super.getPreferredSize();
-                    return new Dimension(
-                            Math.max(Math.min(defDim.width,  800), 400), // 400 <= width  <= 800
-                            Math.max(Math.min(defDim.height, 500), 200)  // 200 <= height <= 500
-                    );
+                public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                    Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                    if (row == initialRow) {
+                        c.setFont(IEditor.FONT_VALUE.deriveFont(Font.BOLD));
+                        c.setForeground(Color.decode("#0066CC"));
+                    }
+                    return c;
                 }
-
+            });
+            table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            table.getSelectionModel().addListSelectionListener(this::onSelect);
+            table.setRowSorter(sorter);
+            scrollPane.getVerticalScrollBar().addAdjustmentListener(this::onScroll);
+            scrollPane.addComponentListener(new ComponentAdapter() {
                 @Override
-                public void setVisible(boolean visible) {
-                    if (visible) {
-                        try {
-                            readNextPage();
-                            window.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-
-                            if (initialVal != null) {
-                                Map<String, String> initialValues = valueToMap(initialVal);
-                                if (!initialValues.isEmpty()) {
-                                    for (int row = 0; row < tableModel.getRowCount(); row++) {
-                                        if (getRowValues(row).containsAll(initialValues.values())) {
-                                            initialSelectedRow = row;
-                                            table.scrollRectToVisible(new Rectangle(table.getCellRect(initialSelectedRow, 0, true)));
-                                            table.getSelectionModel().setSelectionInterval(initialSelectedRow, initialSelectedRow);
-                                            lookupEditor.addCommand(back);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            super.setVisible(true);
-                        } catch (IDataSupplier.LoadDataException e) {
-                            Logger.getLogger().warn("Provider data request failed: {0}", e.getMessage());
-                            MessageBox.show(MessageType.ERROR, e.getMessage());
-                        }
-                    } else {
-                        super.setVisible(false);
+                public void componentResized(ComponentEvent e) {
+                    if (table.getSelectedRow() != -1) {
+                        table.scrollRectToVisible(getRowRect(table.getSelectedRow()));
                     }
                 }
-            }.setVisible(true);
-        }
-        return getResult();
-    }
+            });
 
-    @Override
-    public void adjustmentValueChanged(AdjustmentEvent event) {
-        if (!event.getValueIsAdjusting()) {
-            JScrollBar scrollBar = (JScrollBar) event.getAdjustable();
-            int extent = scrollBar.getModel().getExtent();
-            int maximum = scrollBar.getModel().getMaximum();
-            int minimum = scrollBar.getModel().getMinimum();
-
-            if (extent + event.getValue() == maximum && getSupplier().available(IDataSupplier.ReadDirection.Forward)) {
-                try {
-                    table.setCursor(new Cursor(Cursor.WAIT_CURSOR));
-                    readNextPage();
-                    table.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-                } catch (IDataSupplier.LoadDataException e) {
-                    e.printStackTrace();
+            final ApplyFilter search = new ApplyFilter(this::onFilter);
+            searchEditor.addCommand(search);
+            searchHolder.addChangeListener((name, oldValue, newValue) -> {
+                if (searchEditor.getFocusTarget().isFocusOwner()) {
+                    search.execute(searchHolder);
                 }
-            }
-            if (event.getValue() == minimum && getSupplier().available(IDataSupplier.ReadDirection.Backward)) {
-                try {
-                    table.setCursor(new Cursor(Cursor.WAIT_CURSOR));
-                    BoundedRangeModel scrollModel = scrollPane.getVerticalScrollBar().getModel();
-                    int prevMaximum = scrollModel.getMaximum();
-                    scrollPane.getVerticalScrollBar().removeAdjustmentListener(this);
+            });
+            getButton(Dialog.OK).setEnabled(false);
+        }
 
-                    readPrevPage();
-
-                    SwingUtilities.invokeLater(() -> {
-                        int currMaximum = scrollModel.getMaximum();
-                        scrollPane.getVerticalScrollBar().setValue(currMaximum - prevMaximum);
-                        scrollPane.getVerticalScrollBar().addAdjustmentListener(this);
-                    });
-                    table.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-                } catch (IDataSupplier.LoadDataException e) {
-                    e.printStackTrace();
+        {
+            getSupplier().reset();
+            setContent(new JPanel(new BorderLayout()) {{
+                add(filterPanel, BorderLayout.NORTH);
+                add(scrollPane,  BorderLayout.CENTER);
+                add(descPane,    BorderLayout.SOUTH);
+            }});
+            // Перекрытие обработчика кнопок
+            Function<DialogButton, ActionListener> defaultHandler = handler;
+            handler = (button) -> (event) -> {
+                if (event.getID() != Dialog.OK || !searchEditor.getFocusTarget().isFocusOwner()) {
+                    defaultHandler.apply(button).actionPerformed(event);
                 }
-            }
-        }
-    }
-
-    private List<String> getRowValues(int row) {
-        List<String> rowValues = new LinkedList<>();
-        for (int col = 0; col < tableModel.getColumnCount(); col++) {
-            rowValues.add((String) tableModel.getValueAt(row, col));
-        }
-        return rowValues;
-    }
-
-
-    private class BackToInitial extends EditorCommand<Str, String> {
-
-        private BackToInitial() {
-            super(ICON_REVERT, null);
-            activator = (holder) -> new CommandStatus(
-                    initialSelectedRow != TableModelEvent.HEADER_ROW &&
-                    initialSelectedRow != table.getSelectedRow()
-            );
+            };
         }
 
         @Override
-        public void execute(PropertyHolder<Str, String> context) {
-            table.getSelectionModel().setSelectionInterval(initialSelectedRow, initialSelectedRow);
-            table.scrollRectToVisible(new Rectangle(table.getCellRect(table.getSelectedRow(), 0, true)));
+        public Dimension getPreferredSize() {
+            Dimension defDim = super.getPreferredSize();
+            return new Dimension(
+                    Math.max(Math.min(defDim.width,  800), 400), // 400 <= width  <= 800
+                    Math.max(Math.min(defDim.height, 500), 200)  // 200 <= height <= 500
+            );
         }
-    }
 
+        public Rectangle getRowRect(int row) {
+            Rectangle cellRect = table.getCellRect(row, 0, true);
+            cellRect.setBounds(0, cellRect.y-table.getRowHeight(), 0, cellRect.height+table.getRowHeight()*2);
+            return cellRect;
+        }
 
-    private class ApplyFilter extends EditorCommand<Str, String> {
+        private void readPage(IDataSupplier.ReadDirection direction) {
+            List<Map<String, String>> data = readData(direction);
+            if (data.isEmpty()) return;
 
-        ApplyFilter() {
-            super(ICON_SEARCH, null);
+            final Runnable runnable = () -> {
+                if (tableModel.getColumnCount() == 0) {
+                    data.get(0).keySet().forEach(tableModel::addColumn);
+                }
+                TableModelListener[] listeners = tableModel.getTableModelListeners();
+                for (TableModelListener listener : listeners) {
+                    tableModel.removeTableModelListener(listener);
+                }
+                int minIdx = tableModel.getRowCount();
+                int maxIdx = minIdx + data.size() -1;
+
+                data.forEach(rowMap -> {
+                    int newRowIdx = direction.equals(IDataSupplier.ReadDirection.Forward) ? tableModel.getRowCount() : 0;
+                    tableModel.insertRow(newRowIdx, rowMap.values().toArray());
+                    if (initialRow == -1) {
+                        if (getValue(() -> rowMap).equals(initialVal)) {
+                            initialRow = newRowIdx;
+                        }
+                    } else if (direction.equals(IDataSupplier.ReadDirection.Backward)) {
+                        initialRow++;
+                    }
+                });
+                for (TableModelListener listener : listeners) {
+                    tableModel.addTableModelListener(listener);
+                }
+                SwingUtilities.invokeLater(() -> {
+                    synchronized (table.getRowSorter()) {
+                        tableModel.fireTableRowsInserted(minIdx, maxIdx);
+                        if (initialRow != -1 && table.getSelectedRow() == -1) {
+                            table.setRowSelectionInterval(initialRow, initialRow);
+                        }
+                    }
+                });
+            };
+            runnable.run();
+        }
+
+        private Map<String, String> getSelectedData() {
+            int selectedRow = table.getSelectedRow();
+            return selectedRow == TableModelEvent.HEADER_ROW ?
+                    Collections.emptyMap() :
+                    IntStream.range(0, tableModel.getColumnCount()).boxed()
+                            .collect(Collectors.toMap(
+                                    tableModel::getColumnName,
+                                    column -> (String) tableModel.getValueAt(selectedRow, column),
+                                    (u, v) -> {
+                                        throw new IllegalStateException(String.format("Duplicate key %s", u));
+                                    },
+                                    LinkedHashMap::new
+                            ));
+        }
+
+        private void onScroll(AdjustmentEvent event) {
+            if (!event.getValueIsAdjusting()) {
+                JScrollBar scrollBar = (JScrollBar) event.getAdjustable();
+                int extent  = scrollBar.getModel().getExtent();
+                int maximum = scrollBar.getModel().getMaximum();
+                int minimum = scrollBar.getModel().getMinimum();
+                if (extent + event.getValue() == maximum) {
+                    if (getSupplier().available(IDataSupplier.ReadDirection.Forward)) {
+                        setCursor(new Cursor(Cursor.WAIT_CURSOR));
+                        readPage(IDataSupplier.ReadDirection.Forward);
+                        setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+                        if (!isVisible()) pack();
+                    }
+                }
+                if (event.getValue() == minimum) {
+                    if (getSupplier().available(IDataSupplier.ReadDirection.Backward)) {
+                        setCursor(new Cursor(Cursor.WAIT_CURSOR));
+                        readPage(IDataSupplier.ReadDirection.Backward);
+                        setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+                        if (!isVisible()) pack();
+                    }
+                }
+            }
+        }
+
+        private void onSelect(ListSelectionEvent event) {
+            if (!event.getValueIsAdjusting() && event.getFirstIndex() != -1) {
+                Map<String, String> rowMap = getSelectedData();
+                R value = getValue(() -> rowMap);
+                getButton(Dialog.OK).setEnabled(!isEmpty(value) && !value.equals(initialVal));
+
+                if (desc && !isEmpty(value)) {
+                    descPane.setText(MessageFormat.format(
+                            "<html><table>{0}</table></html>",
+                            rowMap.entrySet().stream()
+                                    .map(entry -> MessageFormat.format(
+                                            "<tr><td><b>{0}:</b></td><td>{1}</td></tr>",
+                                            entry.getKey(),
+                                            entry.getValue()
+                                    ))
+                                    .collect(Collectors.joining())
+                    ));
+                    if (!descPane.isVisible()) {
+                        descPane.setVisible(true);
+                    }
+                }
+            }
+        }
+
+        private void onFilter(String value) {
+            final Supplier<Boolean> dataAvailable = () ->
+                    getSupplier().available(IDataSupplier.ReadDirection.Forward) ||
+                    getSupplier().available(IDataSupplier.ReadDirection.Backward);
+            final Function<Boolean, List<Integer>> nextRows = (showAll) -> {
+                int selectedRow = table.getSelectedRow();
+                try {
+                    applyFilter(value);
+                    return table.getRowSorter().getViewRowCount() == 0 ?
+                            Collections.emptyList() :
+                            IntStream.range(0, table.getRowSorter().getViewRowCount())
+                                    .boxed()
+                                    .map(table::convertRowIndexToModel)
+                                    .filter(row -> showAll || row > selectedRow)
+                                    .collect(Collectors.toList());
+                } finally {
+                    resetFilter();
+                }
+            };
+            final MessageBox.ProgressDialog progress = MessageBox.progressDialog(
+                    ICON_SEARCH,
+                    Language.get(RowSelector.class, "wait@title")
+            );
+
+            if (value != null && !value.isEmpty()) {
+                new Thread(() -> {
+                    boolean confirmed = false;
+                    while (true) {
+                        List<Integer> foundRows;
+                        synchronized (table.getRowSorter()) {
+                            foundRows = nextRows.apply(false);
+                        }
+                        if (foundRows.isEmpty()) {
+                            if (dataAvailable.get()) {
+                                confirmed = confirmed || MessageBox.confirmation(
+                                        ICON_CONFIRM,
+                                        Language.get(RowSelector.class, "confirm@title"),
+                                        MessageFormat.format(Language.get(RowSelector.class, "confirm@text"), tableModel.getRowCount())
+                                );
+                                if (confirmed) {
+                                    synchronized (progress) {
+                                        if (progress.isCanceled()) {
+                                            break;
+                                        }
+                                    }
+                                    SwingUtilities.invokeLater(() -> {
+                                        synchronized (progress) {
+                                            if (!progress.isVisible()) {
+                                                progress.setVisible(true);
+                                            } else {
+                                                progress.setDescription(MessageFormat.format(
+                                                        Language.get(RowSelector.class, "wait@progress"),
+                                                        tableModel.getRowCount()
+                                                ));
+                                            }
+                                        }
+                                    });
+                                    readPage(IDataSupplier.ReadDirection.Forward);
+                                } else {
+                                    break;
+                                }
+                            } else {
+                                synchronized (progress) {
+                                    if (progress.isVisible()) {
+                                        progress.setVisible(false);
+                                    }
+                                }
+                                List<Integer> allRows = nextRows.apply(true);
+                                if (!allRows.isEmpty()) {
+                                    table.clearSelection();
+                                    continue;
+                                } else {
+                                    MessageBox.show(MessageType.WARNING, Language.get(RowSelector.class, "warn@notfound"));
+                                }
+                                break;
+                            }
+                        } else {
+                            int nextRow = foundRows.iterator().next();
+                            SwingUtilities.invokeLater(() -> {
+                                table.getSelectionModel().setSelectionInterval(nextRow, nextRow);
+                                table.scrollRectToVisible(getRowRect(nextRow));
+                                synchronized (progress) {
+                                    if (progress.isVisible()) {
+                                        progress.setVisible(false);
+                                    }
+                                }
+                            });
+                            break;
+                        }
+                    }
+                }).start();
+            }
         }
 
         private void applyFilter(String lookupValue) {
             RowFilter<TableModel, Object> filter = RowFilter.regexFilter(
                     Pattern.compile(lookupValue, Pattern.CASE_INSENSITIVE).toString()
             );
-            scrollPane.getVerticalScrollBar().removeAdjustmentListener(RowSelector.this);
-            RowSelector.this.sorter.setRowFilter(filter);
-        }
-
-        private boolean dataAvailable() {
-            return getSupplier().available(IDataSupplier.ReadDirection.Forward) ||
-                   getSupplier().available(IDataSupplier.ReadDirection.Backward);
-        }
-
-        private boolean checkAndConfirm() {
-            return
-                    table.getRowSorter().getViewRowCount() == 0 &&
-                    dataAvailable() &&
-                    MessageBox.confirmation(
-                            ICON_CONFIRM,
-                            Language.get(RowSelector.class, "confirm@title"),
-                            MessageFormat.format(Language.get(RowSelector.class, "confirm@text"), tableModel.getRowCount())
-                    );
+            sorter.setRowFilter(filter);
         }
 
         private void resetFilter() {
-            RowSelector.this.sorter.setRowFilter(null);
-            if (table.getSelectedRow() != TableModelEvent.HEADER_ROW) {
-                SwingUtilities.invokeLater(() -> {
-                    table.scrollRectToVisible(new Rectangle(table.getCellRect(table.getSelectedRow(), 0, true)));
-                    scrollPane.getVerticalScrollBar().addAdjustmentListener(RowSelector.this);
-                });
-            }
+            sorter.setRowFilter(null);
         }
 
-        private IDataSupplier.ReadDirection getStartDirection() {
-            return getSupplier().available(IDataSupplier.ReadDirection.Forward) ?
-                    IDataSupplier.ReadDirection.Forward :
-                    IDataSupplier.ReadDirection.Forward;
+        private Map<String, String> getData() {
+            return getSelectedData();
         }
+    }
 
-        private IDataSupplier.ReadDirection getNextDirection(IDataSupplier.ReadDirection prevDirection) {
-            IDataSupplier.ReadDirection nextDirection = prevDirection.equals(IDataSupplier.ReadDirection.Forward) ?
-                    IDataSupplier.ReadDirection.Backward :
-                    IDataSupplier.ReadDirection.Forward;
-            return getSupplier().available(nextDirection) ? nextDirection : prevDirection;
+    private static class ApplyFilter extends EditorCommand<Str, String> {
+
+        private final Consumer<String> action;
+
+        ApplyFilter(Consumer<String> onExecute) {
+            super(ICON_SEARCH, null);
+            this.action = onExecute;
         }
 
         @Override
         public void execute(PropertyHolder<Str, String> context) {
-            String lookupValue = context.getPropValue().getValue();
-
-            if (lookupValue == null || lookupValue.isEmpty()) {
-                resetFilter();
-            } else {
-                applyFilter(lookupValue);
-                if (table.getRowSorter().getViewRowCount() == 0) {
-                    if (checkAndConfirm()) {
-                        new Thread(() -> {
-                            MessageBox.ProgressDialog progress = MessageBox.progressDialog(
-                                    ICON_SEARCH,
-                                    Language.get(RowSelector.class, "wait@title")
-                            );
-
-                            IDataSupplier.ReadDirection searchDirection = null;
-                            do {
-                                if (searchDirection == null) {
-                                    searchDirection = getStartDirection();
-                                } else {
-                                    searchDirection = getNextDirection(searchDirection);
-                                }
-                                if (!progress.isVisible() && !progress.isCanceled()) {
-                                    progress.setVisible(true);
-                                } else if (progress.isCanceled()) {
-                                    break;
-                                }
-                                try {
-                                    switch (searchDirection) {
-                                        case Forward:
-                                            readNextPage();
-                                            break;
-                                        case Backward:
-                                            readPrevPage();
-                                            break;
-                                    }
-                                    progress.setDescription(MessageFormat.format(
-                                            Language.get(RowSelector.class, "wait@progress"),
-                                            tableModel.getRowCount()
-                                    ));
-                                } catch (IDataSupplier.LoadDataException e) {
-                                    MessageBox.show(MessageType.ERROR, e.getMessage());
-                                    break;
-                                }
-                            } while (table.getRowSorter().getViewRowCount() == 0 && dataAvailable());
-
-                            progress.setVisible(false);
-                            if (table.getRowSorter().getViewRowCount() == 0) {
-                                if (!progress.isCanceled()) {
-                                    MessageBox.show(MessageType.WARNING, Language.get(RowSelector.class, "warn@notfound"));
-                                }
-                            } else if (table.getRowSorter().getViewRowCount() == 1) {
-                                table.getSelectionModel().setSelectionInterval(0, 0);
-                            }
-                            resetFilter();
-                        }).start();
-
-                    } else {
-                        resetFilter();
-                    }
-
-                } else {
-                    if (table.getRowSorter().getViewRowCount() == 1) {
-                        table.getSelectionModel().setSelectionInterval(0, 0);
-                    }
-                    resetFilter();
-                }
-            }
+            action.accept(context.getPropValue().getValue());
         }
     }
 

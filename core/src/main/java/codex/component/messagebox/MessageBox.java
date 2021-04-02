@@ -11,7 +11,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -64,36 +64,43 @@ public final class MessageBox extends Dialog {
     }
 
     public static boolean confirmation(ImageIcon icon, String title, String text) {
-        final AtomicBoolean result = new AtomicBoolean(false);
-        Semaphore lock = new Semaphore(1);
-        SwingUtilities.invokeLater(() -> {
-            try {
-                lock.acquire();
-                new Dialog(
-                        FocusManager.getCurrentManager().getActiveWindow(),
-                        MessageType.CONFIRMATION.getIcon(),
-                        title,
-                        new MessagePanel(icon, text),
-                        event -> result.set(event.getID() == Dialog.OK),
-                        buttonSet(MessageType.CONFIRMATION)
-                ).setVisible(true);
-            } catch (InterruptedException ignore) {
-            } finally {
-                lock.release();
-            }
-        });
+        final Callable<Boolean> callable = () -> {
+            final AtomicBoolean result = new AtomicBoolean(false);
+            Dialog dialog = new Dialog(
+                    FocusManager.getCurrentManager().getActiveWindow(),
+                    MessageType.CONFIRMATION.getIcon(),
+                    title,
+                    new MessagePanel(icon, text),
+                    event -> result.set(event.getID() == Dialog.OK),
+                    buttonSet(MessageType.CONFIRMATION)
+            );
+            dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+            dialog.setVisible(true);
+            return result.get();
+        };
         try {
-            lock.acquire();
-        } catch (InterruptedException ignore) {
-        } finally {
-            lock.release();
+            return callable.call();
+        } catch (Exception e) {
+            return false;
         }
-        return result.get();
     }
 
     public static ProgressDialog progressDialog(ImageIcon icon, String title) {
+        return progressDialog(icon, title, null);
+    }
+
+    public static ProgressDialog progressDialog(ImageIcon icon, String title, Cancellable onCancel) {
         final AtomicBoolean canceled = new AtomicBoolean(false);
-        return new ProgressDialog(icon, title, e -> canceled.set(true)) {
+        return new ProgressDialog(
+                icon,
+                title,
+                event -> {
+                    canceled.set(true);
+                    if (onCancel != null) {
+                        onCancel.onCancel();
+                    }
+                }
+        ) {
             @Override
             public boolean isCanceled() {
                 return canceled.get();
@@ -186,6 +193,10 @@ public final class MessageBox extends Dialog {
         }
     }
 
+    @FunctionalInterface
+    public interface Cancellable {
+        void onCancel();
+    }
 
     public static abstract class ProgressDialog extends Dialog {
 
@@ -226,12 +237,14 @@ public final class MessageBox extends Dialog {
         }};
 
         private LocalDateTime startTime;
-        private final Timer updater = new Timer(1000, (ActionEvent event) -> progress.setString(
-                TaskView.formatDuration(Duration.between(
-                        startTime,
-                        LocalDateTime.now()
-                ).toMillis())
-        ));
+        private final Timer updater = new Timer(1000, (ActionEvent event) -> SwingUtilities.invokeLater(() -> {
+            progress.setString(
+                    TaskView.formatDuration(Duration.between(
+                            startTime,
+                            LocalDateTime.now()
+                    ).toMillis())
+            );
+        }));
 
         ProgressDialog(ImageIcon icon, String title, ActionListener closeListener) {
             super(
@@ -248,7 +261,7 @@ public final class MessageBox extends Dialog {
 
         @Override
         public void setVisible(boolean visible) {
-            SwingUtilities.invokeLater(() -> {
+            final Runnable runnable = () -> {
                 if (visible) {
                     if (progress.isIndeterminate()) {
                         startTime = LocalDateTime.now();
@@ -260,7 +273,8 @@ public final class MessageBox extends Dialog {
                     }
                 }
                 super.setVisible(visible);
-            });
+            };
+            new Thread(runnable).start();
         }
 
         @Override
