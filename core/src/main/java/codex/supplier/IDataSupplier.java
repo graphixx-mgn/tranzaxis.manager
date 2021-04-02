@@ -17,7 +17,7 @@ public interface IDataSupplier<T> {
     List<T> getPrev() throws LoadDataException;
     void    reset();
 
-    public enum ReadDirection {
+    enum ReadDirection {
         Forward, Backward
     }
 
@@ -67,7 +67,7 @@ public interface IDataSupplier<T> {
         }
 
         @Override
-        public List<Map<String, String>> getNext() throws LoadDataException {
+        public List<Map<String, String>> getNext() {
             if (data.isEmpty()) {
                 for (Vector dataVector : supplier.get()) {
                     HashMap<String, String> map = new LinkedHashMap<>();
@@ -81,7 +81,7 @@ public interface IDataSupplier<T> {
         }
 
         @Override
-        public List<Map<String, String>> getPrev() throws LoadDataException {
+        public List<Map<String, String>> getPrev() {
             return data;
         }
 

@@ -1,12 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <versions current="2.3.3" xmlns="manager/schemas/VersionInfo.xsd">
-    <version number="2.3.4" date="2021-03-30">
+    <version number="2.3.4" date="2021-04-02">
         <changelog>
             <change scope="CORE" type="Bugfix">
-                <description>Исправлено некорректное определение доступности второстепенных комманд сущностей.</description>
+                <description>Исправлено некорректное определение доступности второстепенных команд сущностей.</description>
             </change>
             <change scope="CORE" type="Bugfix">
                 <description>Исправлено мелькание кнопки очистки строкового поля при отрисовке редактора сущности.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Переписан диалог модального селектора данных (для выбора записей из БД). Ранее иногда данные не
+                    дочитывались до конца и некорректно работал поиск.
+                </description>
+            </change>
+            <change scope="CORE" type="Change">
+                <description>Поиск в диалоге модального селектора данных позволяет последовательно искать совпадения, не
+                    останавливаясь на первой найденной записи. При находжении последнего совпадения и нажатии кнопки поиска
+                    осуществляется переход на первое совпадение.
+                </description>
             </change>
             <change scope="APP" type="Bugfix">
                 <description>Исправлена ошибка запуска сервера при добавлении настроек JVM.</description>
