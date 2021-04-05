@@ -8,6 +8,7 @@ import codex.utils.Language;
 import javax.swing.*;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class CommandLauncher extends EntityGroupCommand<Entity> {
 
@@ -51,7 +52,14 @@ public final class CommandLauncher extends EntityGroupCommand<Entity> {
         EntityCommand<? extends Entity> chosenCommand = selector.select();
         if (chosenCommand != null) {
             List<? extends Entity> commandContext = chosenCommand.getContext();
-            Logger.getLogger().debug("Perform command [{0}]. Context: {1}", chosenCommand.getName(), commandContext);
+            Logger.getLogger().debug(
+                    "Perform command [{0}]. Context: {1}",
+                    getName(),
+                    context.size() == 1 ?
+                            context.get(0) :
+                            context.stream()
+                                    .map(entity -> "\n * "+entity.model.getQualifiedName()).collect(Collectors.joining())
+            );
             commandContext.forEach(entity -> ((EntityCommand) chosenCommand).execute(entity, params));
         }
     }

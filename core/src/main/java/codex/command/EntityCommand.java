@@ -310,7 +310,11 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
                 Logger.getLogger().debug(
                         "Perform command [{0}]. Context: {1}",
                         getName(),
-                        context.stream().map(entity -> entity.model.getQualifiedName()).collect(Collectors.toList()));
+                        context.size() == 1 ?
+                                context.get(0) :
+                                context.stream()
+                                        .map(entity -> "\n * "+entity.model.getQualifiedName()).collect(Collectors.joining())
+                );
                 context.forEach(entity -> {
                     ITask task = getTask(entity, params);
                     if (task != null) {
