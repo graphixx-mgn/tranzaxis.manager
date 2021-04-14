@@ -17,5 +17,8 @@ TX Manager
 | Вендор Java   | **Oracle JDK** / Oracle OpenJDK | Поддержка OpenJDK не полностью реализована    |
 | Версия Java   | **8** и более поздние           | Рекомендуется 64-битная версия                |
 
+### Справка ###
+* [Начало работы с приложением TranzAxis Manager](docs/howto.md)
+
 ### Ответственные лица ###
 Иван Гредяев (i.gredyaev@compassplus.com)
