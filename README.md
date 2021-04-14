@@ -1,4 +1,4 @@
-![](docs\images\logo.png)
+![](docs/images/logo.png)
 
 TX Manager
 =================
