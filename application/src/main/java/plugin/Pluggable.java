@@ -17,7 +17,9 @@ public @interface Pluggable {
         Class<? extends OptionsProvider> provider();
     }
 
-    abstract class OptionsProvider {
-        public abstract ParamModel getOptions();
+    abstract class OptionsProvider extends ParamModel {
+        public final ParamModel getOptions() {
+            return this;
+        };
     }
 }

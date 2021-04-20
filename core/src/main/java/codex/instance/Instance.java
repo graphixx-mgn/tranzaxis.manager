@@ -5,6 +5,7 @@ import codex.service.ServiceRegistry;
 import net.jcip.annotations.ThreadSafe;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -80,7 +81,11 @@ public final class Instance implements IInstanceCommunicationService {
     }
 
     private Registry getRegistry() throws RemoteException {
-        return LocateRegistry.getRegistry(address.getHostAddress(), rpcPort);
+        return LocateRegistry.getRegistry(address.getHostAddress(), rpcPort, (host, port) -> {
+            Socket s = new Socket(host, port);
+            s.setSoTimeout(500);
+            return s;
+        });
     }
 
     /**

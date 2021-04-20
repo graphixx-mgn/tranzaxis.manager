@@ -68,7 +68,6 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
 
     public UpgradeService() throws Exception {
         super();
-
         if (Runtime.APP.devMode.get()) {
             throw new ServiceNotLoadedException(this, "Running application in development mode", Level.Info);
         }
@@ -207,7 +206,7 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
                             Handler.Inbox
                     );
                     Logger.getLogger().info(
-                            "Found upgrade provider: {0}\nUpgrade: {1} -> {2}",
+                            "Found upgrade provider ({1} -> {2}): {0}",
                             instance, version.getNumber(), availVersion.getNumber()
                     );
                 }

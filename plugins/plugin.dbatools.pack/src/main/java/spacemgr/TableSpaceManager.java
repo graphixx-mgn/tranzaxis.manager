@@ -214,11 +214,6 @@ public class TableSpaceManager extends CommandPlugin<Common> {
             model.getEditor(OPT_USERSTAT).setVisible(false);
         }
 
-        @Override
-        public ParamModel getOptions() {
-            return model;
-        }
-
         private String getOptTitle(String optName) {
             return Language.get(TableSpaceManager.class, optName.concat(PropertyHolder.PROP_NAME_SUFFIX));
         }
