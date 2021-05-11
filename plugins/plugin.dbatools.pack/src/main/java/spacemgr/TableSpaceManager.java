@@ -29,7 +29,7 @@ import java.util.*;
 import java.util.List;
 import java.util.Map;
 
-@Pluggable.PluginOptions(provider = TableSpaceManager.Options.class)
+//@Pluggable.PluginOptions(provider = TableSpaceManager.Options.class)
 public class TableSpaceManager extends CommandPlugin<Common> {
 
     private final static String FILTER = "^(RBS|RADIX).*$";
@@ -213,6 +213,11 @@ public class TableSpaceManager extends CommandPlugin<Common> {
             model.setValue(OPT_USERSTAT, getUserStatus());
             model.getEditor(OPT_USERSTAT).setVisible(false);
         }
+
+//        @Override
+//        public ParamModel getOptions() {
+//            return model;
+//        }
 
         private String getOptTitle(String optName) {
             return Language.get(TableSpaceManager.class, optName.concat(PropertyHolder.PROP_NAME_SUFFIX));
