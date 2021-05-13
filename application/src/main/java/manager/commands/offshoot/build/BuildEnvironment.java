@@ -54,7 +54,6 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
         buildOptions.setMultythread(true);
         buildOptions.setVerifyClassLinkage(false);
         buildOptions.setSkipCheck(true);
-        buildOptions.setBuildUds(false);
         
         this.flowLogger = flowLogger;
         this.problemHandler = new ProblemHandler(flowLogger);

@@ -13,12 +13,12 @@ public class ExecuteException extends ExecutionException {
 
     /**
      * Конструктор исключения.
-     * @param message Сообщение для вывода в виджет задачи.
-     * @param desc Сообщение для вывода в лог.
+     * @param guiMessage Сообщение для вывода в виджет задачи.
+     * @param logMessage Сообщение для вывода в лог.
      */
-    public ExecuteException(String message, String desc) {
-        super(message);
-        this.desc = desc;
+    public ExecuteException(String guiMessage, String logMessage) {
+        super(guiMessage);
+        this.desc = logMessage;
     }
     
     /**

@@ -57,7 +57,7 @@ public interface ITask<T> extends RunnableFuture<T> {
      * Код пост-исполнения.
      * @param result Результат иполнения метода {@link ITask#execute()}.
      */
-    void finished(T result);
+    void finished(T result) throws Exception;
     
     /**
      * Создание виджета задачи для отображения в GUI.

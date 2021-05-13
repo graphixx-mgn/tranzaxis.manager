@@ -129,10 +129,7 @@ public class Offshoot extends BinarySource {
     public void setParent(INode parent) {
         super.setParent(parent);
         if (parent != null) {
-            WCStatus status = getWCStatus();
-            if (status.isOperative()) {
-                checkConflicts();
-            }
+            getWCStatus();
         }
     }
 
@@ -149,7 +146,7 @@ public class Offshoot extends BinarySource {
         return (getID() == null) != getWCStatus().equals(WCStatus.Absent);
     }
 
-    public final void setWCStatus(WCStatus wcStatus) {
+    private void setWCStatus(WCStatus wcStatus) {
         model.setValue(PROP_WC_STATUS, wcStatus);
     }
     
@@ -157,11 +154,6 @@ public class Offshoot extends BinarySource {
         WCStatus wcStatus = (WCStatus) model.getValue(PROP_WC_STATUS);
         setMode(wcStatus.equals(WCStatus.Absent) ? 0 : INode.MODE_ENABLED);
         return wcStatus;
-    }
-
-    private void checkConflicts() {
-        CheckConflicts checkTask = new CheckConflicts();
-        ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class).quietTask(checkTask);
     }
 
     public final void setWCLoaded(boolean value) {
@@ -405,7 +397,7 @@ public class Offshoot extends BinarySource {
         }
 
         @Override
-        public void finished(WCStatus result) {
+        public void finished(WCStatus result) throws Exception {
             if (result != null) {
                 Offshoot.this.setWCStatus(result);
             } else {
