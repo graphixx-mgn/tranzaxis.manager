@@ -2,10 +2,7 @@ package manager.commands.offshoot;
 
 import codex.command.EntityCommand;
 import codex.log.Logger;
-import codex.task.AbstractTask;
-import codex.task.CancelException;
-import codex.task.GroupTask;
-import codex.task.ITask;
+import codex.task.*;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -58,8 +55,19 @@ public class UpdateWC extends EntityCommand<Offshoot> {
                         context.getRepository().getPID(),
                         context.getPID()
                 ),
-                new UpdateWC.UpdateTask(context, SVNRevision.HEAD),
-                context.new CheckConflicts()
+                context.new CheckConflicts() {
+                    @Override
+                    public void finished(WCStatus result) throws Exception {
+                        if (result == WCStatus.Erroneous) {
+                            throw new ExecuteException(
+                                    Language.get(Offshoot.class, "conflicts@error"),
+                                    Language.get(Offshoot.class, "conflicts@error", Language.DEF_LOCALE)
+                            );
+                        }
+                        super.finished(result);
+                    }
+                },
+                new UpdateWC.UpdateTask(context, SVNRevision.HEAD)
         );
     }
 
