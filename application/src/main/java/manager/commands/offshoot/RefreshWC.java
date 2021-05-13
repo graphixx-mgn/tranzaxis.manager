@@ -4,6 +4,7 @@ import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.property.PropertyHolder;
+import codex.task.ExecuteException;
 import codex.task.GroupTask;
 import codex.task.ITask;
 import codex.type.Bool;
@@ -12,7 +13,6 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.text.MessageFormat;
 import java.util.Map;
-
 import codex.utils.Runtime;
 import manager.commands.offshoot.build.BuildKernelTask;
 import manager.commands.offshoot.build.BuildSourceTask;
@@ -68,8 +68,19 @@ public class RefreshWC extends EntityCommand<Offshoot> {
                         context.getRepository().getPID(),
                         context.getPID()
                 ),
+                context.new CheckConflicts(){
+                    @Override
+                    public void finished(WCStatus result) throws Exception {
+                        if (result == WCStatus.Erroneous) {
+                            throw new ExecuteException(
+                                    Language.get(Offshoot.class, "conflicts@error"),
+                                    Language.get(Offshoot.class, "conflicts@error", Language.DEF_LOCALE)
+                            );
+                        }
+                        super.finished(result);
+                    }
+                },
                 new UpdateWC.UpdateTask(context, SVNRevision.HEAD),
-                context.new CheckConflicts(),
                 new BuildKernelTask(context),
                 new BuildSourceTask(context, params.get(PARAM_CLEAN).getValue() == Boolean.TRUE)
         );

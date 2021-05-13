@@ -87,7 +87,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
     public abstract T execute() throws Exception;
 
     @Override
-    public abstract void finished(T result);
+    public abstract void finished(T result) throws Exception;
 
     @Override
     public final String getTitle() {
