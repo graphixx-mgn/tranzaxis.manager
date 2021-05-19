@@ -1,6 +1,7 @@
 package codex.utils;
 
 import codex.log.Logger;
+import codex.type.IComplexType;
 import net.jcip.annotations.ThreadSafe;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
@@ -102,7 +103,10 @@ public class Runtime {
         public final static Supplier<Boolean> win8 = () -> isWindows.get() && Float.parseFloat(version.get()) >= 6.0f;
         public final static Supplier<Boolean> win7 = () -> isWindows.get() && Float.parseFloat(version.get()) >= 6.1f;
 
-        public final static Supplier<Boolean> is64bit = () -> System.getProperty("sun.cpu.isalist").contains("64");
+        public final static Supplier<Boolean> is64bit = () -> IComplexType.coalesce(
+                System.getProperty("sun.cpu.isalist"),
+                System.getProperty("os.arch")
+        ).contains("64");
     }
 
 

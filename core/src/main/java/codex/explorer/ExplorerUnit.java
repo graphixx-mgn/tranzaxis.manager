@@ -51,7 +51,7 @@ public final class ExplorerUnit extends AbstractUnit {
             .findFirst().get();
         Logger.getLogger().debug("Initialize unit: Explorer ({0})", Language.get(parentUnitClass, "unit.title", Language.DEF_LOCALE));
         this.browser   = new Browser(mode);
-        this.navigator = new Navigator();
+        this.navigator = new Navigator(parentUnitClass);
         this.navigator.addNavigateListener((TreePath path) -> this.browser.browse((INode) path.getLastPathComponent()));
     }
     

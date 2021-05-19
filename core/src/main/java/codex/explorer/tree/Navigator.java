@@ -5,6 +5,7 @@ import codex.editor.IEditor;
 import codex.log.Logger;
 import codex.model.Entity;
 import codex.model.IModelListener;
+import codex.utils.Language;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.TreeModelEvent;
@@ -21,13 +22,20 @@ import java.util.List;
 public final class Navigator extends JTree implements IModelListener, INodeListener {
     
     private TreePath path;
+    private String   unitName;
     private final List<INavigateListener> listeners = new LinkedList<>();
 
     /**
      * Конструктор дерева.
      */
     public Navigator() {
+        this(null);
+    }
+
+    public Navigator(Class unitClass) {
         super();
+        unitName = unitClass == null ? "<?>" : Language.get(unitClass, "unit.title", Language.DEF_LOCALE);
+
         setRowHeight(IEditor.FONT_VALUE.getSize()*2-2);
         setBorder(new EmptyBorder(5, 10, 5, 5));
         addTreeSelectionListener((TreeSelectionEvent event) -> SwingUtilities.invokeLater(() -> {
@@ -50,8 +58,8 @@ public final class Navigator extends JTree implements IModelListener, INodeListe
             }
             if (path != getSelectionModel().getSelectionPath()) {
                 path = getSelectionModel().getSelectionPath();
-                Logger.getLogger().debug("Selected path: {0}", node.getPathString());
-                new LinkedList<>(listeners).stream().forEach((listener) -> SwingUtilities.invokeLater(() -> listener.nodeChanged(path)));
+                Logger.getLogger().debug("Selected path: [{0}]{1}", unitName, node.getPathString());
+                new LinkedList<>(listeners).forEach((listener) -> SwingUtilities.invokeLater(() -> listener.nodeChanged(path)));
             }
         }));
         getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);

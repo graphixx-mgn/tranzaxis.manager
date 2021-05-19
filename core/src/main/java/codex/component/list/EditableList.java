@@ -110,15 +110,19 @@ public final class EditableList extends JPanel {
         add(scrollPanel);
         
         insert = (value) -> {
-            model.addRow(new String[]{IComplexType.coalesce(value, "")}); 
+            synchronized (model) {
+                model.addRow(new String[]{IComplexType.coalesce(value, "")});
+            }
         };
         delete = (index) -> {
             if (index == TableModelEvent.HEADER_ROW) return;
-            model.removeRow(index);
-            if (index > 0) {
-                table.getSelectionModel().setLeadSelectionIndex(index - 1);
-            } else if (table.getRowCount() > 0) {
-                table.getSelectionModel().setLeadSelectionIndex(0);
+            synchronized (model) {
+                model.removeRow(index);
+                if (index > 0) {
+                    table.getSelectionModel().setLeadSelectionIndex(index - 1);
+                } else if (table.getRowCount() > 0) {
+                    table.getSelectionModel().setLeadSelectionIndex(0);
+                }
             }
         };
     }
@@ -137,7 +141,7 @@ public final class EditableList extends JPanel {
      * @param value Добавляемая строка.
      */
     public void insertItem(String value) {
-        SwingUtilities.invokeLater(() -> insert.accept(value));
+        insert.accept(value);
     }
     
     /**
@@ -145,7 +149,7 @@ public final class EditableList extends JPanel {
      * @param index Индекс строки в списке. 
      */
     public void deleteItem(int index) {
-        SwingUtilities.invokeLater(() -> delete.accept(index));
+        delete.accept(index);
     }
     
     /**
@@ -153,7 +157,7 @@ public final class EditableList extends JPanel {
      * список останется без изменений.
      */
     public void deleteSelectedItem() {
-        SwingUtilities.invokeLater(() -> delete.accept(getSelectedItem()));
+        delete.accept(getSelectedItem());
     }
 
     /**
