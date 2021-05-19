@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<versions current="2.3.5" xmlns="manager/schemas/VersionInfo.xsd">
+<versions current="2.3.6" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="2.3.6" date="2021-05-19">
+        <changelog>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена блокировка GUI при очистке элементов в редакторе списка.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена ошибка опредения битности системы в ОС Linux.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена ошибка повторного открытия окна лога из-за некорректной работы трекера окон, который отвечает за сохранение их положения и состояния.</description>
+            </change>
+        </changelog>
+    </version>
     <version number="2.3.5" date="2021-05-13">
         <changelog>
             <change scope="APP" type="Bugfix">

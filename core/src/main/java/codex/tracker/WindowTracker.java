@@ -25,7 +25,8 @@ public class WindowTracker extends AbstractService<WindowTrackerOptions> impleme
 
     @Override
     public void registerWindow(JFrame window, String classifier) {
-        window.addComponentListener(new Tracker(window, classifier));
+        if (!getSettings().model.hasProperty(classifier))
+            window.addComponentListener(new Tracker(window, classifier));
     }
 
     @Override
