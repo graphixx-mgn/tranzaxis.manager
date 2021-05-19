@@ -6,7 +6,10 @@
                 <description>Исправлена блокировка GUI при очистке элементов в редакторе списка.</description>
             </change>
             <change scope="CORE" type="Bugfix">
-                <description>Исправлена ошибка определия битности системы в ОС Linux.</description>
+                <description>Исправлена ошибка опредения битности системы в ОС Linux.</description>
+            </change>
+            <change scope="CORE" type="Bugfix">
+                <description>Исправлена ошибка повторного открытия окна лога из-за некорректной работы трекера окон, который отвечает за сохранение их положения и состояния.</description>
             </change>
         </changelog>
     </version>
