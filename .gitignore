@@ -5,6 +5,7 @@
 # Project build files
 /*/target/
 /plugins/*/target
+/stash
 
 # Subversion
 .svn
