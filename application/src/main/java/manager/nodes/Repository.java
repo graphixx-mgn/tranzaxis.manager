@@ -1,5 +1,6 @@
 package manager.nodes;
 
+import codex.command.EditorCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.config.IConfigStoreService;
@@ -37,6 +38,7 @@ public class Repository extends Entity {
             ImageUtils.resize(ImageUtils.getByPath("/images/stop.png"), .6f),
             SwingConstants.SOUTH_EAST
     );
+    private final static ImageIcon ICON_AUTH = ImageUtils.getByPath("/images/lock.png");
 
     static final int ERR_AUTH_FAILED   = 170000;
     static final int ERR_NOT_AVAILABLE = 210000;
@@ -70,9 +72,9 @@ public class Repository extends Entity {
         // Properties
         model.addUserProp(PROP_REPO_URL,  new Str(null).setMask(new RegexMask("svn(|\\+[\\w]+)://[\\w\\./\\d]+", "Invalid SVN url")), true, null);
         model.addUserProp(PROP_ARCHIVE,   new Bool(false), true, Access.Select);
-        model.addUserProp(PROP_AUTH_MODE, new Enum<>(SVNAuth.None), false, Access.Select);
-        model.addUserProp(svnUser, Access.Select);
-        model.addUserProp(svnPass, Access.Select);
+        model.addUserProp(PROP_AUTH_MODE, new Enum<>(SVNAuth.None), false, Access.Any);
+        model.addUserProp(svnUser, Access.Any);
+        model.addUserProp(svnPass, Access.Any);
         model.addUserProp(PROP_LOCKED,    new Bool(false), false, Access.Any);
         model.addDynamicProp(PROP_ONLINE, new Bool(null), Access.Any, () -> {
             try {
@@ -88,7 +90,8 @@ public class Repository extends Entity {
         svnPass.setRequired(getAuthMode(true) == SVNAuth.Password);
         
         // Editor settings
-        model.addPropertyGroup(Language.get("group@auth"), PROP_AUTH_MODE, PROP_SVN_USER, PROP_SVN_PASS);
+        AuthSettings authSettings = new AuthSettings();
+        model.getEditor(PROP_REPO_URL).addCommand(authSettings);
 
         model.getEditor(PROP_SVN_USER).setVisible(getAuthMode(true) == SVNAuth.Password);
         model.getEditor(PROP_SVN_PASS).setVisible(getAuthMode(true) == SVNAuth.Password);
@@ -285,6 +288,25 @@ public class Repository extends Entity {
     
     public static String urlToDirName(String url) {
         return url.replaceAll("svn(|\\+[\\w]+)://([\\w\\./\\d]+)", "$2").replaceAll("[/\\\\]{1}", ".");
+    }
+
+    class AuthSettings extends EditorCommand<Str, String> {
+
+        private final List<String> props = Arrays.asList(PROP_AUTH_MODE, PROP_SVN_USER, PROP_SVN_PASS);
+
+        AuthSettings() {
+            super(ICON_AUTH, Language.get(Repository.class, "group@auth"));
+        }
+
+        @Override
+        public void execute(PropertyHolder<Str, String> context) {
+            new PropSetEditor(
+                    ICON_AUTH,
+                    Language.get(Repository.class, "group@auth"),
+                    Repository.this,
+                    props::contains
+            ).open();
+        }
     }
     
 }
