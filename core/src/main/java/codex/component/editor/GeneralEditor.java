@@ -44,7 +44,7 @@ public class GeneralEditor extends AbstractCellEditor implements TableCellEditor
     @Override
     public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
         ISelectorTableModel selectorModel = (ISelectorTableModel) table.getModel();
-        model = selectorModel.getEntityForRow(row).model;
+        model = selectorModel.getEntityForRow(table.convertRowIndexToModel(row)).model;
         propName  = selectorModel.getPropertyForColumn(column);
         prevValue = model.getUnsavedValue(propName);
 
