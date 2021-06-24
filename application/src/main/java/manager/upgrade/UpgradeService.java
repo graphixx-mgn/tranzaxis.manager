@@ -62,7 +62,7 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
         }
     };
 
-    private final Version version;
+    private final Version currentVersion, latestVersion;
     private final VersionsDocument history;
     private final Semaphore lock = new Semaphore(1, true);
 
@@ -72,7 +72,18 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
             throw new ServiceNotLoadedException(this, "Running application in development mode", Level.Info);
         }
         history = getHistory();
-        version = getCurrentVersion();
+        currentVersion = getCurrentVersion();
+        latestVersion  = getMaxVersion();
+        if (UpgradeService.VER_COMPARATOR.compare(latestVersion, currentVersion) > 0) {
+            throw new ServiceNotLoadedException(
+                    this,
+                    MessageFormat.format(
+                            "Current version {0} is not released. Latest release: {1}",
+                            latestVersion.getNumber(), currentVersion.getNumber()
+                    ),
+                    Level.Info
+            );
+        }
 
         java.lang.Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (!lock.tryAcquire()) {
@@ -88,8 +99,8 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
             ((IInstanceDispatcher) service).addInstanceListener(this);
         });
     }
-    
-    static Version getVersion() {
+
+    public static Version getVersion() {
         VersionsDocument versionsDocument = getHistory();
         if (versionsDocument != null) {
             String currentVersionNumber = versionsDocument.getVersions().getCurrent();
@@ -102,6 +113,13 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
         return null;
     }
 
+    static Version getMaxVersion() {
+        return Collections.max(
+                Arrays.asList(getHistory().getVersions().getVersionArray()),
+                UpgradeService.VER_COMPARATOR
+        );
+    }
+
     static VersionsDocument getHistory() {
         try {
             return VersionsDocument.Factory.parse(UpgradeService.class.getResourceAsStream(VERSION_RESOURCE));
@@ -111,12 +129,12 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
     }
 
     @Override
-    public Version getCurrentVersion() throws RemoteException {
+    public final Version getCurrentVersion() throws RemoteException {
         return getVersion();
     }
-    
+
     @Override
-    public VersionsDocument getDiffVersions(Version from, Version to) throws RemoteException {
+    public final VersionsDocument getDiffVersions(Version from, Version to) throws RemoteException {
         VersionsDocument resultDocument = VersionsDocument.Factory.newInstance();
         VersionList versionsList = resultDocument.addNewVersions();
         
@@ -130,7 +148,7 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
     }
     
     @Override
-    public RemoteInputStream getUpgradeFileStream() throws RemoteException {
+    public final RemoteInputStream getUpgradeFileStream() throws RemoteException {
         File jar = Runtime.APP.jarFile.get();
         try {
             InputStream in = new FileInputStream(jar) {
@@ -181,25 +199,23 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
     }
     
     @Override
-    public String getUpgradeFileChecksum() throws RemoteException {
+    public final String getUpgradeFileChecksum() throws RemoteException {
         try {
             byte[] b = Files.readAllBytes(Runtime.APP.jarFile.get().toPath());
             byte[] hash = MessageDigest.getInstance("MD5").digest(b);
             return DatatypeConverter.printHexBinary(hash);
-        } catch (IOException | NoSuchAlgorithmException e) {
-            //
-        }
+        } catch (IOException | NoSuchAlgorithmException ignore) {}
         return null;
     }
 
     @Override
-    public void instanceLinked(Instance instance) {
+    public final void instanceLinked(Instance instance) {
         new Thread(() -> {
             try {
                 IUpgradeService remoteUpService = (IUpgradeService) instance.getService(UpgradeService.class);
                 Version availVersion = remoteUpService.getCurrentVersion();
-                if (availVersion != null && UpgradeService.VER_COMPARATOR.compare(version, availVersion) < 0) {
-                    VersionsDocument diff = remoteUpService.getDiffVersions(version, availVersion);
+                if (availVersion != null && UpgradeService.VER_COMPARATOR.compare(currentVersion, availVersion) < 0) {
+                    VersionsDocument diff = remoteUpService.getDiffVersions(currentVersion, availVersion);
 
                     ServiceRegistry.getInstance().lookupService(INotificationService.class).sendMessage(
                             Message.getBuilder(UpgradeMessage.class, availVersion::getNumber).build().build(availVersion, diff),
@@ -207,7 +223,7 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
                     );
                     Logger.getLogger().info(
                             "Found upgrade provider ({1} -> {2}): {0}",
-                            instance, version.getNumber(), availVersion.getNumber()
+                            instance, currentVersion.getNumber(), availVersion.getNumber()
                     );
                 }
             } catch (RemoteException | NotBoundException ignore) {}
@@ -215,9 +231,7 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
     }
 
     @Override
-    public void instanceUnlinked(Instance instance) {
-
-    }
+    public final void instanceUnlinked(Instance instance) {}
 
 
     static class UpgradeMessage extends Message {
