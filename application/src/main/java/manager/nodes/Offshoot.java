@@ -235,6 +235,46 @@ public class Offshoot extends BinarySource {
         return info == null ? null : info.getCommittedDate();
     }
 
+    public final WCStatus checkConflicts() {
+        setWCStatus(WCStatus.Unknown);
+        List<SVNStatus> statusList = SVN.status(
+                getLocalPath(), false, SVNRevision.WORKING,
+                getRepository().getAuthManager()
+        );
+
+        List<File> conflictList = statusList.stream()
+                .filter(svnStatus -> {
+                    if (svnStatus.getPropertiesStatus() == SVNStatusType.STATUS_CONFLICTED) {
+                        try {
+                            SVN.resolve(svnStatus.getFile(), getRepository().getAuthManager());
+                            Logger.getLogger().info("Property conflicts in ''{0}'' has been automatically resolved", svnStatus.getFile());
+                        } catch (SVNException e) {
+                            Logger.getLogger().info("Property conflicts in ''{0}'' has not been resolved", svnStatus.getFile());
+                            return true;
+                        }
+                        return false;
+                    }
+                    return svnStatus.getContentsStatus() == SVNStatusType.STATUS_CONFLICTED;
+                })
+                .map(SVNStatus::getFile)
+                .collect(Collectors.toList());
+        if (!conflictList.isEmpty()) {
+            Logger.getLogger().warn(
+                    "Working copy ''{0}/{1}'' has file conflicts:\n{2}",
+                    getRepository().getTitle(),
+                    Offshoot.this.getTitle(),
+                    conflictList.stream()
+                            .map(file -> MessageFormat.format(" * {0}", file.getAbsolutePath().replace(getLocalPath(), "")))
+                            .collect(Collectors.joining("\n"))
+            );
+            setWCStatus(WCStatus.Erroneous);
+            return WCStatus.Erroneous;
+        } else {
+            setWCStatus(getWorkingCopyStatus());
+            return getWCStatus();
+        }
+    }
+
     public class DeleteOffshoot extends AbstractTask<Void> {
 
         public DeleteOffshoot() {
@@ -335,74 +375,6 @@ public class Offshoot extends BinarySource {
                     Offshoot.this.model.read();
                 }
             });
-        }
-    }
-
-
-    public class CheckConflicts extends AbstractTask<WCStatus> {
-
-        public CheckConflicts() {
-            super(MessageFormat.format(
-                    Language.get(Offshoot.class, "conflicts@task.title"),
-                    Offshoot.this.getRepository().getPID(),
-                    Offshoot.this.getPID()
-            ));
-        }
-
-        @Override
-        public WCStatus execute() {
-            boolean locked = islocked();
-            try {
-                if (!locked) getLock().acquire();
-                setWCStatus(WCStatus.Unknown);
-
-                List<SVNStatus> statusList = SVN.status(
-                        getLocalPath(), false, SVNRevision.WORKING,
-                        getRepository().getAuthManager()
-                );
-                List<File> conflictList = statusList.stream()
-                        .filter(svnStatus -> {
-                            if (svnStatus.getPropertiesStatus() == SVNStatusType.STATUS_CONFLICTED) {
-                                try {
-                                    SVN.resolve(svnStatus.getFile(), getRepository().getAuthManager());
-                                    Logger.getLogger().info("Property conflicts in ''{0}'' has been automatically resolved", svnStatus.getFile());
-                                } catch (SVNException e) {
-                                    Logger.getLogger().info("Property conflicts in ''{0}'' has not been resolved", svnStatus.getFile());
-                                    return true;
-                                }
-                                return false;
-                            }
-                            return svnStatus.getContentsStatus() == SVNStatusType.STATUS_CONFLICTED;
-                        })
-                        .map(SVNStatus::getFile)
-                        .collect(Collectors.toList());
-
-                if (!conflictList.isEmpty()) {
-                    Logger.getLogger().warn(
-                            "Working copy ''{0}/{1}'' has file conflicts:\n{2}",
-                            getRepository().getTitle(),
-                            Offshoot.this.getTitle(),
-                            conflictList.stream()
-                                .map(file -> MessageFormat.format(" * {0}", file.getAbsolutePath().replace(getLocalPath(), "")))
-                                .collect(Collectors.joining("\n"))
-                    );
-                    return WCStatus.Erroneous;
-                }
-            } catch (InterruptedException ignore) {
-                //
-            } finally {
-                if (!locked) getLock().release();
-            }
-            return null;
-        }
-
-        @Override
-        public void finished(WCStatus result) throws Exception {
-            if (result != null) {
-                Offshoot.this.setWCStatus(result);
-            } else {
-                Offshoot.this.setWCStatus(getWorkingCopyStatus());
-            }
         }
     }
 

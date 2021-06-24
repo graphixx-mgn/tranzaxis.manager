@@ -72,6 +72,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
         final File currentJar = Runtime.APP.jarFile.get();
         final List<String> cmdList = new LinkedList<String>() {{
             add("java");
+            addAll(offshoot.getJvmDesigner());
             add("-cp");
             add(BuildEnvironment.buildClassPath(offshoot));
             add("-Dport="+rmiRegistry.getPort());

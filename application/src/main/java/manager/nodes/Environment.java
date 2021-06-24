@@ -34,9 +34,10 @@ import manager.type.SourceType;
 
 public class Environment extends Entity implements INodeListener {
 
+    private final static ImageIcon UPDATE    = ImageUtils.getByPath("/images/update.png");
     private final static ImageIcon UNKNOWN   = ImageUtils.getByPath("/images/unavailable.png");
-    private final static ImageIcon CHECKED   = ImageUtils.getByPath("/images/update.png");
-    private final static ImageIcon UNCHECKED = ImageUtils.combine(CHECKED, UNKNOWN);
+    private final static ImageIcon CHECKED   = ImageUtils.getByPath("/images/lock.png");
+    private final static ImageIcon UNCHECKED = ImageUtils.getByPath("/images/unlock.png");
 
     static {
         CommandRegistry.getInstance().registerCommand(RunAll.class);
@@ -228,11 +229,13 @@ public class Environment extends Entity implements INodeListener {
         model.getEditor(PROP_INSTANCE_ID).setVisible(getDataBase(true)   != null);
         model.getEditor(PROP_VERSION).setVisible(getDataBase(true)       != null);
 
-        model.getEditor(PROP_RUN_SERVER).addCommand(new CopyToClipboard());
-        model.getEditor(PROP_RUN_EXPLORER).addCommand(new CopyToClipboard());
-
+        // Editor commands
         SyncRelease syncRelease = new SyncRelease();
         model.addModelListener(syncRelease);
+
+        model.getEditor(PROP_VERSION).addCommand(new UpdateVersion());
+        model.getEditor(PROP_RUN_SERVER).addCommand(new CopyToClipboard());
+        model.getEditor(PROP_RUN_EXPLORER).addCommand(new CopyToClipboard());
         model.getEditor(PROP_RELEASE).addCommand(syncRelease);
 
         sourceUpdater.accept(PROP_OFFSHOOT);
@@ -631,7 +634,11 @@ public class Environment extends Entity implements INodeListener {
         private final static ImageIcon CLIPBOARD = ImageUtils.getByPath("/images/paste.png");
 
         CopyToClipboard() {
-            super(CLIPBOARD, "copy", holder -> holder.getPropValue().getValue() != null);
+            super(
+                    CLIPBOARD,
+                    Language.get(Environment.class, "command.copy"),
+                    holder -> holder.getPropValue().getValue() != null
+            );
         }
 
         @Override
@@ -647,6 +654,27 @@ public class Environment extends Entity implements INodeListener {
                             new StringSelection((String) context.getPropValue().getValue()),
                             null
                     );
+        }
+    }
+
+    private class UpdateVersion extends EditorCommand<AnyType, Object> implements IModelListener {
+
+        UpdateVersion() {
+            super(
+                    UPDATE,
+                    Language.get(Environment.class, "version.update"),
+                    null
+            );
+        }
+
+        @Override
+        public boolean disableWithContext() {
+            return false;
+        }
+
+        @Override
+        public void execute(PropertyHolder<AnyType, Object> context) {
+            Environment.this.model.updateDynamicProps(PROP_VERSION);
         }
     }
 

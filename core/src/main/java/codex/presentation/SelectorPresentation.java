@@ -428,12 +428,10 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 {
                     // Перекрытие обработчика кнопок
                     Function<DialogButton, ActionListener> defaultHandler = handler;
-                    handler = (button) -> {
-                        return (event) -> {
-                            if (event.getID() != Dialog.OK || newEntity.getInvalidProperties().isEmpty()) {
-                                defaultHandler.apply(button).actionPerformed(event);
-                            }
-                        };
+                    handler = (button) -> (event) -> {
+                        if (event.getID() != Dialog.OK || newEntity.getInvalidProperties().isEmpty()) {
+                            defaultHandler.apply(button).actionPerformed(event);
+                        }
                     };
                 }
 
@@ -609,7 +607,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 @Override
                 public void mouseClicked(MouseEvent event) {
                     if (event.getClickCount() == 2 && isActive()) {
-                        execute(tableModel.getEntityForRow(table.getSelectedRow()), null);
+                        execute(tableModel.getEntityForRow(table.convertRowIndexToModel(table.getSelectedRow())), null);
                     }
                 }
             });

@@ -305,7 +305,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                 dynamicProps.stream()
                     .filter(dynamicResolver.valueProviders::containsKey)
                     .collect(Collectors.toList()),
-                false
+                true
         );
     }
     

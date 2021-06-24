@@ -6,14 +6,11 @@ import codex.mask.IMask;
 import codex.supplier.RowSelector;
 import codex.model.ParamModel;
 import codex.property.PropertyHolder;
-import codex.task.GroupTask;
 import codex.task.ITask;
 import codex.type.IComplexType;
 import codex.type.Int;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import manager.commands.offshoot.build.BuildKernelTask;
-import manager.commands.offshoot.build.BuildSourceTask;
 import manager.commands.offshoot.revision.RevisionSupplier;
 import manager.nodes.Offshoot;
 import manager.type.WCStatus;
@@ -22,7 +19,6 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
-import java.text.MessageFormat;
 import java.util.Map;
 
 @EntityCommand.Definition(parentCommand = RefreshWC.class)
@@ -80,16 +76,7 @@ public class UpdateToRevision extends EntityCommand<Offshoot> {
 
     @Override
     public ITask getTask(Offshoot context, Map<String, IComplexType> params) {
-        return new GroupTask(
-                MessageFormat.format(
-                        "{0}: ''{1}/{2}''",
-                        Language.get("title"),
-                        context.getRepository().getPID(),
-                        context.getPID()
-                ),
-                new UpdateWC.UpdateTask(context, SVNRevision.create(((Int) params.get(PARAM_REVISION)).getValue())),
-                context.new CheckConflicts()
-        );
+        return new UpdateWC.UpdateTask(context, SVNRevision.create(((Int) params.get(PARAM_REVISION)).getValue()));
     }
 
     @Override
