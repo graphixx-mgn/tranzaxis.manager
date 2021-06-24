@@ -48,27 +48,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
 
     @Override
     public ITask getTask(Offshoot context, Map<String, IComplexType> params) {
-        return new GroupTask(
-                MessageFormat.format(
-                        "{0}: ''{1}/{2}''",
-                        Language.get("title"),
-                        context.getRepository().getPID(),
-                        context.getPID()
-                ),
-                context.new CheckConflicts() {
-                    @Override
-                    public void finished(WCStatus result) throws Exception {
-                        if (result == WCStatus.Erroneous) {
-                            throw new ExecuteException(
-                                    Language.get(Offshoot.class, "conflicts@error"),
-                                    Language.get(Offshoot.class, "conflicts@error", Language.DEF_LOCALE)
-                            );
-                        }
-                        super.finished(result);
-                    }
-                },
-                new UpdateWC.UpdateTask(context, SVNRevision.HEAD)
-        );
+        return new UpdateWC.UpdateTask(context, SVNRevision.HEAD);
     }
 
     @Override
@@ -99,10 +79,20 @@ public class UpdateWC extends EntityCommand<Offshoot> {
 
         @Override
         public Void execute() throws Exception {
+            if (offshoot.getWCStatus().isOperative()) {
+                WCStatus checked = offshoot.checkConflicts();
+                if (checked == WCStatus.Erroneous) {
+                    throw new ExecuteException(
+                            Language.get(Offshoot.class, "conflicts@error"),
+                            Language.get(Offshoot.class, "conflicts@error", Language.DEF_LOCALE)
+                    );
+                }
+            }
+
             String wcPath  = offshoot.getLocalPath();
             String repoUrl = offshoot.getRemotePath();
             SVNRevision R1 = offshoot.getWorkingCopyRevision(false);
-            String strR1 = SVNRevision.UNDEFINED.equals(R1) ? "<unknown>" : MessageFormat.format(
+            String strR1 = SVNRevision.UNDEFINED.equals(R1) ? "<none>" : MessageFormat.format(
                     "{0} / {1}",
                     R1, Offshoot.DATE_FORMAT.format(offshoot.getWorkingCopyRevisionDate(false))
             );
@@ -258,10 +248,7 @@ public class UpdateWC extends EntityCommand<Offshoot> {
             offshoot.setWCLoaded(status.equals(WCStatus.Successful));
             try {
                 offshoot.model.commit(false);
-            } catch (Exception e) {
-                //
-            }
+            } catch (Exception ignore) {}
         }
-    
     }
 }

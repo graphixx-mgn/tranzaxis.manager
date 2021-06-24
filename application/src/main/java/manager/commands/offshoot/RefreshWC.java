@@ -4,7 +4,6 @@ import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.property.PropertyHolder;
-import codex.task.ExecuteException;
 import codex.task.GroupTask;
 import codex.task.ITask;
 import codex.type.Bool;
@@ -17,7 +16,6 @@ import codex.utils.Runtime;
 import manager.commands.offshoot.build.BuildKernelTask;
 import manager.commands.offshoot.build.BuildSourceTask;
 import manager.nodes.Offshoot;
-import manager.type.WCStatus;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import javax.swing.*;
 
@@ -40,10 +38,8 @@ public class RefreshWC extends EntityCommand<Offshoot> {
                 "refresh",
                 Language.get("title"),
                 COMMAND_ICON,
-                Language.get("desc"), 
-                (offshoot) ->
-                        !offshoot.getWCStatus().equals(WCStatus.Erroneous) &&
-                        offshoot.getRepository().isRepositoryOnline(false)
+                Language.get("desc"),
+                (offshoot) -> offshoot.getRepository().isRepositoryOnline(false)
         );
         setParameters(
                 new PropertyHolder<>(PARAM_CLEAN, new Bool(Boolean.FALSE), true)
@@ -68,18 +64,6 @@ public class RefreshWC extends EntityCommand<Offshoot> {
                         context.getRepository().getPID(),
                         context.getPID()
                 ),
-                context.new CheckConflicts(){
-                    @Override
-                    public void finished(WCStatus result) throws Exception {
-                        if (result == WCStatus.Erroneous) {
-                            throw new ExecuteException(
-                                    Language.get(Offshoot.class, "conflicts@error"),
-                                    Language.get(Offshoot.class, "conflicts@error", Language.DEF_LOCALE)
-                            );
-                        }
-                        super.finished(result);
-                    }
-                },
                 new UpdateWC.UpdateTask(context, SVNRevision.HEAD),
                 new BuildKernelTask(context),
                 new BuildSourceTask(context, params.get(PARAM_CLEAN).getValue() == Boolean.TRUE)
