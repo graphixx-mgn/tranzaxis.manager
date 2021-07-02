@@ -3,6 +3,7 @@ package codex.task;
 import codex.component.panel.HTMLView;
 import codex.log.Level;
 import codex.utils.ImageUtils;
+import org.bridj.util.Pair;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import javax.swing.text.*;
@@ -13,8 +14,10 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 public class TaskOutput extends JPanel {
 
@@ -114,5 +117,56 @@ public class TaskOutput extends JPanel {
         scrollPane.getViewport().add(pane);
         scrollPane.setBorder(new LineBorder(Color.LIGHT_GRAY, 1));
         add(scrollPane, BorderLayout.CENTER);
+    }
+
+    abstract public static class ExecPhase<R> {
+
+        protected final String description;
+
+        public ExecPhase(String description) {
+            this.description = description;
+        }
+
+        protected abstract Pair<String, R> execute() throws Exception;
+
+        public final R process() throws Exception {
+            try {
+                Pair<String, R> result = execute();
+                TaskOutput.put(Level.Debug, fillStepResult(description, result.getKey(), null));
+                return result.getValue();
+            } catch (Exception e) {
+                TaskOutput.put(Level.Debug, fillStepResult(description, null, e));
+                throw e;
+            }
+        }
+
+        private static String RC_SUCCESS = "<font color='green'>&#x2713;</font>";
+        private static String RC_ERROR   = "<font color='red'>&#x26D4;</font>";
+        private static Function<String, String> FMT_SUCCESS  = input -> String.join("", Collections.nCopies(68-input.length(), ".")).concat(RC_SUCCESS);
+        private static Function<String, String>  FMT_ERROR   = input -> String.join("", Collections.nCopies(68-input.length(), ".")).concat(RC_ERROR);
+        private static Function<String, Integer> HTML_LENGTH = input -> input.replaceAll("\\<[^>]*>","").length();
+
+        private static String fillStepResult(String step, String result, Throwable error) {
+            return new StringBuilder(" &bull; ")
+                    .append(step)
+                    .append(error  == null ? (
+                                    result == null ?
+                                            FMT_SUCCESS.apply(step) :
+                                            String
+                                                    .join("", Collections.nCopies(69-step.length()-HTML_LENGTH.apply(result), "."))
+                                                    .concat(result)
+                            ) : (
+                                    error.getMessage() == null ?
+                                            FMT_ERROR.apply(step) :
+                                            String
+                                                    .join("", Collections.nCopies(68-step.length(), "."))
+                                                    .concat(MessageFormat.format(
+                                                            "<font color='red'>&#x26D4;</font><br/>   <font color='maroon'>{0}: {1}</font>",
+                                                            error.getClass().getCanonicalName(),
+                                                            error.getMessage()
+                                                    ))
+                            )
+                    ).toString();
+        }
     }
 }
