@@ -117,27 +117,32 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
 
     @Override
     public void moveRow(int start, int end, int to) {
+        if (getEntityForRow(to) != rootEntity.childrenList().get(to)) {
+            rootEntity.move(getEntityForRow(start), to);
+        }
         super.moveRow(start, end, to);
-        rootEntity.move(getEntityForRow(start), to);
-        
+
         SwingUtilities.invokeLater(() -> {
             List<Integer> sequences = rootEntity.childrenList().stream()
-                .map((childNode) -> ((Entity) childNode).getSEQ())
-                .collect(Collectors.toList());
-            Collections.sort(sequences);
-            Iterator<Integer> seqIterator = sequences.iterator();
+                    .map((childNode) -> ((Entity) childNode).getSEQ())
+                    .filter(Objects::nonNull)
+                    .sorted()
+                    .collect(Collectors.toList());
+            if (!sequences.isEmpty()) {
+                Iterator<Integer> seqIterator = sequences.iterator();
 
-            rootEntity.childrenList().forEach((childNode) -> {
-                Entity childEntity = (Entity) childNode;
-                childEntity.setSEQ(seqIterator.next());
-                if (!childEntity.model.getChanges().isEmpty()) {
-                    try {
-                        childEntity.model.commit(true);
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                rootEntity.childrenList().forEach((childNode) -> {
+                    Entity childEntity = (Entity) childNode;
+                    childEntity.setSEQ(seqIterator.next());
+                    if (!childEntity.model.getChanges().isEmpty()) {
+                        try {
+                            childEntity.model.commit(true);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
-                }
-            });
+                });
+            }
         });
     }
     

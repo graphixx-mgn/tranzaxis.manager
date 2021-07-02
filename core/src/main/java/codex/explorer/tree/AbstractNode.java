@@ -58,7 +58,7 @@ public abstract class AbstractNode implements INode {
     protected final void fireChangeEvent() {
         new LinkedList<>(nodeListeners).forEach((listener) -> listener.childChanged(this));
     }
-    
+
     @Override
     public final List<INode> getPath() {
         List<INode> path = getParent() != null ? getParent().getPath() : new LinkedList<>();
@@ -110,11 +110,12 @@ public abstract class AbstractNode implements INode {
     }
     
     @Override
-    public void move(INode child, int position) {
-        if (position >= 0 && position < children.size() && getIndex(child) != position) {
+    public void move(INode child, int to) {
+        int from = getIndex(child);
+        if (to >= 0 && to < children.size() && from != to) {
             children.remove(child);
-            children.add(position, child);
-            new LinkedList<>(nodeListeners).forEach((listener) -> listener.childMoved(this, child));
+            children.add(to, child);
+            new LinkedList<>(nodeListeners).forEach((listener) -> listener.childMoved(this, child, from, to));
         }
     }
 
@@ -171,7 +172,7 @@ public abstract class AbstractNode implements INode {
     public final boolean islocked() {
         return getLock().availablePermits() == 0;
     }
-    
+
     @Override
     public Stream<INode> flattened() {
         return Stream.concat(

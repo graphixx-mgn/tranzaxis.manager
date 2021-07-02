@@ -169,6 +169,11 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                         }
                 });
             }
+
+            @Override
+            public void childMoved(INode parentNode, INode childNode, int from, int to) {
+                tableModel.moveRow(from, from, to);
+            }
         });
         addAncestorListener(new AncestorAdapter() {
             @Override
@@ -322,7 +327,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     
     @Override
     public void childChanged(INode node) {
-        activateCommands();
+        refresh();
     }
 
     public void enableSorting() {
