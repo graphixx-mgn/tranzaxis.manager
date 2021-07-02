@@ -8,6 +8,7 @@ import javax.swing.FocusManager;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -202,7 +203,16 @@ public class Dialog extends JDialog {
                 actionMap.put(button.getKeyCode(), new AbstractAction() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        handler.apply(button).actionPerformed(new ActionEvent(this, button.getID(), null));
+                        if (
+                            button.getID() == CANCEL ||
+                            KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner() == null ||
+                            Objects.equals(
+                                    KeyboardFocusManager.getCurrentKeyboardFocusManager().getCurrentFocusCycleRoot(),
+                                    KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow()
+                            )
+                        ) {
+                            handler.apply(button).actionPerformed(new ActionEvent(this, button.getID(), null));
+                        }
                     }
                 });
             }
