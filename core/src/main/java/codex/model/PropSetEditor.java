@@ -71,6 +71,7 @@ public class PropSetEditor extends Dialog {
         }
     }
 
+    private final Window     owner;
     private final Entity     entity;
     private final ModelProxy proxyModel;
     private final Predicate<String> propFilter;
@@ -86,14 +87,11 @@ public class PropSetEditor extends Dialog {
             pack();
         }
     };
-    private final IPropertyChangeListener changeHandler = (name, oldValue, newValue) -> {
-        getButton(Dialog.OK).setEnabled((
-                    !getEntity().model.getChanges().isEmpty() ||
-                     getDiff(getEntity().model, getPropFilter()).entrySet().stream().anyMatch(Map.Entry::getValue)
-                ) &&
-                getEntity().model.isValid()
-        );
-    };
+    private final IPropertyChangeListener changeHandler = (name, oldValue, newValue) -> getButton(Dialog.OK).setEnabled((
+                !getChangedProperties(getEntity(), getPropFilter()).isEmpty() ||
+                 getDiff(getEntity().model, getPropFilter()).entrySet().stream().anyMatch(Map.Entry::getValue)
+            ) && getEntity().model.isValid()
+    );
 
     public PropSetEditor(ImageIcon icon, String title, Entity entity, Predicate<String> propFilter) {
         super(
@@ -111,6 +109,7 @@ public class PropSetEditor extends Dialog {
                 Dialog.Default.BTN_OK.newInstance(),
                 Dialog.Default.BTN_CANCEL.newInstance()
         );
+        this.owner      = Dialog.findNearestWindow();
         this.entity     = entity;
         this.proxyModel = new ModelProxy(entity.model, propFilter);
         this.propFilter = propFilter;
@@ -136,7 +135,10 @@ public class PropSetEditor extends Dialog {
     }
 
     public Dimension getPreferredSize() {
-        return new Dimension(700, super.getPreferredSize().height);
+        return new Dimension(
+                owner != null && owner instanceof Dialog? owner.getPreferredSize().width - 20 : 700,
+                super.getPreferredSize().height
+        );
     }
 
     @Override
