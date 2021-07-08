@@ -61,7 +61,7 @@ public final class EditorPresentation extends JPanel {
                 changed.model.getProperties(Access.Edit).stream()
                         .filter((propName) -> !changed.model.isPropertyDynamic(propName))
                         .forEach((propName) -> ((AbstractEditor) changed.model.getEditor(propName)).setLocked(changed.islocked()));
-                activateCommands();
+                refresh();
             }
         });
         addAncestorListener(new AncestorAdapter() {
