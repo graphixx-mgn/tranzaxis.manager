@@ -1,12 +1,10 @@
 package codex.utils;
 
+import codex.mask.IMask;
 import net.jcip.annotations.ThreadSafe;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.util.HashMap;
-import java.util.Map;
+import java.net.*;
+import java.util.*;
 
 /**
  * Класс вспомогательных методов для работы с сетью.
@@ -63,5 +61,22 @@ public class NetTools {
                 host.matches("^(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))$") &&
                 host.matches("^[^\\s]+$");
     }
-    
+
+    public static boolean checkUrl(String url) {
+        try {
+            new URL(url);
+            return true;
+        } catch (MalformedURLException e) {
+            return false;
+        }
+    }
+
+
+    public static final class PortMask implements IMask<Integer> {
+
+        @Override
+        public boolean verify(Integer value) {
+            return checkPort(value);
+        }
+    }
 }
