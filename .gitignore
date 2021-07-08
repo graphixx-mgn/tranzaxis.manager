@@ -9,3 +9,4 @@
 
 # Subversion
 .svn
+.DS_Store
