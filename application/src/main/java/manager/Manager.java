@@ -9,6 +9,7 @@ import codex.scheduler.JobScheduler;
 import codex.service.ServiceUnit;
 import codex.task.TaskManager;
 import codex.utils.ImageUtils;
+import codex.utils.Runtime;
 import it.sauronsoftware.junique.AlreadyLockedException;
 import it.sauronsoftware.junique.JUnique;
 import manager.nodes.Common;
@@ -25,7 +26,11 @@ public class Manager {
     
     static {
         try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            if (Runtime.OS.isMac.get() == true) {
+                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+            } else {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            }
         } catch (UnsupportedLookAndFeelException | ClassNotFoundException | InstantiationException | IllegalAccessException e) {
             //
         }
