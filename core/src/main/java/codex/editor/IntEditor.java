@@ -30,8 +30,9 @@ import javax.swing.event.DocumentListener;
 @ThreadSafe
 public class IntEditor extends AbstractEditor<Int, Integer> implements DocumentListener {
     
-    private JTextField textField;
-    private String     previousValue;
+    private JTextField  textField;
+    private PlaceHolder placeHolder;
+    private String      previousValue;
 
     private final Consumer<String> update;
     private final Consumer<String> commit;
@@ -132,7 +133,7 @@ public class IntEditor extends AbstractEditor<Int, Integer> implements DocumentL
             
         });
         
-        PlaceHolder placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.FOCUS_LOST);
+        placeHolder = new PlaceHolder(IEditor.NOT_DEFINED, textField, PlaceHolder.Show.FOCUS_LOST);
         placeHolder.setBorder(textField.getBorder());
         placeHolder.changeAlpha(100);
         
@@ -162,6 +163,12 @@ public class IntEditor extends AbstractEditor<Int, Integer> implements DocumentL
         Box container = new Box(BoxLayout.X_AXIS);
         container.add(textField);
         return container;
+    }
+
+    @Override
+    public void setPlaceHolder(String text) {
+        super.setPlaceHolder(text);
+        SwingUtilities.invokeLater(() -> placeHolder.setText(text));
     }
 
     @Override

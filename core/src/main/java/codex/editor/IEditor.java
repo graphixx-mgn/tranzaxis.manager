@@ -156,5 +156,7 @@ public interface IEditor<T extends IComplexType<V, ? extends IMask<V>>, V> {
     default boolean stopEditing() {
         return true;
     }
+
+    default void setPlaceHolder(String text) {}
     
 }

@@ -24,7 +24,8 @@ import java.util.function.Function;
 @ThreadSafe
 public class StrEditor extends AbstractEditor<Str, String> implements DocumentListener {
     
-    private JTextField textField;
+    private JTextField  textField;
+    private PlaceHolder placeHolder;
     
     private final Consumer<String> update;
     private final Consumer<String> commit;
@@ -52,7 +53,7 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
     private StrEditor(PropertyHolder<Str, String> propHolder, Function<String, String> transformer) {
         super(propHolder);
 
-        PlaceHolder placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField);
+        placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField);
         placeHolder.setBorder(textField.getBorder());
         placeHolder.changeAlpha(100);
         placeHolder.setVisible(textField.getText().isEmpty());
@@ -140,6 +141,12 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
         Box container = new Box(BoxLayout.X_AXIS);
         container.add(textField);
         return container;
+    }
+
+    @Override
+    public void setPlaceHolder(String text) {
+        super.setPlaceHolder(text);
+        SwingUtilities.invokeLater(() -> placeHolder.setText(text));
     }
 
     @Override
