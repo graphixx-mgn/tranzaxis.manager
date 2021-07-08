@@ -10,12 +10,9 @@ import codex.type.FilePath;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import org.apache.commons.io.FilenameUtils;
-import javax.imageio.ImageIO;
-import javax.swing.*;
+
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -108,9 +105,9 @@ class HTMLExporter {
     private static String prepareHead() {
         return MessageFormat.format(
                Language.get("head"),
-               prepareCSS("/log.css"),
-               prepareJavaScript("/jquery-3.2.1.min.js"),
-               prepareJavaScript("/log.js")
+               prepareCSS("/etc/log.css"),
+               prepareJavaScript("/etc/jquery-3.2.1.min.js"),
+               prepareJavaScript("/etc/log.js")
         );
     }
 
