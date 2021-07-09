@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 public class Development extends RepositoryBranch {
 
     private final static String PROP_JVM_DESIGNER = "jvmDesigner";
+    private final static String PROP_DESIGNER = "propDesigner";
 
     public Development(EntityRef owner) {
         this(owner, null);
@@ -24,6 +25,7 @@ public class Development extends RepositoryBranch {
     public Development(EntityRef owner, String PID) {
         super(owner, ImageUtils.getByPath("/images/development.png"), PID, null);
         model.addUserProp(PROP_JVM_DESIGNER, new ArrStr("-Xmx6G"), false, Access.Select);
+        model.addUserProp(PROP_DESIGNER, new ArrStr("--locale", "en"), false, Access.Select);
 
         setChildFilter(Filter.class);
     }
@@ -61,6 +63,10 @@ public class Development extends RepositoryBranch {
     @SuppressWarnings("unchecked")
     final List<String> getJvmDesigner() {
         return (List<String>) model.getValue(PROP_JVM_DESIGNER);
+    }
+
+    final List<String> getDesignerProp() {
+        return (List<String>) model.getValue(PROP_DESIGNER);
     }
 
     public static <E extends Entity> void deleteInstance(E entity, boolean cascade, boolean confirmation) {

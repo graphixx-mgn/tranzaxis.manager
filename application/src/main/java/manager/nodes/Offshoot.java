@@ -197,6 +197,20 @@ public class Offshoot extends BinarySource {
             return dev.getJvmDesigner();
         }
     }
+
+    public final List<String> getDesignerProp() {
+        if (getParent() != null) {
+            return ((Development) getParent()).getDesignerProp();
+        } else {
+            IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
+            Development dev = CAS.findReferencedEntries(Repository.class, getRepository().getID()).stream()
+                    .filter(link -> link.entryClass.equals(Development.class.getCanonicalName()))
+                    .map(link -> EntityRef.build(Development.class, link.entryID).getValue())
+                    .findFirst()
+                    .orElse(Entity.newPrototype(Development.class));
+            return dev.getDesignerProp();
+        }
+    }
     
     private WCStatus getWorkingCopyStatus() {
         String wcPath = getLocalPath();

@@ -7,9 +7,7 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import codex.utils.Runtime;
 import manager.nodes.Offshoot;
@@ -34,6 +32,7 @@ public class RunDesigner extends EntityCommand<Offshoot> {
             List<String> cmdList = getDesignerCommand(offshoot);
             
             ProcessBuilder builder = new ProcessBuilder(cmdList);
+            builder.inheritIO();
             builder.directory(workDir);
             builder.start();
         } catch (IOException e) {
@@ -59,8 +58,10 @@ public class RunDesigner extends EntityCommand<Offshoot> {
             }
             add(fileRun.getAbsolutePath());
             addAll(offshoot.getJvmDesigner().stream().map("-J"::concat).collect(Collectors.toList()));
+            addAll(offshoot.getDesignerProp());
             add("--userdir");
             add(confDir.getAbsolutePath());
+            Logger.getLogger().debug("Designer command: " + this);
         }};
     }
     
