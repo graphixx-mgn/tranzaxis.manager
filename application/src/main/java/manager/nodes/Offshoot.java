@@ -34,6 +34,7 @@ import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.MessageFormat;
@@ -268,11 +269,12 @@ public class Offshoot extends BinarySource {
                             .collect(Collectors.joining("\n"))
             );
             setWCStatus(WCStatus.Erroneous);
-            return WCStatus.Erroneous;
         } else {
-            setWCStatus(getWorkingCopyStatus());
-            return getWCStatus();
+            try {
+                SwingUtilities.invokeAndWait(() -> setWCStatus(getWorkingCopyStatus()));
+            } catch (InterruptedException | InvocationTargetException ignore) {}
         }
+        return getWCStatus();
     }
 
     public class DeleteOffshoot extends AbstractTask<Void> {
