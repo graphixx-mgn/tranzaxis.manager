@@ -3,6 +3,7 @@ package codex.presentation;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.model.*;
+import codex.property.IPropertyChangeListener;
 import codex.type.BigInt;
 import codex.type.Bool;
 import codex.type.IComplexType;
@@ -10,25 +11,25 @@ import codex.type.Int;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 
-public class SelectorTableModel extends DefaultTableModel implements IModelListener, ISelectorTableModel {
+public abstract class SelectorTableModel extends DefaultTableModel implements INodeListener, IModelListener, ISelectorTableModel {
 
     private final List<ColumnInfo> columnModel = new LinkedList<>();
     private final Entity rootEntity;
     
-    public SelectorTableModel(Entity rootEntity) {
+    SelectorTableModel(Entity rootEntity) {
         super();
         this.rootEntity = rootEntity;
-        rootEntity.childrenList().forEach((node) -> addEntity((Entity) node));
+        this.rootEntity.addNodeListener(this);
     }
 
     @Override
-    public void addEntity(Entity entity) {
-        synchronized (this) {
+    public void childInserted(INode parentNode, INode childNode) {
+        synchronized (rootEntity) {
+            Entity entity = (Entity) childNode;
             if (getColumnCount() == 0) {
-                List<String> visibleProps = getVisibleProperties(entity);
+                final List<String> visibleProps = getVisibleProperties(entity);
                 columnModel.addAll(visibleProps.stream()
                         .map(propName -> new ColumnInfo(
                                 entity.model.getPropertyType(propName),
@@ -39,45 +40,52 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
                 );
                 columnModel.forEach(columnInfo -> addColumn(columnInfo.title));
             }
+            addRow(columnModel.stream().map(columnInfo -> entity.model.getValue(columnInfo.name)).toArray());
+            new UpdateController(rootEntity, entity);
         }
-        addRow(columnModel.stream().map(columnInfo -> entity.model.getValue(columnInfo.name)).toArray());
-        attachListeners(entity);
-    }
-
-    void attachListeners(Entity entity) {
-        EntityModel childModel  = entity.model;
-        childModel.addModelListener(this);
-        childModel.addChangeListener((name, oldValue, newValue) -> {
-            if (childModel.isPropertyDynamic(name) && findColumn(name) >= 0 && entity.getParent() != null) {
-                setValueAt(newValue, rootEntity.getIndex(entity), findColumn(name));
-            }
-        });
-        entity.addNodeListener(new INodeListener() {
-            @Override
-            public void childChanged(INode node) {
-                int rowCount = getRowCount();
-                for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-                    if (getEntityForRow(rowIdx).model.equals(childModel)) {
-                        fireTableRowsUpdated(rowIdx, rowIdx);
-                        break;
-                    }
-                }
-            }
-        });
     }
 
     @Override
-    public Entity getEntityForRow(int row) {
+    public void childMoved(INode parentNode, INode childNode, int from, int to) {
+        synchronized (rootEntity) {
+            moveRow(from, from, to);
+        }
+    }
+
+    @Override
+    public void childReplaced(INode prevChild, INode nextChild) {
+        UpdateController controller = new UpdateController(rootEntity, (Entity) nextChild);
+        EntityModel      childModel = ((Entity) nextChild).model;
+        childModel.getProperties(Access.Any).forEach(propName -> controller.propertyChange(propName, null, childModel.getValue(propName)));
+    }
+
+    @Override
+    public void childDeleted(INode parentNode, INode childNode, int index) {
+        synchronized (rootEntity) {
+            removeRow(index);
+        }
+    }
+
+    abstract int getRowForIndex(int index);
+    private  int getRowForNode(INode node) {
+        synchronized (rootEntity) {
+            final int idx = rootEntity.getIndex(node);
+            return idx < 0 ? -1 : getRowForIndex(idx);
+        }
+    }
+
+    @Override
+    public final Entity getEntityForRow(int row) {
         return (Entity) rootEntity.childrenList().get(row);
     }
 
     @Override
-    public String getPropertyForColumn(int column) {
+    public final String getPropertyForColumn(int column) {
         return columnModel.get(column).name;
     }
 
     @Override
-    public Class<?> getColumnClass(int column) {
+    public final Class<?> getColumnClass(int column) {
         if (columnModel.get(column).type == Bool.class) {
             return Bool.class;
         } else if (columnModel.get(column).type == Int.class || columnModel.get(column).type == BigInt.class) {
@@ -88,7 +96,12 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
     }
 
     @Override
-    public int findColumn(String columnName) {
+    public boolean isCellEditable(int row, int column) {
+        return false;
+    }
+
+    @Override
+    public final int findColumn(String columnName) {
         for (int i = 0; i < getColumnCount(); i++) {
             if (getPropertyForColumn(i).equals(columnName)) {
                 return i;
@@ -98,7 +111,7 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
     }
 
     private List<String> getVisibleProperties(Entity entity) {
-        List<String> accessibleProps = entity.model.getProperties(Access.Select);
+        final List<String> accessibleProps = entity.model.getProperties(Access.Select);
         return  PolyMorph.class.isAssignableFrom(rootEntity.getChildClass()) ?
                 Stream.concat(
                         Stream.concat(
@@ -111,55 +124,86 @@ public class SelectorTableModel extends DefaultTableModel implements IModelListe
     }
 
     @Override
-    public boolean isCellEditable(int row, int column) {
-        return false;
-    }
-
-    @Override
     public void moveRow(int start, int end, int to) {
-        if (getEntityForRow(to) != rootEntity.childrenList().get(to)) {
-            rootEntity.move(getEntityForRow(start), to);
-        }
-        super.moveRow(start, end, to);
-
-        SwingUtilities.invokeLater(() -> {
-            List<Integer> sequences = rootEntity.childrenList().stream()
-                    .map((childNode) -> ((Entity) childNode).getSEQ())
-                    .filter(Objects::nonNull)
-                    .sorted()
-                    .collect(Collectors.toList());
-            if (!sequences.isEmpty()) {
-                Iterator<Integer> seqIterator = sequences.iterator();
-
+        synchronized (rootEntity) {
+            super.moveRow(start, end, to);
+            if (rootEntity.allowModifyChild()) {
+                final Iterator<Integer> generator = Stream
+                        .iterate(1, n -> n + 1)
+                        .limit(rootEntity.getChildCount())
+                        .collect(Collectors.toList())
+                        .iterator();
                 rootEntity.childrenList().forEach((childNode) -> {
-                    Entity childEntity = (Entity) childNode;
-                    childEntity.setSEQ(seqIterator.next());
+                    final Entity childEntity = (Entity) childNode;
+                    childEntity.setSEQ(generator.next());
                     if (!childEntity.model.getChanges().isEmpty()) {
                         try {
                             childEntity.model.commit(true);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                        } catch (Exception ignore) {}
                     }
                 });
-            }
-        });
-    }
-    
-    @Override
-    public void modelSaved(EntityModel model, List<String> changes) {
-        int rowCount = getRowCount();
-        for (int rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-            if (getEntityForRow(rowIdx).model.equals(model)) {
-                final int entityIdx = rowIdx;
-                changes.forEach(propName -> {
-                    if (findColumn(propName) >= 0) {
-                        setValueAt(model.getValue(propName), entityIdx, findColumn(propName));
-                    }
-                });
-                break;
             }
         }
     }
 
+
+    private class UpdateController implements IPropertyChangeListener, INodeListener, IModelListener {
+
+        private final Entity entity;
+
+        private UpdateController(Entity parentEntity, Entity childEntity) {
+            this.entity  = childEntity;
+
+            this.entity.addNodeListener(this);
+            this.entity.model.addChangeListener(this);
+            this.entity.model.addModelListener(this);
+
+            parentEntity.addNodeListener(this);
+        }
+
+        @Override
+        public void propertyChange(String name, Object oldValue, Object newValue) {
+            synchronized (rootEntity) {
+                if (entity.model.isPropertyDynamic(name) && findColumn(name) >= 0 && entity.getParent() != null) {
+                    setValueAt(newValue, rootEntity.getIndex(entity), findColumn(name));
+                }
+            }
+        }
+
+        @Override
+        public void modelSaved(EntityModel model, List<String> changes) {
+            synchronized (rootEntity) {
+                changes.forEach(name -> {
+                    if (findColumn(name) >= 0 && entity.getParent() != null) {
+                        setValueAt(model.getValue(name), rootEntity.getIndex(entity), findColumn(name));
+                    }
+                });
+            }
+        }
+
+        @Override
+        public void childDeleted(INode parentNode, INode childNode, int index) {
+            synchronized (rootEntity) {
+                if (childNode == entity) {
+                    this.entity.removeNodeListener(this);
+                    this.entity.model.removeChangeListener(this);
+                    this.entity.model.removeModelListener(this);
+
+                    parentNode.removeNodeListener(this);
+                }
+            }
+        }
+
+        @Override
+        public void childChanged(INode node) {
+            if (node == entity ) {
+                synchronized (rootEntity) {
+                    final int row = getRowForNode(node);
+                    if (row >= 0) {
+                        fireTableRowsUpdated(row, row);
+                    }
+                }
+            }
+        }
+    }
 }
