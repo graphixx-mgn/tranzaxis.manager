@@ -7,6 +7,7 @@ import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import javax.swing.*;
+import java.awt.*;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -42,7 +43,14 @@ class ShowExtraProps extends EntityCommand<Entity> {
                 Language.get(EditorPresentation.class, "extender@title"),
                 context,
                 context.model::isPropertyExtra
-        ).open();
+        ) {
+            public Dimension getPreferredSize() {
+                return new Dimension(
+                        900,
+                        super.getPreferredSize().height
+                );
+            }
+        }.open();
     }
 
     @Override
