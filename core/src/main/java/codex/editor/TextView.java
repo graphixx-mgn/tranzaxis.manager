@@ -7,6 +7,7 @@ import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
+import javax.swing.text.DefaultCaret;
 import java.awt.*;
 
 /**
@@ -52,6 +53,9 @@ public class TextView extends AbstractEditor<AnyType, Object> {
 
         textPanel.setFont(font);
         textPanel.setEditable(false);
+
+        DefaultCaret caret = (DefaultCaret) textPanel.getCaret();
+        caret.setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
 
         JScrollPane scrollPane = new JScrollPane(textPanel) {
             @Override
