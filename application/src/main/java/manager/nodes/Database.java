@@ -184,7 +184,7 @@ public class Database extends Entity {
         return connectionGetter.apply(showError);
     }
 
-    public synchronized boolean checkUrlPort(String dbUrl) {
+    private synchronized boolean checkUrlPort(String dbUrl) {
         Matcher verMatcher = URL_SPLITTER.matcher(dbUrl);
         if (verMatcher.find()) {
             String host = verMatcher.group(1);

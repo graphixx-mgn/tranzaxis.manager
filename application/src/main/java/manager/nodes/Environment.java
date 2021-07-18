@@ -119,7 +119,7 @@ public class Environment extends Entity implements INodeListener {
         model.addUserProp(PROP_LAYER_URI,    new Str(null),             true,  Access.Select);
         model.addUserProp(PROP_DATABASE,     new EntityRef<>(Database.class),   false, null);
         model.addDynamicProp(PROP_VERSION,   new Str(null), Access.Select, () -> {
-            new Thread(() -> setVersion(getLayerVersion())).start();
+            new Thread(() -> SwingUtilities.invokeLater(() -> setVersion(getLayerVersion()))).start();
             return getVersion();
         });
         model.addUserProp(PROP_INSTANCE_ID,  new ArrStr().setMask(instanceSelector), false, Access.Select);
