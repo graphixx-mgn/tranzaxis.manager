@@ -325,6 +325,15 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                     childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
                 }
             });
+            parentModel.addModelListener(new IModelListener() {
+                @Override
+                public void modelSaved(EntityModel model, List<String> changes) {
+                    changes.removeIf(changedProp -> !props.contains(changedProp));
+                    if (!changes.isEmpty()) {
+                        childModel.getModelListeners().forEach(listener -> listener.modelSaved(childModel, changes));
+                    }
+                }
+            });
         }
     }
 
