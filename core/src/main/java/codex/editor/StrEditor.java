@@ -168,6 +168,7 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
 
     @Override
     public boolean stopEditing() {
+        if (propHolder.isInherited()) return true;
         commit.accept(textField.getText());
         return verify();
     }

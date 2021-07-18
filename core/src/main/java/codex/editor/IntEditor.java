@@ -191,6 +191,7 @@ public class IntEditor extends AbstractEditor<Int, Integer> implements DocumentL
 
     @Override
     public boolean stopEditing() {
+        if (propHolder.isInherited()) return true;
         commit.accept(textField.getText());
         return true;
     }
