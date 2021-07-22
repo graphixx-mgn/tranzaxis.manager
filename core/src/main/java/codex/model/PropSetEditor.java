@@ -58,73 +58,6 @@ public class PropSetEditor extends Dialog {
             } catch (Exception ignore) {}
             entity.model.setValue("OVR", OverrideProperty.applyOverrideChanges(entity.getOverride(), protectOvrProps));
         }
-
-        /*Logger.getLogger().info("PropSetEditor.commit:");
-
-        Logger.getLogger().info(" - total model changes: "+entity.model.getChanges());
-
-        final List<String> changedExtProps = getChangedProperties(entity, propFilter);
-        Logger.getLogger().info(" - extra model changes: "+changedExtProps);
-
-        Logger.getLogger().info(" > commit just extra prop values");
-        try {
-            entity.model.commit(true, getChangedProperties(entity, propFilter).toArray(new String[]{}));
-        } catch (Exception ignore) {}
-        Logger.getLogger().info(" - remain model changes: "+entity.model.getChanges());
-
-        List<String>         savedOvrProps = entity.getOverride();
-        Logger.getLogger().info(" - saved OVR:     "+savedOvrProps);
-
-        Map<String, Boolean> modifiedOvrProps = OverrideProperty.getOverrideChanges(entity.model);
-        Logger.getLogger().info(" - modified OVR:  "+modifiedOvrProps);
-
-        Map<String, Boolean> commitOvrProps  = getDiff(entity.model, propFilter);
-        Map<String, Boolean> protectOvrProps = getDiff(entity.model, propFilter.negate());
-        Logger.getLogger().info(" - commit OVR:    "+commitOvrProps);
-        Logger.getLogger().info(" - protected OVR: "+protectOvrProps);*/
-
-
-//        if (!commitOvrProps.isEmpty()) {
-//            //noinspection unchecked
-//            entity.model.getProperty("OVR")
-//                    .getOwnPropValue()
-//                    .setValue(OverrideProperty.applyOverrideChanges(
-//                            savedOvrProps,
-//                            commitOvrProps
-//                    ));
-//            try {
-//                entity.model.commit(true, "OVR");
-//            } catch (Exception e) {
-//                Logger.getLogger().error(e.getMessage());
-//            }
-//            entity.model.setValue("OVR", OverrideProperty.applyOverrideChanges(entity.getOverride(), baseOvrProps));
-//        }
-
-//        try {
-//            entity.model.commit(true, getChangedProperties(entity, propFilter).toArray(new String[]{}));
-//        } catch (Exception e) {
-//            Logger.getLogger().error(e.getMessage());
-//        }
-//
-//        List<String>         saveOvrProps = entity.getOverride();
-//        Map<String, Boolean> baseOvrProps = OverrideProperty.getOverrideChanges(entity.model);
-//        Map<String, Boolean> diffOvrProps = getDiff(entity.model, propFilter);
-//
-//        if (!diffOvrProps.equals(baseOvrProps)) {
-//            //noinspection unchecked
-//            entity.model.getProperty("OVR")
-//                    .getOwnPropValue()
-//                    .setValue(OverrideProperty.applyOverrideChanges(
-//                            saveOvrProps,
-//                            diffOvrProps
-//                    ));
-//            try {
-//                entity.model.commit(true, "OVR");
-//            } catch (Exception e) {
-//                Logger.getLogger().error(e.getMessage());
-//            }
-//            entity.model.setValue("OVR", OverrideProperty.applyOverrideChanges(saveOvrProps, baseOvrProps));
-//        }
     }
 
     private static void rollback(Entity entity, Predicate<String> propFilter) {
@@ -140,53 +73,6 @@ public class PropSetEditor extends Dialog {
         if (needRevertOVR) {
             entity.model.setValue("OVR", OverrideProperty.applyOverrideChanges(entity.getOverride(), protectOvrProps));
         }
-
-        /*final List<String>   changedExtProps  = getChangedProperties(entity, propFilter);
-        Map<String, Boolean> modifiedOvrProps = OverrideProperty.getOverrideChanges(entity.model);
-        Map<String, Boolean> protectOvrProps  = getDiff(entity.model, propFilter.negate());
-        boolean needRevert   = !protectOvrProps.equals(modifiedOvrProps);
-        if (!changedExtProps.isEmpty() || needRevert) {
-            Logger.getContextLogger(EntityModel.OrmContext.class).debug(
-                    "Prepared partial rollback plan:{0}{1}",
-                    changedExtProps.isEmpty() ? "" : MessageFormat.format("\n* Extra props: {0}", changedExtProps),
-                    needRevert                ? "" : MessageFormat.format("\n* Overridden : revert current:{0} => to protected:{1}",
-                            modifiedOvrProps.keySet(), protectOvrProps.keySet()
-                    )
-            );
-            if (!changedExtProps.isEmpty()) {
-                entity.model.rollback(changedExtProps.toArray(new String[]{}));
-            }
-            if (needRevert) {
-                entity.model.setValue("OVR", OverrideProperty.applyOverrideChanges(entity.getOverride(), protectOvrProps));
-            }
-        }*/
-
-        /*Logger.getLogger().info("PropSetEditor.rollback:");
-
-        Logger.getLogger().info(" - total model changes: "+entity.model.getChanges());
-
-        final List<String> changedExtProps = getChangedProperties(entity, propFilter);
-        Logger.getLogger().info(" - extra model changes: "+changedExtProps);
-
-        Logger.getLogger().info(" > rollback just extra prop values");
-        entity.model.rollback(changedExtProps.toArray(new String[]{}));
-        Logger.getLogger().info(" - remain model changes: "+entity.model.getChanges());
-
-        List<String>         savedOvrProps = entity.getOverride();
-        Logger.getLogger().info(" - saved OVR:     "+savedOvrProps);
-
-        Map<String, Boolean> modifiedOvrProps = OverrideProperty.getOverrideChanges(entity.model);
-        Logger.getLogger().info(" - modified OVR:  "+modifiedOvrProps);
-
-        Map<String, Boolean> protectOvrProps = getDiff(entity.model, propFilter.negate());
-        Logger.getLogger().info(" - protected OVR: "+protectOvrProps);
-
-
-        if (!protectOvrProps.equals(modifiedOvrProps)) {
-            List<String>         joinOvrProps = OverrideProperty.applyOverrideChanges(savedOvrProps, protectOvrProps);
-            Logger.getLogger().info(" - update OVR:   "+joinOvrProps);
-            entity.model.setValue("OVR", joinOvrProps);
-        }*/
     }
 
     private final Window     owner;
