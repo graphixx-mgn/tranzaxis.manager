@@ -1,15 +1,13 @@
 package codex.model;
 
 import codex.component.dialog.Dialog;
-import codex.log.Logger;
 import codex.presentation.EditorPage;
+import codex.presentation.EditorPresentation;
 import codex.property.IPropertyChangeListener;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.text.MessageFormat;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -91,11 +89,17 @@ public class PropSetEditor extends Dialog {
             pack();
         }
     };
-    private final IPropertyChangeListener changeHandler = (name, oldValue, newValue) -> getButton(Dialog.OK).setEnabled((
-                !getChangedProperties(getEntity(), getPropFilter()).isEmpty() ||
-                 getDiff(getEntity().model, getPropFilter()).entrySet().stream().anyMatch(Map.Entry::getValue)
-            ) && getEntity().model.isValid()
-    );
+    private final IPropertyChangeListener changeHandler = (name, oldValue, newValue) -> {
+        boolean valid = getEntity().model.getProperties(Access.Any).stream()
+                .filter(getPropFilter())
+                .allMatch(propName -> getEntity().model.getProperty(propName).isValid());
+        getButton(Dialog.OK).setEnabled(
+                valid && (
+                    !getChangedProperties(getEntity(), getPropFilter()).isEmpty() ||
+                    getDiff(getEntity().model, getPropFilter()).entrySet().stream().anyMatch(Map.Entry::getValue)
+                )
+        );
+    };
 
     public PropSetEditor(ImageIcon icon, String title, Entity entity, Predicate<String> propFilter) {
         super(
@@ -119,7 +123,7 @@ public class PropSetEditor extends Dialog {
         this.propFilter = propFilter;
 
         setContent(new JPanel(new BorderLayout()) {{
-            add(new EditorPage(proxyModel), BorderLayout.NORTH);
+            add(new EditorPage(proxyModel), BorderLayout.CENTER);
         }});
         getButton(Dialog.OK).setEnabled(false);
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -140,7 +144,7 @@ public class PropSetEditor extends Dialog {
 
     public Dimension getPreferredSize() {
         return new Dimension(
-                owner != null && owner instanceof Dialog? owner.getPreferredSize().width - 20 : 700,
+                owner != null && owner instanceof Dialog? owner.getPreferredSize().width - 20 : EditorPresentation.DEFAULT_DIALOG_WIDTH,
                 super.getPreferredSize().height
         );
     }
