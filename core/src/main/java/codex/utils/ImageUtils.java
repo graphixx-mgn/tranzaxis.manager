@@ -132,7 +132,6 @@ public class ImageUtils {
     }
 
     public static ImageIcon combine(ImageIcon bgIcon, ImageIcon fgIcon, int position) {
-        Image srcImage = bgIcon.getImage();
         int width  = Math.max(bgIcon.getIconWidth(), fgIcon.getIconWidth());
         int height = Math.max(bgIcon.getIconHeight(), fgIcon.getIconHeight());
 
@@ -166,8 +165,8 @@ public class ImageUtils {
         );
         Graphics2D g = combinedImage.createGraphics();
         g.drawImage(
-                srcImage,
-                width / 2 - bgIcon.getIconWidth() / 2,
+                bgIcon.getImage(),
+                width  / 2 - bgIcon.getIconWidth()  / 2,
                 height / 2 - bgIcon.getIconHeight() / 2,
                 null
         );
@@ -177,6 +176,20 @@ public class ImageUtils {
                 fgPosY,
                 null
         );
+        return new ImageIcon(combinedImage);
+    }
+
+    public static ImageIcon join(ImageIcon leftIcon, ImageIcon rightIcon) {
+        int width  = leftIcon.getIconWidth() + rightIcon.getIconWidth();
+        int height = Math.max(leftIcon.getIconHeight(), rightIcon.getIconHeight());
+        final BufferedImage combinedImage = new BufferedImage(
+                width,
+                height,
+                BufferedImage.TYPE_INT_ARGB
+        );
+        Graphics2D g = combinedImage.createGraphics();
+        g.drawImage(leftIcon.getImage(), 0, 0, null);
+        g.drawImage(rightIcon.getImage(), leftIcon.getIconWidth(), 0, null);
         return new ImageIcon(combinedImage);
     }
 
