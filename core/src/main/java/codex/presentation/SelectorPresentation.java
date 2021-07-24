@@ -278,17 +278,19 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 .filter(command -> command.getKind() == EntityCommand.Kind.System)
                 .forEach(command -> commands.put(command, CommandContextKind.Parent));
 
-        final EntityCommand<Entity> editCmd   = findCommand(systemCommands.keySet(), EditEntity.class, new EditEntity());
-        commands.put(editCmd, CommandContextKind.Child);
+        if (rootEntity.getChildCount() > 0) {
+            final EntityCommand<Entity> editCmd = findCommand(systemCommands.keySet(), EditEntity.class, new EditEntity());
+            commands.put(editCmd, CommandContextKind.Child);
+        }
         if (canCreateEntities()) {
             final EntityCommand<Entity> createCmd = findCommand(systemCommands.keySet(), CreateEntity.class, new CreateEntity());
             commands.put(createCmd, CommandContextKind.Parent);
         }
-        if (canCreateEntities()) {
+        if (canCreateEntities() && rootEntity.getChildCount() > 0) {
             final EntityCommand<Entity> cloneCmd  = findCommand(systemCommands.keySet(), CloneEntity.class, new CloneEntity());
             commands.put(cloneCmd, CommandContextKind.Child);
         }
-        if (canDeleteEntities()) {
+        if (canDeleteEntities() && rootEntity.getChildCount() > 0) {
             final EntityCommand<Entity> deleteCmd = findCommand(systemCommands.keySet(), DeleteEntity.class, new DeleteEntity());
             commands.put(deleteCmd, CommandContextKind.Child);
         }

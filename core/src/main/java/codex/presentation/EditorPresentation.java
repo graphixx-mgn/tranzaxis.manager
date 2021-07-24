@@ -9,7 +9,6 @@ import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.model.Access;
 import codex.model.Entity;
-import codex.model.ICatalog;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -36,6 +35,8 @@ import java.util.stream.Collectors;
  * редактора, так и обеспечивает работу команд сущностей.
  */
 public final class EditorPresentation extends JPanel {
+
+    public  final static int DEFAULT_DIALOG_WIDTH = 800;
 
     private final Class        entityClass;
     private final CommandPanel commandPanel;
@@ -168,7 +169,7 @@ public final class EditorPresentation extends JPanel {
             SwingUtilities.invokeLater(() -> {
                 boolean allDisabled = context.model.getProperties(Access.Edit).stream().noneMatch((name) -> context.model.getEditor(name).isEditable());
 
-                final codex.component.dialog.Dialog editor = new codex.component.dialog.Dialog(
+                final Dialog editor = new Dialog(
                         Dialog.findNearestWindow(),
                         allDisabled ? IMAGE_VIEW : IMAGE_EDIT,
                         Language.get(SelectorPresentation.class, allDisabled ? "viewer@title" : "editor@title"),
@@ -192,7 +193,7 @@ public final class EditorPresentation extends JPanel {
                             ));
                         }},
                         (event) -> {
-                            if (event.getID() == codex.component.dialog.Dialog.OK) {
+                            if (event.getID() == Dialog.OK) {
                                 if (context.model.hasChanges()) {
                                     try {
                                         context.model.commit(true);
@@ -207,8 +208,8 @@ public final class EditorPresentation extends JPanel {
                             }
                         },
                         allDisabled ?
-                                new DialogButton[] { codex.component.dialog.Dialog.Default.BTN_CLOSE.newInstance() } :
-                                new DialogButton[] { codex.component.dialog.Dialog.Default.BTN_OK.newInstance(), codex.component.dialog.Dialog.Default.BTN_CANCEL.newInstance() }
+                                new DialogButton[] { Dialog.Default.BTN_CLOSE.newInstance() } :
+                                new DialogButton[] { Dialog.Default.BTN_OK.newInstance(), Dialog.Default.BTN_CANCEL.newInstance() }
                 ) {{
                     // Перекрытие обработчика кнопок
                     Function<DialogButton, ActionListener> defaultHandler = handler;
@@ -220,7 +221,10 @@ public final class EditorPresentation extends JPanel {
                 }
                     @Override
                     public Dimension getPreferredSize() {
-                        return new Dimension(700, super.getPreferredSize().height);
+                        return new Dimension(
+                                getOwner() != null && getOwner() instanceof Dialog? getOwner().getPreferredSize().width - 20 : DEFAULT_DIALOG_WIDTH,
+                                super.getPreferredSize().height
+                        );
                     }
                 };
 
