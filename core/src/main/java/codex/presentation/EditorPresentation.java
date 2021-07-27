@@ -23,6 +23,7 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
 import java.util.function.Function;
@@ -36,7 +37,8 @@ import java.util.stream.Collectors;
  */
 public final class EditorPresentation extends JPanel {
 
-    public  final static int DEFAULT_DIALOG_WIDTH = 800;
+    public  final static int DEFAULT_DIALOG_WIDTH  = 800;
+    public  final static int DEFAULT_DIALOG_HEIGHT = 500;
 
     private final Class        entityClass;
     private final CommandPanel commandPanel;
@@ -172,25 +174,25 @@ public final class EditorPresentation extends JPanel {
                 final Dialog editor = new Dialog(
                         Dialog.findNearestWindow(),
                         allDisabled ? IMAGE_VIEW : IMAGE_EDIT,
-                        Language.get(SelectorPresentation.class, allDisabled ? "viewer@title" : "editor@title"),
+                        MessageFormat.format(
+                                Language.get(SelectorPresentation.class, allDisabled ? "viewer@title" : "editor@title"),
+                                context.toString()
+                        ),
                         new JPanel(new BorderLayout()) {{
                             add(context.getEditorPage(), BorderLayout.NORTH);
 
-                            if (context.getChildCount() > 0) {
-                                SelectorPresentation embedded = context.getSelectorPresentation();
-                                if (embedded != null) {
-                                    add(context.getSelectorPresentation(), BorderLayout.CENTER);
-                                    embedded.setBorder(new TitledBorder(
+                            SelectorPresentation embedded = context.getSelectorPresentation();
+                            if (embedded != null) {
+                                add(context.getSelectorPresentation(), BorderLayout.CENTER);
+                                embedded.setBorder(new CompoundBorder(
+                                        new EmptyBorder(0, 10, 5, 10),
+                                        new TitledBorder(
                                             new LineBorder(Color.GRAY, 1),
                                             IComplexType.coalesce(BrowseMode.getDescription(BrowseMode.getClassHierarchy(context), "group@title"), BrowseMode.SELECTOR_TITLE)
-                                    ));
-                                }
+                                        )
+                                ));
                             }
-
-                            setBorder(new CompoundBorder(
-                                    new EmptyBorder(10, 5, 5, 5),
-                                    new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())
-                            ));
+                            setBorder(new EmptyBorder(5, 0, 0, 0));
                         }},
                         (event) -> {
                             if (event.getID() == Dialog.OK) {
@@ -222,8 +224,12 @@ public final class EditorPresentation extends JPanel {
                     @Override
                     public Dimension getPreferredSize() {
                         return new Dimension(
-                                getOwner() != null && getOwner() instanceof Dialog? getOwner().getPreferredSize().width - 20 : DEFAULT_DIALOG_WIDTH,
-                                super.getPreferredSize().height
+                                getOwner() != null && getOwner() instanceof Dialog ?
+                                        getOwner().getPreferredSize().width - 20 :
+                                        DEFAULT_DIALOG_WIDTH,
+                                context.getSelectorPresentation() != null?
+                                        Math.max(super.getPreferredSize().height, DEFAULT_DIALOG_HEIGHT) :
+                                        super.getPreferredSize().height
                         );
                     }
                 };
