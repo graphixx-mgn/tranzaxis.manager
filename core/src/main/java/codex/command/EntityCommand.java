@@ -10,6 +10,7 @@ import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.task.*;
 import codex.type.IComplexType;
+import codex.type.ISerializableType;
 import codex.type.Iconified;
 import codex.utils.Language;
 import net.jcip.annotations.ThreadSafe;
@@ -271,6 +272,18 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
         if (propHolders != null && propHolders.length > 0) {
             provider = () -> propHolders;
         }
+    }
+
+    boolean hasParameters() {
+        return provider.get().length > 0;
+    }
+
+    Collection<PropertyHolder> getParameterProperties() {
+        return provider.get().length == 0 ?
+               Collections.emptyList() :
+               Arrays.stream(provider.get())
+                    .filter(propertyHolder -> propertyHolder.getPropValue() instanceof ISerializableType)
+                    .collect(Collectors.toList());
     }
 
     /**

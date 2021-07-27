@@ -3,6 +3,7 @@ package codex.command;
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
 import codex.model.Access;
+import codex.model.Entity;
 import codex.model.ParamModel;
 import codex.presentation.EditorPage;
 import codex.property.PropertyHolder;
@@ -14,6 +15,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -26,7 +28,7 @@ import javax.swing.JPanel;
  */
 public class ParametersDialog extends Dialog {
 
-    private final EntityCommand command;
+    private final EntityCommand<? extends Entity> command;
     private final ParamModel paramModel = new ParamModel();
     private final Supplier<PropertyHolder[]> paramSupplier;
     private ActionEvent exitEvent;
@@ -36,7 +38,7 @@ public class ParametersDialog extends Dialog {
      * @param command Ссылка на команду.
      * @param paramSupplier Поставщик, подготавливающий массив свойств для редактора.
      */
-    ParametersDialog(EntityCommand command, Supplier<PropertyHolder[]> paramSupplier) {
+    ParametersDialog(EntityCommand<? extends Entity> command, Supplier<PropertyHolder[]> paramSupplier) {
         super(
                 FocusManager.getCurrentManager().getActiveWindow(),
                 ImageUtils.getByPath("/images/param.png"),
@@ -73,11 +75,19 @@ public class ParametersDialog extends Dialog {
     }
 
     public List<PropertyHolder> getProperties() throws Canceled {
-        Arrays.asList(paramSupplier.get()).forEach(paramModel::addProperty);
+        Map<String, String> storedValues = CommandParameters.read(command);
+        Arrays.asList(paramSupplier.get()).forEach(propertyHolder -> {
+            if (storedValues.containsKey(propertyHolder.getName())) {
+                propertyHolder.getPropValue().valueOf(storedValues.get(propertyHolder.getName()));
+            }
+            paramModel.addProperty(propertyHolder);
+        });
         command.preprocessParameters(paramModel);
+
         setContent(new EditorPage(paramModel));
         setVisible(true);
         if (exitEvent.getID() == Dialog.OK) {
+            CommandParameters.update(command);
             return paramModel.getProperties(Access.Edit).stream()
                     .map(paramModel::getProperty)
                     .collect(Collectors.toList());
@@ -86,5 +96,5 @@ public class ParametersDialog extends Dialog {
         }
     }
 
-    public final class Canceled extends Exception {}
+    static final class Canceled extends Exception {}
 }
