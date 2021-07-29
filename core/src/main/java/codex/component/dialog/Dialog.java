@@ -175,15 +175,17 @@ public class Dialog extends JDialog {
         add(buttonPanel, BorderLayout.SOUTH);
         
         handler = (button) -> (keyEvent) -> {
-            setVisible(false);
-            if (close != null) {
-                final ActionEvent event = new ActionEvent(
-                        keyEvent,
-                        button == null || !button.isEnabled() ? EXIT : button.getID(),
-                        null
-                );
-                close.actionPerformed(event);
-                exitCode = event.getID();
+            if (getDefaultCloseOperation() != WindowConstants.DO_NOTHING_ON_CLOSE) {
+                setVisible(false);
+                if (close != null) {
+                    final ActionEvent event = new ActionEvent(
+                            keyEvent,
+                            button == null || !button.isEnabled() ? EXIT : button.getID(),
+                            null
+                    );
+                    close.actionPerformed(event);
+                    exitCode = event.getID();
+                }
             }
         };
 
