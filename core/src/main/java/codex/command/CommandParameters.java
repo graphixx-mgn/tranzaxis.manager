@@ -45,7 +45,11 @@ public class CommandParameters extends Catalog {
     public static Map<String, String> read(EntityCommand<? extends Entity> command) {
         CommandParameters store = prepare(command);
         return store == null ? Collections.emptyMap() : store.getParameters();
+    }
 
+    public static void delete(EntityCommand<? extends Entity> command) {
+        CommandParameters store = prepare(command);
+        if (store != null) store.model.remove();
     }
 
     private static CommandParameters prepare(EntityCommand<? extends Entity> command) {

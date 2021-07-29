@@ -71,6 +71,10 @@ public final class CommandRegistry {
     }
 
     public <E extends Entity> void unregisterCommand(Class<E> entityClass, Class<? extends EntityCommand<E>> commandClass) {
+        EntityCommand<E> command = getCommandInstance(commandClass);
+        if (command != null) {
+            CommandParameters.delete(command);
+        }
         if (REGISTRY.containsKey(entityClass)) {
             REGISTRY.get(entityClass).removeIf(commandEntry -> commandEntry.getValue().getClass().equals(commandClass));
         }
