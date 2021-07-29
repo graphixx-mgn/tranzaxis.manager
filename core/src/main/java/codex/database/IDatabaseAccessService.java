@@ -2,6 +2,7 @@ package codex.database;
 
 import codex.service.IService;
 import codex.type.IComplexType;
+import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -44,6 +45,10 @@ public interface IDatabaseAccessService extends IService {
     default void update(Integer connectionID, String query, Object... params) throws SQLException {}
 
     default PreparedStatement prepareStatement(Integer connectionID, String query, Object... params) throws SQLException {
+        return null;
+    }
+
+    default CallableStatement prepareCallable(Integer connectionID, String query) throws SQLException {
         return null;
     }
     

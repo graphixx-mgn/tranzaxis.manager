@@ -166,10 +166,9 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
     @Override
     public PreparedStatement prepareStatement(Integer connectionID, String query, Object... params) throws SQLException {
         Logger.getContextLogger(QueryContext.class).debug(
-                "Execute query: {0} (connection #{1})",
+                "Prepare statement: {0} (connection #{1})",
                 IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
         );
-
         Connection connection = idToPoolMap.get(connectionID).getConnection();
         PoolDataSource dataSource = (PoolDataSource) idToPoolMap.get(connectionID);
         Logger.getContextLogger(UCPContext.class).debug(
@@ -188,6 +187,19 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
             }
         }
         return statement;
+    }
+
+    @Override
+    public CallableStatement prepareCallable(Integer connectionID, String query) throws SQLException {
+        Connection connection = idToPoolMap.get(connectionID).getConnection();
+        PoolDataSource dataSource = (PoolDataSource) idToPoolMap.get(connectionID);
+        Logger.getContextLogger(UCPContext.class).debug(
+                "UCP usage state: busy={0}, avail={1}, max={2}",
+                dataSource.getBorrowedConnectionsCount(),
+                dataSource.getAvailableConnectionsCount(),
+                dataSource.getMaxPoolSize()
+        );
+        return connection.prepareCall(query);
     }
 
     private RowSet prepareSet(Integer connectionID) throws SQLException {
