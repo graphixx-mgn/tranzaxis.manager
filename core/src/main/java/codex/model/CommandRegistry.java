@@ -71,7 +71,6 @@ public final class CommandRegistry {
     }
 
     public <E extends Entity> void unregisterCommand(Class<E> entityClass, Class<? extends EntityCommand<E>> commandClass) {
-        Logger.todo("Delete command parameter storage");
         if (REGISTRY.containsKey(entityClass)) {
             REGISTRY.get(entityClass).removeIf(commandEntry -> commandEntry.getValue().getClass().equals(commandClass));
         }

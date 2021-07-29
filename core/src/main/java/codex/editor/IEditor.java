@@ -53,7 +53,7 @@ public interface IEditor<T extends IComplexType<V, ? extends IMask<V>>, V> {
     /**
      * Стандартный шрифт отображения значений свойств.
      */
-    Font FONT_VALUE = new Font("SansSerif", Font.PLAIN, (int) (UIManager.getDefaults().getFont("Label.font").getSize() * 1.3));
+    Font FONT_VALUE = new Font("SansSerif", Font.PLAIN, (int) (UIManager.getDefaults().getFont("Label.font").getSize() * 1.2));
     
     /**
      * Стандартный бордюр редактора.

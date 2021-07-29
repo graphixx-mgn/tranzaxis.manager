@@ -150,8 +150,8 @@ public class TaskOutput extends JPanel {
 
         private static String RC_SUCCESS = "<font color='green'>&#x2713;</font>";
         private static String RC_ERROR   = "<font color='red'>&#x26D4;</font>";
-        private static Function<String, String> FMT_SUCCESS  = input -> String.join("", Collections.nCopies(68-input.length(), ".")).concat(RC_SUCCESS);
-        private static Function<String, String>  FMT_ERROR   = input -> String.join("", Collections.nCopies(68-input.length(), ".")).concat(RC_ERROR);
+        private static Function<String, String>  FMT_SUCCESS  = input -> String.join("", Collections.nCopies(71-input.length(), ".")).concat(RC_SUCCESS);
+        private static Function<String, String>  FMT_ERROR   = input -> String.join("", Collections.nCopies(71-input.length(), ".")).concat(RC_ERROR);
         private static Function<String, Integer> HTML_LENGTH = input -> input.replaceAll("<[^>]*>","").length();
 
         private static String fillStepResult(String step, String result, Throwable error) {
@@ -160,11 +160,11 @@ public class TaskOutput extends JPanel {
                     .append(error  == null ? (
                             result == null ?
                             FMT_SUCCESS.apply(step) :
-                            String.join("", Collections.nCopies(69-step.length()-HTML_LENGTH.apply(result), ".")).concat(result)
+                            String.join("", Collections.nCopies(72-step.length()-HTML_LENGTH.apply(result), ".")).concat(result)
                         ) : (
                             error.getMessage() == null ?
                             FMT_ERROR.apply(step) :
-                            String.join("", Collections.nCopies(68-step.length(), ".")).concat(MessageFormat.format(
+                            String.join("", Collections.nCopies(71-step.length(), ".")).concat(MessageFormat.format(
                                     "<font color='red'>&#x26D4;</font><br/>   <font color='maroon'>{0}: {1}</font>",
                                     error.getClass().getCanonicalName(),
                                     error.getMessage()
