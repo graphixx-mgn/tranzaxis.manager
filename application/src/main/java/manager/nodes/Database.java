@@ -26,6 +26,8 @@ import manager.commands.database.CheckConnection;
 import javax.swing.*;
 
 public class Database extends Entity {
+
+    private final static Integer CONNECT_TIMEOUT = 1000;
     
     private final static String PROP_BASE_URL  = "dbUrl";
     private final static String PROP_BASE_USER = "dbSchema";
@@ -190,7 +192,7 @@ public class Database extends Entity {
             String host = verMatcher.group(1);
             int    port = Integer.valueOf(verMatcher.group(2));
             try {
-                boolean available = NetTools.isPortAvailable(host, port, 250);
+                boolean available = NetTools.isPortAvailable(host, port, CONNECT_TIMEOUT);
                 Status newStatus = available ? Status.Online : Status.Offline;
                 if (newStatus != status) {
                     status = newStatus;
