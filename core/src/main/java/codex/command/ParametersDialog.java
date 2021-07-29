@@ -45,8 +45,8 @@ public class ParametersDialog extends Dialog {
                 Language.get(EntityCommand.class, "params@title"),
                 new JPanel(),
                 null,
-                Dialog.Default.BTN_OK,
-                Dialog.Default.BTN_CANCEL
+                Dialog.Default.BTN_OK.newInstance(Language.get(EntityCommand.class, "params@run")),
+                Dialog.Default.BTN_CANCEL.newInstance()
         );
         this.command = command;
         this.paramSupplier = paramSupplier;
