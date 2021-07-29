@@ -1,4 +1,4 @@
-package editor;
+package plugin.portconfig.editor;
 
 import codex.component.button.IButton;
 import codex.component.render.GeneralRenderer;
@@ -34,12 +34,6 @@ public abstract class ObjectChooser extends AbstractEditor<AnyType, Object> impl
     }
 
     public abstract List<?> getValues();
-
-//    @Override
-//    public void setEditable(boolean editable) {
-//        super.setEditable(editable);
-//        comboBox.setEnabled(editable);
-//    }
 
     public PropertyHolder getProperty() {
         return propHolder;

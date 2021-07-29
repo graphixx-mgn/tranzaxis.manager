@@ -1,4 +1,4 @@
-package plugin;
+package plugin.versioninfo;
 
 import codex.component.dialog.Dialog;
 import codex.model.Catalog;

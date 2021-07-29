@@ -1,4 +1,4 @@
-package plugin;
+package plugin.portconfig;
 
 import codex.mask.RegexMask;
 import codex.model.Access;
@@ -20,7 +20,7 @@ public class AccessPoint extends Catalog {
         this(owner, null, title);
     }
 
-    AccessPoint(EntityRef owner, ImageIcon icon, String title) {
+    public AccessPoint(EntityRef owner, ImageIcon icon, String title) {
         super(owner, icon, title, null);
         AccessPointSettings settings = loadSettings();
         if (settings.title != null) {
@@ -52,11 +52,11 @@ public class AccessPoint extends Catalog {
 
     protected void saveSettings() {}
 
-    final String getAddress(boolean unsaved) {
+    protected final String getAddress(boolean unsaved) {
         return (String) (unsaved ? model.getUnsavedValue(PROP_ADDR) : model.getValue(PROP_ADDR));
     }
 
-    final Boolean getUsed() {
+    public final Boolean getUsed() {
         return (Boolean) model.getValue(PROP_USED);
     }
 
@@ -64,12 +64,12 @@ public class AccessPoint extends Catalog {
         model.setValue(PROP_ADDR, address);
     }
 
-    class AccessPointSettings {
+    public static class AccessPointSettings {
         String  title;
         String  address;
         Boolean used;
 
-        AccessPointSettings(String title, String address, Boolean used) {
+        public AccessPointSettings(String title, String address, Boolean used) {
             this.title = title;
             this.address = address;
             this.used = Boolean.TRUE.equals(used);

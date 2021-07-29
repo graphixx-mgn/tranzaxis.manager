@@ -1,4 +1,4 @@
-package plugin;
+package plugin.portconfig.unit;
 
 import codex.database.IDatabaseAccessService;
 import codex.service.ServiceRegistry;
@@ -8,10 +8,10 @@ import codex.utils.Language;
 import manager.nodes.Database;
 import manager.nodes.Environment;
 import org.atteo.classindex.IndexSubclasses;
+import plugin.portconfig.AccessPoint;
 import javax.swing.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Locale;
 
 @IndexSubclasses
 @Unit(serviceUri = "")

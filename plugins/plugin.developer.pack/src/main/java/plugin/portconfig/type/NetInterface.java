@@ -1,4 +1,4 @@
-package type;
+package plugin.portconfig.type;
 
 import codex.type.Iconified;
 import codex.utils.ImageUtils;

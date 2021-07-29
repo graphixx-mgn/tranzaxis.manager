@@ -1,4 +1,4 @@
-package plugin;
+package plugin.deletedir;
 
 import codex.mask.DirMask;
 import codex.property.PropertyHolder;

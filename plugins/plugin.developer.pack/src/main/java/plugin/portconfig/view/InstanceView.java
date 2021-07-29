@@ -1,4 +1,4 @@
-package plugin;
+package plugin.portconfig.view;
 
 import codex.database.IDatabaseAccessService;
 import codex.explorer.tree.NodeTreeModel;
@@ -11,10 +11,12 @@ import codex.utils.Language;
 import manager.nodes.Database;
 import manager.nodes.Environment;
 import org.atteo.classindex.ClassIndex;
-import units.InstanceControlService;
+import plugin.portconfig.unit.AbstractInstanceUnit;
+import plugin.portconfig.unit.InstanceControlService;
+import plugin.portconfig.unit.Unit;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -22,7 +24,7 @@ import java.util.stream.StreamSupport;
 public class InstanceView extends Catalog {
 
     private final static IDatabaseAccessService DAS = ServiceRegistry.getInstance().lookupService(IDatabaseAccessService.class);
-    private final static Map<String, Class<? extends AbstractInstanceUnit>>  UNITS = StreamSupport.stream(
+    private final static Map<String, Class<? extends AbstractInstanceUnit>> UNITS = StreamSupport.stream(
             ClassIndex.getSubclasses(AbstractInstanceUnit.class, AbstractInstanceUnit.class.getClassLoader()).spliterator(),
             false
             ).collect(Collectors.toMap(

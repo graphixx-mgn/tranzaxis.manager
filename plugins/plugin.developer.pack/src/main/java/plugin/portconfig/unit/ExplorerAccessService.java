@@ -1,11 +1,10 @@
-package units;
+package plugin.portconfig.unit;
 
 import codex.model.Entity;
 import codex.type.EntityRef;
 import codex.utils.ImageUtils;
-import plugin.AbstractInstanceUnit;
 
-@plugin.Unit(serviceUri = "http://schemas.radixware.org/eas.wsdl")
+@Unit(serviceUri = "http://schemas.radixware.org/eas.wsdl")
 public class ExplorerAccessService extends AbstractInstanceUnit {
 
     public ExplorerAccessService(EntityRef owner, String title) {

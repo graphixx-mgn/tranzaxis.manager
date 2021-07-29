@@ -1,4 +1,4 @@
-package plugin;
+package plugin.portconfig;
 
 import codex.command.EditorCommand;
 import codex.component.button.DialogButton;
@@ -18,11 +18,12 @@ import codex.type.AnyType;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import editor.ObjectChooser;
 import manager.nodes.Environment;
 import plugin.command.CommandPlugin;
-import type.NetInterface;
-import units.InstanceControlService;
+import plugin.portconfig.editor.ObjectChooser;
+import plugin.portconfig.type.NetInterface;
+import plugin.portconfig.unit.InstanceControlService;
+import plugin.portconfig.view.InstanceView;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -170,7 +171,7 @@ public class SAPConfig extends CommandPlugin<Environment> {
         });
     }
 
-    abstract class SetHost extends EditorCommand<AnyType, Object> {
+    static abstract class SetHost extends EditorCommand<AnyType, Object> {
 
         SetHost() {
             super(
