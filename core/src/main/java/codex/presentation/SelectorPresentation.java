@@ -70,17 +70,10 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         
         tableModel = new SelectorTableModel(rootEntity) {
             @Override
-            int getRowForIndex(int index) {
+            protected int getRowForIndex(int index) {
                 return table.convertRowIndexToView(index);
             }
         };
-
-        synchronized (rootEntity) {
-            rootEntity.childrenList().forEach((node) -> {
-                tableModel.childInserted(rootEntity, node);
-            });
-        }
-
         table = new SelectorTable(tableModel);
         table.getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 

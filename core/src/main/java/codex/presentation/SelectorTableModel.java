@@ -18,10 +18,15 @@ public abstract class SelectorTableModel extends DefaultTableModel implements IN
     private final List<ColumnInfo> columnModel = new LinkedList<>();
     private final Entity rootEntity;
     
-    SelectorTableModel(Entity rootEntity) {
+    public SelectorTableModel(Entity rootEntity) {
         super();
         this.rootEntity = rootEntity;
         this.rootEntity.addNodeListener(this);
+        synchronized (rootEntity) {
+            rootEntity.childrenList().forEach((node) -> {
+                childInserted(rootEntity, node);
+            });
+        }
     }
 
     @Override
@@ -66,7 +71,7 @@ public abstract class SelectorTableModel extends DefaultTableModel implements IN
         }
     }
 
-    abstract int getRowForIndex(int index);
+    protected abstract int getRowForIndex(int index);
     private  int getRowForNode(INode node) {
         synchronized (rootEntity) {
             final int idx = rootEntity.getIndex(node);
@@ -85,7 +90,7 @@ public abstract class SelectorTableModel extends DefaultTableModel implements IN
     }
 
     @Override
-    public final Class<?> getColumnClass(int column) {
+    public Class<?> getColumnClass(int column) {
         if (columnModel.get(column).type == Bool.class) {
             return Bool.class;
         } else if (columnModel.get(column).type == Int.class || columnModel.get(column).type == BigInt.class) {
