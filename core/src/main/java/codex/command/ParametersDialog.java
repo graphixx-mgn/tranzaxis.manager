@@ -2,10 +2,10 @@ package codex.command;
 
 import codex.component.button.DialogButton;
 import codex.component.dialog.Dialog;
-import codex.model.Access;
 import codex.model.Entity;
 import codex.model.ParamModel;
 import codex.presentation.EditorPage;
+import codex.property.IPropertyChangeListener;
 import codex.property.PropertyHolder;
 import codex.type.Bool;
 import codex.utils.ImageUtils;
@@ -31,7 +31,8 @@ public class ParametersDialog extends Dialog {
     private final EntityCommand<? extends Entity> command;
     private final ParamModel paramModel = new ParamModel();
     private final Supplier<PropertyHolder[]> paramSupplier;
-    private ActionEvent exitEvent;
+    private final IPropertyChangeListener updateParams;
+    private       ActionEvent exitEvent;
 
     /**
      * Конструктор поставшика.
@@ -50,6 +51,7 @@ public class ParametersDialog extends Dialog {
         );
         this.command = command;
         this.paramSupplier = paramSupplier;
+        this.updateParams  = (name, oldValue, newValue) -> CommandParameters.update(command);
         {
             // Перекрытие обработчика кнопок
             Function<DialogButton, ActionListener> defaultHandler = handler;
@@ -59,6 +61,7 @@ public class ParametersDialog extends Dialog {
                     defaultHandler.apply(button).actionPerformed(event);
                 }
             };
+            paramModel.addChangeListener(updateParams);
         }
     }
 
@@ -76,23 +79,26 @@ public class ParametersDialog extends Dialog {
 
     public List<PropertyHolder> getProperties() throws Canceled {
         Map<String, String> storedValues = CommandParameters.read(command);
-        Arrays.asList(paramSupplier.get()).forEach(propertyHolder -> {
-            if (storedValues.containsKey(propertyHolder.getName())) {
-                propertyHolder.getPropValue().valueOf(storedValues.get(propertyHolder.getName()));
-            }
-            paramModel.addProperty(propertyHolder);
-        });
+        List<PropertyHolder> properties = Arrays.asList(paramSupplier.get()).stream()
+                .peek(propHolder -> {
+                    if (storedValues.containsKey(propHolder.getName())) {
+                        propHolder.getPropValue().valueOf(storedValues.get(propHolder.getName()));
+                    }
+                    paramModel.addProperty(propHolder);
+                })
+                .collect(Collectors.toList());
         command.preprocessParameters(paramModel);
-
         setContent(new EditorPage(paramModel));
         setVisible(true);
-        if (exitEvent.getID() == Dialog.OK) {
-            CommandParameters.update(command);
-            return paramModel.getProperties(Access.Edit).stream()
-                    .map(paramModel::getProperty)
-                    .collect(Collectors.toList());
-        } else {
-            throw new Canceled();
+
+        try {
+            if (exitEvent.getID() == Dialog.OK) {
+                return properties;
+            } else {
+                throw new Canceled();
+            }
+        } finally {
+            paramModel.removeChangeListener(updateParams);
         }
     }
 
