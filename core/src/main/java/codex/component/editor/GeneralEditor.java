@@ -3,6 +3,7 @@ package codex.component.editor;
 import codex.editor.IEditor;
 import codex.model.EntityModel;
 import codex.presentation.ISelectorTableModel;
+import codex.property.IPropertyChangeListener;
 import codex.type.Bool;
 import javax.swing.*;
 import javax.swing.table.TableCellEditor;
@@ -10,7 +11,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.util.HashMap;
 import java.util.Map;
-
 
 public class GeneralEditor extends AbstractCellEditor implements TableCellEditor {
 
@@ -40,6 +40,7 @@ public class GeneralEditor extends AbstractCellEditor implements TableCellEditor
     private EntityModel model;
     private String      propName;
     private Object      prevValue;
+    private IPropertyChangeListener applyOnClick = (name, oldValue, newValue) -> stopCellEditing();
 
     @Override
     public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
@@ -56,7 +57,7 @@ public class GeneralEditor extends AbstractCellEditor implements TableCellEditor
                 model.getEditor(propName);
         if (model.getPropertyType(propName) == Bool.class) {
             JComponent renderedComp = (JComponent) table.getCellRenderer(row, column).getTableCellRendererComponent(table, value, true, true, row, column);
-
+            model.getProperty(propName).addChangeListener(applyOnClick);
             JPanel container = new JPanel();
             container.setOpaque(true);
             container.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 2));
@@ -79,11 +80,13 @@ public class GeneralEditor extends AbstractCellEditor implements TableCellEditor
         boolean stopEditing = model.getEditor(propName).stopEditing();
         if (stopEditing) {
             detachKeyBinding();
+            model.getProperty(propName).removeChangeListener(applyOnClick);
         }
         return stopEditing && super.stopCellEditing();
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void cancelCellEditing() {
         model.getEditor(propName).stopEditing();
         model.setValue(propName, prevValue);
