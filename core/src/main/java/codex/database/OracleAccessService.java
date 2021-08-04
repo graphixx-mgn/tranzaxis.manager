@@ -169,8 +169,8 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
                 "Prepare statement: {0} (connection #{1})",
                 IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
         );
-        Connection connection = idToPoolMap.get(connectionID).getConnection();
         PoolDataSource dataSource = (PoolDataSource) idToPoolMap.get(connectionID);
+        Connection     connection = dataSource.getConnection();
         Logger.getContextLogger(UCPContext.class).debug(
                 "UCP usage state: busy={0}, avail={1}, max={2}",
                 dataSource.getBorrowedConnectionsCount(),
