@@ -13,6 +13,7 @@ import java.io.File;
 import java.text.MessageFormat;
 import java.util.Map;
 
+@EntityCommand.Definition(parentCommand = RunAll.class)
 public class RunExplorer extends EntityCommand<Environment> {
     
     private static final ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
