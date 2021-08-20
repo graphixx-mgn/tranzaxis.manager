@@ -23,8 +23,7 @@ import java.util.function.Supplier;
  */
 @ThreadSafe
 public class NetTools {
-
-    private final static Map<String, Object> syncMap = new HashMap<>();
+    private final static Map<String, Socket> SOCKET_CACHE = new HashMap<>();
     
     /**
      * Проверка доступности сетевого порта.
@@ -39,29 +38,34 @@ public class NetTools {
         if (!checkAddress(host)) {
             throw new IllegalStateException("Invalid host address: "+host);
         }
+        SocketAddress remoteAddr = new InetSocketAddress(host, port);
+        String key = remoteAddr.toString();
 
-        Object syncVal;
-        String syncKey = host.concat(":").concat(String.valueOf(port));
-        synchronized (syncMap) {
-            syncVal = syncMap.computeIfAbsent(syncKey, s -> new Object());
+        Socket  socket;
+        boolean result;
+        synchronized (SOCKET_CACHE) {
+            socket = SOCKET_CACHE.computeIfAbsent(key, s -> new Socket());
         }
-        synchronized (syncVal) {
-            SocketAddress remoteAddr = new InetSocketAddress(host, port);
-            try (Socket socket = new Socket()) {
-                int attempt = 0;
-                while (!socket.isConnected() && attempt < 3) {
-                    try {
-                        socket.connect(remoteAddr, timeout);
-                    } catch (IOException ignore) {}
-                    attempt++;
-                }
-                return socket.isConnected();
+        synchronized (socket) {
+            if (socket.isClosed())    return false;
+            if (socket.isConnected()) return true;
+            try {
+                socket.connect(remoteAddr, timeout);
             } catch (IOException e) {
-                return false;
+                try {
+                    socket.close();
+                } catch (IOException ignore) {}
             } finally {
-                syncMap.remove(syncKey);
+                result = socket.isConnected();
             }
         }
+        synchronized (SOCKET_CACHE) {
+            try {
+                socket.close();
+            } catch (IOException ignore) {}
+            SOCKET_CACHE.remove(key);
+        }
+        return result;
     }
     
     private static boolean checkPort(int port) {
