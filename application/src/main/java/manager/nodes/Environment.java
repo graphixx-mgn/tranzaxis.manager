@@ -483,7 +483,7 @@ public class Environment extends Entity implements INodeListener {
                 getDataBase(true),
                 getLayerUri(false),
                 getInstanceId()
-        );
+        ) && getDataBase(true).isConnected();
     }
     
     public boolean canStartExplorer() {

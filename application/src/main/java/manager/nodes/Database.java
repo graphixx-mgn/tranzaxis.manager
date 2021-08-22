@@ -134,8 +134,9 @@ public class Database extends Entity {
                 if (model.getValue(PROP_CONNECTED) == Status.Offline) {
                     return null;
                 }
-                model.setValue(PROP_CONNECTED, checkUrlPort(url) ? Status.Online : Status.Offline);
-                if (model.getValue(PROP_CONNECTED) == Status.Offline) {
+                Status connection = checkUrlPort(url) ? Status.Online : Status.Offline;
+                SwingUtilities.invokeLater(() -> model.setValue(PROP_CONNECTED, connection));
+                if (connection == Status.Offline) {
                     if (showError) {
                         MessageBox.show(MessageType.WARNING, MessageFormat.format(
                                 Language.get(Database.class, "error@unavailable"),
@@ -178,7 +179,8 @@ public class Database extends Entity {
 
     private void checkConnection(boolean showError) {
         new Thread(() -> {
-            model.setValue(PROP_CONNECTED, Status.Unknown);
+            //noinspection unchecked
+            model.getProperty(PROP_CONNECTED).getPropValue().setValue(Status.Unknown);
             String dbUrl = getDatabaseUrl(true);
             if (getConnectionID(showError) == null) {
                 Logger.getLogger().warn(
