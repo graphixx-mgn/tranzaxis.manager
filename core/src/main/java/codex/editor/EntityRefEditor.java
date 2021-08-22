@@ -2,6 +2,7 @@ package codex.editor;
 
 import codex.command.CommandStatus;
 import codex.command.EditorCommand;
+import codex.command.EntityCommand;
 import codex.component.button.IButton;
 import codex.component.render.GeneralRenderer;
 import codex.explorer.IExplorerAccessService;
@@ -9,10 +10,7 @@ import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.mask.EntityFilter;
 import codex.mask.IRefMask;
-import codex.model.Access;
-import codex.model.Entity;
-import codex.model.EntityModel;
-import codex.model.ICatalog;
+import codex.model.*;
 import codex.presentation.EditorPresentation;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
@@ -21,6 +19,7 @@ import net.jcip.annotations.ThreadSafe;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
@@ -50,6 +49,30 @@ public class EntityRefEditor<T extends Entity> extends AbstractEditor<EntityRef<
     public EntityRefEditor(PropertyHolder<EntityRef<T>, T> propHolder) {
         super(propHolder);
         addCommand(new EmbeddedEditor());
+        Class<T> entityClass = propHolder.getPropValue().getEntityClass();
+        CommandRegistry.getInstance().getRegisteredCommands(entityClass).forEach(command -> {
+            if (command.getKind() == EntityCommand.Kind.Admin) {
+                addCommand(new EditorCommand<EntityRef<T>, T>(command.getIcon(), command.getTitle()) {
+                    {
+                        activator = holder -> new CommandStatus(
+                                !holder.getPropValue().isEmpty() && isActive(command, holder),
+                                getIcon(),
+                                holder.getPropValue().isEmpty()
+                        );
+                    }
+                    private boolean isActive(EntityCommand<T> command, PropertyHolder<EntityRef<T>, T> context) {
+                        command.setContext(Collections.singletonList(context.getPropValue().getValue()));
+                        return command.isActive();
+                    }
+
+                    @Override
+                    public void execute(PropertyHolder<EntityRef<T>, T> context) {
+                        command.setContext(Collections.singletonList(context.getPropValue().getValue()));
+                        command.process();
+                    }
+                });
+            }
+        });
     }
 
     protected List<T> getValues() {
