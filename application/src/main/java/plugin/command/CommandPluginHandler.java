@@ -28,8 +28,8 @@ final class CommandPluginHandler<V extends Entity> extends PluginHandler<Command
         }
     };
 
-    CommandPluginHandler(Class<CommandPlugin<V>> pluginClass) {
-        super(pluginClass);
+    CommandPluginHandler(Class<CommandPlugin<V>> pluginClass, String pkgId) {
+        super(pluginClass, pkgId);
     }
 
     @Override
@@ -82,16 +82,6 @@ final class CommandPluginHandler<V extends Entity> extends PluginHandler<Command
         super.reloadPlugin(pluginHandler);
         return true;
     }
-
-//    private static <V extends Entity> void updateShortcuts(Class<V> entityClass, String commandName) {
-//        IConfigStoreService CAS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
-//        CAS.readCatalogEntries(null, Shortcut.class).keySet().stream()
-//                .map(id -> CAS.readClassInstance(Shortcut.class, id))
-//                .filter(properties -> properties.get(Shortcut.PROP_COMMAND).equals(commandName))
-//                .forEach(properties -> {
-//                    (EntityRef.build(Shortcut.class, properties.get(EntityModel.ID)).getValue()).update();
-//                });
-//    }
 
     @Override
     protected final String getTitle() {

@@ -1,32 +1,40 @@
 package plugin;
 
+import codex.command.EntityCommand;
 import codex.explorer.ExplorerUnit;
 import codex.explorer.browser.BrowseMode;
 import codex.explorer.browser.EmbeddedMode;
 import codex.explorer.tree.Navigator;
 import codex.explorer.tree.NodeTreeModel;
-import codex.instance.IInstanceDispatcher;
 import codex.log.Logger;
-import codex.model.CommandRegistry;
-import codex.model.Entity;
 import codex.service.ServiceRegistry;
+import codex.type.IComplexType;
 import codex.unit.AbstractUnit;
+import codex.utils.ImageUtils;
+import codex.utils.Language;
 import javax.swing.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Locale;
+import java.util.Map;
 
-public final class PluginManager extends AbstractUnit {
+public final class PluginManager extends AbstractUnit implements IPluginService.IPluginServiceListener {
+
+    private static final PluginProvider PXE = new PluginProvider();
 
     private static final PluginManager INSTANCE = new PluginManager();
     public static PluginManager getInstance() {
         return INSTANCE;
     }
 
+    static {
+        ServiceRegistry.getInstance().registerService(PXE);
+    }
+
     static Object getOption(Class <? extends IPlugin> pluginClass, String optName) throws ClassNotFoundException {
-        return getInstance().getPluginLoader().getPackages().parallelStream()
+        return PXE.getPackages().parallelStream()
                 .map(PluginPackage::getPlugins)
                 .flatMap(Collection::stream)
                 .filter(pluginHandler -> pluginHandler.getPluginClass().equals(pluginClass))
@@ -38,28 +46,6 @@ public final class PluginManager extends AbstractUnit {
 
     private ExplorerUnit        explorer;
     private final PluginCatalog pluginCatalog = new PluginCatalog();
-    private final PluginLoader  pluginLoader  = new PluginLoader() {
-
-        @Override
-        void addPluginPackage(PluginPackage pluginPackage) {
-            super.addPluginPackage(pluginPackage);
-            pluginCatalog.attach(new PackageView(pluginPackage));
-        }
-
-        @Override
-        void replacePluginPackage(PluginPackage pluginPackage) {
-            super.replacePluginPackage(pluginPackage);
-            PluginPackage installedPackage = getPackageById(pluginPackage.getId());
-            pluginCatalog.childrenList().stream()
-                    .map(iNode -> (PackageView) iNode)
-                    .filter(packageView -> packageView.getPackage().equals(installedPackage))
-                    .findFirst()
-                    .ifPresent(packageView -> {
-                        int position = pluginCatalog.getIndex(packageView);
-                        pluginCatalog.replace(new PackageView(pluginPackage), position);
-                    });
-        }
-    };
 
     private PluginManager() {
         Logger.getLogger().debug("Initialize unit: Plugin Manager");
@@ -77,47 +63,77 @@ public final class PluginManager extends AbstractUnit {
         } catch (Exception ignore) {}
     }
 
+    @Deprecated
     PluginCatalog getPluginCatalog() {
         return pluginCatalog;
     }
 
-    PluginLoader getPluginLoader() {
-        return pluginLoader;
+    PluginProvider getProvider() {
+        return PXE;
     }
 
     @Override
-    public JComponent createViewport() {
+    public final JComponent createViewport() {
         return explorer.getViewport();
     }
 
     @Override
-    public void viewportBound() {
+    public final void viewportBound() {
         explorer.viewportBound();
+        PXE.addListener(this);
+        PXE.readPackages();
+    }
 
-        CommandRegistry.getInstance().registerCommand(PluginCatalog.class, ShowPackagesUpdates.class);
-
-        ServiceRegistry.getInstance().addRegistryListener(IInstanceDispatcher.class, service -> {
-            IInstanceDispatcher localICS = (IInstanceDispatcher) service;
-            localICS.registerRemoteService(PluginLoaderService.class);
-
-            try {
-                PluginLoaderService localPluginLoader = (PluginLoaderService) localICS.getService(PluginLoaderService.class);
-                localPluginLoader.addPublicationListener(pluginCatalog.getCommand(ShowPackagesUpdates.class));
-            } catch (RemoteException e) {
-                Logger.getLogger().warn("Unable to find plugin loader service", e);
-            } catch (NotBoundException ignore) {}
-
-            pluginLoader.getPackages().stream()
-                    .filter(pluginPackage -> Entity.newInstance(PackageView.class, null, pluginPackage.getTitle()).isPublished())
-                    .map(IPluginLoaderService.RemotePackage::new)
-                    .forEach(remotePackage -> {
-                        localICS.getInstances().forEach(instance -> {
-                            try {
-                                final IPluginLoaderService pluginLoader = (IPluginLoaderService) instance.getService(PluginLoaderService.class);
-                                pluginLoader.packagePublicationChanged(remotePackage, true);
-                            } catch (RemoteException | NotBoundException ignore) {}
-                        });
-                    });
+    @Override
+    public final void packageRegistered(int dataIdx, PluginPackage pluginPackage) {
+        SwingUtilities.invokeLater(() -> {
+            synchronized (pluginCatalog) {
+                pluginCatalog.attach(pluginPackage);
+                int viewIdx = pluginCatalog.getIndex(pluginPackage);
+                if (dataIdx != viewIdx) {
+                    pluginCatalog.move(pluginPackage, dataIdx);
+                }
+                pluginPackage.getPlugins().forEach(pluginHandler -> {
+                    Plugin plugin = pluginHandler.getView();
+                    if (plugin.isEnabled() && plugin.isOptionsValid()) {
+                        Logger.getContextLogger(PluginProvider.class).debug(
+                                "Start previously enabled plugin: {0}",
+                                Language.get(pluginHandler.getPluginClass(), "title", Locale.US)
+                        );
+                        plugin.getCommand(Plugin.LoadPlugin.class).execute(plugin, Collections.emptyMap());
+                    }
+                });
+            }
         });
+    }
+
+    @Override
+    public void packageUnregistered(int dataIdx, PluginPackage pluginPackage) {
+        SwingUtilities.invokeLater(() -> {
+            synchronized (pluginCatalog) {
+                pluginCatalog.detach(pluginPackage);
+            }
+        });
+    }
+
+
+    static class Refresh extends EntityCommand<PluginCatalog> {
+
+        private static final String    COMMAND_TITLE = Language.get(PluginCatalog.class, "repo@reload");
+        private static final ImageIcon COMMAND_ICON  = ImageUtils.getByPath("/images/update.png");
+
+        public Refresh() {
+            super("check repositories", COMMAND_TITLE, COMMAND_ICON, COMMAND_TITLE, null);
+        }
+
+        @Override
+        public void execute(PluginCatalog context, Map<String, IComplexType> params) {
+            PXE.readPackages();
+        }
+
+        @Override
+        public Kind getKind() {
+            return Kind.System;
+        }
     }
 }

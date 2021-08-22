@@ -44,8 +44,8 @@ public class JobPluginHandler extends PluginHandler<JobPlugin> {
         }
     };
 
-    protected JobPluginHandler(Class<JobPlugin> pluginClass) {
-        super(pluginClass);
+    protected JobPluginHandler(Class<JobPlugin> pluginClass, String pkgId) {
+        super(pluginClass, pkgId);
     }
 
     @Override

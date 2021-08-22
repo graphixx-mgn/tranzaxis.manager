@@ -9,11 +9,10 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import plugin.IPlugin;
 import plugin.Pluggable;
-import plugin.PluginLoader;
+import plugin.PluginProvider;
 import javax.swing.*;
 import java.lang.annotation.Annotation;
 import java.lang.invoke.MethodHandles;
-import java.util.Locale;
 import java.util.function.Predicate;
 
 @Pluggable(pluginHandlerClass = CommandPluginHandler.class)
@@ -51,7 +50,7 @@ public abstract class CommandPlugin<V extends Entity> extends EntityCommand<V> i
 
                 @Override
                 public Class<? extends IContext> parent() {
-                    return PluginLoader.class;
+                    return PluginProvider.class;
                 }
             };
         }
