@@ -137,6 +137,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 if (changes.contains(EntityModel.PID)) {
                     setTitle(model.getPID(false));
                 }
+                fireChangeEvent();
                 ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).findReferencedEntries(Entity.this.getClass(), getID()).stream()
                         .filter(link -> link.isIncoming)
                         .forEach(link -> {
