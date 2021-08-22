@@ -120,6 +120,17 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 table.getSelectionModel().setValueIsAdjusting(false);
             }
         });
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                if (event.getClickCount() == 2) {
+                    final EntityCommand<Entity> editCmd = findCommand(systemCommands.keySet(), EditEntity.class, new EditEntity());
+                    if (editCmd.isActive()) {
+                        editCmd.execute(tableModel.getEntityForRow(table.convertRowIndexToModel(table.getSelectedRow())), Collections.emptyMap());
+                    }
+                }
+            }
+        });
 
         sorter = new TableRowSorter<>(table.getModel());
         if (rootEntity instanceof Catalog && ((Catalog) rootEntity).isChildFilterDefined()) {
@@ -219,7 +230,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         activateCommands();
     }
 
-    private void updateCommands() {
+    private synchronized void updateCommands() {
         Map<EntityCommand<Entity>, CommandContextKind> sysCommands = getSystemCommands();
         boolean updateRequired = !(
                 sysCommands.keySet().containsAll(systemCommands.keySet()) &&
@@ -605,15 +616,6 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     return new CommandStatus(false, rootEntity.allowModifyChild() ? IMAGE_EDIT : IMAGE_VIEW);
                 }
             };
-            table.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent event) {
-                    if (event.getClickCount() == 2 && isActive()) {
-                        execute(tableModel.getEntityForRow(table.convertRowIndexToModel(table.getSelectedRow())), null);
-                    }
-                }
-            });
-            activate();
         }
 
 

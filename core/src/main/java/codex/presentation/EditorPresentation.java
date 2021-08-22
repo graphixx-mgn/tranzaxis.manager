@@ -102,7 +102,7 @@ public final class EditorPresentation extends JPanel {
         return entityClass;
     }
 
-    private void updateCommands() {
+    private synchronized void updateCommands() {
         systemCommands.clear();
         systemCommands.addAll(getSystemCommands());
         commandPanel.setSystemCommands(systemCommands);
