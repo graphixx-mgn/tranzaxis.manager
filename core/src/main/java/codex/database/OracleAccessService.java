@@ -158,6 +158,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
     @Override
     public ResultSet select(Integer connectionID, String query, Object... params) throws SQLException {
         try {
+            if (connectionID == null) throw new SQLException("Connection is not opened");
             final RowSet rowSet = prepareSet(connectionID);
             Logger.getContextLogger(QueryContext.class).debug(
                     "Select query: {0} (connection #{1})",
@@ -174,7 +175,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
             rowSet.execute();
             return rowSet;
         } catch (SQLException e) {
-            Logger.getLogger().error(
+            if (e.getErrorCode() != 0) Logger.getLogger().error(
                     "Unable to execute query: {0}\nQuery:{1}",
                     e.getMessage().trim(),
                     IDatabaseAccessService.prepareTraceSQL(query, params)
@@ -189,6 +190,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
 
     @Override
     public synchronized void update(Integer connectionID, String query, Object... params) throws SQLException {
+        if (connectionID == null) throw new SQLException("Connection is not opened");
         Logger.getContextLogger(QueryContext.class).debug(
                 "Update query: {0} (connection #{1})",
                 IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
@@ -229,6 +231,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
 
     @Override
     public PreparedStatement prepareStatement(Integer connectionID, String query, Object... params) throws SQLException {
+        if (connectionID == null) throw new SQLException("Connection is not opened");
         Logger.getContextLogger(QueryContext.class).debug(
                 "Prepare statement: {0} (connection #{1})",
                 IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
@@ -247,6 +250,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
 
     @Override
     public CallableStatement prepareCallable(Integer connectionID, String query) throws SQLException {
+        if (connectionID == null) throw new SQLException("Connection is not opened");
         Connection connection = getConnection(connectionID);
         return connection.prepareCall(query);
     }

@@ -42,19 +42,15 @@ public class NetTools {
         String key = remoteAddr.toString();
 
         Socket  socket;
-        boolean result;
+        Boolean result = null;
         synchronized (SOCKET_CACHE) {
             socket = SOCKET_CACHE.computeIfAbsent(key, s -> new Socket());
         }
-        synchronized (socket) {
-            if (socket.isClosed())    return false;
-            if (socket.isConnected()) return true;
+        synchronized (SOCKET_CACHE.get(key)) {
+            if (result != null) return result;
             try {
                 socket.connect(remoteAddr, timeout);
-            } catch (IOException e) {
-                try {
-                    socket.close();
-                } catch (IOException ignore) {}
+            } catch (IOException ignore) {
             } finally {
                 result = socket.isConnected();
             }
