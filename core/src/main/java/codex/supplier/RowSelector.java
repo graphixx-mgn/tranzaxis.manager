@@ -8,7 +8,9 @@ import codex.component.messagebox.MessageType;
 import codex.component.render.GeneralRenderer;
 import codex.editor.IEditor;
 import codex.editor.StrEditor;
+import codex.presentation.EditorPresentation;
 import codex.presentation.SelectorTable;
+import codex.presentation.TableColumnAdjuster;
 import codex.property.PropertyHolder;
 import codex.type.Str;
 import codex.utils.ImageUtils;
@@ -39,7 +41,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R> /*implements AdjustmentListener*/ {
+public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R> {
 
     private static final ImageIcon ICON_FILTER   = ImageUtils.getByPath("/images/filter.png");
     private static final ImageIcon ICON_SELECTOR = ImageUtils.getByPath("/images/selector.png");
@@ -97,6 +99,7 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
 
     private final boolean desc;
     private final Mode mode;
+    private final Map<Integer, TableCellRenderer> rendererMap = new HashMap<>();
 
     private RowSelector(Mode mode, IDataSupplier<Map<String, String>> supplier, boolean showDescription) {
         super(supplier);
@@ -123,6 +126,10 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
         return Collections.emptyList();
     }
 
+    public final void setColumnRenderer(int column, TableCellRenderer renderer) {
+        rendererMap.put(column, renderer);
+    }
+
 
     private class SelectorDialog extends Dialog {
 
@@ -138,7 +145,6 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
             public Class<?> getColumnClass(int columnIndex) {
                 return String.class;
             }
-
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -193,8 +199,11 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
             table.setDefaultRenderer(String.class, new GeneralRenderer() {
                 @Override
                 public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                    Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                    if (row == initialRow) {
+                    Component c = rendererMap.containsKey(column) ?
+                            rendererMap.get(column).getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column) :
+                            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                    int rowIdx = table.convertRowIndexToModel(row);
+                    if (rowIdx == initialRow) {
                         c.setFont(IEditor.FONT_VALUE.deriveFont(Font.BOLD));
                         c.setForeground(Color.decode("#0066CC"));
                     }
@@ -204,6 +213,11 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
             table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
             table.getSelectionModel().addListSelectionListener(this::onSelect);
             table.setRowSorter(sorter);
+
+            TableColumnAdjuster adjuster = new TableColumnAdjuster(table, 6);
+            adjuster.setDynamicAdjustment(true);
+            adjuster.adjustColumns();
+
             scrollPane.getVerticalScrollBar().addAdjustmentListener(this::onScroll);
             scrollPane.addComponentListener(new ComponentAdapter() {
                 @Override
@@ -243,13 +257,19 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
         @Override
         public Dimension getPreferredSize() {
             Dimension defDim = super.getPreferredSize();
+            int width = defDim.width;
+            if (getOwner() != null && getOwner() instanceof Dialog) {
+                if (width > EditorPresentation.DEFAULT_DIALOG_WIDTH / 2 && width < EditorPresentation.DEFAULT_DIALOG_WIDTH) {
+                    width = getOwner().getPreferredSize().width - 20;
+                }
+            }
             return new Dimension(
-                    Math.max(Math.min(defDim.width,  800), 400), // 400 <= width  <= 800
-                    Math.max(Math.min(defDim.height, 500), 200)  // 200 <= height <= 500
+                    width + 40,
+                    Math.max(Math.min(defDim.height, EditorPresentation.DEFAULT_DIALOG_HEIGHT), 200)  // 200 <= height <= 500
             );
         }
 
-        public Rectangle getRowRect(int row) {
+        Rectangle getRowRect(int row) {
             Rectangle cellRect = table.getCellRect(row, 0, true);
             cellRect.setBounds(0, cellRect.y-table.getRowHeight(), 0, cellRect.height+table.getRowHeight()*2);
             return cellRect;
@@ -297,7 +317,7 @@ public abstract class RowSelector<R> extends DataSelector<Map<String, String>, R
         }
 
         private Map<String, String> getSelectedData() {
-            int selectedRow = table.getSelectedRow();
+            int selectedRow = table.convertRowIndexToModel(table.getSelectedRow());
             return selectedRow == TableModelEvent.HEADER_ROW ?
                     Collections.emptyMap() :
                     IntStream.range(0, tableModel.getColumnCount()).boxed()
