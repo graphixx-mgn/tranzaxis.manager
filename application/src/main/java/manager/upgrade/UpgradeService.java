@@ -62,7 +62,7 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
         }
     };
 
-    private final Version currentVersion, latestVersion;
+    private final Version releaseVersion, buildVersion;
     private final VersionsDocument history;
     private final Semaphore lock = new Semaphore(1, true);
 
@@ -72,14 +72,14 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
             throw new ServiceNotLoadedException(this, "Running application in development mode", Level.Info);
         }
         history = getHistory();
-        currentVersion = getCurrentVersion();
-        latestVersion  = getMaxVersion();
-        if (UpgradeService.VER_COMPARATOR.compare(latestVersion, currentVersion) > 0) {
+        releaseVersion = getCurrentVersion();
+        buildVersion  = getBuildVersion();
+        if (UpgradeService.VER_COMPARATOR.compare(buildVersion, releaseVersion) > 0) {
             throw new ServiceNotLoadedException(
                     this,
                     MessageFormat.format(
                             "Current version {0} is not released. Latest release: {1}",
-                            latestVersion.getNumber(), currentVersion.getNumber()
+                            buildVersion.getNumber(), releaseVersion.getNumber()
                     ),
                     Level.Info
             );
@@ -100,7 +100,7 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
         });
     }
 
-    public static Version getVersion() {
+    public static Version getReleaseVersion() {
         VersionsDocument versionsDocument = getHistory();
         if (versionsDocument != null) {
             String currentVersionNumber = versionsDocument.getVersions().getCurrent();
@@ -113,7 +113,7 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
         return null;
     }
 
-    static Version getMaxVersion() {
+    public static Version getBuildVersion() {
         return Collections.max(
                 Arrays.asList(getHistory().getVersions().getVersionArray()),
                 UpgradeService.VER_COMPARATOR
@@ -130,7 +130,7 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
 
     @Override
     public final Version getCurrentVersion() throws RemoteException {
-        return getVersion();
+        return getReleaseVersion();
     }
 
     @Override
@@ -214,8 +214,8 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
             try {
                 IUpgradeService remoteUpService = (IUpgradeService) instance.getService(UpgradeService.class);
                 Version availVersion = remoteUpService.getCurrentVersion();
-                if (availVersion != null && UpgradeService.VER_COMPARATOR.compare(currentVersion, availVersion) < 0) {
-                    VersionsDocument diff = remoteUpService.getDiffVersions(currentVersion, availVersion);
+                if (availVersion != null && UpgradeService.VER_COMPARATOR.compare(releaseVersion, availVersion) < 0) {
+                    VersionsDocument diff = remoteUpService.getDiffVersions(releaseVersion, availVersion);
 
                     ServiceRegistry.getInstance().lookupService(INotificationService.class).sendMessage(
                             Message.getBuilder(UpgradeMessage.class, availVersion::getNumber).build().build(availVersion, diff),
@@ -223,7 +223,7 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
                     );
                     Logger.getLogger().info(
                             "Found upgrade provider ({1} -> {2}): {0}",
-                            instance, currentVersion.getNumber(), availVersion.getNumber()
+                            instance, releaseVersion.getNumber(), availVersion.getNumber()
                     );
                 }
             } catch (RemoteException | NotBoundException ignore) {}
@@ -265,7 +265,7 @@ public class UpgradeService extends AbstractRemoteService<UpgradeServiceOptions,
 
         @Override
         protected List<IMessageAction> getActions() {
-            Version currVersion = UpgradeService.getVersion();
+            Version currVersion = UpgradeService.getReleaseVersion();
             Version nextVersion = Version.Factory.newInstance();
             nextVersion.setNumber(getVersion());
 

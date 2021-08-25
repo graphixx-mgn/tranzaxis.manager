@@ -115,10 +115,9 @@ class RemotePluginRegistry extends PluginRegistry implements IPluginRegistry {
 
     @Override
     public Collection<PackageDescriptor> filterPackages(List<PackageDescriptor> packages) {
-        final Version appVersion = UpgradeService.getVersion();
-        Logger.todo("Disabled APP version check");
+        final Version appVersion = UpgradeService.getBuildVersion();
         return packages.stream()
-                //.filter(descriptor -> descriptor.compatibleWith(appVersion))
+                .filter(descriptor -> descriptor.compatibleWith(appVersion))
                 .collect(Collectors.toMap(
                         PackageDescriptor::getId,
                         descriptor -> descriptor,

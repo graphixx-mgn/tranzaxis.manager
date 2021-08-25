@@ -18,13 +18,12 @@ public final class UpgradeUnit extends AbstractUnit {
     private final static ImageIcon RELEASE = ImageUtils.resize(ImageUtils.getByPath("/images/upgrade.png"),  17, 17);
     private final static ImageIcon DEVELOP = ImageUtils.resize(ImageUtils.getByPath("/images/maintain.png"), 17, 17);
 
-    private final Version currentVersion;
-    private final Version latestVersion;
+    private final Version releaseVersion, buildVersion;
     
     public UpgradeUnit() {
         Logger.getLogger().debug("Initialize unit: Upgrade Manager");
-        currentVersion = UpgradeService.getVersion();
-        latestVersion  = UpgradeService.getMaxVersion();
+        releaseVersion = UpgradeService.getReleaseVersion();
+        buildVersion   = UpgradeService.getBuildVersion();
     }
 
     @Override
@@ -32,9 +31,9 @@ public final class UpgradeUnit extends AbstractUnit {
         JLabel label = new JLabel(
                 MessageFormat.format(
                         Language.get("current"),
-                        latestVersion.getNumber()
+                        buildVersion.getNumber()
                 ),
-                UpgradeService.VER_COMPARATOR.compare(latestVersion, currentVersion) > 0 ? DEVELOP : RELEASE,
+                UpgradeService.VER_COMPARATOR.compare(buildVersion, releaseVersion) > 0 ? DEVELOP : RELEASE,
                 SwingConstants.CENTER
         ) {{
             setBorder(new EmptyBorder(new Insets(2, 10, 2, 10)));

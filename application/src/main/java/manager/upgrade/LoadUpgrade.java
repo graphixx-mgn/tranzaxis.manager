@@ -117,7 +117,7 @@ class LoadUpgrade extends AbstractTask<Void> {
                 null,
                 new AnyType(MessageFormat.format(
                         "{0} &rarr; {1}",
-                        UpgradeService.getVersion().getNumber(),
+                        UpgradeService.getReleaseVersion().getNumber(),
                         version
                 )),
                 false
