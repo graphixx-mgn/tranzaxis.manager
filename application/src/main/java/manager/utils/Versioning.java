@@ -72,7 +72,6 @@ public class Versioning {
             public void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g;
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
                 g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
                 g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
                 super.paintComponent(g2);
@@ -80,7 +79,7 @@ public class Versioning {
         };
         infoPane.setEditable(false);
         infoPane.setContentType("text/html");
-        infoPane.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        infoPane.setFont(new Font(Font.DIALOG, Font.PLAIN, 12));
         infoPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
         ((DefaultCaret) infoPane.getCaret()).setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
 

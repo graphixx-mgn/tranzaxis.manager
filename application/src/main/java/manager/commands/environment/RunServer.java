@@ -6,6 +6,7 @@ import codex.task.*;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import manager.commands.offshoot.RunDesigner;
 import manager.nodes.BinarySource;
 import manager.nodes.Environment;
 import manager.nodes.Release;
@@ -13,6 +14,7 @@ import java.io.File;
 import java.text.MessageFormat;
 import java.util.*;
 
+@EntityCommand.Definition(parentCommand = RunAll.class)
 public class RunServer extends EntityCommand<Environment> {
     
     private static final ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);

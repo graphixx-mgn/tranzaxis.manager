@@ -1,6 +1,7 @@
 package codex.explorer.browser;
 
 import codex.explorer.tree.INode;
+import codex.explorer.tree.INodeListener;
 import codex.model.Access;
 import codex.model.Entity;
 import codex.presentation.EditorPresentation;
@@ -41,23 +42,52 @@ public final class EmbeddedMode extends BrowseMode<JPanel> {
             editorPanel.add(editorPresentation);
             editorPresentation.refresh();
         }
-        SelectorPresentation selectorPresentation = node.getSelectorPresentation();
-        if (selectorPresentation != null) {
-            if (!((Entity) node).model.getProperties(Access.Edit).isEmpty()) {
-                selectorPresentation.setBorder(new CompoundBorder(
-                        new EmptyBorder(0, 5, 3, 5),
-                        new TitledBorder(
-                                new LineBorder(Color.GRAY, 1),
-                                IComplexType.coalesce(getDescription(getClassHierarchy(node), "group@title"), SELECTOR_TITLE)
-                        )
-                ));
+        reloadEmbeddedSelector(node);
+        node.addNodeListener(new INodeListener() {
+            @Override
+            public void childInserted(INode parentNode, INode childNode) {
+                reloadEmbeddedSelector(node);
             }
-            selectorPanel.add(selectorPresentation);
-            selectorPresentation.refresh();
-        }
+            @Override
+            public void childDeleted(INode parentNode, INode childNode, int index) {
+                reloadEmbeddedSelector(node);
+            }
+            @Override
+            public void childMoved(INode parentNode, INode childNode, int from, int to) {
+                reloadEmbeddedSelector(node);
+            }
+            @Override
+            public void childReplaced(INode prevChild, INode nextChild) {
+                reloadEmbeddedSelector(node);
+            }
+            @Override
+            public void childChanged(INode childNode) {
+                reloadEmbeddedSelector(node);
+            }
+        });
         editorPanel.revalidate();
         editorPanel.repaint();
         selectorPanel.revalidate();
         selectorPanel.repaint();
+    }
+
+    private void reloadEmbeddedSelector(INode node) {
+        SelectorPresentation embeddedSelector = node.getSelectorPresentation();
+        if (embeddedSelector != null) {
+            if (!((Entity) node).model.getProperties(Access.Edit).isEmpty()) {
+                embeddedSelector.setBorder(new CompoundBorder(
+                        new EmptyBorder(0, 5, 3, 5),
+                        new TitledBorder(
+                                new LineBorder(Color.LIGHT_GRAY, 1),
+                                IComplexType.coalesce(getDescription(getClassHierarchy(node), "group@title"), SELECTOR_TITLE)
+                        )
+                ));
+            }
+            if (selectorPanel.getComponentCount() == 0) {
+                selectorPanel.add(embeddedSelector);
+            } else {
+                embeddedSelector.refresh();
+            }
+        }
     }
 }

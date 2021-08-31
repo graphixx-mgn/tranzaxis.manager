@@ -84,34 +84,32 @@ public class FilePathEditor extends AbstractEditor<FilePath, Path> {
         @Override
         public void execute(PropertyHolder<FilePath, Path> context) {
             final IPathMask mask = context.getPropValue().getMask();
-            SwingUtilities.invokeLater(() -> {
-                JFileChooser fileChooser = new JFileChooser(context.getPropValue() == null ? "" : context.toString()) {
-                    @Override
+            JFileChooser fileChooser = new JFileChooser(context.getPropValue() == null ? "" : context.toString()) {
+                @Override
                     protected javax.swing.JDialog createDialog(java.awt.Component parent) throws java.awt.HeadlessException {
                         javax.swing.JDialog dialog = super.createDialog(parent);
                         dialog.setIconImage(ICON.getImage());
                         return dialog;
                     }
-                };
-                fileChooser.setDialogTitle(Language.get("title"));
+            };
+            fileChooser.setDialogTitle(Language.get("title"));
 
-                if (mask != null) {
-                    fileChooser.setFileSelectionMode(mask.getSelectionMode());
-                    if (mask.getFilter() != null) {
-                        fileChooser.setFileFilter(mask.getFilter());
-                    }
-                } else {
-                    fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+            if (mask != null) {
+                fileChooser.setFileSelectionMode(mask.getSelectionMode());
+                if (mask.getFilter() != null) {
+                    fileChooser.setFileFilter(mask.getFilter());
                 }
-                fileChooser.setAcceptAllFileFilterUsed(false);
-                int returnVal = fileChooser.showOpenDialog(SwingUtilities.getWindowAncestor(editor));
+            } else {
+                fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+            }
+            fileChooser.setAcceptAllFileFilterUsed(false);
+            int returnVal = fileChooser.showOpenDialog(SwingUtilities.getWindowAncestor(editor));
 
-                if (returnVal == JFileChooser.APPROVE_OPTION) {
-                    File file = fileChooser.getSelectedFile();
-                    setValue(file.toPath());
-                    context.setValue(file.toPath());
-                }
-            });
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                setValue(file.toPath());
+                context.setValue(file.toPath());
+            }
         }
     }
     

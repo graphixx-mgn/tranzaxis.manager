@@ -8,19 +8,19 @@
     <version>1.0.0</version>
 
     <parent>
-        <artifactId>manager</artifactId>
         <groupId>com.compassplus</groupId>
+        <artifactId>manager</artifactId>
         <version>1.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <properties>
-        <build>true</build>
+        <!-- Do not change the value. Override instead. -->
+        <construction>true</construction>
     </properties>
 
     <modules>
         <!-- Plugins -->
-        <module>plugin.port.config</module>
         <module>plugin.developer.pack</module>
         <module>plugin.dbatools.pack</module>
     </modules>
@@ -45,22 +45,32 @@
         </dependencies>
     </dependencyManagement>
 
+    <distributionManagement>
+        <repository>
+            <!-- Central public plugin repository. Define admin credentials in settings.xml of M2 repository  -->
+            <id>nexus</id>
+            <url>http://10.7.3.166/nexus/repository/plugins-public/</url>
+        </repository>
+    </distributionManagement>
+
     <build>
         <pluginManagement>
             <plugins>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.2.0</version>
                     <configuration>
                         <outputDirectory>${project.parent.basedir}/../application/target/plugins</outputDirectory>
                         <archive>
                             <manifestEntries>
-                                <Build>${build}</Build>
+                                <Build>${construction}</Build>
                             </manifestEntries>
                         </archive>
                     </configuration>
                 </plugin>
                 <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-clean-plugin</artifactId>
                     <version>3.1.0</version>
                     <configuration>
@@ -72,6 +82,14 @@
                                 </includes>
                             </fileset>
                         </filesets>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>2.8.1</version>
+                    <configuration>
+                        <skip>${construction}</skip>
                     </configuration>
                 </plugin>
             </plugins>

@@ -97,8 +97,9 @@ public final class Instance implements IInstanceCommunicationService {
         final Registry registry = getRegistry();
         for (String className : registry.list()) {
             try {
+                Class.forName(className);
                 registered.put(className, (IRemoteService) registry.lookup(className));
-            } catch (NotBoundException ignore) {}
+            } catch (NotBoundException | ClassNotFoundException ignore) {}
         }
         return registered;
     }

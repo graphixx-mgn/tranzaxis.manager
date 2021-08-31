@@ -22,30 +22,30 @@ import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
-import java.net.URLClassLoader;
-import java.net.URLDecoder;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.jar.Attributes;
+import java.util.function.Predicate;
 
 public class Plugin<P extends IPlugin> extends Catalog {
 
-    final static String PROP_TYPE    = "type";
-    final static String PROP_DESC    = "desc";
-    final static String PROP_ENABLED = "enabled";
-    final static String PROP_OPTIONS = "options";
-    final static List<String> VIEW_PROPS = Arrays.asList(PROP_TYPE, PROP_DESC);
+    private final static String LOCAL_PROTOCOL = "file";
 
-    final static ImageIcon ICON_OPTIONS = ImageUtils.getByPath("/images/general.png");
-    final static ImageIcon ICON_WARN = ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), .7f);
+    private final static String PROP_TYPE    = "type";
+    private final static String PROP_DESC    = "desc";
+    private final static String PROP_ENABLED = "enabled";
+    private final static String PROP_OPTIONS = "options";
+
+    final static ImageIcon ICON_OPTIONS  = ImageUtils.getByPath("/images/general.png");
+    final static ImageIcon ICON_WARN     = ImageUtils.resize(ImageUtils.getByPath("/images/warn.png"), .7f);
+
+    private final static Predicate<Plugin> IS_LOADABLE = plugin ->
+            plugin.pluginHandler.pluginClass.getProtectionDomain().getCodeSource().getLocation().getProtocol().equals(LOCAL_PROTOCOL);
 
     static {
         CommandRegistry.getInstance().registerCommand(
@@ -53,32 +53,23 @@ public class Plugin<P extends IPlugin> extends Catalog {
                 EditOptions.class,
                 Plugin::hasOptions
         );
-        CommandRegistry.getInstance().registerCommand(LoadPlugin.class);
-        CommandRegistry.getInstance().registerCommand(UnloadPlugin.class);
-    }
-
-    static String getId(PluginHandler pluginHandler) {
-        try {
-            Attributes attributes = PluginPackage.getAttributes(new File(
-                    URLDecoder.decode(((URLClassLoader) pluginHandler.pluginClass.getClassLoader()).getURLs()[0].getFile(), "UTF-8")
-            ));
-            return MessageFormat.format(
-                    "{0}.{1}/{2}",
-                    attributes.getValue(Attributes.Name.IMPLEMENTATION_VENDOR),
-                    attributes.getValue(Attributes.Name.IMPLEMENTATION_TITLE),
-                    pluginHandler.pluginClass.getCanonicalName().toLowerCase()
-            );
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
+        CommandRegistry.getInstance().registerCommand(
+                Plugin.class,
+                LoadPlugin.class,
+                IS_LOADABLE
+        );
+        CommandRegistry.getInstance().registerCommand(
+                Plugin.class,
+                UnloadPlugin.class,
+                IS_LOADABLE
+        );
     }
 
     private final PluginHandler<P> pluginHandler;
     private final ParamModel       pluginOptions;
 
     public Plugin(PluginHandler<P> pluginHandler) {
-        super(null, null, getId(pluginHandler), null);
+        super(null, null, pluginHandler.getPluginId(), null);
         this.pluginHandler = pluginHandler;
 
         setIcon(pluginHandler.getIcon());
@@ -137,14 +128,6 @@ public class Plugin<P extends IPlugin> extends Catalog {
 
     final boolean loadAllowed() {
         return !isEnabled() && isOptionsValid();
-    }
-
-    final List<String> getProperties() {
-        return new LinkedList<String>() {{
-            add(PROP_TYPE);
-            addAll(pluginHandler.getTypeDefinition().keySet());
-            add(PROP_DESC);
-        }};
     }
 
     Object getOption(String optName) {
@@ -241,8 +224,7 @@ public class Plugin<P extends IPlugin> extends Catalog {
                 context.pluginHandler.loadPlugin();
                 context.setEnabled(true, true);
             } catch (PluginException e) {
-                String pluginId = getId(context.pluginHandler);
-                Logger.getLogger().warn(MessageFormat.format("Unable to load plugin ''{0}''", pluginId), e);
+                Logger.getLogger().warn(MessageFormat.format("Unable to load plugin ''{0}''", context.pluginHandler.getPluginId()), e);
                 if (e.isHandled()) return;
                 MessageBox.show(
                         MessageType.WARNING,
@@ -280,8 +262,7 @@ public class Plugin<P extends IPlugin> extends Catalog {
                     context.setEnabled(false, true);
                 }
             } catch (PluginException e) {
-                String pluginId = getId(context.pluginHandler);
-                Logger.getLogger().warn(MessageFormat.format("Unable to unload plugin ''{0}''", pluginId), e);
+                Logger.getLogger().warn(MessageFormat.format("Unable to unload plugin ''{0}''", context.pluginHandler.getPluginId()), e);
                 if (e.isHandled()) return;
                 MessageBox.show(
                         MessageType.WARNING,

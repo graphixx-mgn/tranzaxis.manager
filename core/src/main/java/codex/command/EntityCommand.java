@@ -10,6 +10,7 @@ import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
 import codex.task.*;
 import codex.type.IComplexType;
+import codex.type.ISerializableType;
 import codex.type.Iconified;
 import codex.utils.Language;
 import net.jcip.annotations.ThreadSafe;
@@ -50,21 +51,18 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
      */
     public enum Kind {
         /**
-         * Административная команда. Не отображается в модуле ярлыков.
+         * Административная команда. Встраивается в презентацию селектора. Контекст команды -
+         * выбранные сущности элементов селектора. Кроме этого, встраивается и как команда редактора поля типа EntityRef.
          */
         Admin,
         /**
-         * Информационная команда. Не отображается в модуле ярлыков и блокируется вместе с сущностью.
-         * Команда такого типа не должна менять значения сущности.
-         */
-        Info,
-        /**
-         * Команда, запускающая действие над сущностью. Отображается в модуле ярлыков.
+         * Команда, запускающая действие над сущностью. Встраивается в презентацию селектора. Контекст команды -
+         * выбранные сущности элементов селектора.
          */
         Action,
         /**
-         * Команда родительской сущности. Встраивается в презентацию селектора как системная команда. Контекст команды - родительская
-         * сущность элементов селектора.
+         * Команда родительской сущности. Встраивается в презентацию селектора как системная команда. Контекст команды -
+         * родительская сущность элементов селектора.
          */
         System
     }
@@ -273,6 +271,18 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
         }
     }
 
+    boolean hasParameters() {
+        return provider.get().length > 0;
+    }
+
+    Collection<PropertyHolder> getParameterProperties() {
+        return provider.get().length == 0 ?
+               Collections.emptyList() :
+               Arrays.stream(provider.get())
+                    .filter(propertyHolder -> propertyHolder.getPropValue() instanceof ISerializableType)
+                    .collect(Collectors.toList());
+    }
+
     /**
      * Вызов диалога для заполнения параметров и возврат значений.
      */
@@ -299,7 +309,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
     /**
      * Запуск поцесса исполнения команды.
      */
-    protected void process() {
+    public void process() {
         List<V> context = getContext();
         if (context.isEmpty() && isActive()) {
             Logger.getLogger().debug("Perform contextless command [{0}]", getName());

@@ -11,18 +11,13 @@ import java.util.stream.Collectors;
 
 public class SelectorTreeTableModel extends DefaultOutlineModel implements ISelectorTableModel {
 
-    final List<String> propList;
+    private final List<String> propList;
 
-    protected SelectorTreeTableModel(TreeModel treeModel, RowModel rowModel, boolean largeModel, String nodesColumnLabel) {
+    SelectorTreeTableModel(TreeModel treeModel, RowModel rowModel, boolean largeModel, String nodesColumnLabel) {
         super(treeModel, rowModel, largeModel, nodesColumnLabel);
         this.propList = ((Entity) getRoot()).model.getProperties(Access.Select).stream()
                 .filter(propName -> !EntityModel.THIS.equals(propName))
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public void addEntity(Entity entity) {
-
     }
 
     @Override

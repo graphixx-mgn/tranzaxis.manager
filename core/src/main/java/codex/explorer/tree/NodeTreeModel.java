@@ -61,7 +61,7 @@ public final class NodeTreeModel extends DefaultTreeModel implements Iterable<IN
     }
 
     @Override
-    public void childMoved(INode parentNode, INode childNode) {
+    public void childMoved(INode parentNode, INode childNode, int from, int to) {
         nodeStructureChanged(parentNode);
     }
 

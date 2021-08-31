@@ -72,7 +72,8 @@ public class AnyTypeView extends AbstractEditor<AnyType, Object> {
                 Iconified.class.isAssignableFrom(value.getClass()) &&
                 (icon = ((Iconified) value).getIcon()) != null
         ) {
-            iconLabel.setIcon(ImageUtils.resize(icon, 20, 20));
+            int aspectRatio = icon.getIconWidth() / icon.getIconHeight();
+            iconLabel.setIcon(ImageUtils.resize(icon, 20 * aspectRatio, 20));
             iconLabel.setVisible(true);
         } else {
             iconLabel.setIcon(null);

@@ -17,7 +17,6 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <author>I.Gredyaev</author>
     </properties>
 
     <profiles>
@@ -84,6 +83,13 @@
         </dependencies>
     </dependencyManagement>
 
+    <scm>
+        <connection>scm:git:https://tranzaxis-manager</connection>
+        <developerConnection>scm:git:https://tranzaxis-manager</developerConnection>
+        <tag>HEAD</tag>
+        <url>https://tranzaxis-manager</url>
+    </scm>
+
     <build>
         <pluginManagement>
             <plugins>
@@ -118,57 +124,24 @@
                             <filter>
                                 <artifact>*:*:*:*</artifact>
                                 <excludes>
-                                    <exclude>*build.properties</exclude>
+                                    <exclude>*.txt</exclude>
                                     <exclude>.netbeans_*</exclude>
+                                    <exclude>.properties</exclude>
+                                    <exclude>META-INF/DEPENDENCIES*</exclude>
                                     <exclude>META-INF/LICENSE*</exclude>
                                     <exclude>META-INF/NOTICE*</exclude>
+                                    <exclude>META-INF/imports/**</exclude>
                                     <exclude>META-INF/maven/**</exclude>
                                     <exclude>META-INF/RadixWare*</exclude>
+                                    <exclude>junit/**</exclude>
                                     <exclude>license/**</exclude>
+                                    <exclude>licenses/**</exclude>
+                                    <exclude>mozilla/**</exclude>
                                     <exclude>trax/**</exclude>
-                                    <exclude>*.txt</exclude>
                                 </excludes>
                             </filter>
                         </filters>
                         <finalName>${project.artifactId}-${project.version}</finalName>
-                        <relocations>
-                            <relocation>
-                                <pattern>com.</pattern>
-                                <shadedPattern>lib.com.</shadedPattern>
-                            </relocation>
-                            <relocation>
-                                <pattern>de.</pattern>
-                                <shadedPattern>lib.de.</shadedPattern>
-                            </relocation>
-                            <relocation>
-                                <pattern>it.</pattern>
-                                <shadedPattern>lib.it.</shadedPattern>
-                            </relocation>
-                            <relocation>
-                                <pattern>junit.</pattern>
-                                <shadedPattern>lib.junit.</shadedPattern>
-                            </relocation>
-                            <relocation>
-                                <pattern>net.</pattern>
-                                <shadedPattern>lib.net.</shadedPattern>
-                            </relocation>
-                            <relocation>
-                                <pattern>oracle.</pattern>
-                                <shadedPattern>lib.oracle.</shadedPattern>
-                            </relocation>
-                            <relocation>
-                                <pattern>tests.</pattern>
-                                <shadedPattern>lib.tests.</shadedPattern>
-                            </relocation>
-                            <relocation>
-                                <pattern>java_cup.</pattern>
-                                <shadedPattern>lib.java_cup.</shadedPattern>
-                            </relocation>
-                            <relocation>
-                                <pattern>schemaorg_apache_xmlbeans.</pattern>
-                                <shadedPattern>lib.schemaorg_apache_xmlbeans.</shadedPattern>
-                            </relocation>
-                        </relocations>
                     </configuration>
                     <dependencies>
                         <dependency>
@@ -188,12 +161,19 @@
                                 <addDefaultImplementationEntries>false</addDefaultImplementationEntries>
                             </manifest>
                             <manifestEntries>
-                                <Built-By>${author}</Built-By>
                                 <Implementation-Title>${project.artifactId}</Implementation-Title>
                                 <Implementation-Version>${project.version}</Implementation-Version>
                                 <Implementation-Vendor>${project.groupId}</Implementation-Vendor>
                             </manifestEntries>
                         </archive>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>2.8.1</version>
+                    <configuration>
+                        <skip>true</skip>
                     </configuration>
                 </plugin>
             </plugins>

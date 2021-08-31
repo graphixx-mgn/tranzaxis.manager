@@ -1,8 +1,8 @@
 package codex.model;
 
 import codex.component.dialog.Dialog;
-import codex.log.Logger;
 import codex.presentation.EditorPage;
+import codex.presentation.EditorPresentation;
 import codex.property.IPropertyChangeListener;
 import javax.swing.*;
 import java.awt.*;
@@ -32,45 +32,48 @@ public class PropSetEditor extends Dialog {
     }
 
     private static void commit(Entity entity, Predicate<String> propFilter) {
-        try {
-            entity.model.commit(true, getChangedProperties(entity, propFilter).toArray(new String[]{}));
-        } catch (Exception e) {
-            Logger.getLogger().error(e.getMessage());
+        final List<String>   changedExtProps  = getChangedProperties(entity, propFilter);
+        Map<String, Boolean> commitOvrProps   = getDiff(entity.model, propFilter);
+        Map<String, Boolean> protectOvrProps  = getDiff(entity.model, propFilter.negate());
+        boolean              needCommitOTH    = !changedExtProps.isEmpty();
+        boolean              needCommitOVR    = !commitOvrProps.isEmpty();
+
+        if (needCommitOTH) {
+            try {
+                entity.model.commit(true, changedExtProps.toArray(new String[]{}));
+            } catch (Exception ignore) {}
         }
-
-        List<String>         saveOvrProps = entity.getOverride();
-        Map<String, Boolean> baseOvrProps = OverrideProperty.getOverrideChanges(entity.model);
-        Map<String, Boolean> diffOvrProps = getDiff(entity.model, propFilter);
-
-        if (!diffOvrProps.equals(baseOvrProps)) {
+        if (needCommitOVR) {
             //noinspection unchecked
             entity.model.getProperty("OVR")
                     .getOwnPropValue()
                     .setValue(OverrideProperty.applyOverrideChanges(
-                            saveOvrProps,
-                            diffOvrProps
+                            entity.getOverride(),
+                            commitOvrProps
                     ));
             try {
                 entity.model.commit(true, "OVR");
-            } catch (Exception e) {
-                Logger.getLogger().error(e.getMessage());
-            }
-            entity.model.setValue("OVR", OverrideProperty.applyOverrideChanges(saveOvrProps, baseOvrProps));
+            } catch (Exception ignore) {}
+            entity.model.setValue("OVR", OverrideProperty.applyOverrideChanges(entity.getOverride(), protectOvrProps));
         }
     }
 
     private static void rollback(Entity entity, Predicate<String> propFilter) {
-        entity.model.rollback(getChangedProperties(entity, propFilter).toArray(new String[]{}));
+        final List<String>   changedExtProps  = getChangedProperties(entity, propFilter);
+        Map<String, Boolean> modifiedOvrProps = OverrideProperty.getOverrideChanges(entity.model);
+        Map<String, Boolean> protectOvrProps  = getDiff(entity.model, propFilter.negate());
+        boolean              needRevertOTH    = !changedExtProps.isEmpty();
+        boolean              needRevertOVR    = !protectOvrProps.equals(modifiedOvrProps);
 
-        List<String>         saveOvrProps = entity.getOverride();
-        Map<String, Boolean> baseOvrProps = OverrideProperty.getOverrideChanges(entity.model);
-        Map<String, Boolean> diffOvrProps = getDiff(entity.model, propFilter.negate());
-
-        if (!diffOvrProps.equals(baseOvrProps)) {
-            entity.model.setValue("OVR", OverrideProperty.applyOverrideChanges(saveOvrProps, diffOvrProps));
+        if (needRevertOTH) {
+            entity.model.rollback(changedExtProps.toArray(new String[]{}));
+        }
+        if (needRevertOVR) {
+            entity.model.setValue("OVR", OverrideProperty.applyOverrideChanges(entity.getOverride(), protectOvrProps));
         }
     }
 
+    private final Window     owner;
     private final Entity     entity;
     private final ModelProxy proxyModel;
     private final Predicate<String> propFilter;
@@ -87,11 +90,14 @@ public class PropSetEditor extends Dialog {
         }
     };
     private final IPropertyChangeListener changeHandler = (name, oldValue, newValue) -> {
-        getButton(Dialog.OK).setEnabled((
-                    !getEntity().model.getChanges().isEmpty() ||
-                     getDiff(getEntity().model, getPropFilter()).entrySet().stream().anyMatch(Map.Entry::getValue)
-                ) &&
-                getEntity().model.isValid()
+        boolean valid = getEntity().model.getProperties(Access.Any).stream()
+                .filter(getPropFilter())
+                .allMatch(propName -> getEntity().model.getProperty(propName).isValid());
+        getButton(Dialog.OK).setEnabled(
+                valid && (
+                    !getChangedProperties(getEntity(), getPropFilter()).isEmpty() ||
+                    getDiff(getEntity().model, getPropFilter()).entrySet().stream().anyMatch(Map.Entry::getValue)
+                )
         );
     };
 
@@ -111,12 +117,13 @@ public class PropSetEditor extends Dialog {
                 Dialog.Default.BTN_OK.newInstance(),
                 Dialog.Default.BTN_CANCEL.newInstance()
         );
+        this.owner      = Dialog.findNearestWindow();
         this.entity     = entity;
         this.proxyModel = new ModelProxy(entity.model, propFilter);
         this.propFilter = propFilter;
 
         setContent(new JPanel(new BorderLayout()) {{
-            add(new EditorPage(proxyModel), BorderLayout.NORTH);
+            add(new EditorPage(proxyModel), BorderLayout.CENTER);
         }});
         getButton(Dialog.OK).setEnabled(false);
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -136,7 +143,10 @@ public class PropSetEditor extends Dialog {
     }
 
     public Dimension getPreferredSize() {
-        return new Dimension(700, super.getPreferredSize().height);
+        return new Dimension(
+                owner != null && owner instanceof Dialog? owner.getPreferredSize().width - 20 : EditorPresentation.DEFAULT_DIALOG_WIDTH,
+                super.getPreferredSize().height
+        );
     }
 
     @Override

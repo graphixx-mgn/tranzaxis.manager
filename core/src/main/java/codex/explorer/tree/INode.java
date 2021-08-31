@@ -128,6 +128,7 @@ public interface INode extends TreeNode {
     /**
      * Возвращает список всех потомков узла.
      */
+    @SuppressWarnings("unchecked")
     default List<INode> childrenList() {
         return Collections.list(children());
     }
@@ -138,13 +139,16 @@ public interface INode extends TreeNode {
      */
     @Override
     default INode getChildAt(int childIndex) {
-        if (childrenList().isEmpty()) {
-            throw new ArrayIndexOutOfBoundsException("Node has no children");
+        synchronized (this) {
+            List<INode> children = childrenList();
+            if (children.isEmpty()) {
+                throw new ArrayIndexOutOfBoundsException("Node has no children");
+            }
+            if (children.size() <= childIndex || childIndex < 0) {
+                throw new ArrayIndexOutOfBoundsException("Index out range: index=" + childIndex + ", size=" + children.size());
+            }
+            return children.get(childIndex);
         }
-        if (childrenList().size() <= childIndex || childIndex < 0) {
-            throw new ArrayIndexOutOfBoundsException("Index out range: index="+childIndex+", size="+childrenList().size());
-        }
-        return childrenList().get(childIndex);
     }
     
     /**

@@ -8,6 +8,7 @@ import javax.swing.FocusManager;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -174,15 +175,17 @@ public class Dialog extends JDialog {
         add(buttonPanel, BorderLayout.SOUTH);
         
         handler = (button) -> (keyEvent) -> {
-            setVisible(false);
-            if (close != null) {
-                final ActionEvent event = new ActionEvent(
-                        keyEvent,
-                        button == null || !button.isEnabled() ? EXIT : button.getID(),
-                        null
-                );
-                close.actionPerformed(event);
-                exitCode = event.getID();
+            if (getDefaultCloseOperation() != WindowConstants.DO_NOTHING_ON_CLOSE) {
+                setVisible(false);
+                if (close != null) {
+                    final ActionEvent event = new ActionEvent(
+                            keyEvent,
+                            button == null || !button.isEnabled() ? EXIT : button.getID(),
+                            null
+                    );
+                    close.actionPerformed(event);
+                    exitCode = event.getID();
+                }
             }
         };
 
@@ -202,7 +205,16 @@ public class Dialog extends JDialog {
                 actionMap.put(button.getKeyCode(), new AbstractAction() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        handler.apply(button).actionPerformed(new ActionEvent(this, button.getID(), null));
+                        if (
+                            button.getID() == CANCEL ||
+                            KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner() == null ||
+                            Objects.equals(
+                                    KeyboardFocusManager.getCurrentKeyboardFocusManager().getCurrentFocusCycleRoot(),
+                                    KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow()
+                            )
+                        ) {
+                            handler.apply(button).actionPerformed(new ActionEvent(this, button.getID(), null));
+                        }
                     }
                 });
             }

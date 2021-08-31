@@ -6,7 +6,6 @@ import codex.editor.AnyTypeView;
 import codex.editor.IEditor;
 import codex.instance.IInstanceDispatcher;
 import codex.instance.Instance;
-import codex.log.Level;
 import codex.log.Logger;
 import codex.model.ParamModel;
 import codex.presentation.EditorPage;
@@ -35,14 +34,12 @@ import java.nio.channels.FileChannel;
 import java.security.MessageDigest;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 class LoadUpgrade extends AbstractTask<Void> {
@@ -120,7 +117,7 @@ class LoadUpgrade extends AbstractTask<Void> {
                 null,
                 new AnyType(MessageFormat.format(
                         "{0} &rarr; {1}",
-                        UpgradeService.getVersion().getNumber(),
+                        UpgradeService.getReleaseVersion().getNumber(),
                         version
                 )),
                 false
@@ -363,7 +360,7 @@ class LoadUpgrade extends AbstractTask<Void> {
     }
 
 
-    private static class ConnectInstance extends ExecPhase<IUpgradeService> {
+    private static class ConnectInstance extends TaskOutput.ExecPhase<IUpgradeService> {
 
         private final Instance provider;
         ConnectInstance(Instance provider) {
@@ -383,7 +380,7 @@ class LoadUpgrade extends AbstractTask<Void> {
     }
 
 
-    private static class CreateRemoteStream extends ExecPhase<Pair<RemoteInputStream, String>> {
+    private static class CreateRemoteStream extends TaskOutput.ExecPhase<Pair<RemoteInputStream, String>> {
 
         private final IUpgradeService service;
         CreateRemoteStream(IUpgradeService service) {
@@ -406,7 +403,7 @@ class LoadUpgrade extends AbstractTask<Void> {
     }
 
 
-    private static class LoadFile extends ExecPhase<String> {
+    private static class LoadFile extends TaskOutput.ExecPhase<String> {
 
         private final InputStream  inputStream;
         private final OutputStream outputStream;
@@ -441,7 +438,7 @@ class LoadUpgrade extends AbstractTask<Void> {
     }
 
 
-    private static class CheckCRC extends ExecPhase<Boolean> {
+    private static class CheckCRC extends TaskOutput.ExecPhase<Boolean> {
 
         private final String remote, local;
         CheckCRC(String remote, String local) {
@@ -457,58 +454,6 @@ class LoadUpgrade extends AbstractTask<Void> {
             } else {
                 throw new Error(Language.get(UpgradeUnit.class, "process@check.error"));
             }
-        }
-    }
-
-
-    abstract private static class ExecPhase<R> {
-
-        protected final String description;
-
-        ExecPhase(String description) {
-            this.description = description;
-        }
-
-        protected abstract Pair<String, R> execute() throws Exception;
-
-        final R process() throws Exception {
-            try {
-                Pair<String, R> result = execute();
-                TaskOutput.put(Level.Debug, fillStepResult(description, result.getKey(), null));
-                return result.getValue();
-            } catch (Exception e) {
-                TaskOutput.put(Level.Debug, fillStepResult(description, null, e));
-                throw e;
-            }
-        }
-
-        private static String RC_SUCCESS = "<font color='green'>&#x2713;</font>";
-        private static String RC_ERROR   = "<font color='red'>&#x26D4;</font>";
-        private static Function<String, String>    FMT_SUCCESS = input -> String.join("", Collections.nCopies(68-input.length(), ".")).concat(RC_SUCCESS);
-        private static Function<String, String>    FMT_ERROR   = input -> String.join("", Collections.nCopies(68-input.length(), ".")).concat(RC_ERROR);
-        private static Function<String, Integer> HTML_LENGTH = input -> input.replaceAll("\\<[^>]*>","").length();
-
-        private static String fillStepResult(String step, String result, Throwable error) {
-            return new StringBuilder(" &bull; ")
-                    .append(step)
-                    .append(error  == null ? (
-                                result == null ?
-                                        FMT_SUCCESS.apply(step) :
-                                        String
-                                            .join("", Collections.nCopies(69-step.length()-HTML_LENGTH.apply(result), "."))
-                                            .concat(result)
-                            ) : (
-                                error.getMessage() == null ?
-                                        FMT_ERROR.apply(step) :
-                                        String
-                                            .join("", Collections.nCopies(68-step.length(), "."))
-                                            .concat(MessageFormat.format(
-                                                    "<font color='red'>&#x26D4;</font><br/>   <font color='maroon'>{0}: {1}</font>",
-                                                    error.getClass().getCanonicalName(),
-                                                    error.getMessage()
-                                            ))
-                            )
-                    ).toString();
         }
     }
 }

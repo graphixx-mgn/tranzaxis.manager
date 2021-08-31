@@ -5,7 +5,6 @@ import codex.type.IComplexType;
 
 public interface ISelectorTableModel {
 
-    void   addEntity(Entity entity);
     Entity getEntityForRow(int row);
     String getPropertyForColumn(int column);
 

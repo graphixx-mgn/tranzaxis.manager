@@ -14,8 +14,8 @@
     </parent>
 
     <properties>
-        <!-- Define author name -->
-        <author>I.Gredyaev</author>
+        <!-- Set 'false' to deploy the artifact to central plugin repository -->
+        <construction>true</construction>
     </properties>
 
     <dependencies>

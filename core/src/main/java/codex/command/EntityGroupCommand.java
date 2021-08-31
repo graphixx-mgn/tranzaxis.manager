@@ -32,7 +32,7 @@ public abstract class EntityGroupCommand<V extends Entity> extends EntityCommand
     }
 
     @Override
-    protected final void process() {
+    public final void process() {
         List<V> context = getContext();
         if (!context.isEmpty()) {
             Logger.getLogger().debug("Perform command [{0}]. Group context: {1}", getName(), context);

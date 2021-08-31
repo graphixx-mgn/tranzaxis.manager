@@ -8,11 +8,10 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import plugin.IPlugin;
 import plugin.Pluggable;
-import plugin.PluginLoader;
+import plugin.PluginProvider;
 import javax.swing.*;
 import java.lang.annotation.Annotation;
 import java.lang.invoke.MethodHandles;
-import java.util.Locale;
 
 @Pluggable(pluginHandlerClass = JobPluginHandler.class)
 @LoggingSource(ctxProvider = JobPlugin.ContextProvider.class)
@@ -49,7 +48,7 @@ public abstract class JobPlugin extends AbstractJob implements IPlugin {
 
                 @Override
                 public Class<? extends IContext> parent() {
-                    return PluginLoader.class;
+                    return PluginProvider.class;
                 }
             };
         }
