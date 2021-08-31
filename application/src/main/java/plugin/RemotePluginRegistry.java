@@ -25,8 +25,6 @@ import org.atteo.classindex.ClassIndex;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import security.Account;
-
 import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.IOException;

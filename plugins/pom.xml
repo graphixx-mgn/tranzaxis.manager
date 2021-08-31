@@ -22,7 +22,6 @@
     <modules>
         <!-- Plugins -->
         <module>plugin.developer.pack</module>
-        <module>plugin.dbatools.pack</module>
     </modules>
 
     <profiles>
