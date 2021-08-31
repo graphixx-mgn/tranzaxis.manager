@@ -223,7 +223,7 @@ public class Environment extends Entity implements INodeListener {
         
         // Handlers
         IPropertyChangeListener dbListener = (name, oldValue, newValue) -> {
-            if (name.equals(Database.PROP_CONNECTED)) {
+            if (name.equals(Database.PROP_CONN_STAT)) {
                 layerSelector.activate();
                 instanceSelector.activate();
                 model.updateDynamicProps(PROP_VERSION);

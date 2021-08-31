@@ -11,11 +11,8 @@ import codex.mask.RegexMask;
 import codex.model.*;
 import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
-import codex.type.EntityRef;
+import codex.type.*;
 import codex.type.Enum;
-import codex.type.IComplexType;
-import codex.type.Iconified;
-import codex.type.Str;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.sql.Connection;
@@ -37,7 +34,8 @@ public class Database extends Entity {
     private final static String  PROP_BASE_USER = "dbSchema";
     private final static String  PROP_BASE_PASS = "dbPass";
     private final static String  PROP_USER_NOTE = "userNote";
-    public  final static String  PROP_CONNECTED = "connected";
+    public  final static String  PROP_CONN_LOCK = "lock";
+    public  final static String  PROP_CONN_STAT = "status";
 
     private final static Pattern   URL_SPLITTER = Pattern.compile("([\\d\\.]+|[^\\s]+):(\\d+)/");
     private final static ImageIcon ICON_ONLINE  = ImageUtils.getByPath("/images/database.png");
@@ -57,9 +55,9 @@ public class Database extends Entity {
         CommandRegistry.getInstance().registerCommand(CheckConnection.class);
     }
 
-    private final PropertyHolder<Enum<Status>, Status> connected = new PropertyHolder<>(
-            PROP_CONNECTED,
-            new Enum<>(Status.Unknown),
+    private final PropertyHolder<Bool, Boolean> checked = new PropertyHolder<>(
+            PROP_CONN_LOCK,
+            new Bool(false),
             false
     );
     
@@ -79,7 +77,7 @@ public class Database extends Entity {
         model.addUserProp(PROP_BASE_PASS, new Str(null), true, Access.Select);
         model.addUserProp(PROP_USER_NOTE, new Str(null), false, null);
 
-        model.addDynamicProp(PROP_CONNECTED, connected.getPropValue(), Access.Any, null);
+        model.addDynamicProp(PROP_CONN_STAT, new Enum<>(Status.Unknown), Access.Any, null);
 
         // Handlers
         model.addModelListener(new IModelListener() {
@@ -100,7 +98,7 @@ public class Database extends Entity {
             }
         });
         model.addChangeListener((name, oldValue, newValue) -> {
-            if (name.equals(PROP_CONNECTED)) {
+            if (name.equals(PROP_CONN_STAT)) {
                 setIcon(((Status) newValue).getIcon());
             }
         });
@@ -130,13 +128,14 @@ public class Database extends Entity {
         String pass = getDatabasePassword(true);
 
         if (IComplexType.notNull(url, user, pass)) {
-            synchronized (connected) {
-                if (model.getValue(PROP_CONNECTED) == Status.Offline) {
+            synchronized (checked) {
+                if (checked.getPropValue().getValue()) {
                     return null;
                 }
-                Status connection = checkUrlPort(url) ? Status.Online : Status.Offline;
-                SwingUtilities.invokeLater(() -> model.setValue(PROP_CONNECTED, connection));
-                if (connection == Status.Offline) {
+                Status status = checkUrlPort(url) ? Status.Online : Status.Offline;
+                SwingUtilities.invokeLater(() -> model.setValue(PROP_CONN_STAT, status));
+                if (status == Status.Offline) {
+                    checked.getPropValue().setValue(true);
                     if (showError) {
                         MessageBox.show(MessageType.WARNING, MessageFormat.format(
                                 Language.get(Database.class, "error@unavailable"),
@@ -174,13 +173,12 @@ public class Database extends Entity {
     }
 
     public boolean isConnected() {
-        return model.getValue(PROP_CONNECTED) == Status.Online;
+        return model.getValue(PROP_CONN_STAT) == Status.Online;
     }
 
     private void checkConnection(boolean showError) {
         new Thread(() -> {
-            //noinspection unchecked
-            model.getProperty(PROP_CONNECTED).getPropValue().setValue(Status.Unknown);
+            checked.getPropValue().setValue(false);
             String dbUrl = getDatabaseUrl(true);
             if (getConnectionID(showError) == null) {
                 Logger.getLogger().warn(
@@ -232,8 +230,9 @@ public class Database extends Entity {
         @Override
         public void execute(Database context, Map<String, IComplexType> params) {
             Integer connectionID;
-            synchronized (context.connected) {
+            synchronized (context.checked) {
                 context.checkConnection(true);
+                //context.checked.getPropValue().setValue(false);
                 connectionID = context.getConnectionID(true);
             }
             if (connectionID != null) {

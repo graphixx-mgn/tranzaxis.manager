@@ -153,7 +153,7 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                 propState = entity.model.getPropState(propName);
                 
                 cellBox.setValue(
-                        entity.model.getProperty(propName).isEmpty() ? null : value,
+                        entity.model.getProperty(propName).isEmpty() ? null : entity.model.getUnsavedValue(propName),
                         entity.model.getProperty(propName).getPlaceholder()
                 );
                 if (entity.model.getProperty(propName).isEmpty() || (entity.getMode() & INode.MODE_ENABLED) != INode.MODE_ENABLED) {

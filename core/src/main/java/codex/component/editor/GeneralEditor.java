@@ -55,6 +55,8 @@ public class GeneralEditor extends AbstractCellEditor implements TableCellEditor
         IEditor editor = model.isPropertyDynamic(propName) ?
                 model.getProperty(propName).getPropValue().editorFactory().newInstance(model.getProperty(propName)) :
                 model.getEditor(propName);
+        editor.setValue(model.getUnsavedValue(propName));
+
         if (model.getPropertyType(propName) == Bool.class) {
             JComponent renderedComp = (JComponent) table.getCellRenderer(row, column).getTableCellRendererComponent(table, value, true, true, row, column);
             model.getProperty(propName).addChangeListener(applyOnClick);
