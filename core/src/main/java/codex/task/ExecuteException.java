@@ -13,6 +13,14 @@ public class ExecuteException extends ExecutionException {
 
     /**
      * Конструктор исключения.
+     * @param guiMessage Сообщение для вывода в виджет задачи. В логе сообщение не выводится.
+     */
+    public ExecuteException(String guiMessage) {
+        this(guiMessage, null);
+    }
+
+    /**
+     * Конструктор исключения.
      * @param guiMessage Сообщение для вывода в виджет задачи.
      * @param logMessage Сообщение для вывода в лог.
      */

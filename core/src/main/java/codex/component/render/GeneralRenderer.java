@@ -3,7 +3,6 @@ package codex.component.render;
 import codex.editor.IEditor;
 import codex.explorer.tree.INode;
 import codex.explorer.tree.NodeTreeModel;
-import codex.model.Access;
 import codex.model.Entity;
 import codex.presentation.ISelectorTableModel;
 import codex.property.PropertyState;
@@ -31,8 +30,8 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
     private static final ImageIcon ICON_ERROR = ImageUtils.getByPath("/images/red.png");
     private static final ImageIcon ICON_ASC   = ImageUtils.rotate(ImageUtils.getByPath("/images/arrow.png"), 180);
     private static final ImageIcon ICON_DESC  = ImageUtils.getByPath("/images/arrow.png");
-    
-    private static Color blend(Color c0, Color c1) {
+
+    public static Color mixColors(Color c0, Color c1) {
         double totalAlpha = c0.getAlpha() + c1.getAlpha();
         double weight0 = c0.getAlpha() / totalAlpha;
         double weight1 = c1.getAlpha() / totalAlpha;
@@ -128,8 +127,13 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
             CellRenderer cellBox;
             if (Bool.class.equals(columnClass) || (value != null && value.getClass() == Boolean.class)) {
                 cellBox = BoolCellRenderer.newInstance();
+                cellBox.setBorder(new MatteBorder(0, 0, 1, column == table.getColumnCount()-1 ? 0 : 1, Color.LIGHT_GRAY));
             } else {
                 cellBox = ComplexCellRenderer.newInstance();
+                cellBox.setBorder(new CompoundBorder(
+                        new MatteBorder(0, 0, 1, column == table.getColumnCount()-1 ? 0 : 1, Color.LIGHT_GRAY),
+                        new EmptyBorder(0, 5, 0, 0)
+                ));
             }
 
             Color bgColor = Color.WHITE;
@@ -149,7 +153,7 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
                 propState = entity.model.getPropState(propName);
                 
                 cellBox.setValue(
-                        entity.model.getProperty(propName).isEmpty() ? null : value,
+                        entity.model.getProperty(propName).isEmpty() ? null : entity.model.getUnsavedValue(propName),
                         entity.model.getProperty(propName).getPlaceholder()
                 );
                 if (entity.model.getProperty(propName).isEmpty() || (entity.getMode() & INode.MODE_ENABLED) != INode.MODE_ENABLED) {
@@ -186,18 +190,13 @@ public class GeneralRenderer<E> extends JLabel implements ListCellRenderer<E>, T
             }
 
             if (row % 2 == 0) {
-                bgColor = blend(bgColor, Color.decode("#F0F0F0"));
+                bgColor = mixColors(bgColor, Color.decode("#F0F0F0"));
             }
             if (isSelected) {
-                bgColor = blend(bgColor, Color.decode("#BBD8FF"));
+                bgColor = mixColors(bgColor, Color.decode("#BBD8FF"));
             }
             cellBox.setForeground(fgColor);
             cellBox.setBackground(bgColor);
-
-            cellBox.setBorder(new CompoundBorder(
-                    new MatteBorder(0, 0, 1, column == table.getColumnCount()-1 ? 0 : 1, Color.LIGHT_GRAY), 
-                    new EmptyBorder(0, 6, 0, 0)
-            ));
             return cellBox;
         }
     }

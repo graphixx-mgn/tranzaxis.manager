@@ -1,6 +1,7 @@
 package manager.nodes;
 
 import codex.model.Catalog;
+import codex.model.Entity;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 
@@ -11,7 +12,7 @@ public class DatabaseRoot extends Catalog {
     }
 
     @Override
-    public Class getChildClass() {
+    public Class<? extends Entity> getChildClass() {
         return Database.class;
     }
     

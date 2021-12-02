@@ -15,6 +15,10 @@ public class ArrStr implements ISerializableType<List<String>, IArrMask> {
     
     private List<String> value;
     private IArrMask mask;
+
+    public ArrStr() {
+        this(Collections.emptyList());
+    }
     
     /**
      * Конструктор типа.

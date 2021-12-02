@@ -100,38 +100,38 @@ public class UpdateWC extends EntityCommand<Offshoot> {
 
             setProgress(0, Language.get(UpdateWC.class, "command@calc"));
 
-            List<SVNURL> changes = SVN.changes(wcPath, repoUrl, revision, authMgr, new ISVNEventHandler() {
-                @Override
-                public void handleEvent(SVNEvent event, double d) {
-                    if (event.getErrorMessage() != null && event.getErrorMessage().getErrorCode() == SVNErrorCode.WC_CLEANUP_REQUIRED) {
-                        if (event.getExpectedAction() == SVNEventAction.RESOLVER_STARTING) {
-                            setProgress(0, Language.get(UpdateWC.class, "command@cleanup"));
-                            Logger.getLogger().info(
-                                    "Perform automatic cleanup repository [{0}/{1}]",
-                                    offshoot.getRepository().getPID(),
-                                    offshoot.getPID()
-                            );
-                        } else {
-                            Logger.getLogger().info(
-                                    "Continue update [{0}/{1}] after cleanup",
-                                    offshoot.getRepository().getPID(),
-                                    offshoot.getPID()
-                            );
-                            setProgress(0, Language.get(UpdateWC.class, "command@calc"));
+            try {
+                List<SVNURL> changes = SVN.changes(wcPath, repoUrl, revision, authMgr, new ISVNEventHandler() {
+                    @Override
+                    public void handleEvent(SVNEvent event, double d) {
+                        if (event.getErrorMessage() != null && event.getErrorMessage().getErrorCode() == SVNErrorCode.WC_CLEANUP_REQUIRED) {
+                            if (event.getExpectedAction() == SVNEventAction.RESOLVER_STARTING) {
+                                setProgress(0, Language.get(UpdateWC.class, "command@cleanup"));
+                                Logger.getLogger().info(
+                                        "Perform automatic cleanup repository [{0}/{1}]",
+                                        offshoot.getRepository().getPID(),
+                                        offshoot.getPID()
+                                );
+                            } else {
+                                Logger.getLogger().info(
+                                        "Continue update [{0}/{1}] after cleanup",
+                                        offshoot.getRepository().getPID(),
+                                        offshoot.getPID()
+                                );
+                                setProgress(0, Language.get(UpdateWC.class, "command@calc"));
+                            }
                         }
                     }
-                }
 
-                @Override
-                public void checkCancelled() throws SVNCancelException {
-                    checkPaused();
-                    if (UpdateTask.this.isCancelled()) {
-                        throw new SVNCancelException();
+                    @Override
+                    public void checkCancelled() throws SVNCancelException {
+                        checkPaused();
+                        if (UpdateTask.this.isCancelled()) {
+                            throw new SVNCancelException();
+                        }
                     }
-                }
-            });
+                });
 
-            try {
                 if (changes.size() > 0) {
                     Logger.getLogger().debug("Found changes of branch ''{0}'': {1}", wcPath, changes.size());
 

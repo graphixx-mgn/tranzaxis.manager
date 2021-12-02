@@ -3,6 +3,7 @@ package codex.notification;
 import codex.config.ConfigStoreService;
 import codex.config.IConfigStoreService;
 import codex.log.Logger;
+import codex.model.EntityModel;
 import codex.service.ServiceRegistry;
 import codex.supplier.IDataSupplier;
 import codex.type.DateTime;
@@ -92,8 +93,22 @@ class MessageSupplier implements IDataSupplier<Message> {
                         if (msgTime < prevOffset) {
                             prevOffset = msgTime;
                         }
-                        Message message = EntityRef.build(Message.class, msgID).getValue();
-                        result.add(message);
+                        EntityRef<Message> message = EntityRef.build(Message.class, msgID);
+                        if (message != null) {
+                            result.add(message.getValue());
+                        } else {
+                            new Thread(() -> {
+                                synchronized (MessageInbox.getInstance()) {
+                                    try {
+                                        String PID = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).readClassInstance(Message.class, msgID).get(EntityModel.PID);
+                                        Logger.getContextLogger(ConfigStoreService.class).info("Delete invalid object: {0}", PID);
+                                        ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).removeClassInstance(Message.class, msgID);
+                                    } catch (Exception e) {
+                                        // Do nothing
+                                    }
+                                }
+                            }).start();
+                        }
                     }
                 }
             } catch (SQLException e) {

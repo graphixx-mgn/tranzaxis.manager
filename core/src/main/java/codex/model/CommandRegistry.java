@@ -1,5 +1,6 @@
 package codex.model;
 
+import codex.command.CommandParameters;
 import codex.command.EntityCommand;
 import codex.log.Logger;
 import java.lang.reflect.Constructor;
@@ -31,33 +32,11 @@ public final class CommandRegistry {
     }
 
     public <E extends Entity> EntityCommand<E> registerCommand(Class<? extends E> entityClass, Class<? extends EntityCommand<E>> commandClass) {
-        if (!REGISTRY.containsKey(entityClass)) {
-            REGISTRY.put(entityClass, new LinkedList<>());
-        }
-        EntityCommand<E> command = getCommandInstance(commandClass);
-        if (command != null) {
-            REGISTRY.get(entityClass).add(new Map.Entry<Predicate<? extends Entity>, EntityCommand<? extends Entity>>() {
-                @Override
-                public Predicate<? extends Entity> getKey() {
-                    return entity -> true;
-                }
-
-                @Override
-                public EntityCommand<? extends Entity> getValue() {
-                    return command;
-                }
-
-                @Override
-                public EntityCommand<? extends Entity> setValue(EntityCommand<? extends Entity> value) {
-                    return value;
-                }
-            });
-        }
-        return command;
+        return registerCommand(entityClass, commandClass, entity -> true);
     }
 
     public <E extends Entity> EntityCommand<E> registerCommand(
-            Class<E> entityClass,
+            Class<? extends E> entityClass,
             Class<? extends EntityCommand<E>> commandClass,
             Predicate<E> condition
     ) {
@@ -82,6 +61,7 @@ public final class CommandRegistry {
                     return value;
                 }
             });
+            CommandParameters.create(command, entityClass);
         }
         return command;
     }
@@ -91,6 +71,10 @@ public final class CommandRegistry {
     }
 
     public <E extends Entity> void unregisterCommand(Class<E> entityClass, Class<? extends EntityCommand<E>> commandClass) {
+        EntityCommand<E> command = getCommandInstance(commandClass);
+        if (command != null) {
+            CommandParameters.delete(command);
+        }
         if (REGISTRY.containsKey(entityClass)) {
             REGISTRY.get(entityClass).removeIf(commandEntry -> commandEntry.getValue().getClass().equals(commandClass));
         }

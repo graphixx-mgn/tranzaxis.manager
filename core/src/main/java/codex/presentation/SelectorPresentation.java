@@ -49,34 +49,45 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     private final static ImageIcon IMAGE_CLONE  = ImageUtils.getByPath("/images/clone.png");
     private final static ImageIcon IMAGE_REMOVE = ImageUtils.getByPath("/images/minus.png");
 
-    private final Entity                  entity;
-    private final SelectorTableModel      tableModel;
-    private final JTable                  table;
-    private final CommandPanel            commandPanel;
+    private final Entity             rootEntity;
+    private final SelectorTableModel tableModel;
+    private final JTable             table;
+    private final CommandPanel       commandPanel;
 
-    private final Supplier<List<Entity>>  context;
-    private final Map<EntityCommand<Entity>,  CommandContextKind> systemCommands  = new LinkedHashMap<>();
-    private final Map<EntityCommand<Entity>,  CommandContextKind> contextCommands = new LinkedHashMap<>();
+    private final Supplier<List<Entity>>     context;
+    private final Map<EntityCommand<Entity>, CommandContextKind> systemCommands  = new LinkedHashMap<>();
+    private final Map<EntityCommand<Entity>, CommandContextKind> contextCommands = new LinkedHashMap<>();
 
     private final List<IEntitySelectedListener> selectListeners = new LinkedList<>();
-    
+    private final TableRowSorter<TableModel>    sorter;
+
     /**
      * Конструктор презентации. 
      */
     public SelectorPresentation(Entity entity) {
         super(new BorderLayout());
-        this.entity = entity;
+        this.rootEntity = entity;
         
-        tableModel = new SelectorTableModel(entity);
+        tableModel = new SelectorTableModel(rootEntity) {
+            @Override
+            protected int getRowForIndex(int index) {
+                return table.convertRowIndexToView(index);
+            }
+        };
         table = new SelectorTable(tableModel);
         table.getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
         commandPanel = new CommandPanel(Collections.emptyList());
         
-        if (entity.allowModifyChild()) {
+        if (rootEntity.allowModifyChild()) {
             table.setDragEnabled(true);
             table.setDropMode(DropMode.INSERT_ROWS);
-            table.setTransferHandler(new TableTransferHandler(table));
+            table.setTransferHandler(new TableTransferHandler(table) {
+                @Override
+                void moveData(int from, int to) {
+                    rootEntity.move(rootEntity.getChildAt(from), to);
+                }
+            });
         }
 
         context = () -> Arrays
@@ -109,20 +120,31 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                 table.getSelectionModel().setValueIsAdjusting(false);
             }
         });
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                if (event.getClickCount() == 2) {
+                    final EntityCommand<Entity> editCmd = findCommand(systemCommands.keySet(), EditEntity.class, new EditEntity());
+                    if (editCmd.isActive()) {
+                        editCmd.execute(tableModel.getEntityForRow(table.convertRowIndexToModel(table.getSelectedRow())), Collections.emptyMap());
+                    }
+                }
+            }
+        });
 
-        final TableRowSorter<TableModel> sorter = new TableRowSorter<>(table.getModel());
-        if (entity instanceof Catalog && ((Catalog) entity).isChildFilterDefined()) {
+        sorter = new TableRowSorter<>(table.getModel());
+        if (rootEntity instanceof Catalog && ((Catalog) rootEntity).isChildFilterDefined()) {
             sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
                 @Override
                 public boolean include(Entry<? extends TableModel, ? extends Integer> entry) {
-                    return ((Catalog) entity).getCurrentFilter().getCondition().test(entity, tableModel.getEntityForRow(entry.getIdentifier()));
+                    return ((Catalog) rootEntity).getCurrentFilter().getCondition().test(rootEntity, tableModel.getEntityForRow(entry.getIdentifier()));
                 }
             });
-            final IEditor filterEditor = ((Catalog) entity).getFilterEditor();
+            final IEditor filterEditor = ((Catalog) rootEntity).getFilterEditor();
             commandPanel.add(Box.createHorizontalGlue());
             commandPanel.add(filterEditor.getEditor());
 
-            entity.model.getProperty(((AbstractEditor) filterEditor).getPropName()).addChangeListener((name, oldValue, newValue) -> sorter.sort());
+            rootEntity.model.getProperty(((AbstractEditor) filterEditor).getPropName()).addChangeListener((name, oldValue, newValue) -> sorter.sort());
         } else {
             sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
                 @Override
@@ -133,43 +155,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         }
         table.setRowSorter(sorter);
 
-        entity.addNodeListener(this);
-        entity.addNodeListener(new INodeListener() {
-            @Override
-            public void childDeleted(INode parentNode, INode childNode, int index) {
-                tableModel.removeRow(index);
-                // Если родительская сущность не удалена
-                if (entity.getParent() != null) {
-                    if (index < tableModel.getRowCount()) {
-                        table.getSelectionModel().setSelectionInterval(index, index);
-                    } else if (index == tableModel.getRowCount()) {
-                        table.getSelectionModel().setSelectionInterval(index - 1, index - 1);
-                    } else {
-                        table.getSelectionModel().clearSelection();
-                    }
-                }
-            }
-
-            @Override
-            public void childInserted(INode parentNode, INode childNode) {
-                Entity newEntity = (Entity) childNode;
-                tableModel.addEntity(newEntity);
-                sorter.sort();
-            }
-
-            @Override
-            public void childReplaced(INode prevChild, INode nextChild) {
-                int index = entity.getIndex(nextChild);
-                tableModel.attachListeners((Entity) nextChild);
-
-                EntityModel childModel = ((Entity) nextChild).model;
-                childModel.getProperties(Access.Any).forEach(propName -> {
-                        if (tableModel.findColumn(propName) >= 0) {
-                            tableModel.setValueAt(childModel.getValue(propName), index, tableModel.findColumn(propName));
-                        }
-                });
-            }
-        });
+        rootEntity.addNodeListener(this);
         addAncestorListener(new AncestorAdapter() {
             @Override
             public void ancestorAdded(AncestorEvent event) {
@@ -180,6 +166,62 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         });
     }
 
+    @Override
+    public void childInserted(INode parentNode, INode childNode) {
+        synchronized (rootEntity) {
+            sorter.sort();
+        }
+    }
+
+    @Override
+    public final void childChanged(INode node) {
+        synchronized (rootEntity) {
+            refresh();
+        }
+    }
+
+    @Override
+    public void childDeleted(INode parentNode, INode childNode, int index) {
+        synchronized (rootEntity) {
+            // Если родительская сущность не удалена
+            if (rootEntity.getParent() != null) {
+                if (index < tableModel.getRowCount()) {
+                    table.getSelectionModel().setSelectionInterval(index, index);
+                } else if (index == tableModel.getRowCount()) {
+                    table.getSelectionModel().setSelectionInterval(index - 1, index - 1);
+                } else {
+                    table.getSelectionModel().clearSelection();
+                }
+            }
+        }
+    }
+
+    @Override
+    public final void valueChanged(ListSelectionEvent event) {
+        if (!event.getValueIsAdjusting()) {
+            refresh();
+            new LinkedList<>(selectListeners).forEach(listener -> listener.selectedEntities(context.get()));
+        }
+    }
+
+    public void enableSorting() {
+        if (!rootEntity.allowModifyChild()) {
+            table.setAutoCreateRowSorter(true);
+        }
+    }
+
+    public void setColumnRenderer(int column, TableCellRenderer renderer) {
+        table.getColumnModel().getColumn(column).setCellRenderer(renderer);
+    }
+
+    public void addSelectListener(IEntitySelectedListener listener) {
+        selectListeners.add(listener);
+    }
+
+    public void removeSelectListener(IEntitySelectedListener listener) {
+        selectListeners.remove(listener);
+    }
+
     /**
      * Обновление презентации и панели команд.
      */
@@ -188,7 +230,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         activateCommands();
     }
 
-    private void updateCommands() {
+    private synchronized void updateCommands() {
         Map<EntityCommand<Entity>, CommandContextKind> sysCommands = getSystemCommands();
         boolean updateRequired = !(
                 sysCommands.keySet().containsAll(systemCommands.keySet()) &&
@@ -217,13 +259,12 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     private void activateCommands() {
         final List<Entity> context = this.context.get();
         systemCommands.forEach((command, ctxKind) -> {
-            switch (ctxKind) {
-                case Parent:
-                    command.setContext(Collections.singletonList(entity)); break;
-                default:
-                    context.forEach((contextItem) -> contextItem.removeNodeListener(this));
-                    command.setContext(context);
-                    context.forEach((contextItem) -> contextItem.addNodeListener(this));
+            if (ctxKind == CommandContextKind.Parent) {
+                command.setContext(Collections.singletonList(rootEntity));
+            } else {
+                context.forEach((contextItem) -> contextItem.removeNodeListener(this));
+                command.setContext(context);
+                context.forEach((contextItem) -> contextItem.addNodeListener(this));
             }
         });
 
@@ -237,23 +278,23 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     private Map<EntityCommand<Entity>, CommandContextKind> getSystemCommands() {
         final Map<EntityCommand<Entity>, CommandContextKind> commands = new LinkedHashMap<>();
 
-        entity.getCommands().stream()
+        rootEntity.getCommands().stream()
                 .filter(command -> command.getKind() == EntityCommand.Kind.System)
                 .forEach(command -> commands.put(command, CommandContextKind.Parent));
 
-        if (true) {
-            final EntityCommand<Entity> editCmd   = findCommand(systemCommands.keySet(), EditEntity.class, new EditEntity());
+        if (rootEntity.getChildCount() > 0) {
+            final EntityCommand<Entity> editCmd = findCommand(systemCommands.keySet(), EditEntity.class, new EditEntity());
             commands.put(editCmd, CommandContextKind.Child);
         }
         if (canCreateEntities()) {
             final EntityCommand<Entity> createCmd = findCommand(systemCommands.keySet(), CreateEntity.class, new CreateEntity());
             commands.put(createCmd, CommandContextKind.Parent);
         }
-        if (canCreateEntities()) {
+        if (canCreateEntities() && rootEntity.getChildCount() > 0) {
             final EntityCommand<Entity> cloneCmd  = findCommand(systemCommands.keySet(), CloneEntity.class, new CloneEntity());
             commands.put(cloneCmd, CommandContextKind.Child);
         }
-        if (canDeleteEntities()) {
+        if (canDeleteEntities() && rootEntity.getChildCount() > 0) {
             final EntityCommand<Entity> deleteCmd = findCommand(systemCommands.keySet(), DeleteEntity.class, new DeleteEntity());
             commands.put(deleteCmd, CommandContextKind.Child);
         }
@@ -294,19 +335,11 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
     }
 
     private boolean canCreateEntities() {
-        return entity.allowModifyChild();
+        return rootEntity.allowModifyChild();
     }
 
     private boolean canDeleteEntities() {
-        return entity.allowModifyChild() || !getCleanerMethod(entity.getClass()).getDeclaringClass().equals(Entity.class);
-    }
-
-    @Override
-    public void valueChanged(ListSelectionEvent event) {
-        if (!event.getValueIsAdjusting()) {
-            refresh();
-            new LinkedList<>(selectListeners).forEach(listener -> listener.selectedEntities(context.get()));
-        }
+        return rootEntity.allowModifyChild() || !getCleanerMethod(rootEntity.getClass()).getDeclaringClass().equals(Entity.class);
     }
 
     @SuppressWarnings("unchecked")
@@ -319,31 +352,9 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             });
         }
     }
-    
-    @Override
-    public void childChanged(INode node) {
-        activateCommands();
-    }
 
-    public void enableSorting() {
-        if (!entity.allowModifyChild()) {
-            table.setAutoCreateRowSorter(true);
-        }
-    }
 
-    public void setColumnRenderer(int column, TableCellRenderer renderer) {
-        table.getColumnModel().getColumn(column).setCellRenderer(renderer);
-    }
-
-    public void addSelectListener(IEntitySelectedListener listener) {
-        selectListeners.add(listener);
-    }
-
-    public void removeSelectListener(IEntitySelectedListener listener) {
-        selectListeners.remove(listener);
-    }
-
-    class CreateEntity extends EntityCommand<Entity> {
+    final class CreateEntity extends EntityCommand<Entity> {
     
         CreateEntity() {
             super(
@@ -465,8 +476,9 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             return false;
         }
     }
-    
-    class CloneEntity extends EntityCommand<Entity> {
+
+
+    final class CloneEntity extends EntityCommand<Entity> {
         
         CloneEntity() {
             super(
@@ -580,8 +592,9 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
         }
 
     }
-    
-    class EditEntity extends EntityCommand<Entity> {
+
+
+    final class EditEntity extends EntityCommand<Entity> {
     
         EditEntity() {
             super(
@@ -600,18 +613,9 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
                     boolean hasChild = ICatalog.class.isAssignableFrom(entities.get(0).getClass()) && entities.get(0).getChildCount() > 0;
                     return new CommandStatus(hasProps || hasChild, allDisabled || entities.get(0).islocked() ? IMAGE_VIEW : IMAGE_EDIT);
                 } else {
-                    return new CommandStatus(false, entity.allowModifyChild() ? IMAGE_EDIT : IMAGE_VIEW);
+                    return new CommandStatus(false, rootEntity.allowModifyChild() ? IMAGE_EDIT : IMAGE_VIEW);
                 }
             };
-            table.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent event) {
-                    if (event.getClickCount() == 2 && isActive()) {
-                        execute(tableModel.getEntityForRow(table.convertRowIndexToModel(table.getSelectedRow())), null);
-                    }
-                }
-            });
-            activate();
         }
 
 
@@ -620,8 +624,9 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
             EditorPresentation.EmbeddedEditor.show(context);
         }
     }
-    
-    class DeleteEntity extends EntityCommand<Entity> {
+
+
+    final class DeleteEntity extends EntityCommand<Entity> {
     
         DeleteEntity() {
             super(
@@ -643,7 +648,7 @@ public final class SelectorPresentation extends JPanel implements ListSelectionL
 
         @Override
         public void execute(Entity context, Map<String, IComplexType> params) {
-            deleteInstance(entity, context);
+            deleteInstance(rootEntity, context);
         }
 
         @Override

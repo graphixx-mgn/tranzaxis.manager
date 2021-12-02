@@ -175,6 +175,7 @@ public class BigIntEditor extends AbstractEditor<BigInt, Long> implements Docume
 
     @Override
     public boolean stopEditing() {
+        if (propHolder.isInherited()) return true;
         commit.accept(textField.getText());
         return true;
     }

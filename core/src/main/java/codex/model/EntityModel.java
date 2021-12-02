@@ -340,6 +340,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         changeListeners.add(listener);
     }
 
+    List<IPropertyChangeListener> getChangeListeners() {
+        return new LinkedList<>(changeListeners);
+    }
+
     /**
      * Удаление слушателя события изменения значения свойства.
      */
@@ -354,6 +358,10 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
         if (!modelListeners.contains(listener)) {
             modelListeners.add(listener);
         }
+    }
+
+    List<IModelListener> getModelListeners() {
+        return new LinkedList<>(modelListeners);
     }
     
     /**
@@ -615,7 +623,8 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
 
     @SuppressWarnings("unchecked")
     protected boolean update(boolean showError, List<String> changes) throws Exception {
-        final Map<String, String> dbValues = getConfigService().readClassInstance(tableClass, getID());
+        final Map<String, String>  dbValues = getConfigService().readClassInstance(tableClass, getID());
+        final Map<String, Boolean> modifiedOvrProps = OverrideProperty.getOverrideChanges(this);
         try {
             synchronized (this) {
                 processAutoReferences(true, null);
@@ -643,6 +652,7 @@ public class EntityModel extends AbstractModel implements IPropertyChangeListene
                     }
                 });
             }
+            changes.addAll(modifiedOvrProps.keySet());
             new LinkedList<>(modelListeners).forEach((listener) -> listener.modelSaved(this, new LinkedList<>(changes)));
             changes.forEach((propName) -> {
                 List<EditorCommand> commands = getEditor(propName).getCommands();

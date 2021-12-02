@@ -24,7 +24,8 @@ import java.util.function.Function;
 @ThreadSafe
 public class StrEditor extends AbstractEditor<Str, String> implements DocumentListener {
     
-    private JTextField textField;
+    private JTextField  textField;
+    private PlaceHolder placeHolder;
     
     private final Consumer<String> update;
     private final Consumer<String> commit;
@@ -52,7 +53,7 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
     private StrEditor(PropertyHolder<Str, String> propHolder, Function<String, String> transformer) {
         super(propHolder);
 
-        PlaceHolder placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField);
+        placeHolder = new PlaceHolder(propHolder.getPlaceholder(), textField);
         placeHolder.setBorder(textField.getBorder());
         placeHolder.changeAlpha(100);
         placeHolder.setVisible(textField.getText().isEmpty());
@@ -143,6 +144,12 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
     }
 
     @Override
+    public void setPlaceHolder(String text) {
+        super.setPlaceHolder(text);
+        SwingUtilities.invokeLater(() -> placeHolder.setText(text));
+    }
+
+    @Override
     protected void updateEditable(boolean editable) {
         textField.setForeground(editable && !propHolder.isInherited() ? COLOR_NORMAL : COLOR_DISABLED);
         textField.setEditable(editable && !propHolder.isInherited());
@@ -161,6 +168,7 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
 
     @Override
     public boolean stopEditing() {
+        if (propHolder.isInherited()) return true;
         commit.accept(textField.getText());
         return verify();
     }

@@ -141,7 +141,9 @@ public class Language {
             this.className = BundleCache.getClassName(clazz);
 
             for (SupportedLang lang : SupportedLang.values()) {
-                bundles.put(lang.getLocale(), loadBundle(lang.getLocale()));
+                try {
+                    bundles.put(lang.getLocale(), loadBundle(lang.getLocale()));
+                } catch (Throwable ignore) {}
             }
         }
 

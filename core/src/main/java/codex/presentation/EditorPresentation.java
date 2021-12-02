@@ -9,7 +9,6 @@ import codex.explorer.tree.INode;
 import codex.explorer.tree.INodeListener;
 import codex.model.Access;
 import codex.model.Entity;
-import codex.model.ICatalog;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -24,6 +23,7 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.List;
 import java.util.function.Function;
@@ -36,6 +36,9 @@ import java.util.stream.Collectors;
  * редактора, так и обеспечивает работу команд сущностей.
  */
 public final class EditorPresentation extends JPanel {
+
+    public  final static int DEFAULT_DIALOG_WIDTH  = 800;
+    public  final static int DEFAULT_DIALOG_HEIGHT = 500;
 
     private final Class        entityClass;
     private final CommandPanel commandPanel;
@@ -61,7 +64,7 @@ public final class EditorPresentation extends JPanel {
                 changed.model.getProperties(Access.Edit).stream()
                         .filter((propName) -> !changed.model.isPropertyDynamic(propName))
                         .forEach((propName) -> ((AbstractEditor) changed.model.getEditor(propName)).setLocked(changed.islocked()));
-                activateCommands();
+                refresh();
             }
         });
         addAncestorListener(new AncestorAdapter() {
@@ -99,7 +102,7 @@ public final class EditorPresentation extends JPanel {
         return entityClass;
     }
 
-    private void updateCommands() {
+    private synchronized void updateCommands() {
         systemCommands.clear();
         systemCommands.addAll(getSystemCommands());
         commandPanel.setSystemCommands(systemCommands);
@@ -168,31 +171,31 @@ public final class EditorPresentation extends JPanel {
             SwingUtilities.invokeLater(() -> {
                 boolean allDisabled = context.model.getProperties(Access.Edit).stream().noneMatch((name) -> context.model.getEditor(name).isEditable());
 
-                final codex.component.dialog.Dialog editor = new codex.component.dialog.Dialog(
+                final Dialog editor = new Dialog(
                         Dialog.findNearestWindow(),
                         allDisabled ? IMAGE_VIEW : IMAGE_EDIT,
-                        Language.get(SelectorPresentation.class, allDisabled ? "viewer@title" : "editor@title"),
+                        MessageFormat.format(
+                                Language.get(SelectorPresentation.class, allDisabled ? "viewer@title" : "editor@title"),
+                                context.toString()
+                        ),
                         new JPanel(new BorderLayout()) {{
                             add(context.getEditorPage(), BorderLayout.NORTH);
 
-                            if (context.getChildCount() > 0) {
-                                SelectorPresentation embedded = context.getSelectorPresentation();
-                                if (embedded != null) {
-                                    add(context.getSelectorPresentation(), BorderLayout.CENTER);
-                                    embedded.setBorder(new TitledBorder(
+                            SelectorPresentation embedded = context.getSelectorPresentation();
+                            if (embedded != null) {
+                                add(context.getSelectorPresentation(), BorderLayout.CENTER);
+                                embedded.setBorder(new CompoundBorder(
+                                        new EmptyBorder(0, 10, 5, 10),
+                                        new TitledBorder(
                                             new LineBorder(Color.GRAY, 1),
                                             IComplexType.coalesce(BrowseMode.getDescription(BrowseMode.getClassHierarchy(context), "group@title"), BrowseMode.SELECTOR_TITLE)
-                                    ));
-                                }
+                                        )
+                                ));
                             }
-
-                            setBorder(new CompoundBorder(
-                                    new EmptyBorder(10, 5, 5, 5),
-                                    new TitledBorder(new LineBorder(Color.LIGHT_GRAY, 1), context.toString())
-                            ));
+                            setBorder(new EmptyBorder(5, 0, 0, 0));
                         }},
                         (event) -> {
-                            if (event.getID() == codex.component.dialog.Dialog.OK) {
+                            if (event.getID() == Dialog.OK) {
                                 if (context.model.hasChanges()) {
                                     try {
                                         context.model.commit(true);
@@ -207,8 +210,8 @@ public final class EditorPresentation extends JPanel {
                             }
                         },
                         allDisabled ?
-                                new DialogButton[] { codex.component.dialog.Dialog.Default.BTN_CLOSE.newInstance() } :
-                                new DialogButton[] { codex.component.dialog.Dialog.Default.BTN_OK.newInstance(), codex.component.dialog.Dialog.Default.BTN_CANCEL.newInstance() }
+                                new DialogButton[] { Dialog.Default.BTN_CLOSE.newInstance() } :
+                                new DialogButton[] { Dialog.Default.BTN_OK.newInstance(), Dialog.Default.BTN_CANCEL.newInstance() }
                 ) {{
                     // Перекрытие обработчика кнопок
                     Function<DialogButton, ActionListener> defaultHandler = handler;
@@ -220,7 +223,14 @@ public final class EditorPresentation extends JPanel {
                 }
                     @Override
                     public Dimension getPreferredSize() {
-                        return new Dimension(700, super.getPreferredSize().height);
+                        return new Dimension(
+                                getOwner() != null && getOwner() instanceof Dialog ?
+                                        getOwner().getPreferredSize().width - 20 :
+                                        DEFAULT_DIALOG_WIDTH,
+                                context.getSelectorPresentation() != null?
+                                        Math.max(super.getPreferredSize().height, DEFAULT_DIALOG_HEIGHT) :
+                                        super.getPreferredSize().height
+                        );
                     }
                 };
 

@@ -137,6 +137,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 if (changes.contains(EntityModel.PID)) {
                     setTitle(model.getPID(false));
                 }
+                fireChangeEvent();
                 ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).findReferencedEntries(Entity.this.getClass(), getID()).stream()
                         .filter(link -> link.isIncoming)
                         .forEach(link -> {
@@ -323,6 +324,15 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
             props.forEach((propName) -> {
                 if (childModel.getEditor(propName).getCommands().stream().noneMatch((command) -> command instanceof OverrideProperty)) {
                     childModel.getEditor(propName).addCommand(new OverrideProperty(parentModel, childModel, propName));
+                }
+            });
+            parentModel.addModelListener(new IModelListener() {
+                @Override
+                public void modelSaved(EntityModel model, List<String> changes) {
+                    changes.removeIf(changedProp -> !props.contains(changedProp));
+                    if (!changes.isEmpty()) {
+                        childModel.getModelListeners().forEach(listener -> listener.modelSaved(childModel, changes));
+                    }
                 }
             });
         }
@@ -795,9 +805,13 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         }
         return null;
     }
+
+    public static <E extends Entity> E newInstance(Class<E> entityClass, EntityRef owner, String PID) {
+        return newInstance(entityClass, owner, PID, (Object[]) null);
+    }
     
     @SuppressWarnings("unchecked")
-    public static <E extends Entity> E newInstance(Class<E> entityClass, EntityRef owner, String PID) {
+    public static <E extends Entity> E newInstance(Class<E> entityClass, EntityRef owner, String PID, Object... params) {
         synchronized (entityClass) {
             Class<E> implClass = entityClass;
             if (PolyMorph.class.isAssignableFrom(entityClass) && Modifier.isAbstract(entityClass.getModifiers())) {
@@ -826,9 +840,33 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 return (E) found;
             }
             try {
-                Constructor<E> ctor = implClass.getDeclaredConstructor(EntityRef.class, String.class);
+                Constructor<E> ctor = (Constructor<E>) Arrays.stream(implClass.getDeclaredConstructors())
+                        .filter(constructor -> {
+                            Class<?>[] ctorParams = constructor.getParameterTypes();
+                            return ctorParams.length >= 2 && ctorParams[0].equals(EntityRef.class) && ctorParams[1].equals(String.class);
+                        }).findFirst().orElse(null);
+                if (ctor == null) {
+                    throw new NoSuchMethodException(MessageFormat.format(
+                            "Entity class ''{0}'' does not have universal constructor ( EntityRef<owner>, String<PID> {, Object[]} )",
+                            implClass.getTypeName()
+                    ));
+                }
+
+                E prepared;
                 ctor.setAccessible(true);
-                final E created = ctor.newInstance(owner, PID);
+                if (ctor.getParameterTypes().length == 2) {
+                    prepared = ctor.newInstance(owner, PID);
+                } else {
+                    Object[] args = new Object[ctor.getParameterTypes().length];
+                    args[0] = owner;
+                    args[1] = PID;
+                    for (int i = 0; i < args.length-2; i++) {
+                        args[i+2] = i >= params.length ? null : params[i];
+                    }
+                    prepared = ctor.newInstance(args);
+                }
+                final E created = prepared;
+
                 if (created.getPID() == null) {
                     created.model.addModelListener(new IModelListener() {
                         @Override
@@ -852,10 +890,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                     );
                 } while ((exception = exception.getCause()) != null);
             } catch (NoSuchMethodException e) {
-                Logger.getLogger().error(
-                        "Entity ''{0}'' does not have universal constructor (EntityRef<owner>, String<PID>)",
-                        implClass.getCanonicalName()
-                );
+                Logger.getLogger().error(e.getMessage());
             }
             return null;
         }
@@ -908,5 +943,4 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         @Override
         public void finished(Void result) {}
     }
-    
 }

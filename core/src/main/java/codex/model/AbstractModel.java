@@ -1,6 +1,7 @@
 package codex.model;
 
 import codex.editor.IEditor;
+import codex.log.Logger;
 import codex.property.PropertyHolder;
 import codex.property.PropertyState;
 import codex.type.IComplexType;
@@ -88,8 +89,9 @@ public class AbstractModel {
     public final void addPropertyGroup(String groupTitle, String... propNames) {
         for (String propName : propNames) {
             if (!hasProperty(propName)) {
-                throw new NoSuchFieldError(
-                        MessageFormat.format("Model does not have property ''{0}''", propName)
+                Logger.getContextLogger(EntityModel.OrmContext.class).warn(
+                        "Model does not have property ''{0}'' to include to group ''{1}''",
+                        propName, groupTitle
                 );
             }
             propertyGroups.put(propName, groupTitle);

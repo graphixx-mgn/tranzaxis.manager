@@ -44,7 +44,15 @@ public class ParamModel extends AbstractModel implements IPropertyChangeListener
     }
     
     public final void addChangeListener(IPropertyChangeListener listener) {
-        listeners.add(listener);
+        synchronized (listeners) {
+            listeners.add(listener);
+        }
+    }
+
+    public final void removeChangeListener(IPropertyChangeListener listener) {
+        synchronized (listeners) {
+            listeners.remove(listener);
+        }
     }
 
     @Override

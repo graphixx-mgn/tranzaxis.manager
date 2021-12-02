@@ -8,13 +8,15 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import org.atteo.classindex.ClassIndex;
 import javax.swing.*;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.function.Supplier;
 
 public abstract class PluginHandler<P extends IPlugin> implements Iconified {
 
-    final Class<P>  pluginClass;
+    final Class<P>          pluginClass;
     private final Plugin<P> pluginConfig;
+    private final String    packageId;
 
     private static <P extends IPlugin>  List<Class<? extends IContext>> getContexts(Class<P> pluginClass) {
         List<Class<? extends IContext>> contexts = new LinkedList<>();
@@ -34,9 +36,14 @@ public abstract class PluginHandler<P extends IPlugin> implements Iconified {
         return contexts;
     }
 
-    protected PluginHandler(Class<P> pluginClass) {
+    protected PluginHandler(Class<P> pluginClass, String pkgId) {
         this.pluginClass = pluginClass;
+        this.packageId   = pkgId;
         pluginConfig     = new Plugin<>(this);
+    }
+
+    String getPluginId() {
+        return MessageFormat.format("{0}/{1}", packageId, pluginClass.getCanonicalName().toLowerCase());
     }
 
     Plugin<P> getView() {

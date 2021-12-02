@@ -36,10 +36,10 @@ public final class Common extends Catalog {
                 changes.forEach((propName) -> {
                     switch (propName) {
                         case PROP_WORK_DIR:
-                            childrenList().forEach((child) -> setChildMode(child, getWorkDir() != null));
+                            childrenList().forEach((child) -> setChildMode(child));
                             break;
                     }
-                });          
+                });
             }
         });
     }
@@ -50,7 +50,7 @@ public final class Common extends Catalog {
 
     @Override
     public void attach(INode child) {
-        setChildMode(child, getWorkDir() != null);
+        setChildMode(child);
         super.attach(child);
     }
     
@@ -59,7 +59,8 @@ public final class Common extends Catalog {
         return null;
     }
     
-    private void setChildMode(INode node, boolean enabled) {
+    private void setChildMode(INode node) {
+        boolean enabled = getWorkDir() != null || node instanceof DatabaseRoot || node instanceof EnvironmentRoot;
         node.setMode(enabled ? MODE_ENABLED + MODE_SELECTABLE : MODE_NONE);
     }
     

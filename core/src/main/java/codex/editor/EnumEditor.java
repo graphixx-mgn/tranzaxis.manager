@@ -118,6 +118,7 @@ public class EnumEditor<T extends java.lang.Enum> extends AbstractEditor<Enum<T>
 
     @Override
     public boolean stopEditing() {
+        if (propHolder.isInherited()) return true;
         IMask<T> mask = propHolder.getPropValue().getMask();
         boolean inputOk = mask == null || mask.verify(propHolder.getPropValue().getValue());
         setBorder(!inputOk ? BORDER_ERROR : comboBox.isFocusOwner() ? BORDER_ACTIVE : BORDER_NORMAL);

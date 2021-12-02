@@ -14,9 +14,8 @@
     </parent>
 
     <properties>
-        <!-- Define author name -->
-        <author>I.Gredyaev</author>
-        <build>false</build>
+        <construction>false</construction>
+        <compatible>2.4.0</compatible>
     </properties>
 
     <dependencies>

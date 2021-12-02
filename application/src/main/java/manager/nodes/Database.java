@@ -1,5 +1,6 @@
 package manager.nodes;
 
+import codex.command.EntityCommand;
 import codex.component.messagebox.MessageBox;
 import codex.component.messagebox.MessageType;
 import codex.database.IDatabaseAccessService;
@@ -8,29 +9,33 @@ import codex.explorer.tree.INode;
 import codex.log.Logger;
 import codex.mask.RegexMask;
 import codex.model.*;
+import codex.property.PropertyHolder;
 import codex.service.ServiceRegistry;
-import codex.type.EntityRef;
-import codex.type.IComplexType;
-import codex.type.Iconified;
-import codex.type.Str;
+import codex.type.*;
+import codex.type.Enum;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import codex.utils.NetTools;
-import manager.commands.database.CheckConnection;
 import javax.swing.*;
 
 public class Database extends Entity {
+    private static final IDatabaseAccessService OAS = OracleAccessService.getInstance();
+    private final static Integer CONNECT_TIMEOUT = 1000;
     
-    private final static String PROP_BASE_URL  = "dbUrl";
-    private final static String PROP_BASE_USER = "dbSchema";
-    private final static String PROP_BASE_PASS = "dbPass";
-    private final static String PROP_USER_NOTE = "userNote";
+    private final static String  PROP_BASE_URL  = "dbUrl";
+    private final static String  PROP_BASE_USER = "dbSchema";
+    private final static String  PROP_BASE_PASS = "dbPass";
+    private final static String  PROP_USER_NOTE = "userNote";
+    public  final static String  PROP_CONN_LOCK = "lock";
+    public  final static String  PROP_CONN_STAT = "status";
 
     private final static Pattern   URL_SPLITTER = Pattern.compile("([\\d\\.]+|[^\\s]+):(\\d+)/");
     private final static ImageIcon ICON_ONLINE  = ImageUtils.getByPath("/images/database.png");
@@ -41,70 +46,20 @@ public class Database extends Entity {
     );
     private final static ImageIcon ICON_UNKNOWN = ImageUtils.combine(
             ICON_ONLINE,
-            ImageUtils.resize(ImageUtils.getByPath("/images/question.png"), .6f),
+            ImageUtils.resize(ImageUtils.getByPath("/images/update.png"), .6f),
             SwingConstants.SOUTH_EAST
     );
-   
-    private static final IDatabaseAccessService OAS = OracleAccessService.getInstance();
     
     static {
         ServiceRegistry.getInstance().registerService(OAS);
         CommandRegistry.getInstance().registerCommand(CheckConnection.class);
     }
 
-    private Status status = Status.Unknown;
-
-    private final Runnable connectionChecker = () -> new Thread(() -> {
-        String dbUrl = getDatabaseUrl(true);
-        if (getConnectionID(false) == null) {
-            Logger.getLogger().warn(
-                    Language.get(Database.class, "error@unavailable", Language.DEF_LOCALE),
-                    getPID(), dbUrl.substring(0, dbUrl.indexOf("/"))
-            );
-        }
-    }).start();
-    
-    private final Function<Boolean, Integer> connectionGetter = (showError) -> {
-        String url  = getDatabaseUrl(true);
-        String user = getDatabaseUser(true); 
-        String pass = getDatabasePassword(true);
-
-        if (IComplexType.notNull(url, user, pass)) {
-            if (!checkUrlPort(url)) {
-                if (showError) {
-                    MessageBox.show(MessageType.WARNING, MessageFormat.format(
-                            Language.get(Database.class, "error@unavailable"),
-                            url.substring(0, url.indexOf("/"))
-                    ));
-                }
-                return null;
-            }
-            try {
-                return Database.OAS.registerConnection("jdbc:oracle:thin:@//"+url, user, pass);
-            } catch (SQLException e) {
-                if (showError) {
-                    MessageBox.show(MessageType.ERROR, e.getMessage());
-                } else {
-                    Logger.getLogger().warn(
-                            "Unable to open connection for database ''{0}'': {1}",
-                            this, e.getMessage()
-                    );
-                }
-            }
-        } else {
-            if (showError) {
-                MessageBox.show(
-                        MessageType.WARNING, 
-                        Language.get(Database.class, "error@notready")
-                );
-            } else {
-                Logger.getLogger().warn(
-                        Language.get(Database.class, "error@notready", Language.DEF_LOCALE)
-                );
-            }
-        }
-        return null;
-    };
+    private final PropertyHolder<Bool, Boolean> checked = new PropertyHolder<>(
+            PROP_CONN_LOCK,
+            new Bool(false),
+            false
+    );
     
     public Database(EntityRef owner, String title) {
         super(owner, ICON_ONLINE, title, null);
@@ -122,6 +77,8 @@ public class Database extends Entity {
         model.addUserProp(PROP_BASE_PASS, new Str(null), true, Access.Select);
         model.addUserProp(PROP_USER_NOTE, new Str(null), false, null);
 
+        model.addDynamicProp(PROP_CONN_STAT, new Enum<>(Status.Unknown), Access.Any, null);
+
         // Handlers
         model.addModelListener(new IModelListener() {
             @Override
@@ -136,8 +93,13 @@ public class Database extends Entity {
 
             private void onChange(List<String> changes) {
                 if (changes.contains(PROP_BASE_URL)) {
-                    connectionChecker.run();
+                    checkConnection(false);
                 }
+            }
+        });
+        model.addChangeListener((name, oldValue, newValue) -> {
+            if (name.equals(PROP_CONN_STAT)) {
+                setIcon(((Status) newValue).getIcon());
             }
         });
     }
@@ -145,7 +107,7 @@ public class Database extends Entity {
     @Override
     public void setParent(INode parent) {
         super.setParent(parent);
-        connectionChecker.run();
+        checkConnection(false);
     }
     
     public final String getDatabaseUrl(boolean unsaved) {
@@ -160,43 +122,80 @@ public class Database extends Entity {
         return (String) (unsaved? model.getUnsavedValue(PROP_BASE_PASS) : model.getValue(PROP_BASE_PASS));
     }
     
-    public final String getUserNote() {
-        return (String) model.getValue(PROP_USER_NOTE);
-    }
-    
-    public final void setDatabaseUrl(String value) {
-        model.setValue(PROP_BASE_URL, value);
-    }
-    
-    public final void setDatabaseUser(String value) {
-        model.setValue(PROP_BASE_USER, value);
-    }
-    
-    public final void setDatabasePassword(String value) {
-        model.setValue(PROP_BASE_PASS, value);
-    }
-    
-    public final void setUserNote(String value) {
-        model.setValue(PROP_USER_NOTE, value);
-    }
-    
     public Integer getConnectionID(boolean showError) {
-        return connectionGetter.apply(showError);
+        String url  = getDatabaseUrl(true);
+        String user = getDatabaseUser(true);
+        String pass = getDatabasePassword(true);
+
+        if (IComplexType.notNull(url, user, pass)) {
+            synchronized (checked) {
+                if (checked.getPropValue().getValue()) {
+                    return null;
+                }
+                Status status = checkUrlPort(url) ? Status.Online : Status.Offline;
+                SwingUtilities.invokeLater(() -> model.setValue(PROP_CONN_STAT, status));
+                if (status == Status.Offline) {
+                    checked.getPropValue().setValue(true);
+                    if (showError) {
+                        MessageBox.show(MessageType.WARNING, MessageFormat.format(
+                                Language.get(Database.class, "error@unavailable"),
+                                url.substring(0, url.indexOf("/"))
+                        ));
+                    }
+                    return null;
+                }
+            }
+            try {
+                return Database.OAS.registerConnection("jdbc:oracle:thin:@//"+url, user, pass);
+            } catch (SQLException e) {
+                if (showError) {
+                    MessageBox.show(MessageType.ERROR, e.getMessage());
+                } else {
+                    Logger.getLogger().warn(
+                            "Unable to open connection for database ''{0}'': {1}",
+                            this, e.getMessage()
+                    );
+                }
+            }
+        } else {
+            if (showError) {
+                MessageBox.show(
+                        MessageType.WARNING,
+                        Language.get(Database.class, "error@notready")
+                );
+            } else {
+                Logger.getLogger().warn(
+                        Language.get(Database.class, "error@notready", Language.DEF_LOCALE)
+                );
+            }
+        }
+        return null;
     }
 
-    public synchronized boolean checkUrlPort(String dbUrl) {
+    public boolean isConnected() {
+        return model.getValue(PROP_CONN_STAT) == Status.Online;
+    }
+
+    private void checkConnection(boolean showError) {
+        new Thread(() -> {
+            checked.getPropValue().setValue(false);
+            String dbUrl = getDatabaseUrl(true);
+            if (getConnectionID(showError) == null) {
+                Logger.getLogger().warn(
+                        "Database ''{0}'' address ({1}) is not available",
+                        getPID(), dbUrl.substring(0, dbUrl.indexOf("/"))
+                );
+            }
+        }).start();
+    }
+
+    private synchronized boolean checkUrlPort(String dbUrl) {
         Matcher verMatcher = URL_SPLITTER.matcher(dbUrl);
         if (verMatcher.find()) {
             String host = verMatcher.group(1);
-            int    port = Integer.valueOf(verMatcher.group(2));
+            int    port = Integer.parseInt(verMatcher.group(2));
             try {
-                boolean available = NetTools.isPortAvailable(host, port, 250);
-                Status newStatus = available ? Status.Online : Status.Offline;
-                if (newStatus != status) {
-                    status = newStatus;
-                    setIcon(status.getIcon());
-                }
-                return available;
+                return NetTools.isPortAvailable(host, port, CONNECT_TIMEOUT);
             } catch (IllegalStateException e) {
                 return false;
             }
@@ -206,10 +205,62 @@ public class Database extends Entity {
     }
 
 
-    private enum Status implements Iconified {
-        Unknown(ICON_UNKNOWN),
-        Online(ICON_ONLINE),
-        Offline(ICON_OFFLINE);
+    private static class CheckConnection extends EntityCommand<Database> {
+        private static final ImageIcon COMMAND_ICON = ImageUtils.combine(
+                ImageUtils.getByPath("/images/services.png"),
+                ImageUtils.resize(ImageUtils.getByPath("/images/question.png"), .8f),
+                SwingConstants.SOUTH_EAST
+        );
+
+        public CheckConnection() {
+            super(
+                    "check",
+                    Language.get(Database.class, "command@connect.check"),
+                    COMMAND_ICON,
+                    Language.get(Database.class, "command@connect.check"),
+                    null
+            );
+        }
+
+        @Override
+        public Kind getKind() {
+            return Kind.Admin;
+        }
+
+        @Override
+        public void execute(Database context, Map<String, IComplexType> params) {
+            Integer connectionID;
+            synchronized (context.checked) {
+                context.checkConnection(true);
+                //context.checked.getPropValue().setValue(false);
+                connectionID = context.getConnectionID(true);
+            }
+            if (connectionID != null) {
+                String url  = "jdbc:oracle:thin:@" + context.getDatabaseUrl(false);
+                String user = context.getDatabaseUser(false);
+                String pass = context.getDatabasePassword(false);
+
+                try (Connection conn = DriverManager.getConnection(url, user, pass)) {
+                    MessageBox.show(MessageType.INFORMATION, MessageFormat.format(
+                            Language.get(Database.class, "command@connect.success"),
+                            context.getPID()
+                    ));
+                } catch (SQLException e) {
+                    if (e.getErrorCode() == 1017) {
+                        MessageBox.show(MessageType.WARNING, Language.get(Database.class, "error@auth"));
+                    } else {
+                        MessageBox.show(MessageType.WARNING, e.getMessage());
+                    }
+                }
+            }
+        }
+    }
+
+
+    public enum Status implements Iconified {
+        Unknown (ICON_UNKNOWN),
+        Online  (ICON_ONLINE),
+        Offline (ICON_OFFLINE);
 
         private final ImageIcon icon;
         Status(ImageIcon icon) {

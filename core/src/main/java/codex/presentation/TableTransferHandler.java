@@ -16,7 +16,7 @@ import javax.swing.TransferHandler;
 /**
  * Обработчик перемещения (drad and drop) строк таблицы презентации селектора.
  */
-public class TableTransferHandler extends TransferHandler {
+public abstract class TableTransferHandler extends TransferHandler {
 
     private final DataFlavor localObjectFlavor = new ActivationDataFlavor(
             Integer.class, 
@@ -29,7 +29,7 @@ public class TableTransferHandler extends TransferHandler {
      * Конструктор обработчика.
      * @param table Ссылка на таблицу.
      */
-    public TableTransferHandler(JTable table) {
+    TableTransferHandler(JTable table) {
         this.table = table;
     }
 
@@ -61,12 +61,11 @@ public class TableTransferHandler extends TransferHandler {
         }
         target.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
         try {
-            Integer rowFrom = (Integer) info.getTransferable().getTransferData(localObjectFlavor);
+            int rowFrom = (Integer) info.getTransferable().getTransferData(localObjectFlavor);
             if (rowFrom != -1 && rowFrom != index) {
                 if (index > rowFrom)
                     index--;
-                
-                ((SelectorTableModel) table.getModel()).moveRow(rowFrom, rowFrom, index);
+                moveData(rowFrom, index);
                 table.getSelectionModel().setSelectionInterval(index, index);
                 return true;
             }
@@ -75,6 +74,8 @@ public class TableTransferHandler extends TransferHandler {
         }
         return false;
     }
+
+    abstract void moveData(int from, int to);
 
     @Override
     protected void exportDone(JComponent c, Transferable t, int act) {

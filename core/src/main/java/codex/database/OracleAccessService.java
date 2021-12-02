@@ -5,6 +5,8 @@ import codex.log.Logger;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
 import javax.sql.RowSet;
@@ -23,12 +25,16 @@ import oracle.ucp.jdbc.PoolDataSourceFactory;
 @IContext.Definition(id = "DAS", name = "Database Access Service", icon = "/images/database.png")
 public class OracleAccessService extends AbstractService<OracleAccessOptions> implements IDatabaseAccessService, IContext {
 
-    private final static int PARAM_MIN_POOL_SIZE = 0;
-    private final static int PARAM_MAX_POOL_SIZE = 50;
-    private final static int PARAM_WAIT_TIMEOUT  = 10;
-
+    private enum Mode {
+        Legacy, DataSource
+    }
+    private final static Mode MODE = Mode.DataSource;
     private final static OracleAccessService INSTANCE = new OracleAccessService();
-    
+
+    private final static int PARAM_MIN_POOL_SIZE = 0;
+    private final static int PARAM_MAX_POOL_SIZE = 100;
+    private final static int PARAM_WAIT_TIMEOUT  = (int) PARAM_MAX_POOL_SIZE / 10;
+
     /**
      * Возвращает экземпляр сервиса (синглтон). 
      */
@@ -43,19 +49,54 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
     @LoggingSource(debugOption = true)
     @IContext.Definition(id = "DAS.Ucp", name = "Connections pool status", icon = "/images/ucp.png", parent = OracleAccessService.class)
     private static class UCPContext implements IContext {}
-    
+
+
+    private static class Credential {
+        private final String url, user, pass;
+        private Credential(String url, String user, String pass) {
+            this.url  = url;
+            this.user = user;
+            this.pass = pass;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Credential that = (Credential) o;
+            return url.equals(that.url) && user.equals(that.user) && pass.equals(that.pass);
+        }
+        @Override
+        public int hashCode() {
+            return Objects.hash(url, user, pass);
+        }
+    }
+
     private OracleAccessService() {}
     
     private final AtomicInteger SEQ = new AtomicInteger(0);
-    private final Map<String, Integer>     urlToIdMap = new HashMap<>();
-    private final Map<Integer, DataSource> idToPoolMap = new HashMap<>();
-    
+    private final Map<Integer, Credential> CREDENTIAL_MAP = new HashMap<>();
+    private final Map<Integer, Connection> CONNECTION_MAP = new HashMap<>();
+    private final Map<Integer, DataSource> DATASOURCE_MAP = new HashMap<>();
+
     @Override
     public Integer registerConnection(String url, String user, String password) throws SQLException {
-        synchronized (urlToIdMap) {
-            String PID = url+"~"+user+"~"+password;
-            if (!urlToIdMap.containsKey(PID)) {
-                try {
+        synchronized (SEQ) {
+            Credential credential = new Credential(url, user, password);
+            Optional<Integer> ID_OLD = CREDENTIAL_MAP.entrySet().stream()
+                    .filter(entry -> entry.getValue().equals(credential))
+                    .map(Map.Entry::getKey)
+                    .findFirst();
+            if (ID_OLD.isPresent()) {
+                return ID_OLD.get();
+            } else {
+                SEQ.incrementAndGet();
+                CREDENTIAL_MAP.put(SEQ.get(), credential);
+
+                if (MODE.equals(Mode.Legacy)) {
+                    Connection conn = DriverManager.getConnection(url, user, password);
+                    CONNECTION_MAP.put(SEQ.get(), conn);
+                } else {
                     PoolDataSource pds = PoolDataSourceFactory.getPoolDataSource();
                     pds.setConnectionFactoryClassName("oracle.jdbc.pool.OracleDataSource");
 
@@ -66,25 +107,58 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
                     pds.setInitialPoolSize(PARAM_MIN_POOL_SIZE);
                     pds.setMinPoolSize(PARAM_MIN_POOL_SIZE);
                     pds.setMaxPoolSize(PARAM_MAX_POOL_SIZE);
-                    pds.setInactiveConnectionTimeout(PARAM_WAIT_TIMEOUT);
-                    pds.setTimeoutCheckInterval(1);
 
-                    urlToIdMap.put(PID, SEQ.incrementAndGet());
-                    idToPoolMap.put(SEQ.get(), pds);
-                    Logger.getLogger().debug("Registered new connection #{0}: URL={1}, User={2}", SEQ.get(), url, user);
-                    return SEQ.get();
-                } catch (SQLException e) {
-                    throw new SQLException(getCause(e).getMessage().trim());
+                    pds.setTimeoutCheckInterval(1);
+                    pds.setInactiveConnectionTimeout(PARAM_WAIT_TIMEOUT);
+
+                    pds.setMaxConnectionReuseTime(PARAM_WAIT_TIMEOUT);
+                    pds.setMaxConnectionReuseCount(PARAM_MAX_POOL_SIZE);
+
+                    DATASOURCE_MAP.put(SEQ.get(), pds);
+                }
+                Logger.getLogger().debug("Registered new connection #{0}: URL={1}, User={2}", SEQ.get(), url, user);
+                return SEQ.get();
+            }
+        }
+    }
+
+    private Connection getConnection(Integer ID) throws SQLException {
+        synchronized (SEQ) {
+            Connection connection = null;
+            if (MODE.equals(Mode.Legacy)) {
+                if (CONNECTION_MAP.containsKey(ID)) {
+                    connection = CONNECTION_MAP.get(ID);
+                    try {
+                        if (connection.isClosed()) {
+                            Credential credential = CREDENTIAL_MAP.get(ID);
+                            connection = DriverManager.getConnection(credential.url, credential.user, credential.pass);
+                            CONNECTION_MAP.put(ID, connection);
+                        }
+                    } catch (SQLException ignore) {}
                 }
             } else {
-                return urlToIdMap.get(PID);
+                if (DATASOURCE_MAP.containsKey(ID)) {
+                    PoolDataSource dataSource = (PoolDataSource) DATASOURCE_MAP.get(ID);
+                    Logger.getContextLogger(UCPContext.class).debug(
+                            "UCP usage state: busy={0}, avail={1}, max={2}",
+                            dataSource.getBorrowedConnectionsCount(),
+                            dataSource.getAvailableConnectionsCount(),
+                            dataSource.getMaxPoolSize()
+                    );
+                    connection = dataSource.getConnection();
+                }
             }
+            if (connection == null) {
+                throw new SQLException("Connection #" + ID + " not exists");
+            }
+            return connection;
         }
     }
     
     @Override
     public ResultSet select(Integer connectionID, String query, Object... params) throws SQLException {
         try {
+            if (connectionID == null) throw new SQLException("Connection is not opened");
             final RowSet rowSet = prepareSet(connectionID);
             Logger.getContextLogger(QueryContext.class).debug(
                     "Select query: {0} (connection #{1})",
@@ -101,7 +175,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
             rowSet.execute();
             return rowSet;
         } catch (SQLException e) {
-            Logger.getLogger().error(
+            if (e.getErrorCode() != 0) Logger.getLogger().error(
                     "Unable to execute query: {0}\nQuery:{1}",
                     e.getMessage().trim(),
                     IDatabaseAccessService.prepareTraceSQL(query, params)
@@ -116,24 +190,17 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
 
     @Override
     public synchronized void update(Integer connectionID, String query, Object... params) throws SQLException {
+        if (connectionID == null) throw new SQLException("Connection is not opened");
         Logger.getContextLogger(QueryContext.class).debug(
                 "Update query: {0} (connection #{1})",
                 IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
         );
-        Connection connection = idToPoolMap.get(connectionID).getConnection();
-        PoolDataSource dataSource = (PoolDataSource) idToPoolMap.get(connectionID);
-        Logger.getContextLogger(UCPContext.class).debug(
-                "UCP usage state: busy={0}, avail={1}, max={2}",
-                dataSource.getBorrowedConnectionsCount(),
-                dataSource.getAvailableConnectionsCount(),
-                dataSource.getMaxPoolSize()
-        );
-
+        Connection connection = getConnection(connectionID);
         connection.setAutoCommit(false);
         Savepoint savepoint = connection.setSavepoint();
 
         try (
-                PreparedStatement update = connection.prepareStatement(query)
+            PreparedStatement update = connection.prepareStatement(query)
         ) {
             if (params != null) {
                 int paramIdx = 0;
@@ -159,26 +226,17 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
             throw new SQLException(getCause(e).getMessage().trim());
         } finally {
             connection.setAutoCommit(true);
-            connection.close();
         }
     }
 
     @Override
     public PreparedStatement prepareStatement(Integer connectionID, String query, Object... params) throws SQLException {
+        if (connectionID == null) throw new SQLException("Connection is not opened");
         Logger.getContextLogger(QueryContext.class).debug(
-                "Execute query: {0} (connection #{1})",
+                "Prepare statement: {0} (connection #{1})",
                 IDatabaseAccessService.prepareTraceSQL(query, params), connectionID
         );
-
-        Connection connection = idToPoolMap.get(connectionID).getConnection();
-        PoolDataSource dataSource = (PoolDataSource) idToPoolMap.get(connectionID);
-        Logger.getContextLogger(UCPContext.class).debug(
-                "UCP usage state: busy={0}, avail={1}, max={2}",
-                dataSource.getBorrowedConnectionsCount(),
-                dataSource.getAvailableConnectionsCount(),
-                dataSource.getMaxPoolSize()
-        );
-
+        Connection connection = getConnection(connectionID);
         PreparedStatement statement = connection.prepareStatement(query);
         if (params != null) {
             int paramIdx = 0;
@@ -190,15 +248,15 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
         return statement;
     }
 
+    @Override
+    public CallableStatement prepareCallable(Integer connectionID, String query) throws SQLException {
+        if (connectionID == null) throw new SQLException("Connection is not opened");
+        Connection connection = getConnection(connectionID);
+        return connection.prepareCall(query);
+    }
+
     private RowSet prepareSet(Integer connectionID) throws SQLException {
-        Connection connection = idToPoolMap.get(connectionID).getConnection();
-        PoolDataSource dataSource = (PoolDataSource) idToPoolMap.get(connectionID);
-        Logger.getContextLogger(UCPContext.class).debug(
-                "UCP usage state: busy={0}, avail={1}, max={2}",
-                dataSource.getBorrowedConnectionsCount(),
-                dataSource.getAvailableConnectionsCount(),
-                dataSource.getMaxPoolSize()
-        );
+        Connection connection = getConnection(connectionID);
         final RowSet rowSet = new OracleJDBCRowSet(connection);
         rowSet.addRowSetListener(new RowSetAdapter() {                
             @Override
@@ -206,11 +264,8 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
                 try {
                     if (rowSet.isAfterLast() && !rowSet.isClosed()) {
                         rowSet.close();
-                        connection.close();
                     }
-                } catch (SQLException e) {
-                    //
-                }
+                } catch (SQLException ignore) {}
             }
         });
         return rowSet;
@@ -224,7 +279,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
         return throwable;
     }
     
-    private abstract class RowSetAdapter implements RowSetListener {
+    private abstract static class RowSetAdapter implements RowSetListener {
 
         @Override
         public void rowSetChanged(RowSetEvent event) {}

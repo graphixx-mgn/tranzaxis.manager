@@ -38,7 +38,7 @@ public class Repository extends Entity {
             ImageUtils.resize(ImageUtils.getByPath("/images/stop.png"), .6f),
             SwingConstants.SOUTH_EAST
     );
-    private final static ImageIcon ICON_AUTH = ImageUtils.getByPath("/images/lock.png");
+    private final static ImageIcon ICON_AUTH = ImageUtils.getByPath("/images/auth.png");
 
     static final int ERR_AUTH_FAILED   = 170000;
     static final int ERR_NOT_AVAILABLE = 210000;

@@ -69,7 +69,10 @@ public abstract class AbstractTask<T> implements ITask<T> {
                 setStatus(Status.FAILED);
                 error = e;
                 if (e instanceof ExecuteException) {
-                    Logger.getLogger().error(((ExecuteException) e).getDescription());
+                    ExecuteException execException = (ExecuteException) e;
+                    if (execException.getDescription() != null) {
+                        Logger.getLogger().error(execException.getDescription());
+                    }
                 } else {
                     Logger.getLogger().error(MessageFormat.format("Error on task ''{0}'' execution", getTitle()), e);
                 }

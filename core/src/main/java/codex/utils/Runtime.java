@@ -6,8 +6,7 @@ import net.jcip.annotations.ThreadSafe;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 import java.io.*;
-import java.net.URL;
-import java.net.URLDecoder;
+import java.net.*;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -29,18 +28,20 @@ public class Runtime {
                         .add(" JVM:       {0} (ver.: {1})")
                         .add(" Java home: {2}")
                         .add(" Compiler:  {3}")
-                        .add(" OS:        {4} (ver.: {5}, arch.: {6})")
-                        .add(" Classpath: {7} (dev.mode: {8})")
+                        .add(" Classpath: {4} (dev.mode: {5})")
+                        .add(" OS:        {6} (ver.: {7}, arch.: {8})")
+                        .add(" Proxy:     {9}")
                         .toString(),
                 JVM.name.get(),
                 JVM.version.get(),
                 JVM.location.get(),
                 javac == null ? "<not found>" : javac,
+                APP.jarFile.get(),
+                APP.devMode.get() ? "ON" : "OFF",
                 OS.name.get(),
                 OS.version.get(),
                 OS.is64bit.get() ? "x64" : "x68",
-                APP.jarFile.get(),
-                APP.devMode.get() ? "ON" : "OFF"
+                OS.proxy.get()
         );
     }
 
@@ -94,8 +95,23 @@ public class Runtime {
 
 
     public static class OS {
-        public final static Supplier<String> name = () -> System.getProperty("os.name");
-        public final static Supplier<String> version = () -> System.getProperty("os.version");
+        private final static Proxy PROXY = getSystemProxy();
+        private       static Proxy getSystemProxy() {
+            synchronized (System.getProperties()) {
+                try {
+                    System.setProperty("java.net.useSystemProxies", "true");
+                    return ProxySelector.getDefault().select(URI.create("http://foo.bar")).stream()
+                            .filter(Objects::nonNull)
+                            .findFirst()
+                            .orElse(null);
+                } finally {
+                    System.setProperty("java.net.useSystemProxies", "false");
+                }
+            }
+        }
+
+        public final static Supplier<String>  name = () -> System.getProperty("os.name");
+        public final static Supplier<String>  version = () -> System.getProperty("os.version");
 
         public final static Supplier<Boolean> isWindows = () -> name.get().startsWith("Windows");
         public final static Supplier<Boolean> isLinux = () -> name.get().startsWith("Linux");
@@ -108,6 +124,8 @@ public class Runtime {
                 System.getProperty("sun.cpu.isalist"),
                 System.getProperty("os.arch")
         ).contains("64");
+
+        public final static Supplier<Proxy>  proxy = () -> PROXY;
     }
 
 
