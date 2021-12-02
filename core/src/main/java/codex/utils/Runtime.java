@@ -61,7 +61,8 @@ public class Runtime {
         public final static Supplier<String> location = () -> System.getProperty("java.home");
         public final static Supplier<List<JavaInfo>> list = () -> {
             try {
-                return RuntimeStreamer.execute(new String[] {
+                return RuntimeStreamer.execute(
+                        OS.isMac.get() ? new String[] {"/usr/libexec/java_home", "-V" } : new String[] {
                         OS.isWindows.get() ? "where" : "which",
                         "java"
                 }).stream()
@@ -111,13 +112,20 @@ public class Runtime {
 
 
     public static class JavaInfo {
-        private static Pattern GET_NAME_VERSION = Pattern.compile("(.*) \\(build (.*)-.*\\)");
+        private static final Pattern GET_NAME_VERSION = Pattern.compile("(.*) \\(build (.*)[-+].*\\)");
+        private static final Pattern GET_NAME_PATH = Pattern.compile("\\s\\s\\s\\s.*\\s\\(.*\\)\\s\".*\"\\s-\\s\".*\"\\s(.*)");
         public final String  path;
         public final String  name;
         public final String  version;
 
         private static JavaInfo build(String javaPath) {
             try {
+                if (OS.isMac.get()) {
+                    Matcher m = GET_NAME_PATH.matcher(javaPath);
+                    if (!m.find())
+                        return null;
+                    javaPath = m.group(1) + "/bin/java";
+                }
                 return new JavaInfo(javaPath);
             } catch (IOException e) {
                 e.printStackTrace();
