@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<versions current="2.3.8" xmlns="manager/schemas/VersionInfo.xsd">
+<versions current="2.3.9" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="2.3.9" date="2022-01-10">
+        <changelog>
+            <change scope="APP" type="Bugfix">
+                <description>Исправление бинарной совместимости с RadixWare</description>
+            </change>
+        </changelog>
+    </version>
     <version number="2.3.8" date="2021-07-16">
         <changelog>
             <change scope="APP" type="Bugfix">
