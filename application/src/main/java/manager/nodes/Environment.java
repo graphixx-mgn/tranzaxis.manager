@@ -308,14 +308,16 @@ public class Environment extends Entity implements INodeListener {
         super.setParent(parent);
         EnvironmentRoot envRoot = (EnvironmentRoot) parent;
         model.updateDynamicProps(PROP_RUN_SERVER, PROP_RUN_EXPLORER);
-        envRoot.model.addModelListener(new IModelListener() {
-            @Override
-            public void modelSaved(EntityModel model, List<String> changes) {
-                if (changes.contains(EnvironmentRoot.PROP_JVM_SOURCE)) {
-                    Environment.this.model.updateDynamicProps(PROP_RUN_SERVER, PROP_RUN_EXPLORER);
+        if (parent != null) {
+            envRoot.model.addModelListener(new IModelListener() {
+                @Override
+                public void modelSaved(EntityModel model, List<String> changes) {
+                    if (changes.contains(EnvironmentRoot.PROP_JVM_SOURCE)) {
+                        Environment.this.model.updateDynamicProps(PROP_RUN_SERVER, PROP_RUN_EXPLORER);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     @Override

@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<versions current="2.3.7" xmlns="manager/schemas/VersionInfo.xsd">
-    <version number="2.4.0" date="2021-05-25">
+<versions current="2.3.9" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="2.3.9" date="2022-01-10">
         <changelog>
-            <change scope="CORE" type="Feature">
-                <description>Реализован диалоговый редактор подмножества свойств модели.</description>
+            <change scope="APP" type="Bugfix">
+                <description>Исправление бинарной совместимости с RadixWare</description>
             </change>
-            <change scope="APP" type="Feature">
-                <description>Параметры подключения к SVN репозиторию вызываются в диалоговом редакторе.</description>
+        </changelog>
+    </version>
+    <version number="2.3.8" date="2021-07-16">
+        <changelog>
+            <change scope="APP" type="Bugfix">
+                <description>Исправлен NPE, возникающий при попытке удалить сущность Environment.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Расширен диалог, возникающий при переходе на новый узел в дереве, если в старом имеются несохраненные изменения. Теперь имеются 3 варианта:
+                    * Сохранить изменения и перейти на новый узел.
+                    * Откатить изменения и перейти на новый узел.
+                    * Отменить переход.</description>
             </change>
         </changelog>
     </version>

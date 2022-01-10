@@ -56,6 +56,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     private static final ImageIcon ICON_INVALID = ImageUtils.getByPath("/images/warn.png");
     private static final ImageIcon ICON_LOCKED  = ImageUtils.getByPath("/images/lock.png");
     private static final ImageIcon ICON_REMOVE  = ImageUtils.getByPath("/images/close.png");
+    private static final ImageIcon ICON_CONFIRM = ImageUtils.getByPath("/images/confirm.png");
    
     private static final Boolean DEV_MODE = "1".equals(java.lang.System.getProperty("showSysProps"));
     private static final EntityCache     CACHE = EntityCache.getInstance();
@@ -724,28 +725,67 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      */
     public final boolean close() {
         if (validate() && model.hasChanges()) {
-            // Предлагаем сохранить
-            MessageBox.show(
-                    MessageType.CONFIRMATION, null,
-                    MessageFormat.format(
-                            Language.get("error@unsavedprop"),
-                            model.getChanges().stream()
-                                .map(propName -> MessageFormat.format(
-                                        "&nbsp;&bull;&nbsp;{0}<br>",
-                                        IComplexType.coalesce(model.getProperty(propName).getTitle(), propName)
-                                ))
-                                .collect(Collectors.joining())
-                    ),
-                    (event) -> {
-                        if (event.getID() == Dialog.OK) {
-                            try {
-                                model.commit(true);
-                            } catch (Exception e) {
-                                // Do nothing
-                            }
-                        }
-                    }
+            final String message = MessageFormat.format(
+                    Language.get("error@unsavedprop"),
+                    model.getChanges().stream()
+                        .map(propName -> MessageFormat.format(
+                                "&nbsp;&bull;&nbsp;{0}<br>",
+                                IComplexType.coalesce(model.getProperty(propName).getTitle(), propName)
+                        ))
+                        .collect(Collectors.joining())
             );
+
+            // Предлагаем сохранить
+            new Dialog(
+                    Dialog.findNearestWindow(),
+                    ICON_CONFIRM,
+                    MessageType.CONFIRMATION.toString(),
+                    new JPanel() {{
+                        setLayout(new BorderLayout(0, 10));
+                        setBorder(new EmptyBorder(10, 20, 10, 20));
+
+                        final JLabel iconLabel = new JLabel(ICON_CONFIRM);
+                        iconLabel.setVerticalAlignment(JLabel.TOP);
+                        iconLabel.setBorder(new EmptyBorder(0, 0, 0, 20));
+                        add(iconLabel, BorderLayout.WEST);
+
+                        final ImageUtils.HTMLToolKit toolKit = new ImageUtils.HTMLToolKit();
+                        final JEditorPane pane = new JEditorPane() {
+                            @Override
+                            public void paintComponent(Graphics g) {
+                                Graphics2D g2 = (Graphics2D) g;
+                                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                                g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                                super.paintComponent(g2);
+                            }
+                        };
+                        pane.setEditorKit(toolKit);
+                        pane.setOpaque(false);
+                        pane.setContentType("text/html");
+                        pane.setEditable(false);
+                        pane.setText("<html>" + message.replaceAll("\n", "<br>") + "</html>");
+
+                        pane.setFont(IEditor.FONT_VALUE.deriveFont((float) (IEditor.FONT_VALUE.getSize()*0.9)));
+                        pane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
+
+                        add(pane, BorderLayout.CENTER);
+                    }},
+                    event -> {
+                        switch (event.getID()) {
+                            case Dialog.OK:
+                                try {
+                                    model.commit(true);
+                                } catch (Exception ignore) {}
+                                break;
+                            case Dialog.CLOSE:
+                                model.rollback();
+                        }
+                    },
+                    Dialog.Default.BTN_OK.newInstance(Language.get("changes@commit")),
+                    Dialog.Default.BTN_CLOSE.newInstance(Language.get("changes@discard")),
+                    Dialog.Default.BTN_CANCEL.newInstance()
+            ).setVisible(true);
         }
         return !model.hasChanges();
     }

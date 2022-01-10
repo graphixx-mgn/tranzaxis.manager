@@ -4,7 +4,6 @@ import codex.utils.Language;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -16,8 +15,8 @@ import manager.xml.ProjectDocument;
 import manager.xml.PropertyDocument;
 import manager.xml.SubantDocument;
 import manager.xml.TargetDocument;
-import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.*;
+import org.apache.xmlbeans.XmlOptions;
 import org.radixware.kernel.common.preferences.KernelParameters;
 import org.radixware.kernel.common.repository.Branch;
 import org.radixware.kernel.common.repository.Layer;
@@ -87,7 +86,9 @@ public class KernelBuilder {
             subAntBuild.setFilelist((FilelistDocument.Filelist) files.copy());
 
             File buildFile = new File(localDir.getPath()+File.separator+"build.kernel.xml");
-            FileUtils.writeStringToFile(buildFile, projectDoc.toString(), StandardCharsets.UTF_8);
+            XmlOptions options = new XmlOptions();
+            options.setSavePrettyPrintIndent(4);
+            projectDoc.save(buildFile, options);
 
             File logFile = new File(localDir.getPath()+File.separator+"build.kernel.log");
             PrintStream logStream = new PrintStream(logFile);
