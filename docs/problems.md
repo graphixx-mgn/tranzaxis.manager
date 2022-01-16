@@ -1,11 +1,11 @@
 ﻿Проблемы и решения
 ----------
 
-1. [Ошибка компиляции рабочей копии "Java compiler not found"](#compiler)
-1. [Анализ проблем запуска RW Server / RW Explorer](#commands)
-1. [Запуск RW Explorer на Mac OS](#macos_rxe)
+1. [Ошибка компиляции рабочей копии "Java compiler not found"](#настройка-рабочего-каталога)
+1. [Анализ проблем запуска RW Server / RW Explorer](#анализ-проблем-запуска)
+1. [Запуск RW Explorer на Mac OS](#запуск-rw-explorer-на-mac-os)
 
-## Настройка рабочего каталога <a name="compiler"></a>
+## Настройка рабочего каталога
 Иногда при запуске компиляции рабочей копии при попытке сборки ядра возникает следующая ошибка:
 
 ![](images/problems_compiler.png)
@@ -31,7 +31,7 @@ javaw -jar <path>/manager.jar
 ```  
 В этом случае решением будет изменить команду запуска таким образом, чтобы полный путь до приложения javaw.exe также включал в себя каталог JDK.
 
-## Анализ проблем запуска RW Server / RW Explorer <a name="commands"></a>
+## Анализ проблем запуска
 
 > При выполнении одной из команд окружения:
 > 
@@ -51,7 +51,7 @@ javaw -jar <path>/manager.jar
 
 Таким образом, используя данную команду можно быть уверенным что начальные условия запуска приложения из консоли совпадают с теми, которые задаются TX Manager при старте дочернего процесса. 
 
-## Запуск RW Explorer на Mac OS <a name="macos_rxe"></a>
+## Запуск RW Explorer на Mac OS
 Для запуска приложения, использующего Qt для построения интерфейса (коим является RW Explorer) требуется в обязательном порядке указать флаг JVM "-XstartOnFirstThread": 
 
 > The option causes the JVM to use thread 0 to start the application. Apparently this is necessary to get Mac OSX to run SWT and GWT apps properly. According to the Eclipse SWT FAQ, AWT and Swing apps use some undocumented magic to do this.
