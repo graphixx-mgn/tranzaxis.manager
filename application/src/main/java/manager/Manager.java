@@ -26,7 +26,7 @@ public class Manager {
     
     static {
         try {
-            if (Runtime.OS.isMac.get() == true) {
+            if (Runtime.OS.isMac.get()) {
                 UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
             } else {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
