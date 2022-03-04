@@ -27,17 +27,16 @@ public class RunAll extends EntityCommand<Environment> {
 
     @Override
     public void execute(Environment environment, Map<String, IComplexType> map) {
-        environment.setVersion(environment.getLayerVersion());
         BinarySource source = environment.getBinaries();
         if (source instanceof Release) {
             TES.executeTask(new CheckCache(
                     environment,
-                    environment.getCommand(RunServer.class).new RunServerTask(environment),
-                    environment.getCommand(RunExplorer.class).new RunExplorerTask(environment)
+                    new RunServer.RunServerTask(environment),
+                    new RunExplorer.RunExplorerTask(environment)
             ));
         } else {
-            TES.enqueueTask(environment.getCommand(RunServer.class).new RunServerTask(environment));
-            TES.enqueueTask(environment.getCommand(RunExplorer.class).new RunExplorerTask(environment));
+            TES.enqueueTask(new RunServer.RunServerTask(environment));
+            TES.enqueueTask(new RunExplorer.RunExplorerTask(environment));
         }
     }
     

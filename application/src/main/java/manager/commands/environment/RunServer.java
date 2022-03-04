@@ -6,7 +6,6 @@ import codex.task.*;
 import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
-import manager.commands.offshoot.RunDesigner;
 import manager.nodes.BinarySource;
 import manager.nodes.Environment;
 import manager.nodes.Release;
@@ -31,7 +30,6 @@ public class RunServer extends EntityCommand<Environment> {
 
     @Override
     public void execute(Environment environment, Map<String, IComplexType> map) {
-        environment.setVersion(environment.getLayerVersion());
         BinarySource source = environment.getBinaries();
         if (source instanceof Release) {
             TES.executeTask(new CheckCache(
@@ -46,7 +44,7 @@ public class RunServer extends EntityCommand<Environment> {
         }
     }
     
-    class RunServerTask extends AbstractTask<Void> {
+    static class RunServerTask extends AbstractTask<Void> {
 
         private final Environment env;
         Process process;

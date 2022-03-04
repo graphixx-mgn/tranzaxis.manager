@@ -30,7 +30,6 @@ public class RunExplorer extends EntityCommand<Environment> {
 
     @Override
     public void execute(Environment environment, Map<String, IComplexType> map) {
-        environment.setVersion(environment.getLayerVersion());
         BinarySource source = environment.getBinaries();
         if (source instanceof Release) {
             TES.executeTask(new CheckCache(
@@ -45,12 +44,12 @@ public class RunExplorer extends EntityCommand<Environment> {
         }
     }
     
-    class RunExplorerTask extends AbstractTask<Void> {
+    static class RunExplorerTask extends AbstractTask<Void> {
 
         private final Environment env;
         Process process;
         
-        public RunExplorerTask(Environment env) {
+        RunExplorerTask(Environment env) {
             super(MessageFormat.format(
                     Language.get(Environment.class, "explorer@task"),
                     env, 
