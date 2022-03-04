@@ -35,7 +35,7 @@ public class BigInt implements ISerializableType<Long, IMask<Long>> {
     }
 
     @Override
-    public IEditorFactory<? extends IComplexType<Long, IMask<Long>>, Long> editorFactory() {
+    public IEditorFactory<BigInt, Long> editorFactory() {
         return EDITOR_FACTORY;
     }
 

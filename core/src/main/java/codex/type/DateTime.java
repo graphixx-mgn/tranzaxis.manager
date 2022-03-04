@@ -60,7 +60,7 @@ public class DateTime implements ISerializableType<Date, IDateMask> {
     }
 
     @Override
-    public IEditorFactory<? extends IComplexType<Date, IDateMask>, Date> editorFactory() {
+    public IEditorFactory<DateTime, Date> editorFactory() {
         return EDITOR_FACTORY;
     }
 

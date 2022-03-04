@@ -44,7 +44,7 @@ public class Str implements ISerializableType<String, IMask<String>> {
     }
 
     @Override
-    public IEditorFactory<? extends IComplexType<String, IMask<String>>, String> editorFactory() {
+    public IEditorFactory<Str, String> editorFactory() {
         return EDITOR_FACTORY;
     }
     

@@ -15,6 +15,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -163,7 +164,9 @@ public class StrEditor extends AbstractEditor<Str, String> implements DocumentLi
         textField.setText(value == null ? "" : value);
         textField.getDocument().addDocumentListener(this);
         textField.setCaretPosition(0);
-        verify();
+        if (!Objects.equals(value, propHolder.getPropValue().getValue())) {
+            verify();
+        }
     }
 
     @Override

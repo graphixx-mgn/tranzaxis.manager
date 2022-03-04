@@ -60,12 +60,7 @@ public class ArrStr implements ISerializableType<List<String>, IArrMask> {
     
     @Override
     public boolean isEmpty() {
-        return 
-            value == null || 
-            value.isEmpty()/* || (
-                (mask instanceof StrSetMask) && 
-                IComplexType.coalesce(value.get(0), "").isEmpty()
-            )*/;
+        return value == null || value.isEmpty();
     }
 
     @Override
@@ -75,7 +70,7 @@ public class ArrStr implements ISerializableType<List<String>, IArrMask> {
     }
 
     @Override
-    public IEditorFactory<? extends IComplexType<List<String>, IArrMask>, List<String>> editorFactory() {
+    public IEditorFactory<ArrStr, List<String>> editorFactory() {
         return EDITOR_FACTORY;
     }
     
@@ -198,7 +193,7 @@ public class ArrStr implements ISerializableType<List<String>, IArrMask> {
                 return MessageFormat.format(
                     mask.getFormat(), 
                     toArray()
-                ).replaceAll("\\{\\d+\\}", "");
+                ).replaceAll("\\{\\d+}", "");
             } else {
                 return String.join(", ", this);
             }

@@ -38,7 +38,7 @@ public class Bool implements ISerializableType<Boolean, IMask<Boolean>> {
     }
 
     @Override
-    public IEditorFactory<? extends IComplexType<Boolean, IMask<Boolean>>, Boolean> editorFactory() {
+    public IEditorFactory<Bool, Boolean> editorFactory() {
         return EDITOR_FACTORY;
     }
 

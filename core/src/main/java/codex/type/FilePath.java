@@ -36,7 +36,7 @@ public class FilePath implements ISerializableType<Path, IPathMask> {
     }
 
     @Override
-    public IEditorFactory<? extends IComplexType<Path, IPathMask>, Path> editorFactory() {
+    public IEditorFactory<FilePath, Path> editorFactory() {
         return EDITOR_FACTORY;
     }
 

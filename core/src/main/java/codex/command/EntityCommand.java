@@ -17,6 +17,7 @@ import net.jcip.annotations.ThreadSafe;
 import javax.swing.*;
 import java.lang.annotation.*;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -310,34 +311,36 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
      * Запуск поцесса исполнения команды.
      */
     public void process() {
-        List<V> context = getContext();
-        if (context.isEmpty() && isActive()) {
-            Logger.getLogger().debug("Perform contextless command [{0}]", getName());
-            execute(null, null);
-        } else {
-            try {
-                final Map<String, IComplexType> params = getParameters();
-                Logger.getLogger().debug(
-                        "Perform command [{0}]. Context: {1}",
-                        getName(),
-                        context.size() == 1 ?
-                                context.get(0) :
-                                context.stream()
-                                        .map(entity -> "\n * "+entity.model.getQualifiedName()).collect(Collectors.joining())
-                );
-                context.forEach(entity -> {
-                    ITask task = getTask(entity, params);
-                    if (task != null) {
-                        executeTask(entity, task);
-                    } else {
-                        execute(entity, params);
-                    }
-                });
-            } catch (ParametersDialog.Canceled e) {
-                // Do not call command
-            }
+        if (!isActive()) return;
+
+        final Map<String, IComplexType> params;
+        try {
+            params = getParameters();
+        } catch (ParametersDialog.Canceled canceled) {
+            return;
         }
-        activate();
+
+        Consumer<V> runner = (ctxEntity) -> {
+            ITask task = getTask(ctxEntity, params);
+            if (task != null) {
+                executeTask(ctxEntity, task);
+            } else {
+                execute(ctxEntity, params);
+                activate();
+            }
+        };
+
+        final List<V> context = getContext();
+        if (context.isEmpty()) {
+            Logger.getLogger().debug("Perform contextless command [{0}]", getName());
+            runner.accept(null);
+        } else {
+            Logger.getLogger().debug(
+                    "Perform command [{0}]. Context: {1}",
+                    getName(), context.size() == 1 ? context.get(0) : context.stream().map(entity -> "\n * "+entity.model.getQualifiedName()).collect(Collectors.joining())
+            );
+            context.forEach(runner);
+        }
     }
     
     @Override
@@ -378,9 +381,7 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
                 if (context != null && !context.islocked()) {
                     try {
                         context.getLock().acquire();
-                    } catch (InterruptedException e) {
-                        //
-                    }
+                    } catch (InterruptedException ignore) {}
                 }
             }
 
@@ -389,13 +390,14 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
                 if (context != null) {
                     context.getLock().release();
                 }
+                activate();
             }
         };
         task.addListener(lockHandler);
-        if (!getContext().isEmpty() && getKind() == Kind.Admin) {
-            TES.executeTask(task);
-        } else {
+        if (getKind() == Kind.Admin) {
             TES.enqueueTask(task);
+        } else {
+            TES.executeTask(task);
         }
     }
 

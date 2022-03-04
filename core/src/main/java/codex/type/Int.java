@@ -37,7 +37,7 @@ public class Int implements ISerializableType<Integer, IMask<Integer>> {
     }
 
     @Override
-    public IEditorFactory<? extends IComplexType<Integer, IMask<Integer>>, Integer> editorFactory() {
+    public IEditorFactory<Int, Integer> editorFactory() {
         return EDITOR_FACTORY;
     }
     
