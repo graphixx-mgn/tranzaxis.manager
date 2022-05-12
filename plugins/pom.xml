@@ -44,14 +44,6 @@
         </dependencies>
     </dependencyManagement>
 
-    <distributionManagement>
-        <repository>
-            <!-- Central public plugin repository. Define admin credentials in settings.xml of M2 repository  -->
-            <id>nexus</id>
-            <url>http://10.7.3.166/nexus/repository/plugins-public/</url>
-        </repository>
-    </distributionManagement>
-
     <build>
         <pluginManagement>
             <plugins>

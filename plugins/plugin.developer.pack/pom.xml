@@ -18,6 +18,14 @@
         <compatible>2.4.0</compatible>
     </properties>
 
+    <distributionManagement>
+        <repository>
+            <!-- Central plugin repository -->
+            <id>nexus</id>
+            <url>http://10.7.3.166/nexus/repository/plugins.developer.tranzaxis/</url>
+        </repository>
+    </distributionManagement>
+
     <dependencies>
         <dependency>
             <groupId>com.compassplus</groupId>
