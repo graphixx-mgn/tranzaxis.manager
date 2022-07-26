@@ -6,6 +6,7 @@
     <artifactId>plugins</artifactId>
     <packaging>pom</packaging>
     <version>1.0.0</version>
+    <name>TranzAxis Manager - Plugins</name>
 
     <parent>
         <groupId>com.compassplus</groupId>

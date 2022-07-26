@@ -6,6 +6,7 @@
 
     <artifactId>core</artifactId>
     <version>2.0.0</version>
+    <name>TranzAxis Manager - Core</name>
 
     <parent>
         <artifactId>manager</artifactId>

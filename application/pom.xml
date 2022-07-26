@@ -6,6 +6,7 @@
 
     <artifactId>application</artifactId>
     <version>2.3.9</version>
+    <name>TranzAxis Manager - Application</name>
 	
 	<parent>
         <artifactId>manager</artifactId>
@@ -125,12 +126,12 @@
                 <configuration>
                     <dotGitDirectory>${project.basedir}/../.git</dotGitDirectory>
                     <generateGitPropertiesFile>true</generateGitPropertiesFile>
-                    <includeOnlyProperties>
+                    <!--includeOnlyProperties>
                         <includeOnlyProperty>^git.build.time$</includeOnlyProperty>
                         <includeOnlyProperty>^git.commit.(id|message)$</includeOnlyProperty>
                         <includeOnlyProperty>^git.commit.user.(name|email)$</includeOnlyProperty>
                         <includeOnlyProperty>^git.remote.origin.url$</includeOnlyProperty>
-                    </includeOnlyProperties>
+                    </includeOnlyProperties-->
                     <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
                 </configuration>
             </plugin>

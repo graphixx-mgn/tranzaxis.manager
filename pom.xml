@@ -8,6 +8,7 @@
     <artifactId>manager</artifactId>
     <packaging>pom</packaging>
     <version>1.0.0</version>
+    <name>TranzAxis Manager</name>
 
     <prerequisites>
         <maven>3.6.0</maven>
