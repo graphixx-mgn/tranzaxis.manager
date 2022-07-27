@@ -4,7 +4,6 @@ import codex.editor.DateTimeEditor;
 import codex.editor.IEditorFactory;
 import codex.mask.DateFormat;
 import codex.mask.IDateMask;
-import java.sql.Time;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -39,7 +38,7 @@ public class DateTime implements ISerializableType<Date, IDateMask> {
      * Конструктор типа.
      * @param value Внутреннее хранимое значение.
      */
-    public DateTime(Time value) {
+    public DateTime(Date value) {
         setValue(value);
         setMask(DateFormat.Full.newInstance());
     }
