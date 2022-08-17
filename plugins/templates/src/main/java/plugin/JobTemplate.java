@@ -1,6 +1,7 @@
 package plugin;
 
 import codex.log.Logger;
+import codex.model.Entity;
 import codex.model.EntityDefinition;
 import codex.task.AbstractTask;
 import codex.task.ITask;
@@ -12,24 +13,19 @@ import java.util.Collections;
 @EntityDefinition(title = "title", icon="/images/test.png")
 public class JobTemplate extends JobPlugin {
 
-    public JobTemplate(EntityRef owner, String title) {
+    public JobTemplate(EntityRef<Entity> owner, String title) {
         super(owner, title);
     }
 
     @Override
     protected Collection<ITask> getTasks() {
         return Collections.singleton(
-                new AbstractTask(
-                        getTitle()
-                ) {
+                new AbstractTask<Void>(getTitle()) {
                     @Override
-                    public Object execute() throws Exception {
+                    public Void execute() throws Exception {
                         Logger.getLogger().info("It's a job plugin template");
                         return null;
                     }
-
-                    @Override
-                    public void finished(Object result) {}
                 }
         );
     }
