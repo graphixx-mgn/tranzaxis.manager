@@ -40,13 +40,12 @@ public class ShowVersionInfo extends CommandPlugin<Offshoot> {
 
     private final static ITaskExecutorService TES = ServiceRegistry.getInstance().lookupService(ITaskExecutorService.class);
 
-    private static String PROP_LAST_RELEASE  = "lastRelease";
-    private static String PROP_LAST_OFFSHOOT = "lastOffshoot";
-    private static String PROP_RELEASE_STAT  = "releaseStatus";
-    private static String PROP_BRANCH_CREATE = "branchCreated";
-    private static String PROP_RELEASE_INFO  = "releaseInfo";
-
-    private static String PARAM_RELEASE_INFO = "releaseRevisions";
+    private static final String PROP_LAST_RELEASE  = "lastRelease";
+    private static final String PROP_LAST_OFFSHOOT = "lastOffshoot";
+    private static final String PROP_RELEASE_STAT  = "releaseStatus";
+    private static final String PROP_BRANCH_CREATE = "branchCreated";
+    private static final String PROP_RELEASE_INFO  = "releaseInfo";
+    private static final String PARAM_RELEASE_INFO = "releaseRevisions";
 
     public ShowVersionInfo() {
         super(offshoot -> true);
@@ -74,7 +73,7 @@ public class ShowVersionInfo extends CommandPlugin<Offshoot> {
         return Kind.Admin;
     }
 
-    class CollectVersionData extends AbstractTask<ParamModel> {
+    static class CollectVersionData extends AbstractTask<ParamModel> {
 
         private final Offshoot offshoot;
         private final boolean  loadReleaseRev;
@@ -318,7 +317,7 @@ public class ShowVersionInfo extends CommandPlugin<Offshoot> {
     }
 
 
-    private class Revision {
+    private static class Revision {
         private final long revision;
         private final Date date;
 

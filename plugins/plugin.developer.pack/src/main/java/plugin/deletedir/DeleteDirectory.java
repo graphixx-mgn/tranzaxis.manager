@@ -40,7 +40,7 @@ public class DeleteDirectory extends CommandPlugin<Common> {
         );
     }
 
-    class DeleteTask extends AbstractTask<Void> {
+    static class DeleteTask extends AbstractTask<Void> {
 
         private final Path path;
 
@@ -92,8 +92,5 @@ public class DeleteDirectory extends CommandPlugin<Common> {
             });
             return null;
         }
-
-        @Override
-        public void finished(Void result) {}
     }
 }

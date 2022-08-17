@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>plugin.developer.pack</artifactId>
     <version>1.0.0</version>
-    <name>Plugin - Developer's pack</name>
+    <name>Plugin / Developer's pack</name>
 
     <parent>
         <artifactId>plugins</artifactId>
@@ -15,7 +15,7 @@
     </parent>
 
     <properties>
-        <construction>false</construction>
+        <construction>true</construction>
         <compatible>2.4.0</compatible>
     </properties>
 
