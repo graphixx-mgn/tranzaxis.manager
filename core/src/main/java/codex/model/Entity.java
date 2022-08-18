@@ -83,7 +83,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      * @param title Название сущности, уникальный ключ.
      * @param hint Описание сущности.
      */
-    public Entity(EntityRef owner, ImageIcon icon, String title, String hint) {
+    public Entity(EntityRef<Entity> owner, ImageIcon icon, String title, String hint) {
         String PID;
         if (title == null) {
             if (!Catalog.class.isAssignableFrom(getClass())) {
@@ -142,7 +142,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
                 ServiceRegistry.getInstance().lookupService(IConfigStoreService.class).findReferencedEntries(Entity.this.getClass(), getID()).stream()
                         .filter(link -> link.isIncoming)
                         .forEach(link -> {
-                            EntityRef ref = EntityRef.build(link.entryClass, link.entryID);
+                            EntityRef<? extends Entity> ref = EntityRef.build(link.entryClass, link.entryID);
                             ref.getValue().fireChangeEvent();
                         });
             }
@@ -289,7 +289,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
     public void loadChildren() {
         List<Class<? extends Entity>> classCatalog = getClassCatalog();
         if (!classCatalog.isEmpty()) {
-            ITask loadChildren = new LoadChildren();
+            ITask<?> loadChildren = new LoadChildren();
             final int prevMode = getMode();
             loadChildren.addListener(new ITaskListener() {
                 @Override
@@ -538,7 +538,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return result.get();
     }
 
-    private static int TABLE_ITEM_HEIGHT = (int) (IEditor.FONT_VALUE.getSize()*1.7);
+    private static final int TABLE_ITEM_HEIGHT = (int) (IEditor.FONT_VALUE.getSize()*1.7);
     public static String entitiesTable(Collection<Entity> entities, boolean showPath) {
         return entities.stream()
                 .map(entity -> MessageFormat.format(
@@ -613,7 +613,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      * Устаревший метод. Следует использовать метод {@link Entity#getCommand(Class)}.
      */
     @Deprecated
-    public final EntityCommand getCommand(String name) {
+    public final EntityCommand<Entity> getCommand(String name) {
         return getCommands().stream()
                 .filter(command -> command.getName().equals(name))
                 .findFirst()
@@ -803,7 +803,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return IComplexType.coalesce(title, "<new "+getClass().getSimpleName()+">");
     }
     
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public final EntityRef<Entity> toRef() {
         EntityRef ref = new EntityRef<>(this.getClass());
         ref.setValue(this);
@@ -846,12 +846,12 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         return null;
     }
 
-    public static <E extends Entity> E newInstance(Class<E> entityClass, EntityRef owner, String PID) {
+    public static <E extends Entity> E newInstance(Class<E> entityClass, EntityRef<?> owner, String PID) {
         return newInstance(entityClass, owner, PID, (Object[]) null);
     }
     
     @SuppressWarnings("unchecked")
-    public static <E extends Entity> E newInstance(Class<E> entityClass, EntityRef owner, String PID, Object... params) {
+    public static <E extends Entity> E newInstance(Class<E> entityClass, EntityRef<?> owner, String PID, Object... params) {
         synchronized (entityClass) {
             Class<E> implClass = entityClass;
             if (PolyMorph.class.isAssignableFrom(entityClass) && Modifier.isAbstract(entityClass.getModifiers())) {
@@ -940,7 +940,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
         entity.remove(cascade, confirmation);
     }
     
-    public static EntityRef findOwner(INode from) {
+    public static EntityRef<Entity> findOwner(INode from) {
         INode next = from;
         while (next != null && ICatalog.class.isAssignableFrom(next.getClass())) {
             next = (INode) next.getParent();
@@ -970,7 +970,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
 
         @Override
         public Void execute() {
-            EntityRef ownerRef = Entity.findOwner(Entity.this);
+            EntityRef<Entity> ownerRef = Entity.findOwner(Entity.this);
             getClassCatalog().forEach(catalogClass -> model.getConfigService().readCatalogEntries(ownerRef == null ? null : ownerRef.getId(), catalogClass)
                     .forEach(entityRef -> {
                         if (entityRef != null && !childrenList().contains(entityRef.getValue())) {

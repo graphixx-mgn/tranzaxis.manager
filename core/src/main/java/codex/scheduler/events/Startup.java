@@ -15,7 +15,7 @@ public class Startup extends Event {
 
     private final static String UNIQUE_WARN = Language.get("unique@warn");
 
-    public static <E extends Entity> E newInstance(Class<E> entityClass, EntityRef owner, String PID) {
+    public static <E extends Entity> E newInstance(Class<E> entityClass, EntityRef<?> owner, String PID) {
         if (owner.getValue().childrenList().stream().anyMatch(iNode -> iNode instanceof Startup)) {
             MessageBox.show(MessageType.WARNING, UNIQUE_WARN);
             return null;

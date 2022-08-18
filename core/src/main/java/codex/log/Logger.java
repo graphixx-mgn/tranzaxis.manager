@@ -125,7 +125,10 @@ public class Logger extends org.apache.log4j.Logger {
     }
 
     public static void todo(String message) {
-        todo(Level.Info, message);
+        if (Runtime.APP.devMode.get()) {
+            Exception exception = new Exception();
+            Logger.getContextLogger(TodoContext.class).log(Level.Info, MessageFormat.format("{0}\nLocation: {1}", message, exception.getStackTrace()[1]));
+        }
     }
 
     public static void todo(Level level, String message) {
