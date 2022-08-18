@@ -76,5 +76,4 @@ public interface ITask<T> extends RunnableFuture<T> {
      * @param listener Ссылка на слущатель.
      */
     void removeListener(ITaskListener listener);
-    
 }

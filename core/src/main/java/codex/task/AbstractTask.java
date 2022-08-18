@@ -1,6 +1,7 @@
 package codex.task;
 
 import codex.log.Logger;
+import org.jetbrains.annotations.NotNull;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -90,7 +91,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
     public abstract T execute() throws Exception;
 
     @Override
-    public abstract void finished(T result) throws Exception;
+    public void finished(T result) throws Exception {}
 
     @Override
     public final String getTitle() {
@@ -219,7 +220,7 @@ public abstract class AbstractTask<T> implements ITask<T> {
     }
 
     @Override
-    public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public T get(long timeout, @NotNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return future.get(timeout, unit);
     }
 
