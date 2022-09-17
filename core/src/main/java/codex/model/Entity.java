@@ -83,7 +83,7 @@ public abstract class Entity extends AbstractNode implements IPropertyChangeList
      * @param title Название сущности, уникальный ключ.
      * @param hint Описание сущности.
      */
-    public Entity(EntityRef<Entity> owner, ImageIcon icon, String title, String hint) {
+    public Entity(EntityRef<? extends Entity> owner, ImageIcon icon, String title, String hint) {
         String PID;
         if (title == null) {
             if (!Catalog.class.isAssignableFrom(getClass())) {
