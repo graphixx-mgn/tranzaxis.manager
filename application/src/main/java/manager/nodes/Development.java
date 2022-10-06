@@ -18,11 +18,11 @@ public class Development extends RepositoryBranch {
     private final static String PROP_JVM_DESIGNER = "jvmDesigner";
     private final static String PROP_DESIGNER = "propDesigner";
 
-    public Development(EntityRef owner) {
+    public Development(EntityRef<Entity> owner) {
         this(owner, null);
     }
 
-    public Development(EntityRef owner, String PID) {
+    public Development(EntityRef<Entity> owner, String PID) {
         super(owner, ImageUtils.getByPath("/images/development.png"), PID, null);
         model.addUserProp(PROP_JVM_DESIGNER, new ArrStr("-Xmx6G"), false, Access.Select);
         model.addUserProp(PROP_DESIGNER, new ArrStr("--locale", "en"), false, Access.Select);
