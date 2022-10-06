@@ -7,7 +7,6 @@ import codex.model.Entity;
 import codex.model.EntityDefinition;
 import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
-import manager.svn.SVN;
 import org.atteo.classindex.IndexSubclasses;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
@@ -34,7 +33,7 @@ public abstract class RepositoryBranch extends Catalog {
         boolean hasArchive();
     }
 
-    RepositoryBranch(EntityRef owner, ImageIcon icon, String title, String hint) {
+    RepositoryBranch(EntityRef<Entity> owner, ImageIcon icon, String title, String hint) {
         super(owner, icon, title, hint);
     }
 
@@ -62,14 +61,14 @@ public abstract class RepositoryBranch extends Catalog {
             getDirectories().stream()
                     .map(subDir -> {
                         try {
-                            return SVN.list(getRepository().getRepoUrl() + "/" + subDir, getRepository().getAuthManager());
+                            return getRepository().list(getRepository().getDirUrl(subDir));
                         } catch (SVNException e) {
                             return new LinkedList<SVNDirEntry>();
                         }
                     })
                     .flatMap(Collection::stream)
-                    .filter(svnDirEntry -> !svnDirEntry.getName().isEmpty())
                     .map(SVNDirEntry::getName)
+                    .filter(name -> !name.isEmpty())
                     .distinct()
                     .sorted(BinarySource.VERSION_SORTER.reversed())
                     .forEach(version -> {
@@ -79,7 +78,7 @@ public abstract class RepositoryBranch extends Catalog {
         } else {
             List<Class<? extends Entity>> classCatalog = getClassCatalog();
             if (!classCatalog.isEmpty()) {
-                EntityRef ownerRef = Entity.findOwner(this);
+                EntityRef<Entity> ownerRef = Entity.findOwner(this);
                 IConfigStoreService CSS = ServiceRegistry.getInstance().lookupService(IConfigStoreService.class);
                 getClassCatalog().forEach(catalogClass -> {
                     List<Entity> children = new LinkedList<>();
@@ -117,5 +116,4 @@ public abstract class RepositoryBranch extends Catalog {
     Repository getRepository() {
         return (Repository) this.getOwner();
     }
-
 }
