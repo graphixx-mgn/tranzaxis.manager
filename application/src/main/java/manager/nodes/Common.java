@@ -9,17 +9,12 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import java.nio.file.Path;
 import java.util.List;
-import manager.commands.common.DiskUsageReport;
 
 public final class Common extends Catalog {
     
     private final static String PROP_WORK_DIR = "workDir";
 
-    static {
-        CommandRegistry.getInstance().registerCommand(DiskUsageReport.class);
-    }
-
-    public Common(EntityRef owner, String title) {
+    public Common(EntityRef<Entity> owner, String title) {
         this();
     }
 
@@ -63,5 +58,4 @@ public final class Common extends Catalog {
         boolean enabled = getWorkDir() != null || node instanceof DatabaseRoot || node instanceof EnvironmentRoot;
         node.setMode(enabled ? MODE_ENABLED + MODE_SELECTABLE : MODE_NONE);
     }
-    
 }
