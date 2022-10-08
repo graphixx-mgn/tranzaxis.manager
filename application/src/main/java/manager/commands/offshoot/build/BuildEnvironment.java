@@ -8,8 +8,6 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
-
-import codex.utils.FileUtils;
 import codex.utils.Runtime;
 import manager.nodes.Offshoot;
 import org.radixware.kernel.common.builder.BuildActionExecutor;
@@ -70,20 +68,10 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
         } else {
             classPath = System.getProperty("java.class.path");
         }
-        final String radixBinPath = String.join(
-                File.separator,
-                offshoot.getLocalPath(),
-                "org.radixware", "kernel", "common", "bin", "*"
-        );
-        final String radixLibPath = String.join(
-                File.separator,
-                offshoot.getLocalPath(),
-                "org.radixware", "kernel", "common", "lib", "*"
-        );
         return String.join(
                 File.pathSeparator,
-                radixBinPath,
-                radixLibPath,
+                offshoot.getLocalPath().resolve("org.radixware").resolve("kernel").resolve("common").resolve("bin").toString().concat(File.separator).concat("*"),
+                offshoot.getLocalPath().resolve("org.radixware").resolve("kernel").resolve("common").resolve("lib").toString().concat(File.separator).concat("*"),
                 classPath,
                 javacFile.getAbsolutePath()
         );
@@ -147,7 +135,7 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
         return logger;
     }
 
-    public class ProblemHandler implements IBuildProblemHandler {
+    public static class ProblemHandler implements IBuildProblemHandler {
 
         private int errorsCount = 0;
         private int warningsCount = 0;
@@ -195,7 +183,7 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
     }
 
 
-    private class LifecycleManager implements ILifecycleManager {
+    private static class LifecycleManager implements ILifecycleManager {
 
         @Override
         public void saveAll() {}
@@ -207,7 +195,7 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
     }
 
 
-    private class Mutex implements IMutex {
+    private static class Mutex implements IMutex {
 
         Lock l = new ReentrantLock();
 
@@ -221,5 +209,4 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
             return l;
         }
     }
-    
 }

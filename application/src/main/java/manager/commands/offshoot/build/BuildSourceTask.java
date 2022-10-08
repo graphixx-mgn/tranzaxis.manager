@@ -163,7 +163,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
         }
 
         if (getErrorsCount() > 0) {
-            offshoot.setBuiltStatus(new BuildStatus(offshoot.getWorkingCopyRevision(false).getNumber(), true));
+            offshoot.setBuiltStatus(BuildStatus.failed(offshoot.getWorkingCopyRevision(false).getNumber()));
             offshoot.model.commit(false);
             Map<String, List<String>> errorIndex = new HashMap<>();
             problems.stream()
@@ -207,7 +207,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
                     isCancelled() ? "canceled" : "finished",
                     DateUtils.formatElapsedTime(getDuration())
             ));
-            offshoot.setBuiltStatus(new BuildStatus(offshoot.getWorkingCopyRevision(false).getNumber(), false));
+            offshoot.setBuiltStatus(BuildStatus.success(offshoot.getWorkingCopyRevision(false).getNumber()));
             try {
                 offshoot.model.commit(false);
             } catch (Exception ignore) {}
@@ -421,7 +421,7 @@ public class BuildSourceTask extends AbstractTask<Error> {
     }
 
 
-    private class Problem extends DefaultMutableTreeNode implements Iconified {
+    private static class Problem extends DefaultMutableTreeNode implements Iconified {
         private final RadixProblem.ESeverity severity;
         private final String message;
 
@@ -435,5 +435,4 @@ public class BuildSourceTask extends AbstractTask<Error> {
             return severity == RadixProblem.ESeverity.ERROR ? ICON_ERROR : ICON_WARNING;
         }
     }
-
 }
