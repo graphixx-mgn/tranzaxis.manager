@@ -43,7 +43,7 @@ public class OracleAccessService extends AbstractService<OracleAccessOptions> im
     }
 
     @LoggingSource(debugOption = true)
-    @IContext.Definition(id = "DAS.Sql", name = "Preview SQL queries", icon = "/images/command.png", parent = OracleAccessService.class)
+    @IContext.Definition(id = "DAS.Sql", name = "Preview SQL queries", icon = "/images/sql.png", parent = OracleAccessService.class)
     private static class QueryContext implements IContext {}
 
     @LoggingSource(debugOption = true)
