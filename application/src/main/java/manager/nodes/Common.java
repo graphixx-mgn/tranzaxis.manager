@@ -3,7 +3,6 @@ package manager.nodes;
 import codex.explorer.tree.INode;
 import codex.mask.DirMask;
 import codex.model.*;
-import codex.type.EntityRef;
 import codex.type.FilePath;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
@@ -14,11 +13,12 @@ public final class Common extends Catalog {
     
     private final static String PROP_WORK_DIR = "workDir";
 
-    public Common(EntityRef<Entity> owner, String title) {
-        this();
+    private static Common INSTANCE = new Common();
+    public  static Common getInstance() {
+        return INSTANCE;
     }
 
-    public Common() {
+    private Common() {
         super(null, ImageUtils.getByPath("/images/settings.png"), null, Language.get("desc"));
 
         // Properties

@@ -19,6 +19,7 @@ import manager.nodes.RepositoryRoot;
 import manager.ui.Window;
 import manager.ui.splash.SplashScreen;
 import manager.upgrade.UpgradeUnit;
+import org.codehaus.plexus.util.StringUtils;
 import plugin.PluginManager;
 import javax.swing.*;
 
@@ -75,7 +76,7 @@ public class Manager {
         TaskManager taskManager = new TaskManager();
 
         splash.setProgress(65, "Build configuration root");
-        Common root = new Common();
+        Common root = Common.getInstance();
         NodeTreeModel objectsTree = new NodeTreeModel(root);
         ExplorerUnit configExplorer = ExplorerUnit.getInstance();
         configExplorer.setModel(objectsTree);
