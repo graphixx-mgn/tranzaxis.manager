@@ -35,7 +35,7 @@ public abstract class EntityGroupCommand<V extends Entity> extends EntityCommand
     public final void process() {
         List<V> context = getContext();
         if (!context.isEmpty()) {
-            Logger.getLogger().debug("Perform command [{0}]. Group context: {1}", getName(), context);
+            Logger.getLogger().info("Perform command [{0}]. Group context: {1}", getName(), context);
             try {
                 execute(context, getParameters());
             } catch (ParametersDialog.Canceled e) {

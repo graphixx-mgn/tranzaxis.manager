@@ -332,10 +332,10 @@ public abstract class EntityCommand<V extends Entity> implements ICommand<V, Col
 
         final List<V> context = getContext();
         if (context.isEmpty()) {
-            Logger.getLogger().debug("Perform contextless command [{0}]", getName());
+            Logger.getLogger().info("Perform contextless command [{0}]", getName());
             runner.accept(null);
         } else {
-            Logger.getLogger().debug(
+            Logger.getLogger().info(
                     "Perform command [{0}]. Context: {1}",
                     getName(), context.size() == 1 ? context.get(0) : context.stream().map(entity -> "\n * "+entity.model.getQualifiedName()).collect(Collectors.joining())
             );
