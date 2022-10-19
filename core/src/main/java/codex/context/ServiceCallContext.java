@@ -20,7 +20,7 @@ public class ServiceCallContext {
     }
 
     private static Stream<Class<? extends IContext>> getContextStream() {
-        List<Class> callStack = Caller.getInstance().getClassStack();
+        List<Class<?>> callStack = Caller.getInstance().getClassStack();
         Collections.reverse(callStack);
         Stream<Class<? extends IContext>> callStream = Stream.concat(
                 Stream.of(RootContext.class),
@@ -41,5 +41,4 @@ public class ServiceCallContext {
         }
         return callStream;
     }
-
 }

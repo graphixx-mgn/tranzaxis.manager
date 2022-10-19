@@ -13,10 +13,9 @@ public class Caller extends SecurityManager {
         return INSTANCE;
     }
 
-    public List<Class> getClassStack() {
+    public List<Class<?>> getClassStack() {
         return Arrays.stream(getClassContext())
                 .filter(aClass -> aClass != Caller.class)
                 .collect(Collectors.toList());
     }
-
 }
