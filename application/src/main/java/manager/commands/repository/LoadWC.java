@@ -14,10 +14,8 @@ import codex.type.IComplexType;
 import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.nodes.Repository;
-import manager.svn.SVN;
 import org.tmatesoft.svn.core.SVNErrorCode;
 import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import javax.swing.*;
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -39,7 +37,7 @@ public class LoadWC extends EntityCommand<Repository> {
         );
         activator = entities -> {
             if (entities != null && entities.size() > 0 && !(entities.size() > 1 && !multiContextAllowed())) {
-                return new CommandStatus(true, entities.get(0).isLocked(true) ? ENABLED : DISABLED);
+                return new CommandStatus(true, entities.get(0).isLoaded(true) ? ENABLED : DISABLED);
             } else {
                 return new CommandStatus(false, ENABLED);
             }
@@ -48,7 +46,7 @@ public class LoadWC extends EntityCommand<Repository> {
 
     @Override
     public void execute(Repository repository, Map<String, IComplexType> map) {
-        if (repository.isLocked(true)) {
+        if (repository.isLoaded(true)) {
             unload(repository);
         } else {
             load(repository);
@@ -95,32 +93,12 @@ public class LoadWC extends EntityCommand<Repository> {
 
         @Override
         public Boolean execute() throws Exception {
-            String rootUrl = repository.getRepoUrl();
-            ISVNAuthenticationManager authMgr = repository.getAuthManager();
             try {
-                if (SVN.checkConnection(rootUrl, authMgr)) {
-                    try {
-                        String repositorySystemName = repository.getSystemName();
-                        if (repositorySystemName != null) {
-                            Logger.getLogger().debug("Remote repository ''{0}'' verified successfully [name = ''{1}'']", repository, repositorySystemName);
-                            repository.loadBranches();
-                            Logger.getLogger().info("Repository ''{0}'' loaded in ONLINE mode", repository);
-                            return true;
-                        }
-                    } catch (SVNException e) {
-                        if (e.getErrorMessage().getErrorCode() == SVNErrorCode.FS_NOT_FOUND) {
-                            MessageBox.show(MessageType.ERROR,
-                                MessageFormat.format(
-                                        Language.get(Repository.class, "error@invalid"),
-                                        repository.getRepoUrl()
-                                )
-                            );
-                            return false;
-                        } else {
-                            throw e;
-                        }
-                    }
-                }
+              if (repository.checkConnection()) {
+                  repository.loadBranches();
+                  Logger.getLogger().info("Repository ''{0}'' loaded in ONLINE mode", repository);
+                  return true;
+              }
             } catch (SVNException | IOException e) {
                 if (
                         e instanceof IOException ||
@@ -128,14 +106,13 @@ public class LoadWC extends EntityCommand<Repository> {
                                 ((SVNException) e).getErrorMessage().getErrorCode()
                         )
                 ) {
+                    e.printStackTrace();
                     repository.loadBranches();
                     Logger.getLogger().warn("Repository ''{0}'' loaded in OFFLINE mode: {1}", repository, e.getMessage());
                     return true;
                 } else {
-                    if (getContext().isEmpty()) {
-                        Logger.getLogger().warn("Repository ''{0}'' not loaded. Reason: {1}", repository, e.getMessage());
-                    } else {
-                        Logger.getLogger().warn("Repository ''{0}'' not loaded. Reason: {1}", repository, e.getMessage());
+                    Logger.getLogger().warn("Repository ''{0}'' not loaded. Reason:\n{1}", repository, Repository.getErrorMessage(e));
+                    if (!getContext().isEmpty()) {
                         MessageBox.show(
                                 MessageType.WARNING,
                                 Repository.formatErrorMessage(
@@ -156,7 +133,5 @@ public class LoadWC extends EntityCommand<Repository> {
         public void finished(Boolean result) {
             switchLock(repository, result);
         }
-    
     }
-    
 }
