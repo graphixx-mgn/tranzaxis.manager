@@ -56,7 +56,7 @@ public class UpdateToRevision extends EntityCommand<Offshoot> {
         ValueProvider<String> provider = new ValueProvider<String>(selector) {
             @Override
             public void execute(PropertyHolder<IComplexType<String, IMask<String>>, String> context) {
-                if (SVNWCUtil.isVersionedDirectory(new File(offshoot.getLocalPath())) && offshoot.getWCStatus() != WCStatus.Absent) {
+                if (SVNWCUtil.isVersionedDirectory(offshoot.getLocalPath().toFile()) && offshoot.getWCStatus() != WCStatus.Absent) {
                     SVNRevision revision = offshoot.getWorkingCopyRevision(false);
                     setValue(selector.select(String.valueOf(revision.getNumber())));
                 } else {

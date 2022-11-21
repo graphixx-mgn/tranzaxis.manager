@@ -9,7 +9,6 @@ import codex.utils.Language;
 import manager.nodes.Offshoot;
 import manager.type.WCStatus;
 import java.awt.*;
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
@@ -33,7 +32,7 @@ public class OpenDir extends EntityCommand<Offshoot> {
     @Override
     public void execute(Offshoot context, Map<String, IComplexType> params) {
         try {
-            Desktop.getDesktop().open(new File(context.getLocalPath()));
+            Desktop.getDesktop().open(context.getLocalPath().toFile());
         } catch (IOException e) {
             MessageBox.show(MessageType.ERROR, e.getMessage());
         }

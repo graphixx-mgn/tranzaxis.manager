@@ -41,18 +41,20 @@ public class RunDesigner extends EntityCommand<Offshoot> {
     }
 
     private File getDesignerExecFile(Offshoot offshoot) {
-        return new File(String.join(
-                File.separator,
-                offshoot.getLocalPath(),
-                "org.radixware", "kernel", "designer", "bin", "bin",
-                Runtime.OS.isWindows.get() ? "designer"+(Runtime.OS.is64bit.get() ? "64" : "")+".exe" : "designer"
-        ));
+        return offshoot.getLocalPath()
+                .resolve("org.radixware")
+                .resolve("kernel")
+                .resolve("designer")
+                .resolve("bin")
+                .resolve("bin")
+                .resolve(Runtime.OS.isWindows.get() ? "designer"+(Runtime.OS.is64bit.get() ? "64" : "")+".exe" : "designer")
+                .toFile();
     }
 
     private List<String> getDesignerCommand(Offshoot offshoot) {
         return new ArrayList<String>() {{
             File fileRun = getDesignerExecFile(offshoot);
-            File confDir = new File(offshoot.getLocalPath().concat(File.separator).concat(".config"));
+            File confDir = offshoot.getLocalPath().resolve(".config").toFile();
             if (!Runtime.OS.isWindows.get()) {
                 add("sh");
             }
@@ -64,5 +66,4 @@ public class RunDesigner extends EntityCommand<Offshoot> {
             Logger.getLogger().debug("Designer command: " + this);
         }};
     }
-    
 }

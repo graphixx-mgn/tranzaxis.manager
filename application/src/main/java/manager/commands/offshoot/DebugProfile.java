@@ -128,7 +128,7 @@ public class DebugProfile extends EntityCommand<Offshoot> {
         Environment env = (Environment) ((EntityRef) params.get(PARAM_ENVIRONMENT)).getValue();
         String profileName = env.getPID();
 
-        File branchFile = new File(context.getLocalPath(), "branch.xml");
+        File branchFile = context.getLocalPath().resolve("branch.xml").toFile();
         String normalizedName  = branchFile.getPath().replace(File.separator, "$").replace(".", "$").replace("/", "$");
         String branchRoot      = UUID.nameUUIDFromBytes(normalizedName.getBytes(Charset.forName("UTF-8"))).toString();
         Preferences branchNode = Preferences.userRoot().node(CONFIG_ROOT).node(branchRoot);
