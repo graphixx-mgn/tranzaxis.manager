@@ -61,7 +61,7 @@ public abstract class RepositoryBranch extends Catalog {
             getDirectories().stream()
                     .map(subDir -> {
                         try {
-                            return getRepository().list(getRepository().getDirUrl(subDir));
+                            return getRepository().listEntries(getRepository().getDirUrl(subDir), false, null);
                         } catch (SVNException e) {
                             return new LinkedList<SVNDirEntry>();
                         }

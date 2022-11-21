@@ -95,7 +95,7 @@ public class Environment extends Entity implements INodeListener {
         model.getProperty(propName).setRequired(activate);
     };
     
-    public Environment(EntityRef parent, String title) {
+    public Environment(EntityRef<EnvironmentRoot> parent, String title) {
         super(parent, ImageUtils.getByPath("/images/instance.png"), title, null);
 
         // General properties
@@ -412,7 +412,7 @@ public class Environment extends Entity implements INodeListener {
             add(javaPath == null ? "java" : javaPath);
             addAll(getJvmServer());
             add("-jar");
-            add(getBinaries().getStarterPath());
+            add(getBinaries().getStarterPath().toString());
             add("-workDir="+getBinaries().getLocalPath());
             add("-topLayerUri=" + getLayerUri(true));
             if (addSplash) {
@@ -441,7 +441,7 @@ public class Environment extends Entity implements INodeListener {
             add(javaPath == null ? "java" : javaPath);
             addAll(getJvmExplorer());
             add("-jar");
-            add(getBinaries().getStarterPath());
+            add(getBinaries().getStarterPath().toString());
             add("-workDir="+getBinaries().getLocalPath());
             add("-topLayerUri="+getLayerUri(true));
             if (addSplash) {
@@ -621,5 +621,4 @@ public class Environment extends Entity implements INodeListener {
             Environment.this.model.updateDynamicProps(PROP_VERSION);
         }
     }
-
 }

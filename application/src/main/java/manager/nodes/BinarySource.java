@@ -1,24 +1,19 @@
 package manager.nodes;
 
-import codex.explorer.IExplorerAccessService;
 import codex.model.Catalog;
 import codex.model.Entity;
-import codex.service.ServiceRegistry;
 import codex.type.EntityRef;
-import manager.svn.SVN;
-import org.tmatesoft.svn.core.SVNErrorCode;
-import org.tmatesoft.svn.core.SVNErrorMessage;
 import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
+import org.tmatesoft.svn.core.SVNURL;
 import javax.swing.*;
-import java.io.File;
+import java.net.*;
+import java.nio.file.Path;
 import java.util.Comparator;
-import java.util.StringJoiner;
+import java.util.function.Supplier;
 
 public abstract class BinarySource extends Catalog {
 
-            final static String TRUNK = "trunk";
-    //private final static IExplorerAccessService EAS = ServiceRegistry.getInstance().lookupService(IExplorerAccessService.class);
+    final static String TRUNK = "trunk";
     
     public static final Comparator<String> VERSION_SORTER = (prev, next) -> {
         if (TRUNK.equals(prev)) {
@@ -39,7 +34,7 @@ public abstract class BinarySource extends Catalog {
         }
     };
 
-    BinarySource(EntityRef parent, ImageIcon icon, String title) {
+    BinarySource(EntityRef<? extends RepositoryBranch> parent, ImageIcon icon, String title) {
         super(parent, icon, title, null);
     }
 
@@ -54,58 +49,42 @@ public abstract class BinarySource extends Catalog {
 
     protected abstract Class<? extends RepositoryBranch> getParentClass();
 
-    public final String getLocalPath() {
-        String workDir = Common.newInstance(Common.class, null, "Common").getWorkDir().toString();
-        return new StringJoiner(File.separator)
-                .add(workDir)
-                .add(getParentClass().getAnnotation(RepositoryBranch.Branch.class).localDir())
-                .add(Repository.urlToDirName(getRepository().getRepoUrl()))
-                .add(getPID())
-                .toString();
+    public final Path getLocalPath() {
+        final Supplier<String> host = () -> {
+            try {
+                return InetAddress.getByName(getRepository().getUrl().getHost()).getHostName();
+            } catch (UnknownHostException e) {
+                return getRepository().getUrl().getHost();
+            }
+        };
+        final Supplier<String> path = () -> getRepository().getUrl().getPath();
+        return Common.getInstance().getWorkDir()
+                .resolve(getParentClass().getAnnotation(RepositoryBranch.Branch.class).localDir())
+                .resolve(host.get().concat(path.get()).replaceAll("[/\\\\]", "."))
+                .resolve(getPID());
+    }
+
+    public final Path getRelativePath(Path path) {
+        return getLocalPath().relativize(path);
     }
     
-    public final String getRemotePath() {
-        boolean hasArchive = getParentClass().getAnnotation(RepositoryBranch.Branch.class).hasArchive();
-        Repository repo = getRepository();
-        String PID = getPID();
-
-        StringJoiner defPath = new StringJoiner("/")
-                .add(repo.getRepoUrl())
-                .add(getParentClass().getAnnotation(RepositoryBranch.Branch.class).remoteDir());
-
-        if (hasArchive) {
-            StringJoiner archPath = new StringJoiner("/")
-                    .add(repo.getRepoUrl())
-                    .add(RepositoryBranch.ARCHIVE_DIR + "/" + getParentClass().getAnnotation(RepositoryBranch.Branch.class).remoteDir());
-            ISVNAuthenticationManager authMgr = repo.getAuthManager();
-
-            try {
-                if (SVN.list(defPath.toString(), authMgr).stream().anyMatch(svnDirEntry -> svnDirEntry.getName().equals(PID))) {
-                    return defPath.add(PID).toString();
-                } else if (SVN.list(archPath.toString(), authMgr).stream().anyMatch(svnDirEntry -> svnDirEntry.getName().equals(PID))) {
-                    return archPath.add(PID).toString();
-                } else {
-                    throw new SVNException(SVNErrorMessage.create(SVNErrorCode.FS_NOT_FOUND));
-                }
-            } catch (SVNException e) {
-                e.printStackTrace();
-                return null;
-            }
-        } else {
-            return defPath.add(PID).toString();
+    public final SVNURL getRemotePath() {
+        try {
+            return getRepository().getUrl()
+                    .appendPath(getParentClass().getAnnotation(RepositoryBranch.Branch.class).remoteDir(), true)
+                    .appendPath(getPID(), true);
+        } catch (SVNException e) {
+            throw new Error(e);
         }
     }
 
-    final String getStarterPath() {
-        return new StringJoiner(File.separator)
-                .add(getLocalPath())
-                .add("org.radixware")
-                .add("kernel")
-                .add("starter")
-                .add("bin")
-                .add("dist")
-                .add("starter.jar")
-                .toString();
+    final Path getStarterPath() {
+        return getLocalPath()
+                .resolve("org.radixware")
+                .resolve("kernel")
+                .resolve("starter")
+                .resolve("bin")
+                .resolve("dist")
+                .resolve("starter.jar");
     }
-    
 }
