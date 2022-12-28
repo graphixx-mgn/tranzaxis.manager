@@ -165,7 +165,7 @@ public class Offshoot extends BinarySource {
     }
     
     @SuppressWarnings("unchecked")
-    final BuildStatus getBuiltStatus() {
+    public final BuildStatus getBuiltStatus() {
         List<String> value = (List<String>) model.getValue(PROP_WC_BUILT);
         if (value != null) {
             BuildStatus status = new BuildStatus();
