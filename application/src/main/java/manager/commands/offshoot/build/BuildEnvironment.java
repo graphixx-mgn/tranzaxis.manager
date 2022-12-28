@@ -8,8 +8,6 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
-
-import codex.utils.FileUtils;
 import codex.utils.Runtime;
 import manager.nodes.Offshoot;
 import org.radixware.kernel.common.builder.BuildActionExecutor;
@@ -147,7 +145,7 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
         return logger;
     }
 
-    public class ProblemHandler implements IBuildProblemHandler {
+    public static class ProblemHandler implements IBuildProblemHandler {
 
         private int errorsCount = 0;
         private int warningsCount = 0;
@@ -160,13 +158,17 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
 
         @Override
         public void accept(RadixProblem problem) {
-            if (problem.getSeverity().equals(RadixProblem.ESeverity.ERROR)) {
-                errorsCount++;
-                errors.add(problem);
-            } else if (problem.getSeverity() == RadixProblem.ESeverity.WARNING) {
-                warningsCount++;
+            switch (problem.getSeverity()) {
+                case ERROR:
+                    errorsCount++;
+                    errors.add(problem);
+                    flowLogger.problem(problem);
+                    break;
+                case WARNING:
+                    warningsCount++;
+                    flowLogger.problem(problem);
+                default:
             }
-            flowLogger.problem(problem);
         }
 
         @Override
@@ -195,7 +197,7 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
     }
 
 
-    private class LifecycleManager implements ILifecycleManager {
+    private static class LifecycleManager implements ILifecycleManager {
 
         @Override
         public void saveAll() {}
@@ -207,7 +209,7 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
     }
 
 
-    private class Mutex implements IMutex {
+    private static class Mutex implements IMutex {
 
         Lock l = new ReentrantLock();
 
@@ -221,5 +223,4 @@ public abstract class BuildEnvironment implements IBuildEnvironment {
             return l;
         }
     }
-    
 }
