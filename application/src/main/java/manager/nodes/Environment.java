@@ -129,7 +129,6 @@ public class Environment extends Entity implements INodeListener {
                 new EntityFilter<>(
                         offshoot ->
                             offshoot.getRepository() == getRepository(true) &&
-                            offshoot.getBuiltStatus() != null &&
                             offshoot.isWCLoaded(),
                         offshoot -> {
                             String layerVersion = getVersion();
@@ -679,5 +678,4 @@ public class Environment extends Entity implements INodeListener {
             Environment.this.model.updateDynamicProps(PROP_VERSION);
         }
     }
-
 }
