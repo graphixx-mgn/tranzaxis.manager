@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <versions current="2.3.9" xmlns="manager/schemas/VersionInfo.xsd">
+    <version number="2.3.10" date="2022-12-28">
+        <changelog>
+            <change scope="APP" type="Bugfix">
+                <description>Игнорирование информационных сообщений компилятора RadixWare.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Возможность выбора не скомпилированной рабочей копии в Environment.</description>
+            </change>
+            <change scope="APP" type="Change">
+                <description>Предупреждение при запуске приложения о не скомпилированной рабочей копии.</description>
+            </change>
+        </changelog>
+    </version>
     <version number="2.3.9" date="2022-01-10">
         <changelog>
             <change scope="APP" type="Bugfix">
