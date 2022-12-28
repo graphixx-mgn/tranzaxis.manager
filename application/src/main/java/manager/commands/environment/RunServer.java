@@ -1,6 +1,8 @@
 package manager.commands.environment;
 
 import codex.command.EntityCommand;
+import codex.component.messagebox.MessageBox;
+import codex.component.messagebox.MessageType;
 import codex.service.ServiceRegistry;
 import codex.task.*;
 import codex.type.IComplexType;
@@ -8,6 +10,7 @@ import codex.utils.ImageUtils;
 import codex.utils.Language;
 import manager.nodes.BinarySource;
 import manager.nodes.Environment;
+import manager.nodes.Offshoot;
 import manager.nodes.Release;
 import java.io.File;
 import java.text.MessageFormat;
@@ -38,6 +41,11 @@ public class RunServer extends EntityCommand<Environment> {
 
             ));
         } else {
+            if (((Offshoot) source).getBuiltStatus() == null && !MessageBox.confirmation(
+                    MessageType.WARNING.getIcon(),
+                    MessageType.WARNING.toString(),
+                    Language.get(Offshoot.class, "warn@uncompiled")
+            )) return;
             TES.enqueueTask(
                 new RunServerTask(environment)
             );
